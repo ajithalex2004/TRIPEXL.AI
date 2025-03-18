@@ -10,16 +10,16 @@ export const BookingType = {
 } as const;
 
 export const BoxSize = {
-  INCH_12: "12\"",
-  INCH_18: "18\"",
-  INCH_24: "24\"",
-  INCH_36: "36\"",
-  INCH_40: "40\"",
+  UNDER_12: "< 12\"",
+  BETWEEN_12_18: "> 12\" < 18\"",
+  BETWEEN_18_24: "> 18\" < 24\"",
+  BETWEEN_24_36: "> 24\" < 36\"",
+  OVER_36: "> 36\""
 } as const;
 
 export const TripType = {
-  ONE_WAY: "one_way",
-  ROUND_TRIP: "round_trip",
+  ONE_WAY: "one-way",
+  ROUND_TRIP: "round-trip",
 } as const;
 
 export const Priority = {
