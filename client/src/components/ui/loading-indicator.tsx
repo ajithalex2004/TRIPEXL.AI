@@ -1,5 +1,6 @@
 import * as React from "react";
 import { motion } from "framer-motion";
+import { LoadingMascot } from "./loading-mascot";
 
 interface LoadingIndicatorProps {
   size?: "sm" | "md" | "lg";
@@ -14,6 +15,11 @@ export function LoadingIndicator({ size = "md" }: LoadingIndicatorProps) {
 
   return (
     <div className="relative flex flex-col items-center justify-center">
+      {/* Mascot animation */}
+      <div className="mb-4">
+        <LoadingMascot size={size} />
+      </div>
+
       {/* Road background */}
       <div className={`relative ${sizes[size]} bg-slate-200 rounded-full overflow-hidden`}>
         <motion.div
@@ -22,7 +28,7 @@ export function LoadingIndicator({ size = "md" }: LoadingIndicatorProps) {
           animate={{ opacity: 1 }}
           transition={{ duration: 0.5 }}
         />
-        
+
         {/* Moving truck */}
         <motion.svg
           viewBox="0 0 100 100"
@@ -66,7 +72,7 @@ export function LoadingIndicator({ size = "md" }: LoadingIndicatorProps) {
           transition={{ duration: 1.5, repeat: Infinity }}
         />
       </div>
-      
+
       {/* Loading text */}
       <motion.p
         className="mt-4 text-slate-600 font-medium"
