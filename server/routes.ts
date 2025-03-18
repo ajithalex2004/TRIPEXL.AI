@@ -174,5 +174,36 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Add a new route to get current employee information
+  app.get("/api/employee/current", async (req, res) => {
+    try {
+      // Get employee ID from the authenticated user's token
+      const authHeader = req.headers.authorization;
+      if (!authHeader) {
+        return res.status(401).json({ error: "No authorization token provided" });
+      }
+
+      const token = authHeader.split(" ")[1];
+      const decoded = jwt.verify(token, process.env.JWT_SECRET || 'dev-secret-key') as { userId: number, email: string };
+
+      // Get user details
+      const user = await storage.findUserByEmail(decoded.email);
+      if (!user || !user.employeeId) {
+        return res.status(404).json({ error: "Employee not found" });
+      }
+
+      // Get employee details
+      const employee = await storage.findEmployeeByIdAndEmail(user.employeeId, user.email);
+      if (!employee) {
+        return res.status(404).json({ error: "Employee not found" });
+      }
+
+      res.json(employee);
+    } catch (error) {
+      console.error('Error fetching employee:', error);
+      res.status(500).json({ error: "Failed to fetch employee information" });
+    }
+  });
+
   return httpServer;
 }
