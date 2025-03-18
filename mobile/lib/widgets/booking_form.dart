@@ -13,7 +13,8 @@ class BookingForm extends StatefulWidget {
 class _BookingFormState extends State<BookingForm> {
   final _formKey = GlobalKey<FormState>();
   final ApiService _apiService = ApiService();
-  
+  bool _isLoading = false;
+
   DateTime? _pickupStart;
   DateTime? _pickupEnd;
   int? _loadSize;
@@ -25,13 +26,13 @@ class _BookingFormState extends State<BookingForm> {
       firstDate: DateTime.now(),
       lastDate: DateTime.now().add(const Duration(days: 30)),
     );
-    
+
     if (picked != null) {
       final TimeOfDay? time = await showTimePicker(
         context: context,
         initialTime: TimeOfDay.now(),
       );
-      
+
       if (time != null) {
         setState(() {
           final DateTime dateTime = DateTime(
@@ -53,6 +54,10 @@ class _BookingFormState extends State<BookingForm> {
 
   void _submitForm() async {
     if (_formKey.currentState!.validate()) {
+      setState(() {
+        _isLoading = true;
+      });
+
       try {
         final booking = await _apiService.createBooking({
           'pickupLocation': {
@@ -72,14 +77,38 @@ class _BookingFormState extends State<BookingForm> {
 
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Booking created: #${booking.id}')),
+            SnackBar(
+              content: Text(
+                booking.status == 'assigned'
+                    ? 'Booking created and assigned! ID: #${booking.id}'
+                    : 'Booking created but waiting for assignment. ID: #${booking.id}'
+              ),
+              backgroundColor: booking.status == 'assigned' ? Colors.green : Colors.orange,
+            ),
           );
+
+          // Clear form after successful submission
+          setState(() {
+            _pickupStart = null;
+            _pickupEnd = null;
+            _loadSize = null;
+            _formKey.currentState?.reset();
+          });
         }
       } catch (e) {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Failed to create booking')),
+            SnackBar(
+              content: Text(e.toString()),
+              backgroundColor: Colors.red,
+            ),
           );
+        }
+      } finally {
+        if (mounted) {
+          setState(() {
+            _isLoading = false;
+          });
         }
       }
     }
@@ -94,16 +123,16 @@ class _BookingFormState extends State<BookingForm> {
         children: [
           ListTile(
             title: const Text('Pickup Start Time'),
-            subtitle: Text(_pickupStart != null 
-              ? DateFormat('MMM dd, yyyy HH:mm').format(_pickupStart!)
-              : 'Not selected'),
+            subtitle: Text(_pickupStart != null
+                ? DateFormat('MMM dd, yyyy HH:mm').format(_pickupStart!)
+                : 'Not selected'),
             onTap: () => _selectDateTime(context, true),
           ),
           ListTile(
             title: const Text('Pickup End Time'),
-            subtitle: Text(_pickupEnd != null 
-              ? DateFormat('MMM dd, yyyy HH:mm').format(_pickupEnd!)
-              : 'Not selected'),
+            subtitle: Text(_pickupEnd != null
+                ? DateFormat('MMM dd, yyyy HH:mm').format(_pickupEnd!)
+                : 'Not selected'),
             onTap: () => _selectDateTime(context, false),
           ),
           Padding(
@@ -118,6 +147,9 @@ class _BookingFormState extends State<BookingForm> {
                 if (value == null || value.isEmpty) {
                   return 'Please enter load size';
                 }
+                if (int.tryParse(value) == null) {
+                  return 'Please enter a valid number';
+                }
                 return null;
               },
               onChanged: (value) {
@@ -130,8 +162,10 @@ class _BookingFormState extends State<BookingForm> {
           Padding(
             padding: const EdgeInsets.all(16.0),
             child: ElevatedButton(
-              onPressed: _submitForm,
-              child: const Text('Create Booking'),
+              onPressed: _isLoading ? null : _submitForm,
+              child: _isLoading
+                  ? const CircularProgressIndicator()
+                  : const Text('Create Booking'),
             ),
           ),
         ],

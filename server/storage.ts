@@ -150,40 +150,59 @@ export class MemStorage implements IStorage {
   ): Promise<number> {
     let score = 0;
 
-    // Check vehicle capacity
+    // Check vehicle capacity with more granular scoring
     if (vehicle.loadCapacity >= booking.loadSize) {
+      // Base score for meeting capacity requirement
       score += 10;
-      // Bonus for optimal capacity usage (80-90%)
+
+      // Optimal capacity utilization scoring (80-95%)
       const capacityUtilization = booking.loadSize / vehicle.loadCapacity;
-      if (capacityUtilization >= 0.8 && capacityUtilization <= 0.9) {
-        score += 5;
+      if (capacityUtilization >= 0.8 && capacityUtilization <= 0.95) {
+        // More points for better utilization
+        score += Math.floor((1 - Math.abs(0.875 - capacityUtilization)) * 10);
       }
     } else {
-      return -1; // Immediate disqualification
+      return -1; // Immediate disqualification if capacity is insufficient
     }
 
-    // Distance score (inverse relationship - closer is better)
+    // Distance scoring with exponential decay
     const pickupDistance = calculateDistance(vehicle.currentLocation, booking.pickupLocation);
-    score += Math.max(0, 10 - pickupDistance); // Up to 10 points for proximity
+    const distanceScore = Math.max(0, 15 * Math.exp(-pickupDistance / 10));
+    score += distanceScore;
 
-    // Check existing bookings for this vehicle/driver for potential conflicts
+    // Check existing bookings for this vehicle/driver
     const existingBookings = Array.from(this.bookings.values())
       .filter(b => 
         (b.vehicleId === vehicle.id || b.driverId === driver.id) && 
         b.status !== 'completed'
       );
 
-    // Check for time window conflicts
+    // Time window conflict checking with buffer zones
+    const BUFFER_MINUTES = 30;
     for (const existing of existingBookings) {
-      if (timeWindowsOverlap(booking.pickupWindow, existing.pickupWindow) ||
-          timeWindowsOverlap(booking.dropoffWindow, existing.dropoffWindow)) {
-        return -1; // Immediate disqualification
+      // Add buffer time to avoid tight scheduling
+      const existingStart = new Date(existing.pickupWindow.start);
+      const existingEnd = new Date(existing.dropoffWindow.end);
+      const bookingStart = new Date(booking.pickupWindow.start);
+      const bookingEnd = new Date(booking.dropoffWindow.end);
+
+      existingStart.setMinutes(existingStart.getMinutes() - BUFFER_MINUTES);
+      existingEnd.setMinutes(existingEnd.getMinutes() + BUFFER_MINUTES);
+
+      if (bookingStart < existingEnd && bookingEnd > existingStart) {
+        return -1; // Conflict with buffer zone
       }
     }
 
-    // Bonus for drivers who are already in the area
+    // Driver proximity and historical performance scoring
     const driverToPickupDistance = calculateDistance(driver.currentLocation, booking.pickupLocation);
-    score += Math.max(0, 5 - driverToPickupDistance); // Up to 5 points for driver proximity
+    const driverProximityScore = Math.max(0, 10 * Math.exp(-driverToPickupDistance / 8));
+    score += driverProximityScore;
+
+    // Bonus for vehicle type suitability (can be expanded based on cargo type)
+    if (booking.loadSize <= 1000 && vehicle.type === 'van') score += 5;
+    else if (booking.loadSize <= 5000 && vehicle.type === 'truck') score += 5;
+    else if (booking.loadSize > 5000 && vehicle.type === 'semi') score += 5;
 
     return score;
   }
