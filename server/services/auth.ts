@@ -12,14 +12,6 @@ const smsService = {
   }
 };
 
-// Create a mock transporter for development
-const transporter = {
-  sendMail: async (options: any) => {
-    console.log('Email would be sent:', options);
-    return true;
-  }
-};
-
 export class AuthService {
   private generateOTP(): string {
     return Math.floor(100000 + Math.random() * 900000).toString();
@@ -34,17 +26,30 @@ export class AuthService {
   }
 
   async verifyEmployee(employeeId: string, email: string): Promise<Employee | null> {
-    const employee = await storage.findEmployeeByIdAndEmail(employeeId, email);
-    if (!employee || !employee.isActive) {
+    if (!employeeId || !email) {
+      console.log('Missing employee verification data:', { employeeId, email });
       return null;
     }
-    return employee;
+
+    try {
+      const employee = await storage.findEmployeeByIdAndEmail(employeeId, email);
+      if (!employee || !employee.isActive) {
+        console.log('Employee verification failed:', { employeeId, email });
+        return null;
+      }
+      return employee;
+    } catch (error) {
+      console.error('Error in verifyEmployee:', error);
+      return null;
+    }
   }
 
   async registerUser(userData: InsertUser, password: string): Promise<{ user: User; otp: string }> {
     if (!password) {
       throw new Error('Password is required');
     }
+
+    console.log('Attempting to verify employee:', { employeeId: userData.employeeId, email: userData.email });
 
     // Verify employee exists and is active
     const employee = await this.verifyEmployee(userData.employeeId, userData.email);
@@ -122,13 +127,17 @@ export class AuthService {
       throw new Error('Email and password are required');
     }
 
+    console.log('Attempting login for email:', email);
+
     const user = await storage.findUserByEmail(email);
     if (!user) {
+      console.log('User not found:', email);
       throw new Error('Invalid email or password');
     }
 
     const isValid = await bcrypt.compare(password, user.passwordHash);
     if (!isValid) {
+      console.log('Invalid password for user:', email);
       throw new Error('Invalid email or password');
     }
 
