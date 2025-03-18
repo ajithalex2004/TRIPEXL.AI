@@ -4,6 +4,14 @@ import nodemailer from 'nodemailer';
 import type { Employee, InsertUser, User } from '@shared/schema';
 import { storage } from '../storage';
 
+// Mock SMS service for development
+const smsService = {
+  sendMessage: async (to: string, message: string) => {
+    console.log('SMS would be sent:', { to, message });
+    return true;
+  }
+};
+
 // Create a mock transporter for development
 const transporter = {
   sendMail: async (options: any) => {
@@ -63,19 +71,20 @@ export class AuthService {
       await storage.createOtpVerification({
         userId: user.id,
         otp,
-        type: 'email',
+        type: 'phone',
         expiresAt,
       });
 
       // Log OTP for development (remove in production)
       console.log('Generated OTP:', otp);
 
-      // Mock email sending
-      await transporter.sendMail({
-        to: user.email,
-        subject: 'Verify your account',
-        html: `<p>Your verification code is: <strong>${otp}</strong></p>`,
-      });
+      // Send OTP via SMS
+      if (user.phoneNumber) {
+        await smsService.sendMessage(
+          user.phoneNumber,
+          `Your verification code is: ${otp}`
+        );
+      }
 
       return { user, otp };
     } catch (error) {
