@@ -1,5 +1,6 @@
 import { type Vehicle, type Driver, type Booking, type InsertBooking, type Location, type TimeWindow } from "@shared/schema";
 import * as z from 'zod';
+import bcrypt from 'bcryptjs';
 import { type Employee } from '@shared/schema';
 import { type User, type InsertUser } from '@shared/schema';
 import { type OtpVerification, type InsertOtpVerification } from '@shared/schema';
@@ -95,7 +96,7 @@ export class MemStorage implements IStorage {
     this.initializeMockData();
   }
 
-  private initializeMockData() {
+  private async initializeMockData() {
     // Mock employees
     const mockEmployees: Employee[] = [
       {
@@ -107,31 +108,31 @@ export class MemStorage implements IStorage {
         department: "Operations",
         isActive: true,
         createdAt: new Date()
-      },
-      {
-        id: this.currentId.employees++,
-        employeeId: "EMP002",
-        name: "Jane Doe",
-        email: "jane.doe@company.com",
-        phone: "+1234567891",
-        department: "Logistics",
-        isActive: true,
-        createdAt: new Date()
       }
     ];
 
-    // Create initial user for EMP001
+    // Initialize mock employees
+    mockEmployees.forEach(e => this.employees.set(e.id, e));
+
+    // Create initial user for EMP001 with hashed password
+    const salt = await bcrypt.genSalt(10);
+    const passwordHash = await bcrypt.hash("Code@4088", salt);
+
     const user: User = {
       id: this.currentId.users++,
       employeeId: "EMP001",
       email: "john.smith@company.com",
-      passwordHash: "$2a$10$6Yw0kVe4xqJxz8Qp9J3J8.0Z4Jx.d6HXR7ZkIqJ1XpX4Kq1Z6q", // Hashed version of Code@4088
+      passwordHash,
       phoneNumber: "+1234567890",
       isVerified: true,
       lastLogin: null,
       createdAt: new Date(),
       updatedAt: new Date()
     };
+
+    // Store the user
+    this.users.set(user.id, user);
+    console.log("Default user created with email:", user.email);
 
     // Mock vehicles
     const mockVehicles: Vehicle[] = [
@@ -165,14 +166,11 @@ export class MemStorage implements IStorage {
       }
     ];
 
-    // Initialize all mock data
-    mockEmployees.forEach(e => this.employees.set(e.id, e));
-    this.users.set(user.id, user);
+    // Initialize vehicles and drivers
     mockVehicles.forEach(v => this.vehicles.set(v.id, v));
     mockDrivers.forEach(d => this.drivers.set(d.id, d));
   }
 
-  // Vehicle methods
   async getVehicles(): Promise<Vehicle[]> {
     return Array.from(this.vehicles.values());
   }
@@ -190,7 +188,6 @@ export class MemStorage implements IStorage {
     return updated;
   }
 
-  // Driver methods
   async getDrivers(): Promise<Driver[]> {
     return Array.from(this.drivers.values());
   }
@@ -292,7 +289,6 @@ export class MemStorage implements IStorage {
     return bestAssignment;
   }
 
-  // Booking methods
   async getBookings(): Promise<Booking[]> {
     return Array.from(this.bookings.values());
   }
@@ -346,7 +342,6 @@ export class MemStorage implements IStorage {
     return updated;
   }
 
-  // Employee methods
   async findEmployeeByIdAndEmail(employeeId: string, email: string): Promise<Employee | null> {
     try {
       if (!this.employees || this.employees.size === 0) {
@@ -370,7 +365,6 @@ export class MemStorage implements IStorage {
     }
   }
 
-  // User methods
   async createUser(userData: InsertUser & { passwordHash: string }): Promise<User> {
     const id = this.currentId.users++;
     const user: User = {
@@ -416,7 +410,6 @@ export class MemStorage implements IStorage {
     return updated;
   }
 
-  // OTP methods
   async createOtpVerification(verification: InsertOtpVerification): Promise<OtpVerification> {
     const id = this.currentId.otpVerifications++;
     const newVerification: OtpVerification = {
