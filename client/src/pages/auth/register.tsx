@@ -19,6 +19,14 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardContent } from "@/components/ui/card";
 import { LoadingIndicator } from "@/components/ui/loading-indicator";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { COUNTRY_CODES } from "@/lib/constants";
 
 export default function RegisterPage() {
   const { toast } = useToast();
@@ -57,7 +65,7 @@ export default function RegisterPage() {
     },
     onSuccess: (data) => {
       toast({
-        title: "Registration successful",
+        title: "Success",
         description: "Please check your email for the verification code.",
       });
       setUserId(data.userId);
@@ -190,11 +198,22 @@ export default function RegisterPage() {
                 control={form.control}
                 name="countryCode"
                 render={({ field }) => (
-                  <FormItem className="col-span-1">
-                    <FormLabel>Code</FormLabel>
-                    <FormControl>
-                      <Input {...field} readOnly />
-                    </FormControl>
+                  <FormItem className="col-span-2">
+                    <FormLabel>Country Code</FormLabel>
+                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select code" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {COUNTRY_CODES.map((code) => (
+                          <SelectItem key={code.value} value={code.value}>
+                            {code.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                     <FormMessage />
                   </FormItem>
                 )}
@@ -203,7 +222,7 @@ export default function RegisterPage() {
                 control={form.control}
                 name="phoneNumber"
                 render={({ field }) => (
-                  <FormItem className="col-span-4">
+                  <FormItem className="col-span-3">
                     <FormLabel>Phone Number</FormLabel>
                     <FormControl>
                       <Input {...field} placeholder="Enter your phone number" />

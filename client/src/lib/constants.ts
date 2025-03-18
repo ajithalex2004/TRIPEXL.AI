@@ -45,3 +45,16 @@ export const BOOKING_STATUS_COLORS = {
   completed: "bg-green-500",
   cancelled: "bg-red-500"
 };
+
+export const COUNTRY_CODES = [
+  { value: "971", label: "United Arab Emirates (+971)" },
+  { value: "1", label: "United States (+1)" },
+  { value: "44", label: "United Kingdom (+44)" },
+  { value: "91", label: "India (+91)" },
+  { value: "86", label: "China (+86)" },
+  { value: "966", label: "Saudi Arabia (+966)" },
+  { value: "965", label: "Kuwait (+965)" },
+  { value: "974", label: "Qatar (+974)" },
+  { value: "973", label: "Bahrain (+973)" },
+  { value: "968", label: "Oman (+968)" }
+];
