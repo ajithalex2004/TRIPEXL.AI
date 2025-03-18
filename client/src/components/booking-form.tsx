@@ -204,9 +204,9 @@ export function BookingForm() {
                       <FormItem>
                         <FormLabel>Number of Boxes</FormLabel>
                         <FormControl>
-                          <Input 
-                            type="number" 
-                            {...field} 
+                          <Input
+                            type="number"
+                            {...field}
                             onChange={(e) => {
                               const value = parseInt(e.target.value) || 0;
                               field.onChange(value);
@@ -216,7 +216,7 @@ export function BookingForm() {
                                 Array(value).fill("")
                               );
                             }}
-                            min={1} 
+                            min={1}
                           />
                         </FormControl>
                         <FormMessage />
@@ -310,6 +310,7 @@ export function BookingForm() {
             )}
 
             {/* Common Fields */}
+            {/* Purpose Field */}
             <FormField
               control={form.control}
               name="purpose"
@@ -323,9 +324,15 @@ export function BookingForm() {
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      {Object.values(BookingPurpose).sort().map((purpose) => (
-                        <SelectItem key={purpose} value={purpose}>{purpose}</SelectItem>
-                      ))}
+                      {/* Show Critical first */}
+                      <SelectItem value={BookingPurpose.CRITICAL}>Critical</SelectItem>
+                      {/* Then show rest of the purposes alphabetically */}
+                      {Object.values(BookingPurpose)
+                        .filter(purpose => purpose !== BookingPurpose.CRITICAL)
+                        .sort()
+                        .map((purpose) => (
+                          <SelectItem key={purpose} value={purpose}>{purpose}</SelectItem>
+                        ))}
                     </SelectContent>
                   </Select>
                   <FormMessage />
