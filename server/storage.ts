@@ -10,8 +10,8 @@ const locations = z.object({
 });
 
 const timeWindow = z.object({
-  start: z.date(),
-  end: z.date()
+  start: z.union([z.string(), z.date()]),
+  end: z.union([z.string(), z.date()])
 });
 
 function calculateDistance(loc1: z.infer<typeof locations>, loc2: z.infer<typeof locations>): number {
