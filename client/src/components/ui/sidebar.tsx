@@ -16,7 +16,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip"
-import { useLocation } from 'react-router-dom';
+import { useLocation } from 'wouter';
 
 const SIDEBAR_COOKIE_NAME = "sidebar:state"
 const SIDEBAR_COOKIE_MAX_AGE = 60 * 60 * 24 * 7
@@ -736,7 +736,7 @@ const SidebarMenuSubButton = React.forwardRef<
 SidebarMenuSubButton.displayName = "SidebarMenuSubButton"
 
 const LogoutButton = () => {
-  const [location, setLocation] = useLocation();
+  const [, setLocation] = useLocation();
 
   const handleLogout = () => {
     localStorage.removeItem("token");
@@ -746,7 +746,7 @@ const LogoutButton = () => {
   return (
     <SidebarMenuButton
       onClick={handleLogout}
-      className="text-red-500 hover:text-red-600"
+      className="text-red-500 hover:text-red-600 mt-auto"
     >
       <LogOut className="w-4 h-4" />
       <span>Logout</span>

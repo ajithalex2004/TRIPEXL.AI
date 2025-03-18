@@ -7,6 +7,7 @@ import NotFound from "@/pages/not-found";
 import Home from "@/pages/home";
 import LoginPage from "@/pages/auth/login";
 import RegisterPage from "@/pages/auth/register";
+import { Layout } from "@/components/layout";
 
 function ProtectedRoute({ component: Component }: { component: React.ComponentType }) {
   const [, setLocation] = useLocation();
@@ -18,7 +19,11 @@ function ProtectedRoute({ component: Component }: { component: React.ComponentTy
     }
   }, [setLocation]);
 
-  return <Component />;
+  return (
+    <Layout>
+      <Component />
+    </Layout>
+  );
 }
 
 function Router() {
