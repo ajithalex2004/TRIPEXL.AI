@@ -1,4 +1,5 @@
 import * as React from "react";
+import { Link } from "wouter";
 import {
   Sidebar,
   SidebarContent,
@@ -7,9 +8,11 @@ import {
   SidebarMenuItem,
   SidebarProvider,
   LogoutButton,
+  SidebarMenuButton,
 } from "@/components/ui/sidebar";
 import { Logo } from "@/components/ui/logo";
 import { Footer } from "@/components/ui/footer";
+import { History } from "lucide-react";
 
 export function Layout({ children }: { children: React.ReactNode }) {
   return (
@@ -21,6 +24,14 @@ export function Layout({ children }: { children: React.ReactNode }) {
           </SidebarHeader>
           <SidebarContent>
             <SidebarMenu>
+              <SidebarMenuItem>
+                <Link href="/bookings">
+                  <SidebarMenuButton className="w-full">
+                    <History className="w-4 h-4" />
+                    <span>Booking History</span>
+                  </SidebarMenuButton>
+                </Link>
+              </SidebarMenuItem>
               <SidebarMenuItem>
                 <LogoutButton />
               </SidebarMenuItem>
