@@ -85,16 +85,19 @@ export function BookingForm() {
     }
   }, [employee, form]);
 
-  // Check if current step is valid before allowing to proceed
+  // Update the step validation logic
   const isStepValid = async (step: number) => {
     const fields = {
       1: ["employeeId", "bookingType"],
-      2: ["purpose", "priority"],
-      3: ["pickupLocation", "dropoffLocation"],
-      4: ["pickupWindow", "dropoffWindow"],
-      5: bookingType === "freight"
+      2: bookingType === "freight"
         ? ["cargoType", "numBoxes", "weight", "boxSize"]
-        : ["tripType", "numPassengers"]
+        : bookingType === "passenger"
+        ? ["tripType", "numPassengers"]
+        : [],
+      3: ["purpose", "priority"],
+      4: ["pickupLocation", "dropoffLocation"],
+      5: ["pickupWindow", "dropoffWindow"],
+      6: [] // Optional fields
     }[step];
 
     const result = await form.trigger(fields as any);
@@ -256,8 +259,144 @@ export function BookingForm() {
               </div>
             )}
 
-            {/* Step 2: Purpose and Priority */}
-            {currentStep === 2 && (
+            {/* Step 2: Type-specific Fields */}
+            {currentStep === 2 && bookingType === "freight" && (
+              <div className="space-y-4">
+                <FormField
+                  control={form.control}
+                  name="cargoType"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Cargo Type *</FormLabel>
+                      <Select onValueChange={field.onChange} value={field.value}>
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select cargo type" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          {Object.values(CargoType).map((type) => (
+                            <SelectItem key={type} value={type}>
+                              {type}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <FormField
+                    control={form.control}
+                    name="numBoxes"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Number of Boxes *</FormLabel>
+                        <FormControl>
+                          <Input
+                            type="number"
+                            {...field}
+                            onChange={(e) => {
+                              const value = parseInt(e.target.value) || 0;
+                              field.onChange(value);
+                              form.setValue(
+                                "boxSize",
+                                Array(value).fill("")
+                              );
+                            }}
+                            min={1}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="weight"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Approximate Weight (kg) *</FormLabel>
+                        <FormControl>
+                          <Input type="number" {...field} min={0} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+
+                {/* Dynamic Box Size Fields */}
+                {numBoxes > 0 && Array.from({ length: numBoxes }).map((_, index) => (
+                  <FormField
+                    key={index}
+                    control={form.control}
+                    name={`boxSize.${index}`}
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Box Size {index + 1} (in inches) *</FormLabel>
+                        <Select onValueChange={field.onChange} value={field.value}>
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue placeholder={`Select size for box ${index + 1}`} />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            {Object.values(BoxSize).map((size) => (
+                              <SelectItem key={size} value={size}>{size}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                ))}
+              </div>
+            )}
+
+            {currentStep === 2 && bookingType === "passenger" && (
+              <div className="space-y-4">
+                <FormField
+                  control={form.control}
+                  name="tripType"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Trip Type *</FormLabel>
+                      <Select onValueChange={field.onChange} value={field.value}>
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select trip type" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          <SelectItem value={TripType.ONE_WAY}>One Way</SelectItem>
+                          <SelectItem value={TripType.ROUND_TRIP}>Round Trip</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="numPassengers"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Number of Passengers *</FormLabel>
+                      <FormControl>
+                        <Input type="number" {...field} min={1} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+            )}
+
+            {/* Step 3: Purpose and Priority */}
+            {currentStep === 3 && (
               <div className="space-y-4">
                 {/* Priority field first */}
                 <FormField
@@ -269,7 +408,7 @@ export function BookingForm() {
                       <Select
                         onValueChange={field.onChange}
                         value={field.value}
-                        disabled // Disable manual selection
+                        disabled
                       >
                         <FormControl>
                           <SelectTrigger>
@@ -288,7 +427,6 @@ export function BookingForm() {
                   )}
                 />
 
-                {/* Purpose field with updated tooltip */}
                 <FormField
                   control={form.control}
                   name="purpose"
@@ -302,11 +440,9 @@ export function BookingForm() {
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent>
-                          {Object.values(BookingPurpose)
-                            .sort()
-                            .map((purpose) => (
-                              <SelectItem key={purpose} value={purpose}>{purpose}</SelectItem>
-                            ))}
+                          {Object.values(BookingPurpose).map((purpose) => (
+                            <SelectItem key={purpose} value={purpose}>{purpose}</SelectItem>
+                          ))}
                         </SelectContent>
                       </Select>
                       <FormMessage />
@@ -316,13 +452,13 @@ export function BookingForm() {
               </div>
             )}
 
-            {/* Step 3: Locations */}
-            {currentStep === 3 && (
+            {/* Step 4: Locations */}
+            {currentStep === 4 && (
               <div className="space-y-6">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div className="space-y-2">
                     <FormLabel>Pickup Location *</FormLabel>
-                    <div className="h-[400px]">
+                    <div className="h-[400px] relative">
                       <MapView
                         onLocationSelect={(location) => {
                           form.setValue("pickupLocation", location, { shouldValidate: true });
@@ -333,7 +469,7 @@ export function BookingForm() {
                   </div>
                   <div className="space-y-2">
                     <FormLabel>Dropoff Location *</FormLabel>
-                    <div className="h-[400px]">
+                    <div className="h-[400px] relative">
                       <MapView
                         onLocationSelect={(location) => {
                           form.setValue("dropoffLocation", location, { shouldValidate: true });
@@ -346,8 +482,8 @@ export function BookingForm() {
               </div>
             )}
 
-            {/* Step 4: Time Windows */}
-            {currentStep === 4 && (
+            {/* Step 5: Time Windows */}
+            {currentStep === 5 && (
               <div className="space-y-4">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="space-y-4">
@@ -409,148 +545,6 @@ export function BookingForm() {
                     </div>
                   </div>
                 </div>
-              </div>
-            )}
-
-            {/* Step 5: Type-specific Fields */}
-            {currentStep === 5 && (
-              <div className="space-y-4">
-                {/* Freight specific fields */}
-                {bookingType === "freight" && (
-                  <div className="space-y-4">
-                    <FormField
-                      control={form.control}
-                      name="cargoType"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Cargo Type *</FormLabel>
-                          <Select onValueChange={field.onChange} value={field.value}>
-                            <FormControl>
-                              <SelectTrigger>
-                                <SelectValue placeholder="Select cargo type" />
-                              </SelectTrigger>
-                            </FormControl>
-                            <SelectContent>
-                              {Object.values(CargoType).map((type) => (
-                                <SelectItem key={type} value={type}>
-                                  {type}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <FormField
-                        control={form.control}
-                        name="numBoxes"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Number of Boxes *</FormLabel>
-                            <FormControl>
-                              <Input
-                                type="number"
-                                {...field}
-                                onChange={(e) => {
-                                  const value = parseInt(e.target.value) || 0;
-                                  field.onChange(value);
-                                  form.setValue(
-                                    "boxSize",
-                                    Array(value).fill("")
-                                  );
-                                }}
-                                min={1}
-                              />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                      <FormField
-                        control={form.control}
-                        name="weight"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Approximate Weight (kg) *</FormLabel>
-                            <FormControl>
-                              <Input type="number" {...field} min={0} />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                    </div>
-
-                    {/* Dynamic Box Size Fields */}
-                    {numBoxes > 0 && Array.from({ length: numBoxes }).map((_, index) => (
-                      <FormField
-                        key={index}
-                        control={form.control}
-                        name={`boxSize.${index}`}
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Box Size {index + 1} (in inches) *</FormLabel>
-                            <Select onValueChange={field.onChange} value={field.value}>
-                              <FormControl>
-                                <SelectTrigger>
-                                  <SelectValue placeholder={`Select size for box ${index + 1}`} />
-                                </SelectTrigger>
-                              </FormControl>
-                              <SelectContent>
-                                {Object.values(BoxSize).map((size) => (
-                                  <SelectItem key={size} value={size}>{size}</SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                    ))}
-                  </div>
-                )}
-
-                {/* Passenger specific fields */}
-                {bookingType === "passenger" && (
-                  <div className="space-y-4">
-                    <FormField
-                      control={form.control}
-                      name="tripType"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Trip Type *</FormLabel>
-                          <Select onValueChange={field.onChange} value={field.value}>
-                            <FormControl>
-                              <SelectTrigger>
-                                <SelectValue placeholder="Select trip type" />
-                              </SelectTrigger>
-                            </FormControl>
-                            <SelectContent>
-                              <SelectItem value={TripType.ONE_WAY}>One Way</SelectItem>
-                              <SelectItem value={TripType.ROUND_TRIP}>Round Trip</SelectItem>
-                            </SelectContent>
-                          </Select>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    <FormField
-                      control={form.control}
-                      name="numPassengers"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Number of Passengers *</FormLabel>
-                          <FormControl>
-                            <Input type="number" {...field} min={1} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                  </div>
-                )}
               </div>
             )}
 

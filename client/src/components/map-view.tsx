@@ -1,6 +1,6 @@
 import { useState, useCallback } from "react";
 import { Card } from "@/components/ui/card";
-import { GoogleMap, LoadScript, Marker } from "@react-google-maps/api";
+import { LoadScriptNext, GoogleMap, Marker } from "@react-google-maps/api";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Search } from "lucide-react";
@@ -20,10 +20,13 @@ export interface MapViewProps {
   }) => void;
 }
 
+const libraries: ("places" | "geometry" | "drawing" | "visualization")[] = ["places"];
+
 export function MapView({ onLocationSelect }: MapViewProps) {
   const [marker, setMarker] = useState(defaultCenter);
   const [searchQuery, setSearchQuery] = useState("");
   const [address, setAddress] = useState("");
+  const [mapError, setMapError] = useState(false);
 
   const handleMapClick = useCallback(async (e: google.maps.MapMouseEvent) => {
     if (!e.latLng) return;
@@ -46,6 +49,7 @@ export function MapView({ onLocationSelect }: MapViewProps) {
       }
     } catch (error) {
       console.error("Error getting address:", error);
+      setMapError(true);
     }
   }, [onLocationSelect]);
 
@@ -69,12 +73,13 @@ export function MapView({ onLocationSelect }: MapViewProps) {
       }
     } catch (error) {
       console.error("Error searching location:", error);
+      setMapError(true);
     }
   }, [searchQuery, onLocationSelect]);
 
   return (
-    <Card className="p-2 h-full">
-      <div className="mb-2 flex gap-2">
+    <Card className="p-4 h-full">
+      <div className="mb-4 flex gap-2">
         <Input
           placeholder="Search location..."
           value={searchQuery}
@@ -86,20 +91,39 @@ export function MapView({ onLocationSelect }: MapViewProps) {
           <Search className="h-4 w-4" />
         </Button>
       </div>
-      <LoadScript googleMapsApiKey={import.meta.env.VITE_GOOGLE_MAPS_API_KEY || ""}>
-        <GoogleMap
-          mapContainerStyle={{
-            width: '100%',
-            height: '300px',
-            borderRadius: '8px'
-          }}
-          center={marker}
-          zoom={13}
-          onClick={handleMapClick}
-        >
-          <Marker position={marker} />
-        </GoogleMap>
-      </LoadScript>
+
+      <LoadScriptNext 
+        googleMapsApiKey={import.meta.env.VITE_GOOGLE_MAPS_API_KEY || ""}
+        libraries={libraries}
+      >
+        <div className="h-[300px] relative">
+          <GoogleMap
+            mapContainerStyle={{
+              width: '100%',
+              height: '100%',
+              borderRadius: '8px'
+            }}
+            center={marker}
+            zoom={13}
+            onClick={handleMapClick}
+            options={{
+              zoomControl: true,
+              streetViewControl: false,
+              mapTypeControl: false,
+              fullscreenControl: false
+            }}
+          >
+            <Marker position={marker} />
+          </GoogleMap>
+        </div>
+      </LoadScriptNext>
+
+      {mapError && (
+        <p className="mt-2 text-xs text-destructive">
+          Error loading map. Please check your internet connection and try again.
+        </p>
+      )}
+
       {address && (
         <p className="mt-2 text-xs text-muted-foreground truncate">
           Selected: {address}
