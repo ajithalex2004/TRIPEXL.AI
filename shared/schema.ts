@@ -144,8 +144,38 @@ export const insertBookingSchema = createInsertSchema(bookings)
     bookingType: z.enum([BookingType.FREIGHT, BookingType.PASSENGER, BookingType.AMBULANCE]),
     purpose: z.enum(Object.values(BookingPurpose) as [string, ...string[]]),
     priority: z.enum(Object.values(Priority) as [string, ...string[]]),
-    boxSize: z.array(z.enum(Object.values(BoxSize) as [string, ...string[]])).optional(),
-    tripType: z.enum(Object.values(TripType) as [string, ...string[]]).optional(),
+    boxSize: z.array(z.enum(Object.values(BoxSize) as [string, ...string[]]))
+      .nonempty("At least one box size is required")
+      .optional()
+      .nullable(),
+    tripType: z.enum(Object.values(TripType) as [string, ...string[]])
+      .optional()
+      .nullable(),
+    pickupLocation: z.object({
+      address: z.string().nonempty("Pickup address is required"),
+      coordinates: z.object({
+        lat: z.number(),
+        lng: z.number()
+      })
+    }),
+    dropoffLocation: z.object({
+      address: z.string().nonempty("Dropoff address is required"),
+      coordinates: z.object({
+        lat: z.number(),
+        lng: z.number()
+      })
+    }),
+    pickupWindow: z.object({
+      start: z.string().nonempty("Pickup start time is required"),
+      end: z.string().nonempty("Pickup end time is required")
+    }),
+    dropoffWindow: z.object({
+      start: z.string().nonempty("Dropoff start time is required"),
+      end: z.string().nonempty("Dropoff end time is required")
+    }),
+    // Optional fields
+    referenceNo: z.string().optional(),
+    remarks: z.string().optional(),
   });
 
 export const users = pgTable("users", {
