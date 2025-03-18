@@ -43,14 +43,6 @@ export default function BookingHistoryPage() {
     return matchesSearch && matchesType && matchesPurpose && matchesPriority;
   });
 
-  if (isLoading) {
-    return (
-      <div className="flex justify-center items-center min-h-[400px]">
-        <LoadingIndicator />
-      </div>
-    );
-  }
-
   return (
     <div className="container mx-auto py-6">
       <Card>
@@ -122,24 +114,31 @@ export default function BookingHistoryPage() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {filteredBookings?.map((booking) => (
-                <TableRow key={booking.id}>
-                  <TableCell>{booking.referenceNo || "-"}</TableCell>
-                  <TableCell>{booking.bookingType}</TableCell>
-                  <TableCell>{booking.purpose}</TableCell>
-                  <TableCell>{booking.priority}</TableCell>
-                  <TableCell>{booking.status}</TableCell>
-                  <TableCell>
-                    {format(new Date(booking.createdAt), "MMM d, yyyy HH:mm")}
+              {isLoading ? (
+                <TableRow>
+                  <TableCell colSpan={6} className="text-center py-8">
+                    <LoadingIndicator />
                   </TableCell>
                 </TableRow>
-              ))}
-              {!filteredBookings?.length && (
+              ) : !filteredBookings?.length ? (
                 <TableRow>
                   <TableCell colSpan={6} className="text-center py-8">
                     No bookings found
                   </TableCell>
                 </TableRow>
+              ) : (
+                filteredBookings?.map((booking) => (
+                  <TableRow key={booking.id}>
+                    <TableCell>{booking.referenceNo || "-"}</TableCell>
+                    <TableCell>{booking.bookingType}</TableCell>
+                    <TableCell>{booking.purpose}</TableCell>
+                    <TableCell>{booking.priority}</TableCell>
+                    <TableCell>{booking.status}</TableCell>
+                    <TableCell>
+                      {format(new Date(booking.createdAt), "MMM d, yyyy HH:mm")}
+                    </TableCell>
+                  </TableRow>
+                ))
               )}
             </TableBody>
           </Table>
