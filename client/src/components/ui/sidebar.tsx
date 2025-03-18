@@ -1,7 +1,7 @@
 import * as React from "react"
 import { Slot } from "@radix-ui/react-slot"
 import { VariantProps, cva } from "class-variance-authority"
-import { PanelLeft } from "lucide-react"
+import { PanelLeft, LogOut } from "lucide-react"
 
 import { useIsMobile } from "@/hooks/use-mobile"
 import { cn } from "@/lib/utils"
@@ -16,6 +16,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip"
+import { useLocation } from 'react-router-dom';
 
 const SIDEBAR_COOKIE_NAME = "sidebar:state"
 const SIDEBAR_COOKIE_MAX_AGE = 60 * 60 * 24 * 7
@@ -734,6 +735,25 @@ const SidebarMenuSubButton = React.forwardRef<
 })
 SidebarMenuSubButton.displayName = "SidebarMenuSubButton"
 
+const LogoutButton = () => {
+  const [location, setLocation] = useLocation();
+
+  const handleLogout = () => {
+    localStorage.removeItem("token");
+    setLocation("/auth/login");
+  };
+
+  return (
+    <SidebarMenuButton
+      onClick={handleLogout}
+      className="text-red-500 hover:text-red-600"
+    >
+      <LogOut className="w-4 h-4" />
+      <span>Logout</span>
+    </SidebarMenuButton>
+  );
+};
+
 export {
   Sidebar,
   SidebarContent,
@@ -758,5 +778,6 @@ export {
   SidebarRail,
   SidebarSeparator,
   SidebarTrigger,
+  LogoutButton,
   useSidebar,
 }
