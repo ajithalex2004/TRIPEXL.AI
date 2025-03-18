@@ -44,6 +44,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(401).json({ error: "Please verify your account first" });
       }
 
+      // Get employee details
+      const employee = await storage.findEmployeeByIdAndEmail(user.employeeId, user.email);
+      if (!employee) {
+        console.log('Employee not found for user:', email);
+        return res.status(404).json({ error: "Employee not found" });
+      }
+
       // Update last login time
       await storage.updateUserLastLogin(user.id);
 
@@ -55,7 +62,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       );
 
       console.log('Login successful for user:', email);
-      res.json({ token, user });
+      // Return both user and employee data
+      res.json({ token, user, employee });
     } catch (error: any) {
       console.error('Login error:', error);
       res.status(500).json({ error: "Server error during login" }); 

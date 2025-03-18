@@ -58,6 +58,19 @@ export const BookingPurpose = {
   GUEST: "Guest",
 } as const;
 
+export const CargoType = {
+  GENERAL: "General Cargo",
+  TEMPERATURE_CONTROLLED: "Temperature Controlled",
+  HAZARDOUS: "Hazardous Materials",
+  FRAGILE: "Fragile Items",
+  PERISHABLE: "Perishable Goods",
+  MEDICAL_SUPPLIES: "Medical Supplies",
+  DOCUMENTS: "Documents",
+  ELECTRONICS: "Electronics",
+  HEAVY_EQUIPMENT: "Heavy Equipment",
+  LIVESTOCK: "Livestock"
+} as const;
+
 // Base schemas
 export const locations = z.object({
   address: z.string(),

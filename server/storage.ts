@@ -135,6 +135,9 @@ export class MemStorage implements IStorage {
     this.users.set(user.id, user);
     console.log("Default user created with email:", user.email);
 
+    // Log the stored employee data for verification
+    console.log("Default employee stored:", mockEmployees[0]);
+
     // Mock vehicles
     const mockVehicles: Vehicle[] = [
       {
@@ -345,10 +348,8 @@ export class MemStorage implements IStorage {
 
   async findEmployeeByIdAndEmail(employeeId: string, email: string): Promise<Employee | null> {
     try {
-      if (!this.employees || this.employees.size === 0) {
-        console.log("No employees found in the system");
-        return null;
-      }
+      console.log("Searching for employee with ID:", employeeId, "and email:", email);
+      console.log("Current employees in storage:", Array.from(this.employees.values()));
 
       const employee = Array.from(this.employees.values()).find(
         e => e.employeeId === employeeId && e.email === email
@@ -359,6 +360,7 @@ export class MemStorage implements IStorage {
         return null;
       }
 
+      console.log("Found employee:", employee);
       return employee;
     } catch (error) {
       console.error("Error finding employee:", error);
