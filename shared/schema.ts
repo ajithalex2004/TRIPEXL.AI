@@ -30,6 +30,7 @@ export const Priority = {
 } as const;
 
 export const BookingPurpose = {
+  CRITICAL: "Critical",
   HOSPITAL_VISIT: "Hospital Visit",
   BLOOD_BANK: "Blood Bank",
   BLOOD_SAMPLES: "Blood Samples Collection/Delivery",
