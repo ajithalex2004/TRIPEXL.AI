@@ -1,5 +1,5 @@
-name: vehicle_booking
-description: Vehicle Booking System Mobile App
+name: trip_exl
+description: TRIP EXL - Fleet Management System
 publish_to: 'none'
 version: 1.0.0+1
 
