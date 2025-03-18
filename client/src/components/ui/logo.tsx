@@ -8,11 +8,11 @@ export function Logo({ className = "", size = "default" }: { className?: string;
   };
 
   return (
-    <div className={`flex items-center gap-2 ${className}`}>
+    <div className={`flex items-center ${className}`}>
       <img 
-        src="/attached_assets/image_1742284022425.png"
+        src="/logo.png"
         alt="EXL Solutions Logo"
-        className={`${sizes[size]} object-contain`}
+        className={`${sizes[size]} w-auto`}
       />
     </div>
   );
