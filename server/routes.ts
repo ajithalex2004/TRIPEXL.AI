@@ -15,25 +15,46 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Auth routes
   app.post("/api/login", async (req, res) => {
     const { email, password } = req.body;
+    console.log('Login attempt for email:', email);
+
     if (!email || !password) {
+      console.log('Missing credentials');
       return res.status(400).json({ error: "Email and password are required" });
     }
 
     try {
-      const user = await storage.getUserByEmail(email);
+      console.log('Finding user in storage');
+      const user = await storage.findUserByEmail(email);
+
       if (!user) {
+        console.log('User not found:', email);
         return res.status(401).json({ error: "Invalid credentials" });
       }
 
+      console.log('Comparing passwords');
       const isValidPassword = await bcrypt.compare(password, user.passwordHash);
+
       if (!isValidPassword) {
+        console.log('Invalid password for user:', email);
         return res.status(401).json({ error: "Invalid credentials" });
       }
 
-      const token = jwt.sign({ userId: user.id }, process.env.JWT_SECRET || "default-secret", {
-        expiresIn: "24h",
-      });
+      if (!user.isVerified) {
+        console.log('User not verified:', email);
+        return res.status(401).json({ error: "Please verify your account first" });
+      }
 
+      // Update last login time
+      await storage.updateUserLastLogin(user.id);
+
+      // Generate JWT token
+      const token = jwt.sign(
+        { userId: user.id, email: user.email },
+        process.env.JWT_SECRET || 'dev-secret-key',
+        { expiresIn: '24h' }
+      );
+
+      console.log('Login successful for user:', email);
       res.json({ token, user });
     } catch (error: any) {
       console.error('Login error:', error);

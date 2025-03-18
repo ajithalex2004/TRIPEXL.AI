@@ -65,6 +65,7 @@ export interface IStorage {
   // User methods
   createUser(user: InsertUser & { passwordHash: string }): Promise<User>;
   findUserByEmail(email: string): Promise<User | null>;
+  getUserByEmail(email: string): Promise<User | null>;
   markUserAsVerified(userId: number): Promise<User>;
   updateUserLastLogin(userId: number): Promise<User>;
 
@@ -382,6 +383,10 @@ export class MemStorage implements IStorage {
   async findUserByEmail(email: string): Promise<User | null> {
     const user = Array.from(this.users.values()).find(u => u.email === email);
     return user || null;
+  }
+
+  async getUserByEmail(email: string): Promise<User | null> {
+    return this.findUserByEmail(email);
   }
 
   async markUserAsVerified(userId: number): Promise<User> {
