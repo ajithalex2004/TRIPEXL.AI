@@ -1,3 +1,4 @@
+// Location model with proper part declarations
 import 'package:json_annotation/json_annotation.dart';
 
 part 'location.g.dart';
