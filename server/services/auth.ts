@@ -1,6 +1,5 @@
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
-import nodemailer from 'nodemailer';
 import type { Employee, InsertUser, User } from '@shared/schema';
 import { storage } from '../storage';
 
@@ -17,12 +16,12 @@ export class AuthService {
     return Math.floor(100000 + Math.random() * 900000).toString();
   }
 
-  private async generateToken(user: User): Promise<string> {
-    return jwt.sign(
+  private generateToken(user: User): Promise<string> {
+    return Promise.resolve(jwt.sign(
       { userId: user.id, email: user.email },
       process.env.JWT_SECRET || 'dev-secret-key',
       { expiresIn: '24h' }
-    );
+    ));
   }
 
   async verifyEmployee(employeeId: string, email: string): Promise<Employee | null> {
@@ -161,7 +160,10 @@ export class AuthService {
     try {
       const existingUser = await storage.findUserByEmail("john.smith@company.com");
       if (!existingUser) {
-        const passwordHash = await this.createHashedPassword("Code@4088");
+        // Create a new password hash
+        const salt = await bcrypt.genSalt(10);
+        const passwordHash = await bcrypt.hash("Code@4088", salt);
+
         await storage.createUser({
           employeeId: "EMP001",
           email: "john.smith@company.com",
