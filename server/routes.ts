@@ -14,10 +14,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
       return res.status(400).json({ error: "Invalid registration data" });
     }
 
+    const { password } = req.body;
+    if (!password || typeof password !== 'string' || password.length < 6) {
+      return res.status(400).json({ error: "Password must be at least 6 characters long" });
+    }
+
     try {
-      const { user } = await authService.registerUser(result.data, req.body.password);
-      res.json({ message: "Registration successful. Please check your email for verification code.", userId: user.id });
+      const { user, otp } = await authService.registerUser(result.data, password);
+      res.json({ 
+        message: "Registration successful. Please check your email for verification code.", 
+        userId: user.id 
+      });
     } catch (error: any) {
+      console.error('Registration error:', error);
       res.status(400).json({ error: error.message });
     }
   });

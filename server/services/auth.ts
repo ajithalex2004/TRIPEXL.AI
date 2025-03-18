@@ -36,6 +36,10 @@ export class AuthService {
   }
 
   async registerUser(userData: InsertUser, password: string): Promise<{ user: User; otp: string }> {
+    if (!password) {
+      throw new Error('Password is required');
+    }
+
     // Verify employee exists and is active
     const employee = await this.verifyEmployee(userData.employeeId, userData.email);
     if (!employee) {
@@ -43,44 +47,49 @@ export class AuthService {
     }
 
     // Hash password
-    const passwordHash = await bcrypt.hash(password, 10);
+    try {
+      const passwordHash = await bcrypt.hash(password, 10);
 
-    // Create user
-    const user = await storage.createUser({
-      ...userData,
-      passwordHash,
-    });
+      // Create user
+      const user = await storage.createUser({
+        ...userData,
+        passwordHash,
+      });
 
-    // Generate and store OTP
-    const otp = this.generateOTP();
-    const expiresAt = new Date();
-    expiresAt.setMinutes(expiresAt.getMinutes() + 15); // OTP expires in 15 minutes
+      // Generate and store OTP
+      const otp = this.generateOTP();
+      const expiresAt = new Date();
+      expiresAt.setMinutes(expiresAt.getMinutes() + 15); // OTP expires in 15 minutes
 
-    await storage.createOtpVerification({
-      userId: user.id,
-      otp,
-      type: 'email',
-      expiresAt,
-    });
+      await storage.createOtpVerification({
+        userId: user.id,
+        otp,
+        type: 'email',
+        expiresAt,
+      });
 
-    // Send OTP email
-    await transporter.sendMail({
-      from: process.env.SMTP_USER,
-      to: user.email,
-      subject: 'Verify your account',
-      html: `
-        <h1>Welcome to Vehicle Booking System</h1>
-        <p>Your verification code is: <strong>${otp}</strong></p>
-        <p>This code will expire in 15 minutes.</p>
-      `,
-    });
+      // Send OTP email
+      await transporter.sendMail({
+        from: process.env.SMTP_USER,
+        to: user.email,
+        subject: 'Verify your account',
+        html: `
+          <h1>Welcome to Vehicle Booking System</h1>
+          <p>Your verification code is: <strong>${otp}</strong></p>
+          <p>This code will expire in 15 minutes.</p>
+        `,
+      });
 
-    return { user, otp };
+      return { user, otp };
+    } catch (error) {
+      console.error('Error in registerUser:', error);
+      throw new Error('Failed to register user');
+    }
   }
 
   async verifyOTP(userId: number, otp: string): Promise<{ user: User; token: string }> {
     const verification = await storage.findLatestOtpVerification(userId);
-    
+
     if (!verification || verification.isUsed || verification.otp !== otp) {
       throw new Error('Invalid OTP');
     }
@@ -100,6 +109,10 @@ export class AuthService {
   }
 
   async login(email: string, password: string): Promise<{ user: User; token: string }> {
+    if (!email || !password) {
+      throw new Error('Email and password are required');
+    }
+
     const user = await storage.findUserByEmail(email);
     if (!user) {
       throw new Error('Invalid email or password');
@@ -116,7 +129,7 @@ export class AuthService {
 
     // Update last login
     await storage.updateUserLastLogin(user.id);
-    
+
     const token = await this.generateToken(user);
     return { user, token };
   }
