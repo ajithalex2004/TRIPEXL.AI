@@ -150,6 +150,15 @@ export default function LoginPage() {
                           )}
                         </Button>
                       </div>
+                      <div className="flex justify-end">
+                        <Button
+                          variant="link"
+                          className="text-sm text-[#004990] p-0 h-auto font-normal"
+                          onClick={() => setLocation("/auth/forgot-password")}
+                        >
+                          Forgot Password?
+                        </Button>
+                      </div>
                       <FormMessage />
                     </FormItem>
                   )}
@@ -167,7 +176,7 @@ export default function LoginPage() {
                     "Login"
                   )}
                 </Button>
-                <div className="text-center">
+                <div className="text-center space-y-2">
                   <Button
                     variant="link"
                     className="text-sm text-[#004990]"
