@@ -71,8 +71,9 @@ export default function RegisterPage() {
     },
     onSuccess: (data) => {
       toast({
-        title: "Success",
-        description: "Please check your email for the verification code.",
+        title: "Registration successful",
+        description: `Your verification code is: ${data.otp}. This code has also been sent to your phone.`,
+        duration: 10000, // Show for 10 seconds
       });
       setUserId(data.userId);
       setVerificationStep(true);
@@ -122,7 +123,7 @@ export default function RegisterPage() {
         <CardHeader>
           <h2 className="text-2xl font-bold">Verify Your Account</h2>
           <p className="text-sm text-gray-500">
-            Please enter the verification code sent to your email
+            Please enter the verification code sent to your phone
           </p>
         </CardHeader>
         <CardContent>
@@ -135,7 +136,7 @@ export default function RegisterPage() {
                   <FormItem>
                     <FormLabel>Verification Code</FormLabel>
                     <FormControl>
-                      <Input {...field} placeholder="Enter the code from your email" />
+                      <Input {...field} placeholder="Enter the code" />
                     </FormControl>
                     <FormMessage />
                   </FormItem>

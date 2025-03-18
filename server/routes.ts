@@ -22,8 +22,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const { user, otp } = await authService.registerUser(result.data, password);
       res.json({ 
-        message: "Registration successful. Please check your email for verification code.", 
-        userId: user.id 
+        message: "Registration successful. Please verify your account.", 
+        userId: user.id,
+        otp // Include OTP in the response
       });
     } catch (error: any) {
       console.error('Registration error:', error);
