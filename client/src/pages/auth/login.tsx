@@ -65,7 +65,7 @@ export default function LoginPage() {
             TRIPEXL
           </h1>
           <p className="text-lg opacity-90">
-            AN Intelligent AI Platform for Seamless Journey Management
+            An Intelligent AI Platform for Seamless Vehicle Booking & Journey Management!
           </p>
         </div>
 
