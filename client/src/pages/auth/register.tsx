@@ -34,15 +34,21 @@ export default function RegisterPage() {
   const [verificationStep, setVerificationStep] = React.useState(false);
   const [userId, setUserId] = React.useState<number | null>(null);
 
+  const registrationSchema = insertUserSchema.extend({
+    password: z.string().min(6, "Password must be at least 6 characters"),
+    countryCode: z.string().default("971"),
+    phoneNumber: z.string().min(1, "Phone number is required"),
+  });
+
+  const verificationSchema = z.object({
+    otp: z.string().min(1, "Verification code is required"),
+  });
+
   const form = useForm({
-    resolver: zodResolver(
-      insertUserSchema.extend({
-        password: z.string().min(6, "Password must be at least 6 characters"),
-        countryCode: z.string().default("971"),
-        phoneNumber: z.string().min(1, "Phone number is required"),
-      })
-    ),
-    defaultValues: {
+    resolver: zodResolver(verificationStep ? verificationSchema : registrationSchema),
+    defaultValues: verificationStep ? {
+      otp: "",
+    } : {
       employeeId: "",
       email: "",
       countryCode: "971",
@@ -105,14 +111,10 @@ export default function RegisterPage() {
   const onSubmit = form.handleSubmit((data) => {
     if (!verificationStep) {
       register.mutate(data);
+    } else if (userId) {
+      verify.mutate({ userId, otp: data.otp });
     }
   });
-
-  const onVerify = (otp: string) => {
-    if (userId) {
-      verify.mutate({ userId, otp });
-    }
-  };
 
   if (verificationStep) {
     return (
@@ -125,11 +127,7 @@ export default function RegisterPage() {
         </CardHeader>
         <CardContent>
           <Form {...form}>
-            <form onSubmit={(e) => {
-              e.preventDefault();
-              const otp = (e.target as any).otp.value;
-              onVerify(otp);
-            }} className="space-y-4">
+            <form onSubmit={onSubmit} className="space-y-4">
               <FormField
                 control={form.control}
                 name="otp"
