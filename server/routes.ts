@@ -36,7 +36,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     res.json(bookings);
   });
 
-  // Create new booking
+  // Create new booking with AI assignment
   app.post("/api/bookings", async (req, res) => {
     const result = insertBookingSchema.safeParse(req.body);
     if (!result.success) {
@@ -44,27 +44,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
 
     try {
-      // Find available vehicle and driver based on requirements
-      const vehicles = await storage.getAvailableVehicles();
-      const drivers = await storage.getAvailableDrivers();
+      const booking = await storage.createBooking(result.data);
 
-      if (vehicles.length === 0 || drivers.length === 0) {
+      if (booking.status === "pending") {
         return res.status(409).json({ 
-          error: "No available vehicles or drivers" 
+          error: "No suitable vehicle/driver combination found",
+          booking 
         });
       }
 
-      // Create booking
-      const booking = await storage.createBooking(result.data);
-      
-      // Simple assignment - first available vehicle and driver
-      const assigned = await storage.assignBooking(
-        booking.id,
-        vehicles[0].id,
-        drivers[0].id
-      );
-
-      res.json(assigned);
+      res.json(booking);
     } catch (error) {
       res.status(500).json({ error: "Failed to create booking" });
     }
