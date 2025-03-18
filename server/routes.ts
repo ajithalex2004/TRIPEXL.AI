@@ -3,6 +3,8 @@ import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { insertBookingSchema, insertUserSchema } from "@shared/schema";
 import { authService } from "./services/auth";
+import bcrypt from "bcryptjs";
+import jwt from "jsonwebtoken";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   const httpServer = createServer(app);
@@ -11,6 +13,34 @@ export async function registerRoutes(app: Express): Promise<Server> {
   await authService.initializeDefaultUser();
 
   // Auth routes
+  app.post("/api/login", async (req, res) => {
+    const { email, password } = req.body;
+    if (!email || !password) {
+      return res.status(400).json({ error: "Email and password are required" });
+    }
+
+    try {
+      const user = await storage.getUserByEmail(email);
+      if (!user) {
+        return res.status(401).json({ error: "Invalid credentials" });
+      }
+
+      const isValidPassword = await bcrypt.compare(password, user.passwordHash);
+      if (!isValidPassword) {
+        return res.status(401).json({ error: "Invalid credentials" });
+      }
+
+      const token = jwt.sign({ userId: user.id }, process.env.JWT_SECRET || "default-secret", {
+        expiresIn: "24h",
+      });
+
+      res.json({ token, user });
+    } catch (error: any) {
+      console.error('Login error:', error);
+      res.status(500).json({ error: "Server error during login" }); 
+    }
+  });
+
   app.post("/api/auth/register", async (req, res) => {
     const result = insertUserSchema.safeParse(req.body);
     if (!result.success) {
@@ -49,20 +79,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/auth/login", async (req, res) => {
-    const { email, password } = req.body;
-    if (!email || !password) {
-      return res.status(400).json({ error: "Email and password are required" });
-    }
-
-    try {
-      const { user, token } = await authService.login(email, password);
-      res.json({ token, user });
-    } catch (error: any) {
-      console.error('Login error:', error);
-      res.status(401).json({ error: "Invalid credentials" }); 
-    }
-  });
 
   // Get all vehicles
   app.get("/api/vehicles", async (_req, res) => {
