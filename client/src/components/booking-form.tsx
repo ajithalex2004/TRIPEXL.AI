@@ -92,9 +92,9 @@ export function BookingForm() {
       2: ["purpose", "priority"],
       3: ["pickupLocation", "dropoffLocation"],
       4: ["pickupWindow", "dropoffWindow"],
-      5: bookingType === BookingType.FREIGHT 
-         ? ["cargoType", "numBoxes", "weight", "boxSize"] 
-         : ["tripType", "numPassengers"]
+      5: bookingType === BookingType.FREIGHT
+        ? ["cargoType", "numBoxes", "weight", "boxSize"]
+        : ["tripType", "numPassengers"]
     }[step];
 
     const result = await form.trigger(fields as any);
@@ -224,31 +224,6 @@ export function BookingForm() {
               <div className="space-y-4">
                 <FormField
                   control={form.control}
-                  name="purpose"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Purpose *</FormLabel>
-                      <Select onValueChange={field.onChange} value={field.value}>
-                        <FormControl>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Select purpose" />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          {Object.values(BookingPurpose)
-                            .sort()
-                            .map((purpose) => (
-                              <SelectItem key={purpose} value={purpose}>{purpose}</SelectItem>
-                            ))}
-                        </SelectContent>
-                      </Select>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={form.control}
                   name="priority"
                   render={({ field }) => (
                     <FormItem>
@@ -267,6 +242,31 @@ export function BookingForm() {
                           <SelectItem value={Priority.HIGH}>High</SelectItem>
                           <SelectItem value={Priority.MEDIUM}>Medium</SelectItem>
                           <SelectItem value={Priority.NORMAL}>Normal</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="purpose"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Purpose *</FormLabel>
+                      <Select onValueChange={field.onChange} value={field.value}>
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select purpose" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          {Object.values(BookingPurpose)
+                            .sort()
+                            .map((purpose) => (
+                              <SelectItem key={purpose} value={purpose}>{purpose}</SelectItem>
+                            ))}
                         </SelectContent>
                       </Select>
                       <FormMessage />
