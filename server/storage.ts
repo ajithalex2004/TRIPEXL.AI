@@ -4,7 +4,6 @@ import { type Employee } from '@shared/schema';
 import { type User, type InsertUser } from '@shared/schema';
 import { type OtpVerification, type InsertOtpVerification } from '@shared/schema';
 
-
 const locations = z.object({
   address: z.string(),
   coordinates: z.object({
@@ -87,13 +86,41 @@ export class MemStorage implements IStorage {
     this.vehicles = new Map();
     this.drivers = new Map();
     this.bookings = new Map();
-    this.currentId = { vehicles: 1, drivers: 1, bookings: 1, users:1, employees:1, otpVerifications:1 };
+    this.employees = new Map();
+    this.users = new Map();
+    this.otpVerifications = new Map();
+    this.currentId = { vehicles: 1, drivers: 1, bookings: 1, users: 1, employees: 1, otpVerifications: 1 };
 
     // Initialize with mock data
     this.initializeMockData();
   }
 
   private initializeMockData() {
+    // Mock employees
+    const mockEmployees: Employee[] = [
+      {
+        id: this.currentId.employees++,
+        employeeId: "EMP001",
+        name: "John Smith",
+        email: "john.smith@company.com",
+        phone: "+1234567890",
+        department: "Operations",
+        isActive: true,
+        createdAt: new Date()
+      },
+      {
+        id: this.currentId.employees++,
+        employeeId: "EMP002",
+        name: "Jane Doe",
+        email: "jane.doe@company.com",
+        phone: "+1234567891",
+        department: "Logistics",
+        isActive: true,
+        createdAt: new Date()
+      }
+    ];
+
+    // Mock vehicles (existing code)
     const mockVehicles: Vehicle[] = [
       {
         id: this.currentId.vehicles++,
@@ -105,11 +132,12 @@ export class MemStorage implements IStorage {
         currentLocation: {
           address: "123 Main St",
           coordinates: { lat: 40.7128, lng: -74.0060 }
-        }
-      },
-      // Add more mock vehicles...
+        },
+        features: []
+      }
     ];
 
+    // Mock drivers (existing code)
     const mockDrivers: Driver[] = [
       {
         id: this.currentId.drivers++,
@@ -119,11 +147,13 @@ export class MemStorage implements IStorage {
         currentLocation: {
           address: "456 Park Ave",
           coordinates: { lat: 40.7580, lng: -73.9855 }
-        }
-      },
-      // Add more mock drivers...
+        },
+        specializations: []
+      }
     ];
 
+    // Initialize all mock data
+    mockEmployees.forEach(e => this.employees.set(e.id, e));
     mockVehicles.forEach(v => this.vehicles.set(v.id, v));
     mockDrivers.forEach(d => this.drivers.set(d.id, d));
   }
@@ -304,10 +334,26 @@ export class MemStorage implements IStorage {
 
   // Employee methods
   async findEmployeeByIdAndEmail(employeeId: string, email: string): Promise<Employee | null> {
-    const employee = Array.from(this.employees.values()).find(
-      e => e.employeeId === employeeId && e.email === email
-    );
-    return employee || null;
+    try {
+      if (!this.employees || this.employees.size === 0) {
+        console.log("No employees found in the system");
+        return null;
+      }
+
+      const employee = Array.from(this.employees.values()).find(
+        e => e.employeeId === employeeId && e.email === email
+      );
+
+      if (!employee) {
+        console.log(`No employee found with ID ${employeeId} and email ${email}`);
+        return null;
+      }
+
+      return employee;
+    } catch (error) {
+      console.error("Error finding employee:", error);
+      return null;
+    }
   }
 
   // User methods
