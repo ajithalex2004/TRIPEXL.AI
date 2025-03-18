@@ -15,6 +15,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardContent } from "@/components/ui/card";
+import { LoadingIndicator } from "@/components/ui/loading-indicator";
 
 export default function LoginPage() {
   const { toast } = useToast();
@@ -91,7 +92,13 @@ export default function LoginPage() {
               )}
             />
             <Button type="submit" className="w-full" disabled={login.isPending}>
-              {login.isPending ? "Logging in..." : "Login"}
+              {login.isPending ? (
+                <div className="w-full flex justify-center">
+                  <LoadingIndicator size="sm" />
+                </div>
+              ) : (
+                "Login"
+              )}
             </Button>
             <div className="text-center">
               <Button

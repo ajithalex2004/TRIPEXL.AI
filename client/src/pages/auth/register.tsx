@@ -17,6 +17,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardContent } from "@/components/ui/card";
+import { LoadingIndicator } from "@/components/ui/loading-indicator";
 
 export default function RegisterPage() {
   const { toast } = useToast();
@@ -117,7 +118,13 @@ export default function RegisterPage() {
                 )}
               />
               <Button type="submit" className="w-full" disabled={verify.isPending}>
-                {verify.isPending ? "Verifying..." : "Verify"}
+                {verify.isPending ? (
+                  <div className="w-full flex justify-center">
+                    <LoadingIndicator size="sm" />
+                  </div>
+                ) : (
+                  "Verify"
+                )}
               </Button>
             </form>
           </Form>
@@ -190,7 +197,13 @@ export default function RegisterPage() {
               )}
             />
             <Button type="submit" className="w-full" disabled={register.isPending}>
-              {register.isPending ? "Registering..." : "Register"}
+              {register.isPending ? (
+                <div className="w-full flex justify-center">
+                  <LoadingIndicator size="sm" />
+                </div>
+              ) : (
+                "Register"
+              )}
             </Button>
             <div className="text-center">
               <Button

@@ -26,6 +26,7 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
 import { MOCK_LOCATIONS, CARGO_TYPES, PRIORITY_LEVELS, SPECIAL_REQUIREMENTS } from "@/lib/constants";
+import { LoadingIndicator } from "@/components/ui/loading-indicator";
 
 export function BookingForm() {
   const { toast } = useToast();
@@ -329,12 +330,18 @@ export function BookingForm() {
               )}
             />
 
-            <Button 
-              type="submit" 
+            <Button
+              type="submit"
               className="w-full"
               disabled={createBooking.isPending}
             >
-              {createBooking.isPending ? "Creating..." : "Create Booking"}
+              {createBooking.isPending ? (
+                <div className="w-full flex justify-center">
+                  <LoadingIndicator size="sm" />
+                </div>
+              ) : (
+                "Create Booking"
+              )}
             </Button>
           </form>
         </Form>
