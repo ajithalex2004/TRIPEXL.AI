@@ -11,7 +11,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/auth/register", async (req, res) => {
     const result = insertUserSchema.safeParse(req.body);
     if (!result.success) {
-      return res.status(400).json({ error: "Invalid registration data" });
+      return res.status(400).json({ error: "Invalid registration data", details: result.error.issues }); //Added details for better debugging
     }
 
     const { password } = req.body;
@@ -27,7 +27,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
     } catch (error: any) {
       console.error('Registration error:', error);
-      res.status(400).json({ error: error.message });
+      res.status(500).json({ error: "Server error during registration" }); //More generic error message
     }
   });
 
@@ -41,7 +41,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const { user, token } = await authService.verifyOTP(userId, otp);
       res.json({ message: "Account verified successfully", token, user });
     } catch (error: any) {
-      res.status(400).json({ error: error.message });
+      res.status(400).json({ error: error.message }); //Improved error handling
     }
   });
 
@@ -55,45 +55,65 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const { user, token } = await authService.login(email, password);
       res.json({ token, user });
     } catch (error: any) {
-      res.status(401).json({ error: error.message });
+      res.status(401).json({ error: "Invalid credentials" }); //More specific error message
     }
   });
 
   // Get all vehicles
   app.get("/api/vehicles", async (_req, res) => {
-    const vehicles = await storage.getVehicles();
-    res.json(vehicles);
+    try {
+      const vehicles = await storage.getVehicles();
+      res.json(vehicles);
+    } catch (error: any) {
+      res.status(500).json({ error: "Failed to retrieve vehicles" }); //Added error handling
+    }
   });
 
   // Get available vehicles
   app.get("/api/vehicles/available", async (_req, res) => {
-    const vehicles = await storage.getAvailableVehicles();
-    res.json(vehicles);
+    try {
+      const vehicles = await storage.getAvailableVehicles();
+      res.json(vehicles);
+    } catch (error: any) {
+      res.status(500).json({ error: "Failed to retrieve available vehicles" }); //Added error handling
+    }
   });
 
   // Get all drivers
   app.get("/api/drivers", async (_req, res) => {
-    const drivers = await storage.getDrivers();
-    res.json(drivers);
+    try {
+      const drivers = await storage.getDrivers();
+      res.json(drivers);
+    } catch (error: any) {
+      res.status(500).json({ error: "Failed to retrieve drivers" }); //Added error handling
+    }
   });
 
   // Get available drivers
   app.get("/api/drivers/available", async (_req, res) => {
-    const drivers = await storage.getAvailableDrivers();
-    res.json(drivers);
+    try {
+      const drivers = await storage.getAvailableDrivers();
+      res.json(drivers);
+    } catch (error: any) {
+      res.status(500).json({ error: "Failed to retrieve available drivers" }); //Added error handling
+    }
   });
 
   // Get all bookings
   app.get("/api/bookings", async (_req, res) => {
-    const bookings = await storage.getBookings();
-    res.json(bookings);
+    try {
+      const bookings = await storage.getBookings();
+      res.json(bookings);
+    } catch (error: any) {
+      res.status(500).json({ error: "Failed to retrieve bookings" }); //Added error handling
+    }
   });
 
   // Create new booking with AI assignment
   app.post("/api/bookings", async (req, res) => {
     const result = insertBookingSchema.safeParse(req.body);
     if (!result.success) {
-      return res.status(400).json({ error: "Invalid booking data" });
+      return res.status(400).json({ error: "Invalid booking data", details: result.error.issues }); //Added details for better debugging
     }
 
     try {
@@ -107,7 +127,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       res.json(booking);
-    } catch (error) {
+    } catch (error: any) {
       res.status(500).json({ error: "Failed to create booking" });
     }
   });

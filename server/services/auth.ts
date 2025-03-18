@@ -4,15 +4,13 @@ import nodemailer from 'nodemailer';
 import type { Employee, InsertUser, User } from '@shared/schema';
 import { storage } from '../storage';
 
-const transporter = nodemailer.createTransport({
-  host: process.env.SMTP_HOST,
-  port: parseInt(process.env.SMTP_PORT || '587'),
-  secure: false,
-  auth: {
-    user: process.env.SMTP_USER,
-    pass: process.env.SMTP_PASS,
-  },
-});
+// Create a mock transporter for development
+const transporter = {
+  sendMail: async (options: any) => {
+    console.log('Email would be sent:', options);
+    return true;
+  }
+};
 
 export class AuthService {
   private generateOTP(): string {
@@ -22,7 +20,7 @@ export class AuthService {
   private async generateToken(user: User): Promise<string> {
     return jwt.sign(
       { userId: user.id, email: user.email },
-      process.env.JWT_SECRET!,
+      process.env.JWT_SECRET || 'dev-secret-key',
       { expiresIn: '24h' }
     );
   }
@@ -46,9 +44,10 @@ export class AuthService {
       throw new Error('Invalid employee ID or email');
     }
 
-    // Hash password
     try {
-      const passwordHash = await bcrypt.hash(password, 10);
+      // Hash password
+      const salt = await bcrypt.genSalt(10);
+      const passwordHash = await bcrypt.hash(password, salt);
 
       // Create user
       const user = await storage.createUser({
@@ -56,10 +55,10 @@ export class AuthService {
         passwordHash,
       });
 
-      // Generate and store OTP
+      // Generate OTP
       const otp = this.generateOTP();
       const expiresAt = new Date();
-      expiresAt.setMinutes(expiresAt.getMinutes() + 15); // OTP expires in 15 minutes
+      expiresAt.setMinutes(expiresAt.getMinutes() + 15);
 
       await storage.createOtpVerification({
         userId: user.id,
@@ -68,21 +67,22 @@ export class AuthService {
         expiresAt,
       });
 
-      // Send OTP email
+      // Log OTP for development (remove in production)
+      console.log('Generated OTP:', otp);
+
+      // Mock email sending
       await transporter.sendMail({
-        from: process.env.SMTP_USER,
         to: user.email,
         subject: 'Verify your account',
-        html: `
-          <h1>Welcome to Vehicle Booking System</h1>
-          <p>Your verification code is: <strong>${otp}</strong></p>
-          <p>This code will expire in 15 minutes.</p>
-        `,
+        html: `<p>Your verification code is: <strong>${otp}</strong></p>`,
       });
 
       return { user, otp };
     } catch (error) {
       console.error('Error in registerUser:', error);
+      if (error instanceof Error) {
+        throw new Error(error.message);
+      }
       throw new Error('Failed to register user');
     }
   }
