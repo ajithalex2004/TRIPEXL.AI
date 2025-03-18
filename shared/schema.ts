@@ -15,6 +15,12 @@ export const timeWindow = z.object({
   end: z.string()
 });
 
+export const contactInfo = z.object({
+  name: z.string(),
+  phone: z.string(),
+  email: z.string().email()
+});
+
 export const vehicles = pgTable("vehicles", {
   id: serial("id").primaryKey(),
   name: text("name").notNull(),
@@ -22,7 +28,8 @@ export const vehicles = pgTable("vehicles", {
   loadCapacity: integer("load_capacity").notNull(),
   imageUrl: text("image_url").notNull(),
   status: text("status").notNull().default("available"),
-  currentLocation: json("current_location").$type<z.infer<typeof locations>>().notNull()
+  currentLocation: json("current_location").$type<z.infer<typeof locations>>().notNull(),
+  features: text("features").array().default([])
 });
 
 export const drivers = pgTable("drivers", {
@@ -30,7 +37,8 @@ export const drivers = pgTable("drivers", {
   name: text("name").notNull(),
   status: text("status").notNull().default("available"),
   avatarUrl: text("avatar_url").notNull(),
-  currentLocation: json("current_location").$type<z.infer<typeof locations>>().notNull()
+  currentLocation: json("current_location").$type<z.infer<typeof locations>>().notNull(),
+  specializations: text("specializations").array().default([])
 });
 
 export const bookings = pgTable("bookings", {
@@ -40,14 +48,20 @@ export const bookings = pgTable("bookings", {
   pickupWindow: json("pickup_window").$type<z.infer<typeof timeWindow>>().notNull(),
   dropoffWindow: json("dropoff_window").$type<z.infer<typeof timeWindow>>().notNull(),
   loadSize: integer("load_size").notNull(),
+  cargoType: text("cargo_type").notNull(),
+  priority: text("priority").notNull().default("standard"),
+  specialRequirements: text("special_requirements").array(),
+  senderContact: json("sender_contact").$type<z.infer<typeof contactInfo>>().notNull(),
+  receiverContact: json("receiver_contact").$type<z.infer<typeof contactInfo>>().notNull(),
+  additionalNotes: text("additional_notes"),
   status: text("status").notNull().default("pending"),
   vehicleId: integer("vehicle_id").references(() => vehicles.id),
   driverId: integer("driver_id").references(() => drivers.id),
   createdAt: timestamp("created_at").notNull().defaultNow()
 });
 
-export const insertVehicleSchema = createInsertSchema(vehicles);
-export const insertDriverSchema = createInsertSchema(drivers);
+export const insertVehicleSchema = createInsertSchema(vehicles).omit({ features: true });
+export const insertDriverSchema = createInsertSchema(drivers).omit({ specializations: true });
 export const insertBookingSchema = createInsertSchema(bookings)
   .omit({ vehicleId: true, driverId: true, createdAt: true });
 

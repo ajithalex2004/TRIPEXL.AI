@@ -16,6 +16,28 @@ export const VEHICLE_TYPES = [
   { value: "semi", label: "Semi Truck" }
 ];
 
+export const CARGO_TYPES = [
+  { value: "general", label: "General Cargo" },
+  { value: "furniture", label: "Furniture" },
+  { value: "electronics", label: "Electronics" },
+  { value: "perishables", label: "Perishables" },
+  { value: "construction", label: "Construction Materials" }
+];
+
+export const PRIORITY_LEVELS = [
+  { value: "standard", label: "Standard" },
+  { value: "express", label: "Express" },
+  { value: "urgent", label: "Urgent" }
+];
+
+export const SPECIAL_REQUIREMENTS = [
+  { value: "refrigeration", label: "Refrigeration Required" },
+  { value: "fragile", label: "Fragile Items" },
+  { value: "liftgate", label: "Liftgate Required" },
+  { value: "insurance", label: "Extra Insurance" },
+  { value: "signature", label: "Signature Required" }
+];
+
 export const BOOKING_STATUS_COLORS = {
   pending: "bg-yellow-500",
   assigned: "bg-blue-500",
