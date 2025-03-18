@@ -32,12 +32,9 @@ export function BookingForm() {
   const queryClient = useQueryClient();
 
   // Fetch logged in employee data
-  const { data: employee } = useQuery({
+  const { data: employee, isLoading: isEmployeeLoading } = useQuery({
     queryKey: ["/api/employee/current"],
-    queryFn: async () => {
-      const res = await apiRequest("GET", "/api/employee/current");
-      return res.json();
-    }
+    retry: false
   });
 
   const form = useForm({
@@ -78,9 +75,9 @@ export function BookingForm() {
     }
   });
 
-  // Update employee ID when data is loaded
+  // Update form when employee data is loaded
   React.useEffect(() => {
-    if (employee) {
+    if (employee?.employeeId) {
       form.setValue("employeeId", employee.employeeId);
     }
   }, [employee, form]);
@@ -119,25 +116,33 @@ export function BookingForm() {
           <form onSubmit={form.handleSubmit((data) => createBooking.mutate(data))} className="space-y-6">
             {/* Employee Information */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <FormField
-                control={form.control}
-                name="employeeId"
-                render={({ field }) => (
+              {isEmployeeLoading ? (
+                <div className="col-span-2 flex justify-center">
+                  <LoadingIndicator />
+                </div>
+              ) : (
+                <>
+                  <FormField
+                    control={form.control}
+                    name="employeeId"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Employee ID</FormLabel>
+                        <FormControl>
+                          <Input {...field} disabled value={employee?.employeeId || ""} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
                   <FormItem>
-                    <FormLabel>Employee ID</FormLabel>
+                    <FormLabel>Employee Name</FormLabel>
                     <FormControl>
-                      <Input {...field} disabled value={employee?.employeeId || ""} />
+                      <Input disabled value={employee?.name || ""} />
                     </FormControl>
-                    <FormMessage />
                   </FormItem>
-                )}
-              />
-              <FormItem>
-                <FormLabel>Employee Name</FormLabel>
-                <FormControl>
-                  <Input disabled value={employee?.name || ""} />
-                </FormControl>
-              </FormItem>
+                </>
+              )}
             </div>
 
             {/* Booking Type */}
