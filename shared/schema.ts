@@ -51,12 +51,12 @@ export const BookingPurpose = {
   MEDICINE: "Medicine Collection/Delivery",
   VISA_MEDICAL: "Visa Medical",
   MAINTENANCE: "Maintenance",
-  SAMPLE: "Sample Collection/Delivery",
   VACCINE: "Vaccine Collection/Delivery",
   AMBULANCE: "Ambulance",
   MORTUARY: "Mortuary",
   ONCOLOGY: "Oncology Patient Pick Up/ Drop off",
   GUEST: "Guest",
+  VIP_TRANSFER: "VIP Transfer"
 } as const;
 
 export const CargoType = {
