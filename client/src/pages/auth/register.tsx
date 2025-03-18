@@ -2,7 +2,7 @@ import * as React from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { insertUserSchema } from "@shared/schema";
-import { z } from "zod";  // Added this import
+import { z } from "zod";
 import { useMutation } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
@@ -20,7 +20,6 @@ import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardContent } from "@/components/ui/card";
 import { LoadingIndicator } from "@/components/ui/loading-indicator";
 
-
 export default function RegisterPage() {
   const { toast } = useToast();
   const [, setLocation] = useLocation();
@@ -31,11 +30,14 @@ export default function RegisterPage() {
     resolver: zodResolver(
       insertUserSchema.extend({
         password: z.string().min(6, "Password must be at least 6 characters"),
+        countryCode: z.string().default("971"),
+        phoneNumber: z.string().min(1, "Phone number is required"),
       })
     ),
     defaultValues: {
       employeeId: "",
       email: "",
+      countryCode: "971",
       phoneNumber: "",
       password: "",
     },
@@ -43,7 +45,14 @@ export default function RegisterPage() {
 
   const register = useMutation({
     mutationFn: async (data: any) => {
-      const res = await apiRequest("POST", "/api/auth/register", data);
+      // Combine country code and phone number
+      const formattedData = {
+        ...data,
+        phoneNumber: `+${data.countryCode}${data.phoneNumber}`,
+      };
+      delete formattedData.countryCode; // Remove the separate country code field
+
+      const res = await apiRequest("POST", "/api/auth/register", formattedData);
       return res.json();
     },
     onSuccess: (data) => {
@@ -176,19 +185,34 @@ export default function RegisterPage() {
                 </FormItem>
               )}
             />
-            <FormField
-              control={form.control}
-              name="phoneNumber"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Phone Number</FormLabel>
-                  <FormControl>
-                    <Input {...field} placeholder="Enter your phone number" />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+            <div className="grid grid-cols-5 gap-2">
+              <FormField
+                control={form.control}
+                name="countryCode"
+                render={({ field }) => (
+                  <FormItem className="col-span-1">
+                    <FormLabel>Code</FormLabel>
+                    <FormControl>
+                      <Input {...field} readOnly />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="phoneNumber"
+                render={({ field }) => (
+                  <FormItem className="col-span-4">
+                    <FormLabel>Phone Number</FormLabel>
+                    <FormControl>
+                      <Input {...field} placeholder="Enter your phone number" />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
             <FormField
               control={form.control}
               name="password"
