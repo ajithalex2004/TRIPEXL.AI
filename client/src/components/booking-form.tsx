@@ -324,11 +324,8 @@ export function BookingForm() {
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      {/* Show Critical first */}
-                      <SelectItem value={BookingPurpose.CRITICAL}>Critical</SelectItem>
-                      {/* Then show rest of the purposes alphabetically */}
+                      {/* Show all purposes alphabetically */}
                       {Object.values(BookingPurpose)
-                        .filter(purpose => purpose !== BookingPurpose.CRITICAL)
                         .sort()
                         .map((purpose) => (
                           <SelectItem key={purpose} value={purpose}>{purpose}</SelectItem>
@@ -340,6 +337,7 @@ export function BookingForm() {
               )}
             />
 
+            {/* Priority Field */}
             <FormField
               control={form.control}
               name="priority"
@@ -353,11 +351,13 @@ export function BookingForm() {
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      {Object.values(Priority).map((priority) => (
-                        <SelectItem key={priority} value={priority}>
-                          {priority.charAt(0).toUpperCase() + priority.slice(1)}
-                        </SelectItem>
-                      ))}
+                      {/* Show Critical and Emergency first */}
+                      <SelectItem value={Priority.CRITICAL}>Critical</SelectItem>
+                      <SelectItem value={Priority.EMERGENCY}>Emergency</SelectItem>
+                      {/* Then show rest of the priorities */}
+                      <SelectItem value={Priority.HIGH}>High</SelectItem>
+                      <SelectItem value={Priority.MEDIUM}>Medium</SelectItem>
+                      <SelectItem value={Priority.NORMAL}>Normal</SelectItem>
                     </SelectContent>
                   </Select>
                   <FormMessage />

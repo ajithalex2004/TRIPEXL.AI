@@ -23,6 +23,7 @@ export const TripType = {
 } as const;
 
 export const Priority = {
+  CRITICAL: "critical",
   EMERGENCY: "emergency",
   HIGH: "high",
   MEDIUM: "medium",
@@ -30,7 +31,6 @@ export const Priority = {
 } as const;
 
 export const BookingPurpose = {
-  CRITICAL: "Critical",
   HOSPITAL_VISIT: "Hospital Visit",
   BLOOD_BANK: "Blood Bank",
   BLOOD_SAMPLES: "Blood Samples Collection/Delivery",
