@@ -73,21 +73,22 @@ export function MapView({ onLocationSelect }: MapViewProps) {
   }, [searchQuery, onLocationSelect]);
 
   return (
-    <Card className="p-4">
-      <div className="mb-4 flex gap-2">
+    <Card className="p-2">
+      <div className="mb-2 flex gap-2">
         <Input
           placeholder="Search location..."
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
           onKeyPress={(e) => e.key === "Enter" && handleSearch()}
+          className="text-sm"
         />
-        <Button onClick={handleSearch}>
+        <Button onClick={handleSearch} size="sm">
           <Search className="h-4 w-4" />
         </Button>
       </div>
       <LoadScript googleMapsApiKey={import.meta.env.VITE_GOOGLE_MAPS_API_KEY || ""}>
         <GoogleMap
-          mapContainerClassName="aspect-[16/9] rounded-lg"
+          mapContainerClassName="w-full h-[250px] rounded-lg"
           center={marker}
           zoom={13}
           onClick={handleMapClick}
@@ -96,7 +97,7 @@ export function MapView({ onLocationSelect }: MapViewProps) {
         </GoogleMap>
       </LoadScript>
       {address && (
-        <p className="mt-2 text-sm text-muted-foreground">
+        <p className="mt-2 text-xs text-muted-foreground truncate">
           Selected: {address}
         </p>
       )}
