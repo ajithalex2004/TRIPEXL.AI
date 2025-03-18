@@ -73,7 +73,7 @@ export function MapView({ onLocationSelect }: MapViewProps) {
   }, [searchQuery, onLocationSelect]);
 
   return (
-    <Card className="p-2">
+    <Card className="p-2 h-full">
       <div className="mb-2 flex gap-2">
         <Input
           placeholder="Search location..."
@@ -88,7 +88,11 @@ export function MapView({ onLocationSelect }: MapViewProps) {
       </div>
       <LoadScript googleMapsApiKey={import.meta.env.VITE_GOOGLE_MAPS_API_KEY || ""}>
         <GoogleMap
-          mapContainerClassName="w-full h-[250px] rounded-lg"
+          mapContainerStyle={{
+            width: '100%',
+            height: '300px',
+            borderRadius: '8px'
+          }}
           center={marker}
           zoom={13}
           onClick={handleMapClick}

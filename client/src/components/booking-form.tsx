@@ -318,24 +318,28 @@ export function BookingForm() {
 
             {/* Step 3: Locations */}
             {currentStep === 3 && (
-              <div className="space-y-4">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="space-y-4">
+              <div className="space-y-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="space-y-2">
                     <FormLabel>Pickup Location *</FormLabel>
-                    <MapView
-                      onLocationSelect={(location) => {
-                        form.setValue("pickupLocation", location);
-                      }}
-                    />
+                    <div className="h-[400px]">
+                      <MapView
+                        onLocationSelect={(location) => {
+                          form.setValue("pickupLocation", location, { shouldValidate: true });
+                        }}
+                      />
+                    </div>
                     <FormMessage>{form.formState.errors.pickupLocation?.message}</FormMessage>
                   </div>
-                  <div className="space-y-4">
+                  <div className="space-y-2">
                     <FormLabel>Dropoff Location *</FormLabel>
-                    <MapView
-                      onLocationSelect={(location) => {
-                        form.setValue("dropoffLocation", location);
-                      }}
-                    />
+                    <div className="h-[400px]">
+                      <MapView
+                        onLocationSelect={(location) => {
+                          form.setValue("dropoffLocation", location, { shouldValidate: true });
+                        }}
+                      />
+                    </div>
                     <FormMessage>{form.formState.errors.dropoffLocation?.message}</FormMessage>
                   </div>
                 </div>
