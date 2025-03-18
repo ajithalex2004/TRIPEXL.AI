@@ -151,6 +151,43 @@ export function BookingForm() {
     createBooking.mutate(data);
   };
 
+  // Add purpose-priority mapping
+  const getPriorityForPurpose = (purpose: string) => {
+    const criticalPurposes = [
+      BookingPurpose.BLOOD_BANK,
+      BookingPurpose.ON_CALL,
+      BookingPurpose.EQUIPMENT
+    ];
+
+    const emergencyPurposes = [
+      BookingPurpose.BLOOD_SAMPLES,
+      BookingPurpose.AMBULANCE,
+      BookingPurpose.MORTUARY
+    ];
+
+    const highPurposes = [
+      BookingPurpose.DRUG_COLLECTION
+    ];
+
+    if (criticalPurposes.includes(purpose)) {
+      return Priority.CRITICAL;
+    } else if (emergencyPurposes.includes(purpose)) {
+      return Priority.EMERGENCY;
+    } else if (highPurposes.includes(purpose)) {
+      return Priority.HIGH;
+    }
+    return Priority.NORMAL;
+  };
+
+  // Watch purpose field to update priority
+  const purpose = form.watch("purpose");
+  React.useEffect(() => {
+    if (purpose) {
+      form.setValue("priority", getPriorityForPurpose(purpose));
+    }
+  }, [purpose, form]);
+
+
   return (
     <Card>
       <CardHeader>
@@ -222,25 +259,27 @@ export function BookingForm() {
             {/* Step 2: Purpose and Priority */}
             {currentStep === 2 && (
               <div className="space-y-4">
+                {/* Priority field first */}
                 <FormField
                   control={form.control}
                   name="priority"
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>Priority *</FormLabel>
-                      <Select onValueChange={field.onChange} value={field.value}>
+                      <Select
+                        onValueChange={field.onChange}
+                        value={field.value}
+                        disabled // Disable manual selection
+                      >
                         <FormControl>
                           <SelectTrigger>
-                            <SelectValue placeholder="Select priority" />
+                            <SelectValue placeholder="Priority is set automatically" />
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent>
-                          {/* Show Critical and Emergency first */}
                           <SelectItem value={Priority.CRITICAL}>Critical</SelectItem>
                           <SelectItem value={Priority.EMERGENCY}>Emergency</SelectItem>
-                          {/* Then show rest of the priorities */}
                           <SelectItem value={Priority.HIGH}>High</SelectItem>
-                          <SelectItem value={Priority.MEDIUM}>Medium</SelectItem>
                           <SelectItem value={Priority.NORMAL}>Normal</SelectItem>
                         </SelectContent>
                       </Select>
@@ -249,12 +288,13 @@ export function BookingForm() {
                   )}
                 />
 
+                {/* Purpose field with updated tooltip */}
                 <FormField
                   control={form.control}
                   name="purpose"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Purpose *</FormLabel>
+                      <FormLabel>Purpose * (Priority will be set automatically)</FormLabel>
                       <Select onValueChange={field.onChange} value={field.value}>
                         <FormControl>
                           <SelectTrigger>
