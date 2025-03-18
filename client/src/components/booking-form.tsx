@@ -1,8 +1,8 @@
 import * as React from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { insertBookingSchema } from "@shared/schema";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { insertBookingSchema, BookingType, Priority, BoxSize, TripType, BookingPurpose } from "@shared/schema";
+import { useMutation, useQueryClient, useQuery } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import {
@@ -24,19 +24,37 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import { Checkbox } from "@/components/ui/checkbox";
-import { MOCK_LOCATIONS, CARGO_TYPES, PRIORITY_LEVELS, SPECIAL_REQUIREMENTS } from "@/lib/constants";
 import { LoadingIndicator } from "@/components/ui/loading-indicator";
+import { MapView } from "@/components/map-view";
 
 export function BookingForm() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
+  // Fetch logged in employee data
+  const { data: employee } = useQuery({
+    queryKey: ["/api/employee/current"],
+    queryFn: async () => {
+      const res = await apiRequest("GET", "/api/employee/current");
+      return res.json();
+    }
+  });
+
   const form = useForm({
     resolver: zodResolver(insertBookingSchema),
     defaultValues: {
-      pickupLocation: MOCK_LOCATIONS[0],
-      dropoffLocation: MOCK_LOCATIONS[1],
+      employeeId: "",
+      bookingType: "",
+      purpose: "",
+      priority: "",
+      pickupLocation: {
+        address: "",
+        coordinates: { lat: 0, lng: 0 }
+      },
+      dropoffLocation: {
+        address: "",
+        coordinates: { lat: 0, lng: 0 }
+      },
       pickupWindow: {
         start: "",
         end: ""
@@ -45,24 +63,29 @@ export function BookingForm() {
         start: "",
         end: ""
       },
-      loadSize: 0,
-      cargoType: "general",
-      priority: "standard",
-      specialRequirements: [],
-      senderContact: {
-        name: "",
-        phone: "",
-        email: ""
-      },
-      receiverContact: {
-        name: "",
-        phone: "",
-        email: ""
-      },
-      additionalNotes: "",
-      status: "pending"
+      // Freight specific fields
+      cargoType: "",
+      numBoxes: 0,
+      weight: 0,
+      boxSize: "",
+      // Passenger specific fields
+      tripType: "",
+      numPassengers: 0,
+      passengerInfo: [],
+      // Reference and notes
+      referenceNo: "",
+      remarks: "",
     }
   });
+
+  // Update employee ID when data is loaded
+  React.useEffect(() => {
+    if (employee) {
+      form.setValue("employeeId", employee.employeeId);
+    }
+  }, [employee, form]);
+
+  const bookingType = form.watch("bookingType");
 
   const createBooking = useMutation({
     mutationFn: async (data: any) => {
@@ -94,241 +117,326 @@ export function BookingForm() {
       <CardContent>
         <Form {...form}>
           <form onSubmit={form.handleSubmit((data) => createBooking.mutate(data))} className="space-y-6">
-            {/* Pickup Window */}
+            {/* Employee Information */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <FormField
                 control={form.control}
-                name="pickupWindow.start"
+                name="employeeId"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Pickup Start Time</FormLabel>
+                    <FormLabel>Employee ID</FormLabel>
                     <FormControl>
-                      <Input type="datetime-local" {...field} />
+                      <Input {...field} disabled value={employee?.employeeId || ""} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
                 )}
               />
-              <FormField
-                control={form.control}
-                name="pickupWindow.end"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Pickup End Time</FormLabel>
-                    <FormControl>
-                      <Input type="datetime-local" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+              <FormItem>
+                <FormLabel>Employee Name</FormLabel>
+                <FormControl>
+                  <Input disabled value={employee?.name || ""} />
+                </FormControl>
+              </FormItem>
             </div>
 
-            {/* Load Size and Cargo Type */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <FormField
-                control={form.control}
-                name="loadSize"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Load Size (kg)</FormLabel>
-                    <FormControl>
-                      <Input type="number" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="cargoType"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Cargo Type</FormLabel>
-                    <Select onValueChange={field.onChange} defaultValue={field.value}>
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select cargo type" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        {CARGO_TYPES.map((type) => (
-                          <SelectItem key={type.value} value={type.value}>
-                            {type.label}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            </div>
-
-            {/* Priority and Special Requirements */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <FormField
-                control={form.control}
-                name="priority"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Priority Level</FormLabel>
-                    <Select onValueChange={field.onChange} defaultValue={field.value}>
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select priority" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        {PRIORITY_LEVELS.map((level) => (
-                          <SelectItem key={level.value} value={level.value}>
-                            {level.label}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="specialRequirements"
-                render={() => (
-                  <FormItem>
-                    <FormLabel>Special Requirements</FormLabel>
-                    <div className="space-y-2">
-                      {SPECIAL_REQUIREMENTS.map((req) => (
-                        <div key={req.value} className="flex items-center space-x-2">
-                          <Checkbox
-                            id={req.value}
-                            onCheckedChange={(checked) => {
-                              const current = form.getValues("specialRequirements") || [];
-                              const updated = checked
-                                ? [...current, req.value]
-                                : current.filter((value) => value !== req.value);
-                              form.setValue("specialRequirements", updated);
-                            }}
-                          />
-                          <label htmlFor={req.value}>{req.label}</label>
-                        </div>
-                      ))}
-                    </div>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            </div>
-
-            {/* Sender Contact Information */}
-            <div className="space-y-4">
-              <h3 className="text-lg font-semibold">Sender Information</h3>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <FormField
-                  control={form.control}
-                  name="senderContact.name"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Name</FormLabel>
-                      <FormControl>
-                        <Input {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name="senderContact.phone"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Phone</FormLabel>
-                      <FormControl>
-                        <Input {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name="senderContact.email"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Email</FormLabel>
-                      <FormControl>
-                        <Input type="email" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </div>
-            </div>
-
-            {/* Receiver Contact Information */}
-            <div className="space-y-4">
-              <h3 className="text-lg font-semibold">Receiver Information</h3>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <FormField
-                  control={form.control}
-                  name="receiverContact.name"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Name</FormLabel>
-                      <FormControl>
-                        <Input {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name="receiverContact.phone"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Phone</FormLabel>
-                      <FormControl>
-                        <Input {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name="receiverContact.email"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Email</FormLabel>
-                      <FormControl>
-                        <Input type="email" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </div>
-            </div>
-
-            {/* Additional Notes */}
+            {/* Booking Type */}
             <FormField
               control={form.control}
-              name="additionalNotes"
+              name="bookingType"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Additional Notes</FormLabel>
-                  <FormControl>
-                    <Textarea
-                      placeholder="Any special instructions or requirements..."
-                      {...field}
-                    />
-                  </FormControl>
+                  <FormLabel>Booking Type</FormLabel>
+                  <Select onValueChange={field.onChange} value={field.value}>
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select booking type" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      <SelectItem value={BookingType.FREIGHT}>Freight</SelectItem>
+                      <SelectItem value={BookingType.PASSENGER}>Passenger</SelectItem>
+                      <SelectItem value={BookingType.AMBULANCE}>Ambulance</SelectItem>
+                    </SelectContent>
+                  </Select>
                   <FormMessage />
                 </FormItem>
               )}
             />
+
+            {/* Freight specific fields */}
+            {bookingType === BookingType.FREIGHT && (
+              <div className="space-y-4">
+                <FormField
+                  control={form.control}
+                  name="cargoType"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Cargo Type</FormLabel>
+                      <FormControl>
+                        <Input {...field} placeholder="Enter cargo type" />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <FormField
+                    control={form.control}
+                    name="numBoxes"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Number of Boxes</FormLabel>
+                        <FormControl>
+                          <Input type="number" {...field} min={1} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="weight"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Approximate Weight (kg)</FormLabel>
+                        <FormControl>
+                          <Input type="number" {...field} min={0} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="boxSize"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Box Size</FormLabel>
+                        <Select onValueChange={field.onChange} value={field.value}>
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select box size" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            {Object.values(BoxSize).map((size) => (
+                              <SelectItem key={size} value={size}>{size}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+              </div>
+            )}
+
+            {/* Passenger specific fields */}
+            {bookingType === BookingType.PASSENGER && (
+              <div className="space-y-4">
+                <FormField
+                  control={form.control}
+                  name="tripType"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Trip Type</FormLabel>
+                      <Select onValueChange={field.onChange} value={field.value}>
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select trip type" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          <SelectItem value={TripType.ONE_WAY}>One Way</SelectItem>
+                          <SelectItem value={TripType.ROUND_TRIP}>Round Trip</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="numPassengers"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Number of Passengers</FormLabel>
+                      <FormControl>
+                        <Input type="number" {...field} min={1} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                {/* Passenger Info Fields */}
+                {/* This will be a dynamic form array in the next iteration */}
+              </div>
+            )}
+
+            {/* Common Fields */}
+            <FormField
+              control={form.control}
+              name="purpose"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Purpose</FormLabel>
+                  <Select onValueChange={field.onChange} value={field.value}>
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select purpose" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      {Object.values(BookingPurpose).sort().map((purpose) => (
+                        <SelectItem key={purpose} value={purpose}>{purpose}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="priority"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Priority</FormLabel>
+                  <Select onValueChange={field.onChange} value={field.value}>
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select priority" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      {Object.values(Priority).map((priority) => (
+                        <SelectItem key={priority} value={priority}>
+                          {priority.charAt(0).toUpperCase() + priority.slice(1)}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            {/* Location and Time Windows */}
+            <div className="space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-4">
+                  <FormLabel>Pickup Location</FormLabel>
+                  <MapView
+                    onLocationSelect={(location) => {
+                      form.setValue("pickupLocation", location);
+                    }}
+                  />
+                </div>
+                <div className="space-y-4">
+                  <FormLabel>Dropoff Location</FormLabel>
+                  <MapView
+                    onLocationSelect={(location) => {
+                      form.setValue("dropoffLocation", location);
+                    }}
+                  />
+                </div>
+              </div>
+
+              {/* Time Windows */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-4">
+                  <FormLabel>Pickup Time Window</FormLabel>
+                  <div className="grid grid-cols-2 gap-2">
+                    <FormField
+                      control={form.control}
+                      name="pickupWindow.start"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormControl>
+                            <Input type="datetime-local" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="pickupWindow.end"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormControl>
+                            <Input type="datetime-local" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
+                </div>
+                <div className="space-y-4">
+                  <FormLabel>Dropoff Time Window</FormLabel>
+                  <div className="grid grid-cols-2 gap-2">
+                    <FormField
+                      control={form.control}
+                      name="dropoffWindow.start"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormControl>
+                            <Input type="datetime-local" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="dropoffWindow.end"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormControl>
+                            <Input type="datetime-local" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Reference and Remarks */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <FormField
+                control={form.control}
+                name="referenceNo"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Reference No.</FormLabel>
+                    <FormControl>
+                      <Input {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="remarks"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Remarks</FormLabel>
+                    <FormControl>
+                      <Textarea {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
 
             <Button
               type="submit"

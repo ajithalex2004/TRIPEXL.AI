@@ -2,6 +2,63 @@ import { pgTable, text, serial, integer, timestamp, json, boolean } from "drizzl
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
+// Enums
+export const BookingType = {
+  FREIGHT: "freight",
+  PASSENGER: "passenger",
+  AMBULANCE: "ambulance",
+} as const;
+
+export const BoxSize = {
+  INCH_12: "12\"",
+  INCH_18: "18\"",
+  INCH_24: "24\"",
+  INCH_36: "36\"",
+  INCH_40: "40\"",
+} as const;
+
+export const TripType = {
+  ONE_WAY: "one_way",
+  ROUND_TRIP: "round_trip",
+} as const;
+
+export const Priority = {
+  EMERGENCY: "emergency",
+  HIGH: "high",
+  MEDIUM: "medium",
+  NORMAL: "normal",
+} as const;
+
+export const BookingPurpose = {
+  HOSPITAL_VISIT: "Hospital Visit",
+  BLOOD_BANK: "Blood Bank",
+  BLOOD_SAMPLES: "Blood Samples Collection/Delivery",
+  AIRPORT_PICKUP: "Airport Pickup",
+  AIRPORT_DROP: "Airport Drop Off",
+  BANK_VISIT: "Bank Visit",
+  DRUG_COLLECTION: "Drug Collection",
+  MEETING: "Meeting",
+  EVENTS_SEMINAR: "Events/Seminar",
+  ON_CALL: "On Call",
+  MARKETING: "Marketing",
+  STAFF_TRANSPORTATION: "Staff Transportation",
+  TRAINING: "Training",
+  STORE_ITEMS: "Store Items Collection/Delivery",
+  EQUIPMENT: "Instrument & Equipment Collection/Delivery",
+  DOCUMENT: "Document Collection/Delivery",
+  PATIENT: "Patient Pick Up/Drop Off",
+  MEDICINE: "Medicine Collection/Delivery",
+  VISA_MEDICAL: "Visa Medical",
+  MAINTENANCE: "Maintenance",
+  SAMPLE: "Sample Collection/Delivery",
+  VACCINE: "Vaccine Collection/Delivery",
+  AMBULANCE: "Ambulance",
+  MORTUARY: "Mortuary",
+  ONCOLOGY: "Oncology Patient Pick Up/ Drop off",
+  GUEST: "Guest",
+} as const;
+
+// Base schemas
 export const locations = z.object({
   address: z.string(),
   coordinates: z.object({
@@ -17,10 +74,11 @@ export const timeWindow = z.object({
 
 export const contactInfo = z.object({
   name: z.string(),
-  phone: z.string(),
-  email: z.string().email()
+  countryCode: z.string(),
+  number: z.string()
 });
 
+// Table schemas
 export const employees = pgTable("employees", {
   id: serial("id").primaryKey(),
   employeeId: text("employee_id").notNull().unique(),
@@ -31,6 +89,50 @@ export const employees = pgTable("employees", {
   isActive: boolean("is_active").notNull().default(true),
   createdAt: timestamp("created_at").notNull().defaultNow()
 });
+
+// Extend booking schema with new fields
+export const bookings = pgTable("bookings", {
+  id: serial("id").primaryKey(),
+  employeeId: text("employee_id").references(() => employees.employeeId),
+  bookingType: text("booking_type").notNull(),
+  purpose: text("purpose").notNull(),
+  priority: text("priority").notNull(),
+
+  // Freight specific fields
+  cargoType: text("cargo_type"),
+  numBoxes: integer("num_boxes"),
+  weight: integer("weight"),
+  boxSize: text("box_size"),
+
+  // Passenger specific fields
+  tripType: text("trip_type"),
+  numPassengers: integer("num_passengers"),
+  passengerInfo: json("passenger_info").$type<z.infer<typeof contactInfo>[]>(),
+
+  // Location and timing
+  pickupLocation: json("pickup_location").$type<z.infer<typeof locations>>().notNull(),
+  dropoffLocation: json("dropoff_location").$type<z.infer<typeof locations>>().notNull(),
+  pickupWindow: json("pickup_window").$type<z.infer<typeof timeWindow>>().notNull(),
+  dropoffWindow: json("dropoff_window").$type<z.infer<typeof timeWindow>>().notNull(),
+  estimatedTime: integer("estimated_time"),
+
+  // Reference and notes
+  referenceNo: text("reference_no"),
+  remarks: text("remarks"),
+
+  status: text("status").notNull().default("pending"),
+  createdAt: timestamp("created_at").notNull().defaultNow()
+});
+
+// Insert schemas
+export const insertBookingSchema = createInsertSchema(bookings)
+  .extend({
+    bookingType: z.enum([BookingType.FREIGHT, BookingType.PASSENGER, BookingType.AMBULANCE]),
+    purpose: z.enum(Object.values(BookingPurpose) as [string, ...string[]]),
+    priority: z.enum(Object.values(Priority) as [string, ...string[]]),
+    boxSize: z.enum(Object.values(BoxSize) as [string, ...string[]]).optional(),
+    tripType: z.enum(Object.values(TripType) as [string, ...string[]]).optional(),
+  });
 
 export const users = pgTable("users", {
   id: serial("id").primaryKey(),
@@ -48,7 +150,7 @@ export const otpVerifications = pgTable("otp_verifications", {
   id: serial("id").primaryKey(),
   userId: integer("user_id").references(() => users.id),
   otp: text("otp").notNull(),
-  type: text("type").notNull(), 
+  type: text("type").notNull(),
   expiresAt: timestamp("expires_at").notNull(),
   isUsed: boolean("is_used").notNull().default(false),
   createdAt: timestamp("created_at").notNull().defaultNow()
@@ -74,43 +176,22 @@ export const drivers = pgTable("drivers", {
   specializations: text("specializations").array().default([])
 });
 
-export const bookings = pgTable("bookings", {
-  id: serial("id").primaryKey(),
-  userId: integer("user_id").references(() => users.id),
-  pickupLocation: json("pickup_location").$type<z.infer<typeof locations>>().notNull(),
-  dropoffLocation: json("dropoff_location").$type<z.infer<typeof locations>>().notNull(),
-  pickupWindow: json("pickup_window").$type<z.infer<typeof timeWindow>>().notNull(),
-  dropoffWindow: json("dropoff_window").$type<z.infer<typeof timeWindow>>().notNull(),
-  loadSize: integer("load_size").notNull(),
-  cargoType: text("cargo_type").notNull(),
-  priority: text("priority").notNull().default("standard"),
-  specialRequirements: text("special_requirements").array(),
-  senderContact: json("sender_contact").$type<z.infer<typeof contactInfo>>().notNull(),
-  receiverContact: json("receiver_contact").$type<z.infer<typeof contactInfo>>().notNull(),
-  additionalNotes: text("additional_notes"),
-  status: text("status").notNull().default("pending"),
-  vehicleId: integer("vehicle_id").references(() => vehicles.id),
-  driverId: integer("driver_id").references(() => drivers.id),
-  createdAt: timestamp("created_at").notNull().defaultNow()
-});
 
 export const insertEmployeeSchema = createInsertSchema(employees);
-export const insertUserSchema = createInsertSchema(users).omit({ 
+export const insertUserSchema = createInsertSchema(users).omit({
   passwordHash: true,
   isVerified: true,
   lastLogin: true,
   createdAt: true,
-  updatedAt: true 
+  updatedAt: true
 });
-export const insertOtpVerificationSchema = createInsertSchema(otpVerifications).omit({ 
+export const insertOtpVerificationSchema = createInsertSchema(otpVerifications).omit({
   isUsed: true,
-  createdAt: true 
+  createdAt: true
 });
 
 export const insertVehicleSchema = createInsertSchema(vehicles).omit({ features: true });
 export const insertDriverSchema = createInsertSchema(drivers).omit({ specializations: true });
-export const insertBookingSchema = createInsertSchema(bookings)
-  .omit({ vehicleId: true, driverId: true, createdAt: true });
 
 export type Employee = typeof employees.$inferSelect;
 export type User = typeof users.$inferSelect;
