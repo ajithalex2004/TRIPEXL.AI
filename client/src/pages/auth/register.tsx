@@ -2,6 +2,7 @@ import * as React from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { insertUserSchema } from "@shared/schema";
+import { z } from "zod";  // Added this import
 import { useMutation } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
@@ -19,6 +20,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardContent } from "@/components/ui/card";
 import { LoadingIndicator } from "@/components/ui/loading-indicator";
 
+
 export default function RegisterPage() {
   const { toast } = useToast();
   const [, setLocation] = useLocation();
@@ -26,7 +28,11 @@ export default function RegisterPage() {
   const [userId, setUserId] = React.useState<number | null>(null);
 
   const form = useForm({
-    resolver: zodResolver(insertUserSchema),
+    resolver: zodResolver(
+      insertUserSchema.extend({
+        password: z.string().min(6, "Password must be at least 6 characters"),
+      })
+    ),
     defaultValues: {
       employeeId: "",
       email: "",
