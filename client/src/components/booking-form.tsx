@@ -92,7 +92,7 @@ export function BookingForm() {
       2: ["purpose", "priority"],
       3: ["pickupLocation", "dropoffLocation"],
       4: ["pickupWindow", "dropoffWindow"],
-      5: bookingType === BookingType.FREIGHT
+      5: bookingType === "freight"
         ? ["cargoType", "numBoxes", "weight", "boxSize"]
         : ["tripType", "numPassengers"]
     }[step];
@@ -414,9 +414,9 @@ export function BookingForm() {
 
             {/* Step 5: Type-specific Fields */}
             {currentStep === 5 && (
-              <>
+              <div className="space-y-4">
                 {/* Freight specific fields */}
-                {bookingType === BookingType.FREIGHT && (
+                {bookingType === "freight" && (
                   <div className="space-y-4">
                     <FormField
                       control={form.control}
@@ -456,7 +456,6 @@ export function BookingForm() {
                                 onChange={(e) => {
                                   const value = parseInt(e.target.value) || 0;
                                   field.onChange(value);
-                                  // Initialize box sizes array with empty values
                                   form.setValue(
                                     "boxSize",
                                     Array(value).fill("")
@@ -485,7 +484,7 @@ export function BookingForm() {
                     </div>
 
                     {/* Dynamic Box Size Fields */}
-                    {Array.from({ length: numBoxes || 0 }).map((_, index) => (
+                    {numBoxes > 0 && Array.from({ length: numBoxes }).map((_, index) => (
                       <FormField
                         key={index}
                         control={form.control}
@@ -514,7 +513,7 @@ export function BookingForm() {
                 )}
 
                 {/* Passenger specific fields */}
-                {bookingType === BookingType.PASSENGER && (
+                {bookingType === "passenger" && (
                   <div className="space-y-4">
                     <FormField
                       control={form.control}
@@ -552,7 +551,7 @@ export function BookingForm() {
                     />
                   </div>
                 )}
-              </>
+              </div>
             )}
 
             {/* Step 6: Optional Fields */}
