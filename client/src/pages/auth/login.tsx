@@ -57,12 +57,11 @@ export default function LoginPage() {
   });
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-[#004990] via-[#0066cc] to-[#ffffff] flex flex-col items-center justify-center p-4">
+    <div className="min-h-screen bg-gradient-to-b from-[#004990] via-[#0066cc] to-[#ffffff] flex flex-col items-center justify-center p-4 relative">
       <div className="w-full max-w-[1200px] grid md:grid-cols-2 gap-8 items-center">
         <div className="hidden md:flex flex-col justify-center p-8 text-white">
-          <Logo size="large" className="mb-8" />
           <h1 className="text-4xl font-bold mb-4">
-            TRIPEXL
+            TRIPXL
           </h1>
           <p className="text-lg opacity-90">
             An Intelligent AI Platform for Seamless Vehicle Booking & Journey Management!
@@ -71,8 +70,11 @@ export default function LoginPage() {
 
         <Card className="w-full max-w-[400px] mx-auto bg-white/95 backdrop-blur-sm">
           <CardHeader className="space-y-1">
-            <div className="md:hidden mb-6">
-              <Logo className="mx-auto" />
+            <div className="md:hidden mb-6 text-center">
+              <h2 className="text-2xl font-bold">TRIPXL</h2>
+              <p className="text-sm text-muted-foreground">
+                An Intelligent AI Platform for Seamless Vehicle Booking & Journey Management!
+              </p>
             </div>
             <h2 className="text-2xl font-bold text-center">Login</h2>
             <p className="text-sm text-gray-500 text-center">
@@ -188,6 +190,11 @@ export default function LoginPage() {
             </Form>
           </CardContent>
         </Card>
+      </div>
+
+      {/* Logo positioned at bottom right */}
+      <div className="absolute bottom-8 right-8">
+        <Logo size="large" />
       </div>
     </div>
   );
