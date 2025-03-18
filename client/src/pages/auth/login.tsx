@@ -57,20 +57,20 @@ export default function LoginPage() {
   });
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-blue-50 to-white flex flex-col items-center justify-center p-4">
+    <div className="min-h-screen bg-gradient-to-b from-[#004990] via-[#0066cc] to-[#ffffff] flex flex-col items-center justify-center p-4">
       <div className="w-full max-w-[1200px] grid md:grid-cols-2 gap-8 items-center">
-        <div className="hidden md:flex flex-col justify-center p-8">
+        <div className="hidden md:flex flex-col justify-center p-8 text-white">
           <Logo size="large" className="mb-8" />
-          <h1 className="text-4xl font-bold text-[#004990] mb-4">
+          <h1 className="text-4xl font-bold mb-4">
             Vehicle Booking System
           </h1>
-          <p className="text-gray-600 text-lg">
+          <p className="text-lg opacity-90">
             Streamline your fleet management with our advanced booking system.
             Track, manage, and optimize your vehicle operations efficiently.
           </p>
         </div>
 
-        <Card className="w-full max-w-[400px] mx-auto">
+        <Card className="w-full max-w-[400px] mx-auto bg-white/95 backdrop-blur-sm">
           <CardHeader className="space-y-1">
             <div className="md:hidden mb-6">
               <Logo className="mx-auto" />
@@ -163,9 +163,9 @@ export default function LoginPage() {
                     </FormItem>
                   )}
                 />
-                <Button 
-                  type="submit" 
-                  className="w-full bg-[#004990] hover:bg-[#003870]" 
+                <Button
+                  type="submit"
+                  className="w-full bg-[#004990] hover:bg-[#003870]"
                   disabled={login.isPending}
                 >
                   {login.isPending ? (
