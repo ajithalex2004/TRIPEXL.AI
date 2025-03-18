@@ -62,7 +62,7 @@ export default function LoginPage() {
         <div className="hidden md:flex flex-col justify-center p-8 text-white">
           <Logo size="large" className="mb-8" />
           <h1 className="text-4xl font-bold mb-4">
-            TRIP EXL
+            TRIPEXL
           </h1>
           <p className="text-lg opacity-90">
             Streamline your Fleet Management with our Advance AI-Driven Booking System. Track Manage and Optimize your Vehicle Operations Efficiently.

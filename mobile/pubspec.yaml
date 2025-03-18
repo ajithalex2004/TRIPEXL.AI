@@ -1,5 +1,5 @@
-name: trip_exl
-description: TRIP EXL - Fleet Management System
+name: tripexl
+description: TRIPEXL - Fleet Management System
 publish_to: 'none'
 version: 1.0.0+1
 
