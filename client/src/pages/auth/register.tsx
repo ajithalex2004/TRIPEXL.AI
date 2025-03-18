@@ -119,6 +119,9 @@ export default function RegisterPage() {
       <Card className="w-[400px] mx-auto mt-8">
         <CardHeader>
           <h2 className="text-2xl font-bold">Verify Your Account</h2>
+          <p className="text-sm text-gray-500">
+            Please enter the verification code sent to your email
+          </p>
         </CardHeader>
         <CardContent>
           <Form {...form}>

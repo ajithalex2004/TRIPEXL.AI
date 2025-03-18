@@ -11,7 +11,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/auth/register", async (req, res) => {
     const result = insertUserSchema.safeParse(req.body);
     if (!result.success) {
-      return res.status(400).json({ error: "Invalid registration data", details: result.error.issues }); //Added details for better debugging
+      return res.status(400).json({ error: "Invalid registration data", details: result.error.issues });
     }
 
     const { password } = req.body;
@@ -27,7 +27,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
     } catch (error: any) {
       console.error('Registration error:', error);
-      res.status(500).json({ error: "Server error during registration" }); //More generic error message
+      res.status(500).json({ error: "Server error during registration" });
     }
   });
 
@@ -41,7 +41,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const { user, token } = await authService.verifyOTP(userId, otp);
       res.json({ message: "Account verified successfully", token, user });
     } catch (error: any) {
-      res.status(400).json({ error: error.message }); //Improved error handling
+      res.status(400).json({ error: error.message }); 
     }
   });
 
@@ -55,7 +55,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const { user, token } = await authService.login(email, password);
       res.json({ token, user });
     } catch (error: any) {
-      res.status(401).json({ error: "Invalid credentials" }); //More specific error message
+      res.status(401).json({ error: "Invalid credentials" }); 
     }
   });
 
@@ -65,7 +65,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const vehicles = await storage.getVehicles();
       res.json(vehicles);
     } catch (error: any) {
-      res.status(500).json({ error: "Failed to retrieve vehicles" }); //Added error handling
+      res.status(500).json({ error: "Failed to retrieve vehicles" }); 
     }
   });
 
@@ -75,7 +75,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const vehicles = await storage.getAvailableVehicles();
       res.json(vehicles);
     } catch (error: any) {
-      res.status(500).json({ error: "Failed to retrieve available vehicles" }); //Added error handling
+      res.status(500).json({ error: "Failed to retrieve available vehicles" }); 
     }
   });
 
@@ -85,7 +85,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const drivers = await storage.getDrivers();
       res.json(drivers);
     } catch (error: any) {
-      res.status(500).json({ error: "Failed to retrieve drivers" }); //Added error handling
+      res.status(500).json({ error: "Failed to retrieve drivers" }); 
     }
   });
 
@@ -95,7 +95,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const drivers = await storage.getAvailableDrivers();
       res.json(drivers);
     } catch (error: any) {
-      res.status(500).json({ error: "Failed to retrieve available drivers" }); //Added error handling
+      res.status(500).json({ error: "Failed to retrieve available drivers" }); 
     }
   });
 
@@ -105,7 +105,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const bookings = await storage.getBookings();
       res.json(bookings);
     } catch (error: any) {
-      res.status(500).json({ error: "Failed to retrieve bookings" }); //Added error handling
+      res.status(500).json({ error: "Failed to retrieve bookings" }); 
     }
   });
 
@@ -113,7 +113,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/bookings", async (req, res) => {
     const result = insertBookingSchema.safeParse(req.body);
     if (!result.success) {
-      return res.status(400).json({ error: "Invalid booking data", details: result.error.issues }); //Added details for better debugging
+      return res.status(400).json({ error: "Invalid booking data", details: result.error.issues }); 
     }
 
     try {
