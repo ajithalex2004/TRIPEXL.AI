@@ -192,9 +192,10 @@ export default function LoginPage() {
         </Card>
       </div>
 
-      {/* Logo positioned at bottom right */}
-      <div className="absolute bottom-8 right-8">
+      {/* Logo and powered by text positioned at bottom right */}
+      <div className="absolute bottom-4 right-4 flex flex-col items-end">
         <Logo size="large" />
+        <p className="text-sm text-white mt-2">Powered by EXL AI Solutions</p>
       </div>
     </div>
   );
