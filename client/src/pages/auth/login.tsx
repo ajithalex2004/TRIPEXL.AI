@@ -65,8 +65,7 @@ export default function LoginPage() {
             Vehicle Booking System
           </h1>
           <p className="text-lg opacity-90">
-            Streamline your fleet management with our advanced booking system.
-            Track, manage, and optimize your vehicle operations efficiently.
+            Streamline your Fleet Management with our Advance AI-Driven Booking System. Track Manage and Optimize your Vehicle Operations Efficiently.
           </p>
         </div>
 
