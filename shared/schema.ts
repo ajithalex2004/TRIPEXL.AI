@@ -115,7 +115,7 @@ export const bookings = pgTable("bookings", {
   cargoType: text("cargo_type"),
   numBoxes: integer("num_boxes"),
   weight: integer("weight"),
-  boxSize: text("box_size"),
+  boxSize: text("box_size").array(),
 
   // Passenger specific fields
   tripType: text("trip_type"),
@@ -143,7 +143,7 @@ export const insertBookingSchema = createInsertSchema(bookings)
     bookingType: z.enum([BookingType.FREIGHT, BookingType.PASSENGER, BookingType.AMBULANCE]),
     purpose: z.enum(Object.values(BookingPurpose) as [string, ...string[]]),
     priority: z.enum(Object.values(Priority) as [string, ...string[]]),
-    boxSize: z.enum(Object.values(BoxSize) as [string, ...string[]]).optional(),
+    boxSize: z.array(z.enum(Object.values(BoxSize) as [string, ...string[]])).optional(),
     tripType: z.enum(Object.values(TripType) as [string, ...string[]]).optional(),
   });
 

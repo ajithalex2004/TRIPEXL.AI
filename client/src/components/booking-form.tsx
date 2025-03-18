@@ -196,7 +196,7 @@ export function BookingForm() {
                     </FormItem>
                   )}
                 />
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <FormField
                     control={form.control}
                     name="numBoxes"
@@ -204,7 +204,20 @@ export function BookingForm() {
                       <FormItem>
                         <FormLabel>Number of Boxes</FormLabel>
                         <FormControl>
-                          <Input type="number" {...field} min={1} />
+                          <Input 
+                            type="number" 
+                            {...field} 
+                            onChange={(e) => {
+                              const value = parseInt(e.target.value) || 0;
+                              field.onChange(value);
+                              // Initialize box sizes array with empty values
+                              form.setValue(
+                                "boxSize",
+                                Array(value).fill("")
+                              );
+                            }}
+                            min={1} 
+                          />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -223,16 +236,21 @@ export function BookingForm() {
                       </FormItem>
                     )}
                   />
+                </div>
+
+                {/* Dynamic Box Size Fields */}
+                {Array.from({ length: form.watch("numBoxes") || 0 }).map((_, index) => (
                   <FormField
+                    key={index}
                     control={form.control}
-                    name="boxSize"
+                    name={`boxSize.${index}`}
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Box Size</FormLabel>
+                        <FormLabel>Box Size {index + 1} (in inches)</FormLabel>
                         <Select onValueChange={field.onChange} value={field.value}>
                           <FormControl>
                             <SelectTrigger>
-                              <SelectValue placeholder="Select box size" />
+                              <SelectValue placeholder={`Select size for box ${index + 1}`} />
                             </SelectTrigger>
                           </FormControl>
                           <SelectContent>
@@ -245,7 +263,7 @@ export function BookingForm() {
                       </FormItem>
                     )}
                   />
-                </div>
+                ))}
               </div>
             )}
 
