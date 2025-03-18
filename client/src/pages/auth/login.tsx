@@ -17,6 +17,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardContent } from "@/components/ui/card";
 import { LoadingIndicator } from "@/components/ui/loading-indicator";
 import { Logo } from "@/components/ui/logo";
+import { Footer } from "@/components/ui/footer";
 
 export default function LoginPage() {
   const { toast } = useToast();
@@ -191,18 +192,7 @@ export default function LoginPage() {
           </CardContent>
         </Card>
       </div>
-
-      {/* Logo in the bottom right */}
-      <div className="absolute bottom-4 right-4">
-        <Logo size="large" />
-      </div>
-
-      {/* Footer with powered by text */}
-      <div className="absolute bottom-0 right-0 w-full bg-[#004990]/90 p-2">
-        <p className="text-sm text-white font-medium text-right pr-4">
-          Powered by EXL AI Solutions
-        </p>
-      </div>
+      <Footer />
     </div>
   );
 }
