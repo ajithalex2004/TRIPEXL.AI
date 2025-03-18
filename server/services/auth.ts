@@ -44,6 +44,11 @@ export class AuthService {
     }
   }
 
+  private async createHashedPassword(password: string): Promise<string> {
+    const salt = await bcrypt.genSalt(10);
+    return bcrypt.hash(password, salt);
+  }
+
   async registerUser(userData: InsertUser, password: string): Promise<{ user: User; otp: string }> {
     if (!password) {
       throw new Error('Password is required');
@@ -59,8 +64,8 @@ export class AuthService {
 
     try {
       // Hash password
-      const salt = await bcrypt.genSalt(10);
-      const passwordHash = await bcrypt.hash(password, salt);
+      const passwordHash = await this.createHashedPassword(password);
+
 
       // Create user
       const user = await storage.createUser({
@@ -150,6 +155,28 @@ export class AuthService {
 
     const token = await this.generateToken(user);
     return { user, token };
+  }
+
+  async initializeDefaultUser(): Promise<void> {
+    try {
+      const existingUser = await storage.findUserByEmail("john.smith@company.com");
+      if (!existingUser) {
+        const passwordHash = await this.createHashedPassword("Code@4088");
+        await storage.createUser({
+          employeeId: "EMP001",
+          email: "john.smith@company.com",
+          passwordHash,
+          phoneNumber: "+1234567890",
+          isVerified: true,
+          lastLogin: null,
+          createdAt: new Date(),
+          updatedAt: new Date()
+        });
+        console.log("Default user created successfully");
+      }
+    } catch (error) {
+      console.error("Error creating default user:", error);
+    }
   }
 }
 

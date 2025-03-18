@@ -7,6 +7,9 @@ import { authService } from "./services/auth";
 export async function registerRoutes(app: Express): Promise<Server> {
   const httpServer = createServer(app);
 
+  // Initialize default user
+  await authService.initializeDefaultUser();
+
   // Auth routes
   app.post("/api/auth/register", async (req, res) => {
     const result = insertUserSchema.safeParse(req.body);
@@ -56,6 +59,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const { user, token } = await authService.login(email, password);
       res.json({ token, user });
     } catch (error: any) {
+      console.error('Login error:', error);
       res.status(401).json({ error: "Invalid credentials" }); 
     }
   });

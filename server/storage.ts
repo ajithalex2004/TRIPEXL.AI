@@ -120,7 +120,20 @@ export class MemStorage implements IStorage {
       }
     ];
 
-    // Mock vehicles (existing code)
+    // Create initial user for EMP001
+    const user: User = {
+      id: this.currentId.users++,
+      employeeId: "EMP001",
+      email: "john.smith@company.com",
+      passwordHash: "$2a$10$6Yw0kVe4xqJxz8Qp9J3J8.0Z4Jx.d6HXR7ZkIqJ1XpX4Kq1Z6q", // Hashed version of Code@4088
+      phoneNumber: "+1234567890",
+      isVerified: true,
+      lastLogin: null,
+      createdAt: new Date(),
+      updatedAt: new Date()
+    };
+
+    // Mock vehicles
     const mockVehicles: Vehicle[] = [
       {
         id: this.currentId.vehicles++,
@@ -137,7 +150,7 @@ export class MemStorage implements IStorage {
       }
     ];
 
-    // Mock drivers (existing code)
+    // Mock drivers
     const mockDrivers: Driver[] = [
       {
         id: this.currentId.drivers++,
@@ -154,6 +167,7 @@ export class MemStorage implements IStorage {
 
     // Initialize all mock data
     mockEmployees.forEach(e => this.employees.set(e.id, e));
+    this.users.set(user.id, user);
     mockVehicles.forEach(v => this.vehicles.set(v.id, v));
     mockDrivers.forEach(d => this.drivers.set(d.id, d));
   }
