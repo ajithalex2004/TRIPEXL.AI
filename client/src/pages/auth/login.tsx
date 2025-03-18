@@ -65,7 +65,7 @@ export default function LoginPage() {
             TRIPEXL
           </h1>
           <p className="text-lg opacity-90">
-            Streamline your Fleet Management with our Advance AI-Driven Booking System. Track Manage and Optimize your Vehicle Operations Efficiently.
+            AN Intelligent AI Platform for Seamless Journey Management
           </p>
         </div>
 
