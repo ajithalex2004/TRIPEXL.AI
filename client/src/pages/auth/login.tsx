@@ -198,8 +198,10 @@ export default function LoginPage() {
       </div>
 
       {/* Footer with powered by text */}
-      <div className="absolute bottom-0 right-0 w-full text-right p-2">
-        <p className="text-sm text-white pr-4">Powered by EXL Solutions</p>
+      <div className="absolute bottom-0 right-0 w-full bg-[#004990]/90 p-2">
+        <p className="text-sm text-white font-medium text-right pr-4">
+          Powered by EXL AI Solutions
+        </p>
       </div>
     </div>
   );
