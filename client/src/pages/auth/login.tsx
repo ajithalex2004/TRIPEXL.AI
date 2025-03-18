@@ -32,7 +32,7 @@ export default function LoginPage() {
 
   const login = useMutation({
     mutationFn: async (data: any) => {
-      const res = await apiRequest("POST", "/api/auth/login", data);
+      const res = await apiRequest("POST", "/api/login", data);
       return res.json();
     },
     onSuccess: (data) => {
@@ -192,10 +192,14 @@ export default function LoginPage() {
         </Card>
       </div>
 
-      {/* Logo and powered by text positioned at bottom right */}
-      <div className="absolute bottom-4 right-4 flex flex-col items-end">
+      {/* Logo in the bottom right */}
+      <div className="absolute bottom-4 right-4">
         <Logo size="large" />
-        <p className="text-sm text-white mt-2">Powered by EXL AI Solutions</p>
+      </div>
+
+      {/* Footer with powered by text */}
+      <div className="absolute bottom-0 right-0 w-full text-right p-2">
+        <p className="text-sm text-white pr-4">Powered by EXL Solutions</p>
       </div>
     </div>
   );
