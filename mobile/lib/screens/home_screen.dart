@@ -9,7 +9,17 @@ class HomeScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Vehicle Booking'),
+        title: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 8.0),
+          child: Image.asset(
+            'assets/images/logo.png',
+            height: 32,
+            fit: BoxFit.contain,
+          ),
+        ),
+        backgroundColor: Colors.white,
+        elevation: 1,
+        centerTitle: true,
       ),
       body: Column(
         children: [
@@ -18,7 +28,11 @@ class HomeScreen extends StatelessWidget {
             padding: EdgeInsets.all(16.0),
             child: Text(
               'Available Vehicles',
-              style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+              style: TextStyle(
+                fontSize: 20, 
+                fontWeight: FontWeight.bold,
+                color: Color(0xFF004990), // EXL Solutions blue
+              ),
             ),
           ),
           const Expanded(child: VehicleList()),
