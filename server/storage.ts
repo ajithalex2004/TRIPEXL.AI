@@ -1,5 +1,9 @@
 import { type Vehicle, type Driver, type Booking, type InsertBooking, type Location, type TimeWindow } from "@shared/schema";
 import * as z from 'zod';
+import { type Employee } from '@shared/schema';
+import { type User, type InsertUser } from '@shared/schema';
+import { type OtpVerification, type InsertOtpVerification } from '@shared/schema';
+
 
 const locations = z.object({
   address: z.string(),
@@ -43,17 +47,31 @@ export interface IStorage {
   getVehicles(): Promise<Vehicle[]>;
   getAvailableVehicles(): Promise<Vehicle[]>;
   updateVehicleStatus(id: number, status: string): Promise<Vehicle>;
-  
+
   // Drivers
   getDrivers(): Promise<Driver[]>;
   getAvailableDrivers(): Promise<Driver[]>;
   updateDriverStatus(id: number, status: string): Promise<Driver>;
-  
+
   // Bookings
   getBookings(): Promise<Booking[]>;
   createBooking(booking: InsertBooking): Promise<Booking>;
   assignBooking(bookingId: number, vehicleId: number, driverId: number): Promise<Booking>;
   updateBookingStatus(id: number, status: string): Promise<Booking>;
+
+  // Employee methods
+  findEmployeeByIdAndEmail(employeeId: string, email: string): Promise<Employee | null>;
+
+  // User methods
+  createUser(user: InsertUser & { passwordHash: string }): Promise<User>;
+  findUserByEmail(email: string): Promise<User | null>;
+  markUserAsVerified(userId: number): Promise<User>;
+  updateUserLastLogin(userId: number): Promise<User>;
+
+  // OTP methods
+  createOtpVerification(verification: InsertOtpVerification): Promise<OtpVerification>;
+  findLatestOtpVerification(userId: number): Promise<OtpVerification | null>;
+  markOtpAsUsed(verificationId: number): Promise<OtpVerification>;
 }
 
 export class MemStorage implements IStorage {
@@ -61,13 +79,16 @@ export class MemStorage implements IStorage {
   private drivers: Map<number, Driver>;
   private bookings: Map<number, Booking>;
   private currentId: { [key: string]: number };
+  private employees: Map<number, Employee>;
+  private users: Map<number, User>;
+  private otpVerifications: Map<number, OtpVerification>;
 
   constructor() {
     this.vehicles = new Map();
     this.drivers = new Map();
     this.bookings = new Map();
-    this.currentId = { vehicles: 1, drivers: 1, bookings: 1 };
-    
+    this.currentId = { vehicles: 1, drivers: 1, bookings: 1, users:1, employees:1, otpVerifications:1 };
+
     // Initialize with mock data
     this.initializeMockData();
   }
@@ -119,7 +140,7 @@ export class MemStorage implements IStorage {
   async updateVehicleStatus(id: number, status: string): Promise<Vehicle> {
     const vehicle = this.vehicles.get(id);
     if (!vehicle) throw new Error("Vehicle not found");
-    
+
     const updated = { ...vehicle, status };
     this.vehicles.set(id, updated);
     return updated;
@@ -137,7 +158,7 @@ export class MemStorage implements IStorage {
   async updateDriverStatus(id: number, status: string): Promise<Driver> {
     const driver = this.drivers.get(id);
     if (!driver) throw new Error("Driver not found");
-    
+
     const updated = { ...driver, status };
     this.drivers.set(id, updated);
     return updated;
@@ -172,8 +193,8 @@ export class MemStorage implements IStorage {
 
     // Check existing bookings for this vehicle/driver
     const existingBookings = Array.from(this.bookings.values())
-      .filter(b => 
-        (b.vehicleId === vehicle.id || b.driverId === driver.id) && 
+      .filter(b =>
+        (b.vehicleId === vehicle.id || b.driverId === driver.id) &&
         b.status !== 'completed'
       );
 
@@ -257,27 +278,113 @@ export class MemStorage implements IStorage {
   async assignBooking(bookingId: number, vehicleId: number, driverId: number): Promise<Booking> {
     const booking = this.bookings.get(bookingId);
     if (!booking) throw new Error("Booking not found");
-    
+
     const updated: Booking = {
       ...booking,
       vehicleId,
       driverId,
       status: "assigned"
     };
-    
+
     this.bookings.set(bookingId, updated);
     await this.updateVehicleStatus(vehicleId, "booked");
     await this.updateDriverStatus(driverId, "booked");
-    
+
     return updated;
   }
 
   async updateBookingStatus(id: number, status: string): Promise<Booking> {
     const booking = this.bookings.get(id);
     if (!booking) throw new Error("Booking not found");
-    
+
     const updated = { ...booking, status };
     this.bookings.set(id, updated);
+    return updated;
+  }
+
+  // Employee methods
+  async findEmployeeByIdAndEmail(employeeId: string, email: string): Promise<Employee | null> {
+    const employee = Array.from(this.employees.values()).find(
+      e => e.employeeId === employeeId && e.email === email
+    );
+    return employee || null;
+  }
+
+  // User methods
+  async createUser(userData: InsertUser & { passwordHash: string }): Promise<User> {
+    const id = this.currentId.users++;
+    const user: User = {
+      ...userData,
+      id,
+      isVerified: false,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+      lastLogin: null,
+    };
+    this.users.set(id, user);
+    return user;
+  }
+
+  async findUserByEmail(email: string): Promise<User | null> {
+    const user = Array.from(this.users.values()).find(u => u.email === email);
+    return user || null;
+  }
+
+  async markUserAsVerified(userId: number): Promise<User> {
+    const user = this.users.get(userId);
+    if (!user) throw new Error('User not found');
+
+    const updated: User = {
+      ...user,
+      isVerified: true,
+      updatedAt: new Date(),
+    };
+    this.users.set(userId, updated);
+    return updated;
+  }
+
+  async updateUserLastLogin(userId: number): Promise<User> {
+    const user = this.users.get(userId);
+    if (!user) throw new Error('User not found');
+
+    const updated: User = {
+      ...user,
+      lastLogin: new Date(),
+      updatedAt: new Date(),
+    };
+    this.users.set(userId, updated);
+    return updated;
+  }
+
+  // OTP methods
+  async createOtpVerification(verification: InsertOtpVerification): Promise<OtpVerification> {
+    const id = this.currentId.otpVerifications++;
+    const newVerification: OtpVerification = {
+      ...verification,
+      id,
+      isUsed: false,
+      createdAt: new Date(),
+    };
+    this.otpVerifications.set(id, newVerification);
+    return newVerification;
+  }
+
+  async findLatestOtpVerification(userId: number): Promise<OtpVerification | null> {
+    const verifications = Array.from(this.otpVerifications.values())
+      .filter(v => v.userId === userId)
+      .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+    return verifications[0] || null;
+  }
+
+  async markOtpAsUsed(verificationId: number): Promise<OtpVerification> {
+    const verification = this.otpVerifications.get(verificationId);
+    if (!verification) throw new Error('Verification not found');
+
+    const updated: OtpVerification = {
+      ...verification,
+      isUsed: true,
+    };
+    this.otpVerifications.set(verificationId, updated);
     return updated;
   }
 }

@@ -1,14 +1,32 @@
-import { Switch, Route } from "wouter";
+import * as React from "react";
+import { Switch, Route, useLocation } from "wouter";
 import { queryClient } from "./lib/queryClient";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import NotFound from "@/pages/not-found";
 import Home from "@/pages/home";
+import LoginPage from "@/pages/auth/login";
+import RegisterPage from "@/pages/auth/register";
+
+function ProtectedRoute({ component: Component }: { component: React.ComponentType }) {
+  const [, setLocation] = useLocation();
+
+  React.useEffect(() => {
+    const token = localStorage.getItem("token");
+    if (!token) {
+      setLocation("/auth/login");
+    }
+  }, [setLocation]);
+
+  return <Component />;
+}
 
 function Router() {
   return (
     <Switch>
-      <Route path="/" component={Home} />
+      <Route path="/auth/login" component={LoginPage} />
+      <Route path="/auth/register" component={RegisterPage} />
+      <Route path="/" component={() => <ProtectedRoute component={Home} />} />
       <Route component={NotFound} />
     </Switch>
   );
