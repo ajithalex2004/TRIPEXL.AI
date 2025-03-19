@@ -91,7 +91,7 @@ export function DateTimePicker({ date, setDate, disabled }: DateTimePickerProps)
               <SelectContent position="popper" className="h-[200px]">
                 {hours.map((hour) => (
                   <SelectItem key={hour} value={hour}>
-                    {hour}:00
+                    {hour}
                   </SelectItem>
                 ))}
               </SelectContent>
