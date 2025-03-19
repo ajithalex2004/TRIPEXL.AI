@@ -5,9 +5,7 @@ import { LoadScriptNext, GoogleMap, Marker, InfoWindow, DirectionsRenderer } fro
 import { VehicleLoadingIndicator } from "@/components/ui/vehicle-loading-indicator";
 import { Button } from "@/components/ui/button";
 import { MapPin, Clock } from "lucide-react";
-import { routeOptimizer } from "@/services/route-optimizer";
 
-// Abu Dhabi city center coordinates
 const defaultCenter = {
   lat: 24.466667,
   lng: 54.366667
@@ -18,7 +16,6 @@ const defaultZoom = 11;
 const libraries: ("places" | "geometry" | "drawing" | "visualization")[] = ["places", "geometry"];
 
 const MAPS_API_KEY = "AIzaSyAtNTq_ILPC8Y5M_bJAiMORDf02sGoK84I";
-
 
 export interface Location {
   address: string;
@@ -60,45 +57,48 @@ export function MapView({
   const [routeInfo, setRouteInfo] = useState<{
     distance: string;
     duration: string;
-    alerts: string[];
   } | null>(null);
 
   // Draw route when both locations are set
   useEffect(() => {
     const drawRoute = async () => {
       if (!pickupLocation || !dropoffLocation || !map) {
-        console.log("Missing required data for route:", { pickupLocation, dropoffLocation, map });
+        console.log("Missing location data:", { pickupLocation, dropoffLocation });
         return;
       }
 
       try {
-        console.log("Drawing route between:", pickupLocation, "and", dropoffLocation);
         setIsLoading(true);
         setMapError(null);
 
-        const optimizedRoute = await routeOptimizer.getOptimizedRoute(pickupLocation, dropoffLocation);
-        console.log("Got optimized route:", optimizedRoute);
-
-        if (optimizedRoute.route.routes.length === 0) {
-          throw new Error("No routes found");
-        }
-
-        setDirectionsResult(optimizedRoute.route);
-        setRouteInfo({
-          distance: optimizedRoute.route.routes[0].legs[0].distance?.text || "Unknown distance",
-          duration: `${Math.round(optimizedRoute.estimatedTime / 60)} mins`,
-          alerts: [...optimizedRoute.weatherAlerts, ...optimizedRoute.trafficAlerts]
+        const directionsService = new google.maps.DirectionsService();
+        const result = await directionsService.route({
+          origin: pickupLocation.coordinates,
+          destination: dropoffLocation.coordinates,
+          travelMode: google.maps.TravelMode.DRIVING,
         });
 
-        // Fit the map to show the entire route
+        console.log("Route result:", result);
+
+        if (!result.routes.length) {
+          throw new Error("No route found");
+        }
+
+        setDirectionsResult(result);
+        setRouteInfo({
+          distance: result.routes[0].legs[0].distance?.text || "Unknown",
+          duration: result.routes[0].legs[0].duration?.text || "Unknown"
+        });
+
+        // Fit map to show the entire route
         const bounds = new google.maps.LatLngBounds();
         bounds.extend(pickupLocation.coordinates);
         bounds.extend(dropoffLocation.coordinates);
         map.fitBounds(bounds);
 
       } catch (error) {
-        console.error("Error getting route:", error);
-        setMapError("Failed to load route information. Please try again.");
+        console.error("Error calculating route:", error);
+        setMapError("Could not calculate route between locations");
         setDirectionsResult(null);
         setRouteInfo(null);
       } finally {
@@ -129,12 +129,8 @@ export function MapView({
         });
       }
     } catch (error) {
-      console.error(`Error geocoding location:`, error);
-      setPopupLocation({
-        lat: e.latLng.lat(),
-        lng: e.latLng.lng(),
-        address: `${e.latLng.lat().toFixed(6)}, ${e.latLng.lng().toFixed(6)}`
-      });
+      console.error("Error geocoding location:", error);
+      setMapError("Failed to get location details");
     } finally {
       setIsLoading(false);
     }
@@ -143,6 +139,7 @@ export function MapView({
   const handleLocationTypeSelect = (type: 'pickup' | 'dropoff') => {
     if (!popupLocation || !map) return;
 
+    // Create a Places Service to get additional place details
     const placesService = new google.maps.places.PlacesService(map);
 
     placesService.findPlaceFromQuery({
@@ -179,20 +176,6 @@ export function MapView({
   const handleMapLoad = (map: google.maps.Map) => {
     setMap(map);
     setMapsInitialized(true);
-
-    map.setOptions({
-      styles: [
-        {
-          featureType: "poi",
-          stylers: [{ visibility: "on" }]
-        },
-        {
-          featureType: "poi.business",
-          stylers: [{ visibility: "on" }]
-        }
-      ]
-    });
-
     map.setCenter(defaultCenter);
     map.setZoom(defaultZoom);
   };
@@ -220,10 +203,6 @@ export function MapView({
           </div>
         }
         onLoad={() => setMapsInitialized(true)}
-        onError={(error) => {
-          console.error("Error loading Google Maps:", error);
-          setMapError("Failed to load Google Maps. Please refresh the page.");
-        }}
       >
         <div className="h-[400px] relative">
           <GoogleMap
@@ -330,19 +309,6 @@ export function MapView({
             <span>•</span>
             <span>Distance: {routeInfo.distance}</span>
           </div>
-          {routeInfo.alerts.length > 0 && (
-            <div className="mt-2">
-              <p className="text-sm font-medium mb-1">Alerts:</p>
-              <ul className="text-sm text-muted-foreground">
-                {routeInfo.alerts.map((alert, index) => (
-                  <li key={index} className="flex items-center gap-2">
-                    <span>•</span>
-                    {alert}
-                  </li>
-                ))}
-              </ul>
-            </div>
-          )}
           <div className="mt-2">
             <p className="text-sm text-muted-foreground">
               Pickup: {pickupLocation.formatted_address || pickupLocation.name || pickupLocation.address}
