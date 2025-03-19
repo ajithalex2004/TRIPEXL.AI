@@ -441,7 +441,17 @@ export function BookingForm() {
                       <FormItem>
                         <FormLabel>Number of Passengers *</FormLabel>
                         <FormControl>
-                          <Input type="number" {...field} min={1} />
+                          <Input
+                            type="number"
+                            {...field}
+                            onChange={(e) => {
+                              const value = e.target.value === "" ? 0 : parseInt(e.target.value);
+                              field.onChange(value);
+                            }}
+                            min={1}
+                            step={1}
+                            onWheel={(e) => e.currentTarget.blur()}
+                          />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
