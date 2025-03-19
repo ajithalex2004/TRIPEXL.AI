@@ -23,6 +23,7 @@ import { BookingType, BookingPurpose, Priority } from "@shared/schema";
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { VehicleLoadingIndicator } from "@/components/ui/vehicle-loading-indicator";
+import { Filter, Search } from "lucide-react";
 
 function BookingHistoryPage() {
   const { data: bookings, isLoading } = useQuery<Booking[]>({
@@ -60,70 +61,76 @@ function BookingHistoryPage() {
           </CardHeader>
           <CardContent>
             {/* Search and Filters */}
-            <motion.div 
-              initial={{ opacity: 0, y: -20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.2, duration: 0.5 }}
-              className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6"
-            >
-              <div className="relative">
-                <h3 className="text-sm font-medium mb-2 text-muted-foreground">Search Reference</h3>
-                <Input
-                  placeholder="Search by reference number..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full bg-background/50 backdrop-blur-sm border-white/10 transition-all duration-200 hover:bg-background/70 focus:bg-background/70"
-                />
+            <div className="mb-8">
+              <div className="flex items-center gap-2 mb-4">
+                <Filter className="h-5 w-5 text-primary" />
+                <h3 className="font-semibold text-lg">Filters</h3>
               </div>
-              <div>
-                <h3 className="text-sm font-medium mb-2 text-muted-foreground">Booking Type</h3>
-                <Select value={typeFilter} onValueChange={setTypeFilter}>
-                  <SelectTrigger className="bg-background/50 backdrop-blur-sm border-white/10 transition-all duration-200 hover:bg-background/70">
-                    <SelectValue placeholder="Filter by type" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All Types</SelectItem>
-                    {Object.values(BookingType).map((type) => (
-                      <SelectItem key={type} value={type}>
-                        {type}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div>
-                <h3 className="text-sm font-medium mb-2 text-muted-foreground">Purpose</h3>
-                <Select value={purposeFilter} onValueChange={setPurposeFilter}>
-                  <SelectTrigger className="bg-background/50 backdrop-blur-sm border-white/10 transition-all duration-200 hover:bg-background/70">
-                    <SelectValue placeholder="Filter by purpose" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All Purposes</SelectItem>
-                    {Object.values(BookingPurpose).map((purpose) => (
-                      <SelectItem key={purpose} value={purpose}>
-                        {purpose}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div>
-                <h3 className="text-sm font-medium mb-2 text-muted-foreground">Priority</h3>
-                <Select value={priorityFilter} onValueChange={setPriorityFilter}>
-                  <SelectTrigger className="bg-background/50 backdrop-blur-sm border-white/10 transition-all duration-200 hover:bg-background/70">
-                    <SelectValue placeholder="Filter by priority" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All Priorities</SelectItem>
-                    {Object.values(Priority).map((priority) => (
-                      <SelectItem key={priority} value={priority}>
-                        {priority}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            </motion.div>
+              <motion.div 
+                initial={{ opacity: 0, y: -20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.2, duration: 0.5 }}
+                className="grid grid-cols-1 md:grid-cols-4 gap-6"
+              >
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2">
+                    <Search className="h-4 w-4 text-muted-foreground" />
+                    <span className="font-medium">Reference Number</span>
+                  </div>
+                  <Input
+                    placeholder="Search booking reference..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="w-full bg-background/50 backdrop-blur-sm border-white/10 transition-all duration-200 hover:bg-background/70 focus:bg-background/70"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <span className="font-medium">Booking Type</span>
+                  <Select value={typeFilter} onValueChange={setTypeFilter}>
+                    <SelectTrigger className="bg-background/50 backdrop-blur-sm border-white/10 transition-all duration-200 hover:bg-background/70">
+                      <SelectValue placeholder="All Types" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All Types</SelectItem>
+                      {Object.values(BookingType).map((type) => (
+                        <SelectItem key={type} value={type}>{type}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-2">
+                  <span className="font-medium">Booking Purpose</span>
+                  <Select value={purposeFilter} onValueChange={setPurposeFilter}>
+                    <SelectTrigger className="bg-background/50 backdrop-blur-sm border-white/10 transition-all duration-200 hover:bg-background/70">
+                      <SelectValue placeholder="All Purposes" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All Purposes</SelectItem>
+                      {Object.values(BookingPurpose).map((purpose) => (
+                        <SelectItem key={purpose} value={purpose}>{purpose}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-2">
+                  <span className="font-medium">Priority Level</span>
+                  <Select value={priorityFilter} onValueChange={setPriorityFilter}>
+                    <SelectTrigger className="bg-background/50 backdrop-blur-sm border-white/10 transition-all duration-200 hover:bg-background/70">
+                      <SelectValue placeholder="All Priorities" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All Priorities</SelectItem>
+                      {Object.values(Priority).map((priority) => (
+                        <SelectItem key={priority} value={priority}>{priority}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </motion.div>
+            </div>
 
             {/* Bookings Table */}
             <motion.div
