@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Input } from "@/components/ui/input";
 import { Location } from "./map-view";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -37,6 +37,8 @@ export function LocationInput({
   onLocationSelect,
   onFocus
 }: LocationInputProps) {
+  const inputRef = useRef<HTMLInputElement>(null);
+  const autocompleteRef = useRef<google.maps.places.Autocomplete | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isOpen, setIsOpen] = useState(false);
   const [searchHistory, setSearchHistory] = useState<SavedLocation[]>([]);
@@ -65,24 +67,59 @@ export function LocationInput({
     localStorage.setItem(HISTORY_KEY, JSON.stringify(newHistory));
   };
 
-  const handleHistorySelect = (location: Location) => {
-    onLocationSelect(location);
-    saveToHistory(location);
-    setIsOpen(false);
-  };
+  // Initialize Google Places Autocomplete
+  useEffect(() => {
+    if (!inputRef.current || !window.google?.maps?.places) return;
 
-  const handleInputSubmit = () => {
-    if (!value) return;
+    try {
+      const options: google.maps.places.AutocompleteOptions = {
+        componentRestrictions: { country: "AE" }, // Restrict to UAE
+        fields: ["formatted_address", "geometry", "name"],
+        types: ["establishment", "geocode"]
+      };
 
-    const location: Location = {
-      address: value,
-      coordinates: {
-        // Default to Dubai center if coordinates not provided
-        lat: 25.2048,
-        lng: 55.2708
+      // Clean up previous instance
+      if (autocompleteRef.current) {
+        google.maps.event.clearInstanceListeners(autocompleteRef.current);
       }
-    };
 
+      autocompleteRef.current = new google.maps.places.Autocomplete(
+        inputRef.current,
+        options
+      );
+
+      const listener = autocompleteRef.current.addListener("place_changed", () => {
+        const place = autocompleteRef.current?.getPlace();
+
+        if (place?.geometry?.location) {
+          const location: Location = {
+            address: place.formatted_address || place.name || "",
+            coordinates: {
+              lat: place.geometry.location.lat(),
+              lng: place.geometry.location.lng()
+            }
+          };
+          onLocationSelect(location);
+          saveToHistory(location);
+          setError(null);
+          setIsOpen(false);
+        } else {
+          setError("Please select a location from the dropdown.");
+        }
+      });
+
+      return () => {
+        if (listener) {
+          google.maps.event.removeListener(listener);
+        }
+      };
+    } catch (error) {
+      console.error("Error initializing Places Autocomplete:", error);
+      setError("Unable to initialize location search. Please try again.");
+    }
+  }, [onLocationSelect]);
+
+  const handleHistorySelect = (location: Location) => {
     onLocationSelect(location);
     saveToHistory(location);
     setIsOpen(false);
@@ -93,27 +130,13 @@ export function LocationInput({
       <div className="flex gap-2">
         <div className="relative flex-1">
           <Input
+            ref={inputRef}
             type="text"
             value={value}
             placeholder={placeholder}
             onFocus={(e) => {
               setIsOpen(true);
               onFocus?.();
-            }}
-            onChange={(e) => {
-              const newLocation: Location = {
-                address: e.target.value,
-                coordinates: {
-                  lat: 25.2048,
-                  lng: 55.2708
-                }
-              };
-              onLocationSelect(newLocation);
-            }}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter') {
-                handleInputSubmit();
-              }
             }}
             className={error ? "border-destructive" : ""}
           />
