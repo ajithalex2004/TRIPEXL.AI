@@ -75,7 +75,12 @@ export function LocationInput({
       const options: google.maps.places.AutocompleteOptions = {
         componentRestrictions: { country: "AE" }, // Restrict to UAE
         fields: ["formatted_address", "geometry", "name"],
-        types: ["establishment", "geocode"]
+        types: ["establishment", "geocode"],
+        bounds: new google.maps.LatLngBounds(
+          new google.maps.LatLng(24.3, 54.2), // SW bounds of Abu Dhabi
+          new google.maps.LatLng(24.6, 54.5)  // NE bounds of Abu Dhabi
+        ),
+        strictBounds: false // Allow some results outside bounds
       };
 
       // Clean up previous instance

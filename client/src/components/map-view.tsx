@@ -5,8 +5,8 @@ import { LoadScriptNext, GoogleMap, Marker, DirectionsRenderer } from "@react-go
 import { VehicleLoadingIndicator } from "@/components/ui/vehicle-loading-indicator";
 
 const defaultCenter = {
-  lat: 25.2048,  // Dubai center
-  lng: 55.2708
+  lat: 24.4539,  // Abu Dhabi center
+  lng: 54.3773
 };
 
 const libraries: ("places" | "geometry" | "drawing" | "visualization")[] = ["places", "geometry"];
@@ -117,7 +117,7 @@ export function MapView({
               borderRadius: '8px'
             }}
             center={pickupLocation?.coordinates || dropoffLocation?.coordinates || defaultCenter}
-            zoom={13}
+            zoom={12} // Adjusted zoom level for better city view
             onClick={handleMapClick}
             onLoad={handleMapLoad}
             options={{
