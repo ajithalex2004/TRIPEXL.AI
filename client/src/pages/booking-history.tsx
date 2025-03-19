@@ -29,16 +29,16 @@ function BookingHistoryPage() {
 
   // Filter states
   const [searchQuery, setSearchQuery] = useState("");
-  const [typeFilter, setTypeFilter] = useState<string>("");
-  const [purposeFilter, setPurposeFilter] = useState<string>("");
-  const [priorityFilter, setPriorityFilter] = useState<string>("");
+  const [typeFilter, setTypeFilter] = useState<string>("all");
+  const [purposeFilter, setPurposeFilter] = useState<string>("all");
+  const [priorityFilter, setPriorityFilter] = useState<string>("all");
 
   // Filter logic
   const filteredBookings = bookings?.filter(booking => {
     const matchesSearch = booking.referenceNo?.toLowerCase().includes(searchQuery.toLowerCase()) || !searchQuery;
-    const matchesType = booking.bookingType === typeFilter || !typeFilter;
-    const matchesPurpose = booking.purpose === purposeFilter || !purposeFilter;
-    const matchesPriority = booking.priority === priorityFilter || !priorityFilter;
+    const matchesType = typeFilter === "all" || booking.bookingType === typeFilter;
+    const matchesPurpose = purposeFilter === "all" || booking.purpose === purposeFilter;
+    const matchesPriority = priorityFilter === "all" || booking.priority === priorityFilter;
 
     return matchesSearch && matchesType && matchesPurpose && matchesPriority;
   });
@@ -65,7 +65,7 @@ function BookingHistoryPage() {
                 <SelectValue placeholder="Filter by type" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">All Types</SelectItem>
+                <SelectItem value="all">All Types</SelectItem>
                 {Object.values(BookingType).map((type) => (
                   <SelectItem key={type} value={type}>
                     {type}
@@ -78,7 +78,7 @@ function BookingHistoryPage() {
                 <SelectValue placeholder="Filter by purpose" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">All Purposes</SelectItem>
+                <SelectItem value="all">All Purposes</SelectItem>
                 {Object.values(BookingPurpose).map((purpose) => (
                   <SelectItem key={purpose} value={purpose}>
                     {purpose}
@@ -91,7 +91,7 @@ function BookingHistoryPage() {
                 <SelectValue placeholder="Filter by priority" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">All Priorities</SelectItem>
+                <SelectItem value="all">All Priorities</SelectItem>
                 {Object.values(Priority).map((priority) => (
                   <SelectItem key={priority} value={priority}>
                     {priority}
