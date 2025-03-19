@@ -35,6 +35,7 @@ export function MapView({
   activeLocation 
 }: MapViewProps) {
   const [directions, setDirections] = useState<google.maps.DirectionsResult | null>(null);
+  const [weatherAlerts, setWeatherAlerts] = useState<string[]>([]);
   const [trafficAlerts, setTrafficAlerts] = useState<string[]>([]);
   const [mapError, setMapError] = useState(false);
   const [map, setMap] = useState<google.maps.Map | null>(null);
@@ -43,6 +44,7 @@ export function MapView({
   useEffect(() => {
     if (!pickupLocation?.coordinates || !dropoffLocation?.coordinates || !map) {
       setDirections(null);
+      setWeatherAlerts([]);
       setTrafficAlerts([]);
       return;
     }
@@ -51,7 +53,8 @@ export function MapView({
       try {
         const result = await routeOptimizer.getOptimizedRoute(pickupLocation, dropoffLocation);
         setDirections(result.route);
-        setTrafficAlerts(result.trafficAlerts || []);
+        setWeatherAlerts(result.weatherAlerts);
+        setTrafficAlerts(result.trafficAlerts);
       } catch (error) {
         console.error("Error optimizing route:", error);
         setMapError(true);
@@ -155,10 +158,15 @@ export function MapView({
         </div>
       </LoadScriptNext>
 
-      {trafficAlerts.length > 0 && (
+      {(weatherAlerts.length > 0 || trafficAlerts.length > 0) && (
         <div className="mt-4 space-y-2">
+          {weatherAlerts.map((alert, index) => (
+            <Alert key={`weather-${index}`} variant="destructive">
+              <AlertDescription>{alert}</AlertDescription>
+            </Alert>
+          ))}
           {trafficAlerts.map((alert, index) => (
-            <Alert key={index} variant="warning">
+            <Alert key={`traffic-${index}`} variant="warning">
               <AlertDescription>{alert}</AlertDescription>
             </Alert>
           ))}
