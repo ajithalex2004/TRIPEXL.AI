@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { Input } from "@/components/ui/input";
 import { Location } from "./map-view";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -6,7 +6,6 @@ import {
   Command,
   CommandEmpty,
   CommandGroup,
-  CommandInput,
   CommandItem,
   CommandList
 } from "@/components/ui/command";
@@ -38,8 +37,6 @@ export function LocationInput({
   onLocationSelect,
   onFocus
 }: LocationInputProps) {
-  const inputRef = useRef<HTMLInputElement>(null);
-  const autocompleteRef = useRef<google.maps.places.Autocomplete | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isOpen, setIsOpen] = useState(false);
   const [searchHistory, setSearchHistory] = useState<SavedLocation[]>([]);
@@ -68,59 +65,24 @@ export function LocationInput({
     localStorage.setItem(HISTORY_KEY, JSON.stringify(newHistory));
   };
 
-  useEffect(() => {
-    if (!inputRef.current || !window.google?.maps?.places) return;
-
-    try {
-      const options: google.maps.places.AutocompleteOptions = {
-        componentRestrictions: { country: "AE" }, // Restrict to UAE
-        fields: ["formatted_address", "geometry", "name", "place_id", "types"],
-        types: ["establishment", "geocode", "point_of_interest", "premise"],
-        strictBounds: false
-      };
-
-      // Clean up previous instance if it exists
-      if (autocompleteRef.current) {
-        google.maps.event.clearInstanceListeners(autocompleteRef.current);
-      }
-
-      autocompleteRef.current = new google.maps.places.Autocomplete(
-        inputRef.current,
-        options
-      );
-
-      const listener = autocompleteRef.current.addListener("place_changed", () => {
-        const place = autocompleteRef.current?.getPlace();
-
-        if (place?.geometry?.location) {
-          const location: Location = {
-            address: place.formatted_address || place.name || "",
-            coordinates: {
-              lat: place.geometry.location.lat(),
-              lng: place.geometry.location.lng()
-            }
-          };
-          onLocationSelect(location);
-          saveToHistory(location);
-          setError(null);
-          setIsOpen(false);
-        } else {
-          setError("Please select a location from the dropdown.");
-        }
-      });
-
-      return () => {
-        if (listener) {
-          google.maps.event.removeListener(listener);
-        }
-      };
-    } catch (error) {
-      console.error("Error initializing Places Autocomplete:", error);
-      setError("Unable to initialize location search. Please try again.");
-    }
-  }, [onLocationSelect]);
-
   const handleHistorySelect = (location: Location) => {
+    onLocationSelect(location);
+    saveToHistory(location);
+    setIsOpen(false);
+  };
+
+  const handleInputSubmit = () => {
+    if (!value) return;
+
+    const location: Location = {
+      address: value,
+      coordinates: {
+        // Default to Dubai center if coordinates not provided
+        lat: 25.2048,
+        lng: 55.2708
+      }
+    };
+
     onLocationSelect(location);
     saveToHistory(location);
     setIsOpen(false);
@@ -131,7 +93,6 @@ export function LocationInput({
       <div className="flex gap-2">
         <div className="relative flex-1">
           <Input
-            ref={inputRef}
             type="text"
             value={value}
             placeholder={placeholder}
@@ -139,7 +100,21 @@ export function LocationInput({
               setIsOpen(true);
               onFocus?.();
             }}
-            onChange={() => {}} // Let Places API handle the input
+            onChange={(e) => {
+              const newLocation: Location = {
+                address: e.target.value,
+                coordinates: {
+                  lat: 25.2048,
+                  lng: 55.2708
+                }
+              };
+              onLocationSelect(newLocation);
+            }}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') {
+                handleInputSubmit();
+              }
+            }}
             className={error ? "border-destructive" : ""}
           />
           <Search className="absolute right-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
