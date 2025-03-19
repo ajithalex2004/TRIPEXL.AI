@@ -155,7 +155,7 @@ export function BookingForm() {
     createBooking.mutate(data);
   };
 
-  // Add purpose-priority mapping
+  // Update purpose-priority mapping
   const getPriorityForPurpose = (purpose: string) => {
     const criticalPurposes = [
       BookingPurpose.BLOOD_BANK,
@@ -170,7 +170,8 @@ export function BookingForm() {
     ];
 
     const highPurposes = [
-      BookingPurpose.DRUG_COLLECTION
+      BookingPurpose.DRUG_COLLECTION,
+      BookingPurpose.FREIGHT_TRANSPORT // Added to high priority
     ];
 
     if (criticalPurposes.includes(purpose)) {

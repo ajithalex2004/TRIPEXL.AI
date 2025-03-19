@@ -56,7 +56,8 @@ export const BookingPurpose = {
   MORTUARY: "Mortuary",
   ONCOLOGY: "Oncology Patient Pick Up/ Drop off",
   GUEST: "Guest",
-  VIP_TRANSFER: "VIP Transfer"
+  VIP_TRANSFER: "VIP Transfer",
+  FREIGHT_TRANSPORT: "Freight Transport" // Added new purpose
 } as const;
 
 export const CargoType = {
