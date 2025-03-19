@@ -58,6 +58,7 @@ export function BookingForm() {
   const queryClient = useQueryClient();
   const [currentStep, setCurrentStep] = React.useState(1);
   const [activeLocation, setActiveLocation] = React.useState<"pickup" | "dropoff" | null>(null);
+  const [routeDuration, setRouteDuration] = React.useState<number>(0);
 
   const { data: employee, isLoading: isEmployeeLoading } = useQuery({
     queryKey: ["/api/employee/current"],
@@ -239,6 +240,29 @@ export function BookingForm() {
       form.setValue("priority", getPriorityForPurpose(purpose));
     }
   }, [purpose, form]);
+
+  const handleRouteCalculated = (durationInSeconds: number) => {
+    setRouteDuration(durationInSeconds);
+
+    // Update dropoff time whenever route duration changes and pickup time is set
+    const pickupTime = form.watch("pickupTime");
+    if (pickupTime) {
+      const pickupDate = new Date(pickupTime);
+      const estimatedDropoff = new Date(pickupDate.getTime() + (durationInSeconds * 1000));
+      form.setValue("dropoffTime", estimatedDropoff.toISOString());
+    }
+  };
+
+  // Update dropoff time whenever pickup time changes
+  React.useEffect(() => {
+    const pickupTime = form.watch("pickupTime");
+    if (pickupTime && routeDuration) {
+      const pickupDate = new Date(pickupTime);
+      const estimatedDropoff = new Date(pickupDate.getTime() + (routeDuration * 1000));
+      form.setValue("dropoffTime", estimatedDropoff.toISOString());
+    }
+  }, [form.watch("pickupTime"), routeDuration]);
+
 
   return (
     <Card className="transform transition-all duration-200 hover:shadow-lg">
@@ -633,15 +657,13 @@ export function BookingForm() {
                         dropoffLocation={form.watch("dropoffLocation")}
                         onLocationSelect={(location, type) => {
                           const fieldName = type === 'pickup' ? "pickupLocation" : "dropoffLocation";
-                          form.setValue(fieldName, {
-                            ...location,
-                            address: location.formatted_address || location.name || location.place_id
-                          }, {
+                          form.setValue(fieldName, location, {
                             shouldValidate: true,
                             shouldDirty: true,
                             shouldTouch: true
                           });
                         }}
+                        onRouteCalculated={handleRouteCalculated}
                       />
                     </div>
                     <FormMessage>{form.formState.errors.pickupLocation?.message}</FormMessage>
@@ -680,12 +702,12 @@ export function BookingForm() {
                       name="dropoffTime"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>Dropoff Time *</FormLabel>
+                          <FormLabel>Estimated Dropoff Time</FormLabel>
                           <FormControl>
                             <DateTimePicker
                               date={field.value ? new Date(field.value) : undefined}
                               setDate={(date) => field.onChange(date?.toISOString())}
-                              disabled={!form.watch("pickupTime")}
+                              disabled={true}
                             />
                           </FormControl>
                           <FormMessage />

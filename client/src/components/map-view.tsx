@@ -32,6 +32,7 @@ export interface MapViewProps {
   pickupLocation?: Location | null;
   dropoffLocation?: Location | null;
   onLocationSelect?: (location: Location, type: 'pickup' | 'dropoff') => void;
+  onRouteCalculated?: (duration: number) => void;
 }
 
 interface PopupLocation {
@@ -46,7 +47,8 @@ interface PopupLocation {
 export function MapView({
   pickupLocation,
   dropoffLocation,
-  onLocationSelect
+  onLocationSelect,
+  onRouteCalculated
 }: MapViewProps) {
   const [mapError, setMapError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -90,6 +92,10 @@ export function MapView({
           duration: result.routes[0].legs[0].duration?.text || "Unknown"
         });
 
+        // Notify parent component about route duration
+        const durationInSeconds = result.routes[0].legs[0].duration?.value || 0;
+        onRouteCalculated?.(durationInSeconds);
+
         // Fit map to show the entire route
         const bounds = new google.maps.LatLngBounds();
         bounds.extend(pickupLocation.coordinates);
@@ -107,7 +113,7 @@ export function MapView({
     };
 
     drawRoute();
-  }, [pickupLocation, dropoffLocation, map]);
+  }, [pickupLocation, dropoffLocation, map, onRouteCalculated]);
 
   const handleMapClick = async (e: google.maps.MapMouseEvent) => {
     if (!e.latLng || !onLocationSelect || !mapsInitialized) return;
