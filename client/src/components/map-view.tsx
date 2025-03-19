@@ -6,10 +6,13 @@ import { VehicleLoadingIndicator } from "@/components/ui/vehicle-loading-indicat
 import { Button } from "@/components/ui/button";
 import { MapPin } from "lucide-react";
 
+// Abu Dhabi city center coordinates (more precise)
 const defaultCenter = {
-  lat: 24.4539,  // Abu Dhabi city center
-  lng: 54.3773
+  lat: 24.466667,  // Abu Dhabi city center latitude
+  lng: 54.366667   // Abu Dhabi city center longitude
 };
+
+const defaultZoom = 11; // Zoom level to show more of Abu Dhabi city
 
 const libraries: ("places" | "geometry" | "drawing" | "visualization")[] = ["places", "geometry"];
 
@@ -106,6 +109,10 @@ export function MapView({
         }
       ]
     });
+
+    // Center on Abu Dhabi and set appropriate zoom level
+    map.setCenter(defaultCenter);
+    map.setZoom(defaultZoom);
   };
 
   return (
@@ -144,7 +151,7 @@ export function MapView({
               borderRadius: '8px'
             }}
             center={tempLocation?.coordinates || pickupLocation?.coordinates || dropoffLocation?.coordinates || defaultCenter}
-            zoom={12}
+            zoom={defaultZoom}
             onClick={handleMapClick}
             onRightClick={handleMapClick}
             onLoad={handleMapLoad}
