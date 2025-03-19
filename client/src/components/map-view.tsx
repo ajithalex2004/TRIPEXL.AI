@@ -45,32 +45,39 @@ export function MapView({
   const [trafficAlerts, setTrafficAlerts] = useState<string[]>([]);
   const [segmentAnalysis, setSegmentAnalysis] = useState<string[]>([]);
   const [mapError, setMapError] = useState<string | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(false);
   const [map, setMap] = useState<google.maps.Map | null>(null);
   const [isRouteOptimizationEnabled, setIsRouteOptimizationEnabled] = useState(true);
 
+  // Clear route-related states when locations change
+  useEffect(() => {
+    setDirections(null);
+    setWeatherAlerts([]);
+    setTrafficAlerts([]);
+    setSegmentAnalysis([]);
+    setMapError(null);
+  }, [pickupLocation, dropoffLocation]);
+
+  // Only attempt route optimization when both locations are set
   useEffect(() => {
     if (!pickupLocation?.coordinates || !dropoffLocation?.coordinates || !map) {
-      setDirections(null);
-      setWeatherAlerts([]);
-      setTrafficAlerts([]);
-      setSegmentAnalysis([]);
       return;
     }
 
     const updateRoute = async () => {
       try {
         setIsLoading(true);
+        setMapError(null);
         const result = await routeOptimizer.getOptimizedRoute(pickupLocation, dropoffLocation);
         setDirections(result.route);
         setWeatherAlerts(result.weatherAlerts);
         setTrafficAlerts(result.trafficAlerts);
         setSegmentAnalysis(result.segmentAnalysis);
-        setMapError(null);
       } catch (error: any) {
         console.error("Error optimizing route:", error);
         if (error.message?.includes("not authorized")) {
           setIsRouteOptimizationEnabled(false);
+          // Try basic directions without optimization
           const directionsService = new google.maps.DirectionsService();
           try {
             const result = await directionsService.route({
@@ -79,7 +86,6 @@ export function MapView({
               travelMode: google.maps.TravelMode.DRIVING
             });
             setDirections(result);
-            setMapError(null);
           } catch (dirError) {
             setMapError("Unable to calculate route. Please try again.");
           }
@@ -91,9 +97,11 @@ export function MapView({
       }
     };
 
-    updateRoute();
+    const timeoutId = setTimeout(updateRoute, 500); // Add debounce
+    return () => clearTimeout(timeoutId);
   }, [pickupLocation, dropoffLocation, map]);
 
+  // Center map on active location
   useEffect(() => {
     if (!map) return;
 
@@ -153,7 +161,7 @@ export function MapView({
       )}
 
       {!isRouteOptimizationEnabled && (
-        <Alert variant="warning" className="mb-4">
+        <Alert variant="default" className="mb-4">
           <AlertDescription>
             Running in basic mode: Route optimization features are currently limited.
           </AlertDescription>
@@ -241,6 +249,12 @@ export function MapView({
         </LoadScriptNext>
       </div>
 
+      {mapError && (
+        <Alert variant="destructive" className="mt-4">
+          <AlertDescription>{mapError}</AlertDescription>
+        </Alert>
+      )}
+
       {(weatherAlerts.length > 0 || trafficAlerts.length > 0 || segmentAnalysis.length > 0) && (
         <div className="mt-4 space-y-2">
           {weatherAlerts.map((alert, index) => (
@@ -259,12 +273,6 @@ export function MapView({
             </Alert>
           ))}
         </div>
-      )}
-
-      {mapError && (
-        <Alert variant="destructive" className="mt-4">
-          <AlertDescription>{mapError}</AlertDescription>
-        </Alert>
       )}
     </Card>
   );
