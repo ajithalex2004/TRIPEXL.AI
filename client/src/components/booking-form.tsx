@@ -672,8 +672,13 @@ export function BookingForm() {
                           name="pickupWindow.start"
                           render={({ field }) => (
                             <FormItem>
+                              <FormLabel className="text-sm text-muted-foreground">Start</FormLabel>
                               <FormControl>
-                                <Input type="datetime-local" {...field} />
+                                <Input
+                                  type="datetime-local"
+                                  {...field}
+                                  min={new Date().toISOString().slice(0, 16)}
+                                />
                               </FormControl>
                               <FormMessage />
                             </FormItem>
@@ -684,8 +689,13 @@ export function BookingForm() {
                           name="pickupWindow.end"
                           render={({ field }) => (
                             <FormItem>
+                              <FormLabel className="text-sm text-muted-foreground">End</FormLabel>
                               <FormControl>
-                                <Input type="datetime-local" {...field} />
+                                <Input
+                                  type="datetime-local"
+                                  {...field}
+                                  min={form.watch("pickupWindow.start") || new Date().toISOString().slice(0, 16)}
+                                />
                               </FormControl>
                               <FormMessage />
                             </FormItem>
@@ -701,8 +711,13 @@ export function BookingForm() {
                           name="dropoffWindow.start"
                           render={({ field }) => (
                             <FormItem>
+                              <FormLabel className="text-sm text-muted-foreground">Start</FormLabel>
                               <FormControl>
-                                <Input type="datetime-local" {...field} />
+                                <Input
+                                  type="datetime-local"
+                                  {...field}
+                                  min={form.watch("pickupWindow.end") || new Date().toISOString().slice(0, 16)}
+                                />
                               </FormControl>
                               <FormMessage />
                             </FormItem>
@@ -713,8 +728,13 @@ export function BookingForm() {
                           name="dropoffWindow.end"
                           render={({ field }) => (
                             <FormItem>
+                              <FormLabel className="text-sm text-muted-foreground">End</FormLabel>
                               <FormControl>
-                                <Input type="datetime-local" {...field} />
+                                <Input
+                                  type="datetime-local"
+                                  {...field}
+                                  min={form.watch("dropoffWindow.start") || new Date().toISOString().slice(0, 16)}
+                                />
                               </FormControl>
                               <FormMessage />
                             </FormItem>
