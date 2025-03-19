@@ -59,30 +59,24 @@ export function MapView({
   const handleMapEvent = async (e: google.maps.MapMouseEvent, eventType: string) => {
     if (!e.latLng || !onLocationSelect || !mapsInitialized) return;
 
-    console.log(`Map ${eventType} event triggered at:`, e.latLng.toString());
-
-    const lat = e.latLng.lat();
-    const lng = e.latLng.lng();
-
     try {
       setIsLoading(true);
       const geocoder = new google.maps.Geocoder();
-      const result = await geocoder.geocode({ location: { lat, lng } });
+      const result = await geocoder.geocode({ location: { lat: e.latLng.lat(), lng: e.latLng.lng() } });
 
       if (result.results[0]) {
-        console.log(`Location geocoded: ${result.results[0].formatted_address}`);
         setPopupLocation({
-          lat,
-          lng,
+          lat: e.latLng.lat(),
+          lng: e.latLng.lng(),
           address: result.results[0].formatted_address
         });
       }
     } catch (error) {
-      console.error(`Error geocoding location from ${eventType}:`, error);
+      console.error(`Error geocoding location:`, error);
       setPopupLocation({
-        lat,
-        lng,
-        address: `${lat.toFixed(6)}, ${lng.toFixed(6)}`
+        lat: e.latLng.lat(),
+        lng: e.latLng.lng(),
+        address: `${e.latLng.lat().toFixed(6)}, ${e.latLng.lng().toFixed(6)}`
       });
     } finally {
       setIsLoading(false);
@@ -91,8 +85,6 @@ export function MapView({
 
   const handleLocationTypeSelect = (type: 'pickup' | 'dropoff') => {
     if (!popupLocation) return;
-
-    console.log(`Setting ${type} location:`, popupLocation);
 
     const location: Location = {
       address: popupLocation.address,
@@ -109,7 +101,6 @@ export function MapView({
   const handleMapLoad = (map: google.maps.Map) => {
     setMap(map);
     setMapsInitialized(true);
-    console.log("Map initialized");
 
     // Enable POI visibility and set initial bounds
     map.setOptions({
@@ -255,7 +246,7 @@ export function MapView({
       </LoadScriptNext>
 
       {mapError && (
-        <Alert variant="destructive" className="mt-4">
+        <Alert variant="destructive">
           <AlertDescription>{mapError}</AlertDescription>
         </Alert>
       )}
