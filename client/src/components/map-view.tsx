@@ -4,7 +4,6 @@ import { LoadScriptNext, GoogleMap, Marker, DirectionsRenderer } from "@react-go
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { routeOptimizer } from "@/services/route-optimizer";
 import { VehicleLoadingIndicator } from "@/components/ui/vehicle-loading-indicator";
-import { LocationInput } from "@/components/location-input";
 
 const defaultCenter = {
   lat: 25.2048,
@@ -24,19 +23,13 @@ export interface Location {
 export interface MapViewProps {
   pickupLocation?: Location | null;
   dropoffLocation?: Location | null;
-  onPickupSelect: (location: Location) => void;
-  onDropoffSelect: (location: Location) => void;
-  activeLocation: "pickup" | "dropoff" | null;
-  setActiveLocation: (location: "pickup" | "dropoff" | null) => void;
+  onLocationSelect?: (location: Location, type: 'pickup' | 'dropoff') => void;
 }
 
 export function MapView({
   pickupLocation,
   dropoffLocation,
-  onPickupSelect,
-  onDropoffSelect,
-  activeLocation,
-  setActiveLocation
+  onLocationSelect
 }: MapViewProps) {
   const [directions, setDirections] = useState<google.maps.DirectionsResult | null>(null);
   const [weatherAlerts, setWeatherAlerts] = useState<string[]>([]);
@@ -97,19 +90,9 @@ export function MapView({
     return () => clearTimeout(timeoutId);
   }, [pickupLocation, dropoffLocation, map, mapsInitialized]);
 
-  // Center map on active location
-  useEffect(() => {
-    if (!map) return;
-
-    if (activeLocation === "pickup" && pickupLocation) {
-      map.panTo(pickupLocation.coordinates);
-    } else if (activeLocation === "dropoff" && dropoffLocation) {
-      map.panTo(dropoffLocation.coordinates);
-    }
-  }, [activeLocation, pickupLocation, dropoffLocation, map]);
 
   const handleMapClick = useCallback(async (e: google.maps.MapMouseEvent) => {
-    if (!e.latLng || !activeLocation || !mapsInitialized) return;
+    if (!e.latLng || !onLocationSelect || !mapsInitialized) return;
 
     const lat = e.latLng.lat();
     const lng = e.latLng.lng();
@@ -125,12 +108,12 @@ export function MapView({
           coordinates: { lat, lng }
         };
 
-        if (activeLocation === "pickup") {
-          onPickupSelect(newLocation);
-        } else {
-          onDropoffSelect(newLocation);
+        // Determine which location to update based on which one is missing
+        if (!pickupLocation) {
+          onLocationSelect(newLocation, 'pickup');
+        } else if (!dropoffLocation) {
+          onLocationSelect(newLocation, 'dropoff');
         }
-        setMapError(null);
       }
     } catch (error) {
       console.error("Error getting address:", error);
@@ -138,15 +121,15 @@ export function MapView({
         address: `${lat.toFixed(6)}, ${lng.toFixed(6)}`,
         coordinates: { lat, lng }
       };
-      if (activeLocation === "pickup") {
-        onPickupSelect(newLocation);
-      } else {
-        onDropoffSelect(newLocation);
+      if (!pickupLocation) {
+        onLocationSelect(newLocation, 'pickup');
+      } else if (!dropoffLocation) {
+        onLocationSelect(newLocation, 'dropoff');
       }
     } finally {
       setIsLoading(false);
     }
-  }, [activeLocation, onPickupSelect, onDropoffSelect, mapsInitialized]);
+  }, [pickupLocation, dropoffLocation, onLocationSelect, mapsInitialized]);
 
   const handleMapLoad = useCallback((map: google.maps.Map) => {
     setMap(map);
@@ -162,98 +145,73 @@ export function MapView({
       )}
 
       {!mapsInitialized && (
-          <Alert variant="default" className="mb-4">
-            <AlertDescription>
-              Loading map...
-            </AlertDescription>
-          </Alert>
-        )}
+        <Alert variant="default" className="mb-4">
+          <AlertDescription>
+            Loading map...
+          </AlertDescription>
+        </Alert>
+      )}
 
-      <div className="space-y-4">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div>
-            <h3 className="text-sm font-medium mb-2">Pickup Location</h3>
-            <LocationInput
-              value={pickupLocation?.address || ""}
-              placeholder="Enter pickup location"
-              onLocationSelect={onPickupSelect}
-              onFocus={() => setActiveLocation("pickup")}
-            />
+      <LoadScriptNext
+        googleMapsApiKey="AIzaSyAtNTq_ILPC8Y5M_bJAiMORDf02sGoK84I"
+        libraries={libraries}
+        loadingElement={
+          <div className="h-full flex items-center justify-center">
+            <VehicleLoadingIndicator size="lg" />
           </div>
-          <div>
-            <h3 className="text-sm font-medium mb-2">Dropoff Location</h3>
-            <LocationInput
-              value={dropoffLocation?.address || ""}
-              placeholder="Enter dropoff location"
-              onLocationSelect={onDropoffSelect}
-              onFocus={() => setActiveLocation("dropoff")}
-            />
-          </div>
+        }
+        onLoad={handleMapLoad}
+        onError={(error) => {
+          console.error("Error loading Google Maps:", error);
+          setMapError("Failed to load Google Maps. Please refresh the page.");
+        }}
+      >
+        <div className="h-[400px] relative">
+          <GoogleMap
+            mapContainerStyle={{
+              width: '100%',
+              height: '100%',
+              borderRadius: '8px'
+            }}
+            center={
+              pickupLocation?.coordinates || 
+              dropoffLocation?.coordinates || 
+              defaultCenter
+            }
+            zoom={13}
+            onClick={handleMapClick}
+            onLoad={handleMapLoad}
+            options={{
+              zoomControl: true,
+              streetViewControl: false,
+              mapTypeControl: false,
+              fullscreenControl: false
+            }}
+          >
+            {pickupLocation && (
+              <Marker
+                position={pickupLocation.coordinates}
+                label={{
+                  text: "P",
+                  color: "white",
+                  className: "font-bold"
+                }}
+              />
+            )}
+            {dropoffLocation && (
+              <Marker
+                position={dropoffLocation.coordinates}
+                label={{
+                  text: "D",
+                  color: "white",
+                  className: "font-bold"
+                }}
+              />
+            )}
+            {directions && <DirectionsRenderer directions={directions} />}
+          </GoogleMap>
         </div>
-
-        <LoadScriptNext
-          googleMapsApiKey="AIzaSyAtNTq_ILPC8Y5M_bJAiMORDf02sGoK84I"
-          libraries={libraries}
-          loadingElement={
-            <div className="h-full flex items-center justify-center">
-              <VehicleLoadingIndicator size="lg" />
-            </div>
-          }
-          onLoad={handleMapLoad}
-          onError={(error) => {
-            console.error("Error loading Google Maps:", error);
-            setMapError("Failed to load Google Maps. Please refresh the page.");
-          }}
-        >
-          <div className="h-[400px] relative">
-            <GoogleMap
-              mapContainerStyle={{
-                width: '100%',
-                height: '100%',
-                borderRadius: '8px'
-              }}
-              center={
-                activeLocation === "pickup" && pickupLocation?.coordinates
-                  ? pickupLocation.coordinates
-                  : activeLocation === "dropoff" && dropoffLocation?.coordinates
-                  ? dropoffLocation.coordinates
-                  : defaultCenter
-              }
-              zoom={13}
-              onClick={handleMapClick}
-              onLoad={handleMapLoad}
-              options={{
-                zoomControl: true,
-                streetViewControl: false,
-                mapTypeControl: false,
-                fullscreenControl: false
-              }}
-            >
-              {pickupLocation && (
-                <Marker
-                  position={pickupLocation.coordinates}
-                  label={{
-                    text: "P",
-                    color: "white",
-                    className: "font-bold"
-                  }}
-                />
-              )}
-              {dropoffLocation && (
-                <Marker
-                  position={dropoffLocation.coordinates}
-                  label={{
-                    text: "D",
-                    color: "white",
-                    className: "font-bold"
-                  }}
-                />
-              )}
-              {directions && <DirectionsRenderer directions={directions} />}
-            </GoogleMap>
-          </div>
-        </LoadScriptNext>
-      </div>
+      </LoadScriptNext>
 
       {mapError && (
         <Alert variant="destructive" className="mt-4">
