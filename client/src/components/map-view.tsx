@@ -207,9 +207,8 @@ export function MapView({
                     <Button
                       size="sm"
                       onClick={() => handleLocationTypeSelect('pickup')}
-                      variant={!pickupLocation ? "default" : "outline"}
+                      variant="default"
                       disabled={!!pickupLocation}
-                      className={`${!pickupLocation ? 'bg-primary text-primary-foreground hover:bg-primary/90' : ''}`}
                     >
                       Set as Pickup
                     </Button>
@@ -218,7 +217,6 @@ export function MapView({
                       onClick={() => handleLocationTypeSelect('dropoff')}
                       variant="outline"
                       disabled={!pickupLocation || !!dropoffLocation}
-                      className={`${pickupLocation && !dropoffLocation ? 'bg-primary text-primary-foreground hover:bg-primary/90' : ''}`}
                     >
                       Set as Dropoff
                     </Button>
