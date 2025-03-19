@@ -39,6 +39,7 @@ import {
   AlertDialogFooter,
   AlertDialogAction,
 } from "@/components/ui/alert-dialog";
+import { useLocation } from "wouter";
 
 const DEFAULT_PICKUP_LOCATION = {
   address: "Al Wahda Mall",
@@ -70,6 +71,7 @@ export function BookingForm() {
   const [routeDuration, setRouteDuration] = React.useState<number>(0);
   const [showSuccessDialog, setShowSuccessDialog] = React.useState(false);
   const [createdReferenceNo, setCreatedReferenceNo] = React.useState<string>("");
+  const [, setLocation] = useLocation();
 
   const { data: employee, isLoading: isEmployeeLoading } = useQuery({
     queryKey: ["/api/employee/current"],
@@ -187,6 +189,7 @@ export function BookingForm() {
     setShowSuccessDialog(false);
     form.reset();
     setCurrentStep(1);
+    setLocation("/"); // Redirect to home page
   };
 
   const onSubmit = async (data: any) => {
@@ -834,16 +837,19 @@ export function BookingForm() {
       <AlertDialog open={showSuccessDialog} onOpenChange={setShowSuccessDialog}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Booking Created Successfully</AlertDialogTitle>
+            <AlertDialogTitle className="text-xl text-center">Order has been Created!</AlertDialogTitle>
             <AlertDialogDescription className="text-center py-4">
-              Order has been created with the Reference ID:
+              Your booking reference number is:
               <span className="block text-xl font-semibold text-primary mt-2">
                 {createdReferenceNo}
               </span>
             </AlertDialogDescription>
           </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogAction onClick={handleSuccessDialogClose}>
+          <AlertDialogFooter className="flex justify-center">
+            <AlertDialogAction
+              onClick={handleSuccessDialogClose}
+              className="w-24"
+            >
               OK
             </AlertDialogAction>
           </AlertDialogFooter>
