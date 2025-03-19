@@ -117,17 +117,19 @@ export function BookingForm() {
     const fields = {
       1: ["employeeId", "bookingType"],
       2: bookingType === "freight"
-        ? ["cargoType", "numBoxes", "weight", "boxSize"]
+        ? ["cargoType", "numBoxes", "weight"]
         : bookingType === "passenger"
           ? ["tripType", "numPassengers"]
           : [],
       3: ["purpose", "priority"],
       4: ["pickupLocation", "dropoffLocation"],
-      5: ["pickupWindow", "dropoffWindow"],
+      5: ["pickupWindow.start", "pickupWindow.end", "dropoffWindow.start", "dropoffWindow.end"],
       6: [] // Optional fields
-    }[step];
+    }[step] || [];
 
-    const result = await form.trigger(fields as any);
+    if (fields.length === 0) return true;
+
+    const result = await form.trigger(fields);
     return result;
   };
 
@@ -135,11 +137,11 @@ export function BookingForm() {
   const handleNextStep = async () => {
     const isValid = await isStepValid(currentStep);
     if (isValid) {
-      setCurrentStep(prev => prev + 1);
+      setCurrentStep(prev => Math.min(prev + 1, 6));
     } else {
       toast({
-        title: "Validation Error",
-        description: "Please fill in all required fields before proceeding.",
+        title: "Please complete required fields",
+        description: "Some required information is missing or incorrect.",
         variant: "destructive"
       });
     }
@@ -169,16 +171,31 @@ export function BookingForm() {
   });
 
   const onSubmit = async (data: any) => {
-    const isValid = await form.trigger();
-    if (!isValid) {
+    try {
+      const isValid = await form.trigger();
+      if (!isValid) {
+        toast({
+          title: "Validation Error",
+          description: "Please check all fields and try again.",
+          variant: "destructive"
+        });
+        return;
+      }
+
+      // Ensure we have an employee ID
+      if (!data.employeeId) {
+        data.employeeId = employee?.employeeId;
+      }
+
+      createBooking.mutate(data);
+    } catch (error) {
+      console.error("Form submission error:", error);
       toast({
-        title: "Validation Error",
-        description: "Please fill in all required fields.",
+        title: "Error",
+        description: "There was a problem submitting your booking.",
         variant: "destructive"
       });
-      return;
     }
-    createBooking.mutate(data);
   };
 
   // Update purpose-priority mapping
