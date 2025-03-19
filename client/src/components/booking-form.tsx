@@ -5,6 +5,7 @@ import { insertBookingSchema, BookingType, Priority, BoxSize, TripType, BookingP
 import { useMutation, useQueryClient, useQuery } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
+import { LocationInput } from "@/components/location-input";
 import {
   Form,
   FormControl,
@@ -29,50 +30,36 @@ import { MapView } from "@/components/map-view";
 import { motion, AnimatePresence } from "framer-motion";
 import { VehicleLoadingIndicator } from "@/components/ui/vehicle-loading-indicator";
 
-// Define the LocationInput component (this is assumed, as it's not in the original or edited code)
-interface LocationInputProps {
-  value: string;
-  placeholder: string;
-  onLocationSelect: (location: { address: string; coordinates: { lat: number; lng: number } }) => void;
-  onFocus: () => void;
-}
-
-const LocationInput: React.FC<LocationInputProps> = ({ value, placeholder, onLocationSelect, onFocus }) => {
-  const [selectedLocation, setSelectedLocation] = React.useState<{ address: string; coordinates: { lat: number; lng: number } } | null>(null);
-
-  React.useEffect(() => {
-    if (selectedLocation) {
-      onLocationSelect(selectedLocation);
-    }
-  }, [selectedLocation, onLocationSelect]);
-
-  return (
-    <div>
-      <Input value={value} placeholder={placeholder} onFocus={onFocus} onClick={() => {
-        //Simulate location selection - replace with actual map interaction
-        setSelectedLocation({ address: 'Selected Address', coordinates: { lat: 0, lng: 0 }});
-      }} />
-    </div>
-  );
-};
-
-
-
 export function BookingForm() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [currentStep, setCurrentStep] = React.useState(1);
   const [activeLocation, setActiveLocation] = React.useState<"pickup" | "dropoff" | null>(null);
 
-  // Fetch logged in employee data
+  // Fetch logged in employee data with proper headers
   const { data: employee, isLoading: isEmployeeLoading } = useQuery({
     queryKey: ["/api/employee/current"],
-    retry: false
+    queryFn: async () => {
+      const token = localStorage.getItem("token");
+      if (!token) throw new Error("No auth token");
+
+      const response = await fetch("/api/employee/current", {
+        headers: {
+          Authorization: `Bearer ${token}`
+        }
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to fetch employee data");
+      }
+
+      return response.json();
+    }
   });
 
   const form = useForm({
     resolver: zodResolver(insertBookingSchema),
-    mode: "onChange", // Enable real-time validation
+    mode: "onChange",
     defaultValues: {
       employeeId: "",
       bookingType: "",
@@ -106,16 +93,16 @@ export function BookingForm() {
     }
   });
 
-  // Watch form values for conditional validation
-  const bookingType = form.watch("bookingType");
-  const numBoxes = form.watch("numBoxes");
-
   // Update form when employee data is loaded
   React.useEffect(() => {
     if (employee?.employeeId) {
       form.setValue("employeeId", employee.employeeId);
     }
   }, [employee, form]);
+
+  // Watch form values for conditional validation
+  const bookingType = form.watch("bookingType");
+  const numBoxes = form.watch("numBoxes");
 
   // Update useEffect after the existing employee effect
   React.useEffect(() => {
