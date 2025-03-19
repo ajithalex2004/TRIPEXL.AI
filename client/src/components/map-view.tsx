@@ -4,6 +4,7 @@ import { LoadScriptNext, GoogleMap, Marker, DirectionsRenderer } from "@react-go
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { routeOptimizer } from "@/services/route-optimizer";
 import { VehicleLoadingIndicator } from "@/components/ui/vehicle-loading-indicator";
+import { Button } from "@/components/ui/button";
 
 const defaultCenter = {
   lat: 25.2048,
@@ -42,20 +43,21 @@ export function MapView({
   const [mapError, setMapError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [map, setMap] = useState<google.maps.Map | null>(null);
+  const [isLimitedMode, setIsLimitedMode] = useState(false);
 
   const apiKey = import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
 
   // Check API key on mount
   useEffect(() => {
     if (!apiKey) {
-      setMapError("Google Maps API key is missing. Please configure the API key.");
+      setIsLimitedMode(true);
       setIsLoading(false);
     }
   }, [apiKey]);
 
   // Update route when both locations are set
   useEffect(() => {
-    if (!pickupLocation?.coordinates || !dropoffLocation?.coordinates || !map) {
+    if (!pickupLocation?.coordinates || !dropoffLocation?.coordinates || !map || isLimitedMode) {
       setDirections(null);
       setWeatherAlerts([]);
       setTrafficAlerts([]);
@@ -81,7 +83,7 @@ export function MapView({
     };
 
     updateRoute();
-  }, [pickupLocation, dropoffLocation, map]);
+  }, [pickupLocation, dropoffLocation, map, isLimitedMode]);
 
   // Center map on active location
   useEffect(() => {
@@ -102,6 +104,22 @@ export function MapView({
 
     try {
       setIsLoading(true);
+
+      // In limited mode, just use coordinates without geocoding
+      if (isLimitedMode) {
+        const newLocation: Location = {
+          address: `${lat.toFixed(6)}, ${lng.toFixed(6)}`,
+          coordinates: { lat, lng }
+        };
+
+        if (activeLocation === "pickup") {
+          onPickupSelect(newLocation);
+        } else {
+          onDropoffSelect(newLocation);
+        }
+        return;
+      }
+
       const geocoder = new google.maps.Geocoder();
       const result = await geocoder.geocode({ location: { lat, lng } });
 
@@ -124,19 +142,57 @@ export function MapView({
     } finally {
       setIsLoading(false);
     }
-  }, [activeLocation, onPickupSelect, onDropoffSelect]);
+  }, [activeLocation, onPickupSelect, onDropoffSelect, isLimitedMode]);
 
-  if (!apiKey) {
-    return (
-      <Card className="p-4">
-        <Alert variant="destructive">
-          <AlertDescription>
-            Google Maps API key is missing. Please configure the API key to enable map functionality.
-          </AlertDescription>
-        </Alert>
-      </Card>
-    );
-  }
+  const mapContent = (
+    <div className="h-[400px] relative">
+      <GoogleMap
+        mapContainerStyle={{
+          width: '100%',
+          height: '100%',
+          borderRadius: '8px'
+        }}
+        center={
+          activeLocation === "pickup" && pickupLocation?.coordinates
+            ? pickupLocation.coordinates
+            : activeLocation === "dropoff" && dropoffLocation?.coordinates
+            ? dropoffLocation.coordinates
+            : defaultCenter
+        }
+        zoom={13}
+        onClick={handleMapClick}
+        onLoad={setMap}
+        options={{
+          zoomControl: true,
+          streetViewControl: false,
+          mapTypeControl: false,
+          fullscreenControl: false
+        }}
+      >
+        {pickupLocation && (
+          <Marker
+            position={pickupLocation.coordinates}
+            label={{
+              text: "P",
+              color: "white",
+              className: "font-bold"
+            }}
+          />
+        )}
+        {dropoffLocation && (
+          <Marker
+            position={dropoffLocation.coordinates}
+            label={{
+              text: "D",
+              color: "white",
+              className: "font-bold"
+            }}
+          />
+        )}
+        {!isLimitedMode && directions && <DirectionsRenderer directions={directions} />}
+      </GoogleMap>
+    </div>
+  );
 
   return (
     <Card className="p-4 h-full relative">
@@ -146,65 +202,31 @@ export function MapView({
         </div>
       )}
 
-      <LoadScriptNext 
-        googleMapsApiKey={apiKey}
-        libraries={libraries}
-        loadingElement={
-          <div className="h-full flex items-center justify-center">
-            <VehicleLoadingIndicator size="lg" />
-          </div>
-        }
-      >
-        <div className="h-[400px] relative">
-          <GoogleMap
-            mapContainerStyle={{
-              width: '100%',
-              height: '100%',
-              borderRadius: '8px'
-            }}
-            center={
-              activeLocation === "pickup" && pickupLocation?.coordinates
-                ? pickupLocation.coordinates
-                : activeLocation === "dropoff" && dropoffLocation?.coordinates
-                ? dropoffLocation.coordinates
-                : defaultCenter
-            }
-            zoom={13}
-            onClick={handleMapClick}
-            onLoad={setMap}
-            options={{
-              zoomControl: true,
-              streetViewControl: false,
-              mapTypeControl: false,
-              fullscreenControl: false
-            }}
-          >
-            {pickupLocation && (
-              <Marker
-                position={pickupLocation.coordinates}
-                label={{
-                  text: "P",
-                  color: "white",
-                  className: "font-bold"
-                }}
-              />
-            )}
-            {dropoffLocation && (
-              <Marker
-                position={dropoffLocation.coordinates}
-                label={{
-                  text: "D",
-                  color: "white",
-                  className: "font-bold"
-                }}
-              />
-            )}
-            {directions && <DirectionsRenderer directions={directions} />}
-          </GoogleMap>
-        </div>
-      </LoadScriptNext>
+      {isLimitedMode ? (
+        <>
+          <Alert variant="warning" className="mb-4">
+            <AlertDescription>
+              Limited functionality mode: Some features like route optimization and weather alerts are disabled. 
+              Click on the map to set pickup and dropoff points.
+            </AlertDescription>
+          </Alert>
+          {mapContent}
+        </>
+      ) : (
+        <LoadScriptNext 
+          googleMapsApiKey={apiKey || ""}
+          libraries={libraries}
+          loadingElement={
+            <div className="h-full flex items-center justify-center">
+              <VehicleLoadingIndicator size="lg" />
+            </div>
+          }
+        >
+          {mapContent}
+        </LoadScriptNext>
+      )}
 
-      {(weatherAlerts.length > 0 || trafficAlerts.length > 0 || segmentAnalysis.length > 0) && (
+      {!isLimitedMode && (weatherAlerts.length > 0 || trafficAlerts.length > 0 || segmentAnalysis.length > 0) && (
         <div className="mt-4 space-y-2">
           {weatherAlerts.map((alert, index) => (
             <Alert key={`weather-${index}`} variant="destructive">
