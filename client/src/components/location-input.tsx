@@ -75,64 +75,80 @@ export function LocationInput({
 
   // Initialize Google Places Autocomplete
   useEffect(() => {
-    if (!inputRef.current || !window.google?.maps?.places) return;
-
-    try {
-      const options: google.maps.places.AutocompleteOptions = {
-        componentRestrictions: { country: "AE" },
-        fields: ["formatted_address", "geometry", "name"],
-        types: ["establishment", "geocode", "address"],
-        bounds: new google.maps.LatLngBounds(
-          new google.maps.LatLng(24.3, 54.2), // SW bounds of Abu Dhabi
-          new google.maps.LatLng(24.6, 54.5)  // NE bounds of Abu Dhabi
-        ),
-        strictBounds: false
-      };
-
-      // Clean up previous instance
-      if (autocompleteRef.current) {
-        google.maps.event.clearInstanceListeners(autocompleteRef.current);
+    const initializeAutocomplete = () => {
+      if (!inputRef.current || !window.google?.maps?.places) {
+        // Retry initialization if Places API is not yet loaded
+        setTimeout(initializeAutocomplete, 1000);
+        return;
       }
 
-      autocompleteRef.current = new google.maps.places.Autocomplete(
-        inputRef.current,
-        options
-      );
+      try {
+        const abuDhabiCenter = new google.maps.LatLng(24.4539, 54.3773);
+        const defaultBounds = {
+          north: 24.6,
+          south: 24.3,
+          east: 54.5,
+          west: 54.2,
+        };
 
-      const listener = autocompleteRef.current.addListener("place_changed", () => {
-        const place = autocompleteRef.current?.getPlace();
-        console.log("Place selected:", place);
+        const options: google.maps.places.AutocompleteOptions = {
+          bounds: new google.maps.LatLngBounds(
+            new google.maps.LatLng(defaultBounds.south, defaultBounds.west),
+            new google.maps.LatLng(defaultBounds.north, defaultBounds.east)
+          ),
+          componentRestrictions: { country: "AE" },
+          fields: ["address_components", "formatted_address", "geometry", "name", "place_id"],
+          strictBounds: false,
+          types: ["establishment", "geocode", "address", "point_of_interest"],
+        };
 
-        if (place?.geometry?.location) {
-          const location: Location = {
-            address: place.formatted_address || place.name || "",
-            coordinates: {
-              lat: place.geometry.location.lat(),
-              lng: place.geometry.location.lng()
-            }
-          };
-          onLocationSelect(location);
-          saveToHistory(location);
-          setError(null);
-          setIsOpen(false);
-          setInputValue(location.address);
-        } else {
-          setError("Please select a location from the dropdown.");
-        }
-      });
-
-      return () => {
-        if (listener) {
-          google.maps.event.removeListener(listener);
-        }
+        // Clean up previous instance
         if (autocompleteRef.current) {
           google.maps.event.clearInstanceListeners(autocompleteRef.current);
         }
-      };
-    } catch (error) {
-      console.error("Error initializing Places Autocomplete:", error);
-      setError("Unable to initialize location search. Please try again.");
-    }
+
+        autocompleteRef.current = new google.maps.places.Autocomplete(
+          inputRef.current,
+          options
+        );
+
+        const listener = autocompleteRef.current.addListener("place_changed", () => {
+          const place = autocompleteRef.current?.getPlace();
+          console.log("Selected place:", place);
+
+          if (place?.geometry?.location) {
+            const location: Location = {
+              address: place.formatted_address || place.name || "",
+              coordinates: {
+                lat: place.geometry.location.lat(),
+                lng: place.geometry.location.lng()
+              }
+            };
+            onLocationSelect(location);
+            saveToHistory(location);
+            setError(null);
+            setIsOpen(false);
+            setInputValue(location.address);
+          } else {
+            setError("Please select a location from the dropdown.");
+          }
+        });
+
+        return () => {
+          if (listener) {
+            google.maps.event.removeListener(listener);
+          }
+          if (autocompleteRef.current) {
+            google.maps.event.clearInstanceListeners(autocompleteRef.current);
+          }
+        };
+      } catch (error) {
+        console.error("Error initializing Places Autocomplete:", error);
+        setError("Unable to initialize location search. Please try again.");
+      }
+    };
+
+    initializeAutocomplete();
   }, [onLocationSelect]);
 
   const handleHistorySelect = (location: Location) => {
