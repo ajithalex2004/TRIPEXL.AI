@@ -56,8 +56,10 @@ export function MapView({
   const [mapsInitialized, setMapsInitialized] = useState(false);
   const [popupLocation, setPopupLocation] = useState<PopupLocation | null>(null);
 
-  const handleLocationClick = async (e: google.maps.MapMouseEvent) => {
+  const handleMapEvent = async (e: google.maps.MapMouseEvent, eventType: string) => {
     if (!e.latLng || !onLocationSelect || !mapsInitialized) return;
+
+    console.log(`Map ${eventType} event triggered at:`, e.latLng.toString());
 
     const lat = e.latLng.lat();
     const lng = e.latLng.lng();
@@ -68,6 +70,7 @@ export function MapView({
       const result = await geocoder.geocode({ location: { lat, lng } });
 
       if (result.results[0]) {
+        console.log(`Location geocoded: ${result.results[0].formatted_address}`);
         setPopupLocation({
           lat,
           lng,
@@ -75,7 +78,7 @@ export function MapView({
         });
       }
     } catch (error) {
-      console.error("Error getting address:", error);
+      console.error(`Error geocoding location from ${eventType}:`, error);
       setPopupLocation({
         lat,
         lng,
@@ -88,6 +91,8 @@ export function MapView({
 
   const handleLocationTypeSelect = (type: 'pickup' | 'dropoff') => {
     if (!popupLocation) return;
+
+    console.log(`Setting ${type} location:`, popupLocation);
 
     const location: Location = {
       address: popupLocation.address,
@@ -104,6 +109,7 @@ export function MapView({
   const handleMapLoad = (map: google.maps.Map) => {
     setMap(map);
     setMapsInitialized(true);
+    console.log("Map initialized");
 
     // Enable POI visibility and set initial bounds
     map.setOptions({
@@ -164,8 +170,8 @@ export function MapView({
             }}
             center={tempLocation?.coordinates || pickupLocation?.coordinates || dropoffLocation?.coordinates || defaultCenter}
             zoom={12}
-            onClick={handleLocationClick}
-            onRightClick={handleLocationClick}
+            onClick={(e) => handleMapEvent(e, 'click')}
+            onRightClick={(e) => handleMapEvent(e, 'rightClick')}
             onLoad={handleMapLoad}
             options={{
               zoomControl: true,
