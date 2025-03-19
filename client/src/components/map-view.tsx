@@ -5,8 +5,8 @@ import { LoadScriptNext, GoogleMap, Marker, DirectionsRenderer } from "@react-go
 import { VehicleLoadingIndicator } from "@/components/ui/vehicle-loading-indicator";
 
 const defaultCenter = {
-  lat: 24.4539,  // Abu Dhabi center
-  lng: 54.3773
+  lat: 25.276276,  // Updated coordinates
+  lng: 55.386354
 };
 
 const libraries: ("places" | "geometry" | "drawing" | "visualization")[] = ["places", "geometry"];
@@ -79,6 +79,20 @@ export function MapView({
   const handleMapLoad = (map: google.maps.Map) => {
     setMap(map);
     setMapsInitialized(true);
+
+    // Enable POI visibility
+    map.setOptions({
+      styles: [
+        {
+          featureType: "poi",
+          stylers: [{ visibility: "on" }]
+        },
+        {
+          featureType: "poi.business",
+          stylers: [{ visibility: "on" }]
+        }
+      ]
+    });
   };
 
   return (
@@ -117,14 +131,25 @@ export function MapView({
               borderRadius: '8px'
             }}
             center={pickupLocation?.coordinates || dropoffLocation?.coordinates || defaultCenter}
-            zoom={12} // Adjusted zoom level for better city view
+            zoom={15} // Increased zoom level for better POI visibility
             onClick={handleMapClick}
             onLoad={handleMapLoad}
             options={{
               zoomControl: true,
               streetViewControl: false,
               mapTypeControl: false,
-              fullscreenControl: false
+              fullscreenControl: false,
+              clickableIcons: true, // Enable clicking on POI markers
+              styles: [
+                {
+                  featureType: "poi",
+                  stylers: [{ visibility: "on" }]
+                },
+                {
+                  featureType: "poi.business",
+                  stylers: [{ visibility: "on" }]
+                }
+              ]
             }}
           >
             {pickupLocation && (
