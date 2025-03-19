@@ -94,7 +94,6 @@ export function MapView({
     setMap(map);
     setMapsInitialized(true);
 
-    // Enable POI visibility
     map.setOptions({
       styles: [
         {
@@ -201,16 +200,16 @@ export function MapView({
                     <Button
                       size="sm"
                       onClick={() => handleLocationTypeSelect('pickup')}
+                      className={`${!pickupLocation ? 'bg-primary hover:bg-primary/90' : 'bg-muted cursor-not-allowed'}`}
                       disabled={!!pickupLocation}
-                      className="bg-primary hover:bg-primary/90"
                     >
                       Set as Pickup
                     </Button>
                     <Button
                       size="sm"
                       onClick={() => handleLocationTypeSelect('dropoff')}
+                      className={`${pickupLocation && !dropoffLocation ? 'bg-primary hover:bg-primary/90' : 'bg-muted cursor-not-allowed'}`}
                       disabled={!pickupLocation || !!dropoffLocation}
-                      className="bg-primary hover:bg-primary/90"
                     >
                       Set as Dropoff
                     </Button>
