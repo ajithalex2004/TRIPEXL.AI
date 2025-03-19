@@ -1,22 +1,25 @@
 import { useState, useRef, useEffect } from "react";
 import { Card } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { LoadScriptNext, GoogleMap, Marker, InfoWindow } from "@react-google-maps/api";
+import { LoadScriptNext, GoogleMap, Marker, InfoWindow, DirectionsRenderer } from "@react-google-maps/api";
 import { VehicleLoadingIndicator } from "@/components/ui/vehicle-loading-indicator";
 import { Button } from "@/components/ui/button";
-import { MapPin } from "lucide-react";
+import { MapPin, Clock } from "lucide-react";
+import { routeOptimizer } from "@/services/route-optimizer";
 
-// Abu Dhabi city center coordinates (more precise)
+// Abu Dhabi city center coordinates
 const defaultCenter = {
-  lat: 24.466667,  // Abu Dhabi city center latitude
-  lng: 54.366667   // Abu Dhabi city center longitude
+  lat: 24.466667,
+  lng: 54.366667
 };
 
-const defaultZoom = 11; // Zoom level to show more of Abu Dhabi city
+const defaultZoom = 11;
 
 const libraries: ("places" | "geometry" | "drawing" | "visualization")[] = ["places", "geometry"];
 
 const MAPS_API_KEY = "AIzaSyAtNTq_ILPC8Y5M_bJAiMORDf02sGoK84I";
+
+// ... rest of the imports and interfaces remain the same ...
 
 export interface Location {
   address: string;
@@ -54,6 +57,38 @@ export function MapView({
   const [map, setMap] = useState<google.maps.Map | null>(null);
   const [mapsInitialized, setMapsInitialized] = useState(false);
   const [popupLocation, setPopupLocation] = useState<PopupLocation | null>(null);
+  const [directionsResult, setDirectionsResult] = useState<google.maps.DirectionsResult | null>(null);
+  const [routeInfo, setRouteInfo] = useState<{
+    distance: string;
+    duration: string;
+    alerts: string[];
+  } | null>(null);
+
+  // Draw route when both locations are set
+  useEffect(() => {
+    const drawRoute = async () => {
+      if (!pickupLocation || !dropoffLocation || !map) return;
+
+      try {
+        setIsLoading(true);
+        const optimizedRoute = await routeOptimizer.getOptimizedRoute(pickupLocation, dropoffLocation);
+
+        setDirectionsResult(optimizedRoute.route);
+        setRouteInfo({
+          distance: optimizedRoute.route.routes[0].legs[0].distance?.text || "",
+          duration: `${Math.round(optimizedRoute.estimatedTime / 60)} mins`,
+          alerts: [...optimizedRoute.weatherAlerts, ...optimizedRoute.trafficAlerts]
+        });
+      } catch (error) {
+        console.error("Error getting route:", error);
+        setMapError("Failed to load route information");
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    drawRoute();
+  }, [pickupLocation, dropoffLocation, map]);
 
   const handleMapClick = async (e: google.maps.MapMouseEvent) => {
     if (!e.latLng || !onLocationSelect || !mapsInitialized) return;
@@ -89,7 +124,6 @@ export function MapView({
   const handleLocationTypeSelect = (type: 'pickup' | 'dropoff') => {
     if (!popupLocation || !map) return;
 
-    // Create a Places Service to get additional place details
     const placesService = new google.maps.places.PlacesService(map);
 
     placesService.findPlaceFromQuery({
@@ -110,7 +144,6 @@ export function MapView({
         };
         onLocationSelect(location, type);
       } else {
-        // Fallback if place details are not found
         const location: Location = {
           address: popupLocation.address,
           coordinates: {
@@ -141,7 +174,6 @@ export function MapView({
       ]
     });
 
-    // Center on Abu Dhabi and set appropriate zoom level
     map.setCenter(defaultCenter);
     map.setZoom(defaultZoom);
   };
@@ -184,7 +216,6 @@ export function MapView({
             center={defaultCenter}
             zoom={defaultZoom}
             onClick={handleMapClick}
-            onRightClick={handleMapClick}
             onLoad={handleMapLoad}
             options={{
               zoomControl: true,
@@ -204,6 +235,20 @@ export function MapView({
               ]
             }}
           >
+            {directionsResult && (
+              <DirectionsRenderer
+                directions={directionsResult}
+                options={{
+                  suppressMarkers: true,
+                  polylineOptions: {
+                    strokeColor: "#4F46E5",
+                    strokeWeight: 5,
+                    strokeOpacity: 0.8
+                  }
+                }}
+              />
+            )}
+
             {pickupLocation && (
               <Marker
                 position={pickupLocation.coordinates}
@@ -214,6 +259,7 @@ export function MapView({
                 }}
               />
             )}
+
             {dropoffLocation && (
               <Marker
                 position={dropoffLocation.coordinates}
@@ -224,6 +270,7 @@ export function MapView({
                 }}
               />
             )}
+
             {popupLocation && (
               <InfoWindow
                 position={{ lat: popupLocation.lat, lng: popupLocation.lng }}
@@ -265,15 +312,36 @@ export function MapView({
         </Alert>
       )}
 
-      {pickupLocation && dropoffLocation && (
-        <div className="mt-4 p-4 border rounded-lg">
+      {pickupLocation && dropoffLocation && routeInfo && (
+        <div className="mt-4 p-4 border rounded-lg space-y-2">
           <h3 className="font-medium mb-2">Route Information</h3>
-          <p className="text-sm text-muted-foreground">
-            Pickup: {pickupLocation.formatted_address || pickupLocation.name || pickupLocation.address}
-          </p>
-          <p className="text-sm text-muted-foreground">
-            Dropoff: {dropoffLocation.formatted_address || dropoffLocation.name || dropoffLocation.address}
-          </p>
+          <div className="flex items-center gap-2 text-sm text-muted-foreground">
+            <Clock className="h-4 w-4" />
+            <span>Estimated Time: {routeInfo.duration}</span>
+            <span>•</span>
+            <span>Distance: {routeInfo.distance}</span>
+          </div>
+          {routeInfo.alerts.length > 0 && (
+            <div className="mt-2">
+              <p className="text-sm font-medium mb-1">Alerts:</p>
+              <ul className="text-sm text-muted-foreground">
+                {routeInfo.alerts.map((alert, index) => (
+                  <li key={index} className="flex items-center gap-2">
+                    <span>•</span>
+                    {alert}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+          <div className="mt-2">
+            <p className="text-sm text-muted-foreground">
+              Pickup: {pickupLocation.formatted_address || pickupLocation.name || pickupLocation.address}
+            </p>
+            <p className="text-sm text-muted-foreground">
+              Dropoff: {dropoffLocation.formatted_address || dropoffLocation.name || dropoffLocation.address}
+            </p>
+          </div>
         </div>
       )}
     </Card>
