@@ -87,14 +87,15 @@ export function MapView({
         }
 
         setDirectionsResult(result);
+        const durationInSeconds = result.routes[0].legs[0].duration?.value || 0;
+
+        // Notify parent component about route duration
+        onRouteCalculated?.(durationInSeconds);
+
         setRouteInfo({
           distance: result.routes[0].legs[0].distance?.text || "Unknown",
           duration: result.routes[0].legs[0].duration?.text || "Unknown"
         });
-
-        // Notify parent component about route duration
-        const durationInSeconds = result.routes[0].legs[0].duration?.value || 0;
-        onRouteCalculated?.(durationInSeconds);
 
         // Fit map to show the entire route
         const bounds = new google.maps.LatLngBounds();

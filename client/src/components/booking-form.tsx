@@ -249,7 +249,11 @@ export function BookingForm() {
     if (pickupTime) {
       const pickupDate = new Date(pickupTime);
       const estimatedDropoff = new Date(pickupDate.getTime() + (durationInSeconds * 1000));
-      form.setValue("dropoffTime", estimatedDropoff.toISOString());
+      form.setValue("dropoffTime", estimatedDropoff.toISOString(), {
+        shouldValidate: true,
+        shouldDirty: true,
+        shouldTouch: true
+      });
     }
   };
 
@@ -259,9 +263,13 @@ export function BookingForm() {
     if (pickupTime && routeDuration) {
       const pickupDate = new Date(pickupTime);
       const estimatedDropoff = new Date(pickupDate.getTime() + (routeDuration * 1000));
-      form.setValue("dropoffTime", estimatedDropoff.toISOString());
+      form.setValue("dropoffTime", estimatedDropoff.toISOString(), {
+        shouldValidate: true,
+        shouldDirty: true,
+        shouldTouch: true
+      });
     }
-  }, [form.watch("pickupTime"), routeDuration]);
+  }, [form.watch("pickupTime"), routeDuration, form]);
 
 
   return (
