@@ -32,7 +32,6 @@ export interface Location {
 export interface MapViewProps {
   pickupLocation?: Location | null;
   dropoffLocation?: Location | null;
-  tempLocation?: Location | null;
   onLocationSelect?: (location: Location, type: 'pickup' | 'dropoff') => void;
 }
 
@@ -40,12 +39,14 @@ interface PopupLocation {
   lat: number;
   lng: number;
   address: string;
+  place_id?: string;
+  name?: string;
+  formatted_address?: string;
 }
 
 export function MapView({
   pickupLocation,
   dropoffLocation,
-  tempLocation,
   onLocationSelect
 }: MapViewProps) {
   const [mapError, setMapError] = useState<string | null>(null);
@@ -67,7 +68,10 @@ export function MapView({
         setPopupLocation({
           lat: e.latLng.lat(),
           lng: e.latLng.lng(),
-          address: place.formatted_address
+          address: place.formatted_address || "",
+          place_id: place.place_id,
+          name: place.name,
+          formatted_address: place.formatted_address
         });
       }
     } catch (error) {
@@ -83,10 +87,10 @@ export function MapView({
   };
 
   const handleLocationTypeSelect = (type: 'pickup' | 'dropoff') => {
-    if (!popupLocation) return;
+    if (!popupLocation || !map) return;
 
     // Create a Places Service to get additional place details
-    const placesService = new google.maps.places.PlacesService(map!);
+    const placesService = new google.maps.places.PlacesService(map);
 
     placesService.findPlaceFromQuery({
       query: popupLocation.address,
@@ -95,7 +99,7 @@ export function MapView({
       if (status === google.maps.places.PlacesServiceStatus.OK && results?.[0]) {
         const place = results[0];
         const location: Location = {
-          address: popupLocation.address,
+          address: place.formatted_address || place.name || popupLocation.address,
           coordinates: {
             lat: popupLocation.lat,
             lng: popupLocation.lng
@@ -177,7 +181,7 @@ export function MapView({
               height: '100%',
               borderRadius: '8px'
             }}
-            center={tempLocation?.coordinates || pickupLocation?.coordinates || dropoffLocation?.coordinates || defaultCenter}
+            center={defaultCenter}
             zoom={defaultZoom}
             onClick={handleMapClick}
             onRightClick={handleMapClick}
@@ -228,7 +232,7 @@ export function MapView({
                 <div className="p-2 space-y-2">
                   <p className="text-sm font-medium flex items-center gap-2">
                     <MapPin className="h-4 w-4" />
-                    {popupLocation.address}
+                    {popupLocation.formatted_address || popupLocation.name || popupLocation.address}
                   </p>
                   <div className="flex gap-2">
                     <Button
@@ -265,10 +269,10 @@ export function MapView({
         <div className="mt-4 p-4 border rounded-lg">
           <h3 className="font-medium mb-2">Route Information</h3>
           <p className="text-sm text-muted-foreground">
-            Pickup: {pickupLocation?.address}
+            Pickup: {pickupLocation.formatted_address || pickupLocation.name || pickupLocation.address}
           </p>
           <p className="text-sm text-muted-foreground">
-            Dropoff: {dropoffLocation?.address}
+            Dropoff: {dropoffLocation.formatted_address || dropoffLocation.name || dropoffLocation.address}
           </p>
         </div>
       )}

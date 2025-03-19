@@ -39,14 +39,14 @@ export function LocationInput({
 
       if (place?.geometry?.location) {
         const location: Location = {
-          address: place.formatted_address || place.name || "",
+          address: place.formatted_address || "", // Use formatted_address or empty string
           coordinates: {
             lat: place.geometry.location.lat(),
             lng: place.geometry.location.lng()
           },
-          place_id: place.place_id,
-          name: place.name,
-          formatted_address: place.formatted_address
+          place_id: place.place_id || "", //Use place_id or empty string
+          name: place.name || "", //Use name or empty string
+          formatted_address: place.formatted_address || "" //Use formatted_address or empty string
         };
         onLocationSelect(location);
         setError(null);

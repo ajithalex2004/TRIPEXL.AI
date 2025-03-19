@@ -622,7 +622,7 @@ export function BookingForm() {
                           const fieldName = type === 'pickup' ? "pickupLocation" : "dropoffLocation";
                           form.setValue(fieldName, {
                             ...location,
-                            address: location.formatted_address || location.name || location.address
+                            address: location.formatted_address || location.name || location.place_id
                           }, {
                             shouldValidate: true,
                             shouldDirty: true,
