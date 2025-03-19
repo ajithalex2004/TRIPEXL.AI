@@ -40,7 +40,9 @@ export function MapView({
   const [map, setMap] = useState<google.maps.Map | null>(null);
   const [mapsInitialized, setMapsInitialized] = useState(false);
 
-  // Clear route-related states when locations change
+  const apiKey = import.meta.env.GOOGLE_MAPS_API_KEY;
+
+  // Clear states when locations change
   useEffect(() => {
     setDirections(null);
     setWeatherAlerts([]);
@@ -66,20 +68,9 @@ export function MapView({
         setSegmentAnalysis(result.segmentAnalysis);
       } catch (error: any) {
         console.error("Error optimizing route:", error);
-        if (error.message?.includes("not authorized")) {
-          const directionsService = new google.maps.DirectionsService();
-          try {
-            const result = await directionsService.route({
-              origin: pickupLocation.coordinates,
-              destination: dropoffLocation.coordinates,
-              travelMode: google.maps.TravelMode.DRIVING
-            });
-            setDirections(result);
-          } catch (dirError) {
-            setMapError("Unable to calculate route. Please try again.");
-          }
-        } else {
-          setMapError("Failed to optimize route. Please try again.");
+        // Only show error if both locations are set
+        if (pickupLocation && dropoffLocation) {
+          setMapError("Unable to calculate route. Please try again.");
         }
       } finally {
         setIsLoading(false);
@@ -89,7 +80,6 @@ export function MapView({
     const timeoutId = setTimeout(updateRoute, 500); // Add debounce
     return () => clearTimeout(timeoutId);
   }, [pickupLocation, dropoffLocation, map, mapsInitialized]);
-
 
   const handleMapClick = useCallback(async (e: google.maps.MapMouseEvent) => {
     if (!e.latLng || !onLocationSelect || !mapsInitialized) return;
@@ -136,6 +126,16 @@ export function MapView({
     setMapsInitialized(true);
   }, []);
 
+  if (!apiKey) {
+    return (
+      <Alert variant="destructive">
+        <AlertDescription>
+          Google Maps API key is not configured. Please contact support.
+        </AlertDescription>
+      </Alert>
+    );
+  }
+
   return (
     <Card className="p-4 h-full relative">
       {isLoading && (
@@ -153,7 +153,7 @@ export function MapView({
       )}
 
       <LoadScriptNext
-        googleMapsApiKey="AIzaSyAtNTq_ILPC8Y5M_bJAiMORDf02sGoK84I"
+        googleMapsApiKey={apiKey}
         libraries={libraries}
         loadingElement={
           <div className="h-full flex items-center justify-center">
