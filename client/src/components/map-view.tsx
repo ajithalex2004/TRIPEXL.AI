@@ -40,7 +40,7 @@ export function MapView({
   const [mapError, setMapError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [map, setMap] = useState<google.maps.Map | null>(null);
-  const [mapsInitialized, setMapsInitialized] = useState(false);
+  const [mapsLoaded, setMapsLoaded] = useState(false);
 
   // Clear states when locations change
   useEffect(() => {
@@ -53,7 +53,7 @@ export function MapView({
 
   // Only attempt route optimization when both locations are set
   useEffect(() => {
-    if (!pickupLocation?.coordinates || !dropoffLocation?.coordinates || !map || !mapsInitialized) {
+    if (!pickupLocation?.coordinates || !dropoffLocation?.coordinates || !map || !mapsLoaded) {
       return;
     }
 
@@ -79,10 +79,10 @@ export function MapView({
 
     const timeoutId = setTimeout(updateRoute, 500); // Add debounce
     return () => clearTimeout(timeoutId);
-  }, [pickupLocation, dropoffLocation, map, mapsInitialized]);
+  }, [pickupLocation, dropoffLocation, map, mapsLoaded]);
 
   const handleMapClick = useCallback(async (e: google.maps.MapMouseEvent) => {
-    if (!e.latLng || !onLocationSelect || !mapsInitialized) return;
+    if (!e.latLng || !onLocationSelect || !mapsLoaded) return;
 
     const lat = e.latLng.lat();
     const lng = e.latLng.lng();
@@ -119,11 +119,15 @@ export function MapView({
     } finally {
       setIsLoading(false);
     }
-  }, [pickupLocation, dropoffLocation, onLocationSelect, mapsInitialized]);
+  }, [pickupLocation, dropoffLocation, onLocationSelect, mapsLoaded]);
 
   const handleMapLoad = useCallback((map: google.maps.Map) => {
     setMap(map);
-    setMapsInitialized(true);
+    setMapsLoaded(true);
+  }, []);
+
+  const handleScriptLoad = useCallback(() => {
+    setMapsLoaded(true);
   }, []);
 
   return (
@@ -134,7 +138,7 @@ export function MapView({
         </div>
       )}
 
-      {!mapsInitialized && (
+      {!mapsLoaded && (
         <Alert variant="default" className="mb-4">
           <AlertDescription>
             Loading map...
@@ -150,10 +154,10 @@ export function MapView({
             <VehicleLoadingIndicator size="lg" />
           </div>
         }
-        onLoad={handleMapLoad}
+        onLoad={handleScriptLoad}
         onError={(error) => {
           console.error("Error loading Google Maps:", error);
-          setMapError("Failed to load Google Maps. Please refresh the page.");
+          setMapError("Failed to load Google Maps. Please check your internet connection and try again.");
         }}
       >
         <div className="h-[400px] relative">
