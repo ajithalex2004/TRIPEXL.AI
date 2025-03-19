@@ -4,6 +4,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { LoadScriptNext, GoogleMap, Marker, InfoWindow } from "@react-google-maps/api";
 import { VehicleLoadingIndicator } from "@/components/ui/vehicle-loading-indicator";
 import { Button } from "@/components/ui/button";
+import { MapPin } from "lucide-react";
 
 const defaultCenter = {
   lat: 24.4539,  // Abu Dhabi city center
@@ -214,25 +215,30 @@ export function MapView({
                 onCloseClick={() => setPopupLocation(null)}
               >
                 <div className="p-2 space-y-2">
-                  <p className="text-sm font-medium">{popupLocation.address}</p>
+                  <p className="text-sm font-medium flex items-center gap-2">
+                    <MapPin className="h-4 w-4" />
+                    {popupLocation.address}
+                  </p>
                   <div className="flex gap-2">
-                    {!pickupLocation && (
-                      <Button
-                        size="sm"
-                        onClick={() => handleLocationTypeSelect('pickup')}
-                        className="bg-primary hover:bg-primary/90"
-                      >
-                        Set as Pickup
-                      </Button>
-                    )}
-                    {pickupLocation && !dropoffLocation && (
-                      <Button
-                        size="sm"
-                        onClick={() => handleLocationTypeSelect('dropoff')}
-                        className="bg-primary hover:bg-primary/90"
-                      >
-                        Set as Dropoff
-                      </Button>
+                    {(!pickupLocation || !dropoffLocation) && (
+                      <>
+                        <Button
+                          size="sm"
+                          onClick={() => handleLocationTypeSelect('pickup')}
+                          disabled={!!pickupLocation}
+                          className="bg-primary hover:bg-primary/90"
+                        >
+                          Set as Pickup
+                        </Button>
+                        <Button
+                          size="sm"
+                          onClick={() => handleLocationTypeSelect('dropoff')}
+                          disabled={!pickupLocation || !!dropoffLocation}
+                          className="bg-primary hover:bg-primary/90"
+                        >
+                          Set as Dropoff
+                        </Button>
+                      </>
                     )}
                   </div>
                 </div>
