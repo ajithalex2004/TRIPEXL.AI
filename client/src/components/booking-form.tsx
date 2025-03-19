@@ -35,7 +35,6 @@ export function BookingForm() {
   const queryClient = useQueryClient();
   const [currentStep, setCurrentStep] = React.useState(1);
   const [activeLocation, setActiveLocation] = React.useState<"pickup" | "dropoff" | null>(null);
-  const [inputValue, setInputValue] = React.useState('');
 
   const { data: employee, isLoading: isEmployeeLoading } = useQuery({
     queryKey: ["/api/employee/current"],
@@ -90,10 +89,6 @@ export function BookingForm() {
       passengerInfo: [],
       referenceNo: "",
       remarks: "",
-      tempLocation: {
-        address: "",
-        coordinates: { lat: 0, lng: 0 }
-      }
     }
   });
 
@@ -560,48 +555,26 @@ export function BookingForm() {
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
                       <FormField
                         control={form.control}
-                        name="pickupLocation.address"
+                        name="pickupLocation"
                         render={({ field }) => (
                           <FormItem>
                             <FormLabel>Pickup Location *</FormLabel>
                             <FormControl>
                               <LocationInput
-                                value={field.value}
+                                value={field.value?.address || ""}
                                 placeholder="Enter pickup location"
                                 onLocationSelect={(location) => {
-                                  form.setValue("pickupLocation", location, { shouldValidate: true });
-                                  setActiveLocation(null);
-                                  setInputValue(location.address);
+                                  form.setValue("pickupLocation", location, {
+                                    shouldValidate: true,
+                                    shouldDirty: true,
+                                    shouldTouch: true
+                                  });
                                 }}
                                 onSearchChange={(query) => {
-                                  if (query && window.google?.maps?.places) {
-                                    const placesService = new google.maps.places.PlacesService(
-                                      document.createElement('div')
-                                    );
-                                    placesService.textSearch({
-                                      query,
-                                      bounds: new google.maps.LatLngBounds(
-                                        new google.maps.LatLng(24.3, 54.2),
-                                        new google.maps.LatLng(24.6, 54.5)
-                                      )
-                                    }, (results, status) => {
-                                      if (
-                                        status === google.maps.places.PlacesServiceStatus.OK &&
-                                        results?.[0]?.geometry?.location
-                                      ) {
-                                        const location = results[0];
-                                        form.setValue("tempLocation", {
-                                          address: location.formatted_address || location.name || "",
-                                          coordinates: {
-                                            lat: location.geometry.location.lat(),
-                                            lng: location.geometry.location.lng()
-                                          }
-                                        });
-                                      } else {
-                                        console.error("Places Service Error:", status);
-                                      }
-                                    });
-                                  }
+                                  // Only update the address part during search
+                                  form.setValue("pickupLocation.address", query, {
+                                    shouldValidate: false
+                                  });
                                 }}
                                 onFocus={() => setActiveLocation("pickup")}
                               />
@@ -612,48 +585,26 @@ export function BookingForm() {
                       />
                       <FormField
                         control={form.control}
-                        name="dropoffLocation.address"
+                        name="dropoffLocation"
                         render={({ field }) => (
                           <FormItem>
                             <FormLabel>Dropoff Location *</FormLabel>
                             <FormControl>
                               <LocationInput
-                                value={field.value}
+                                value={field.value?.address || ""}
                                 placeholder="Enter dropoff location"
                                 onLocationSelect={(location) => {
-                                  form.setValue("dropoffLocation", location, { shouldValidate: true });
-                                  setActiveLocation(null);
-                                  setInputValue(location.address);
+                                  form.setValue("dropoffLocation", location, {
+                                    shouldValidate: true,
+                                    shouldDirty: true,
+                                    shouldTouch: true
+                                  });
                                 }}
                                 onSearchChange={(query) => {
-                                  if (query && window.google?.maps?.places) {
-                                    const placesService = new google.maps.places.PlacesService(
-                                      document.createElement('div')
-                                    );
-                                    placesService.textSearch({
-                                      query,
-                                      bounds: new google.maps.LatLngBounds(
-                                        new google.maps.LatLng(24.3, 54.2),
-                                        new google.maps.LatLng(24.6, 54.5)
-                                      )
-                                    }, (results, status) => {
-                                      if (
-                                        status === google.maps.places.PlacesServiceStatus.OK &&
-                                        results?.[0]?.geometry?.location
-                                      ) {
-                                        const location = results[0];
-                                        form.setValue("tempLocation", {
-                                          address: location.formatted_address || location.name || "",
-                                          coordinates: {
-                                            lat: location.geometry.location.lat(),
-                                            lng: location.geometry.location.lng()
-                                          }
-                                        });
-                                      } else {
-                                        console.error("Places Service Error:", status);
-                                      }
-                                    });
-                                  }
+                                  // Only update the address part during search
+                                  form.setValue("dropoffLocation.address", query, {
+                                    shouldValidate: false
+                                  });
                                 }}
                                 onFocus={() => setActiveLocation("dropoff")}
                               />
@@ -667,37 +618,13 @@ export function BookingForm() {
                       <MapView
                         pickupLocation={form.watch("pickupLocation")}
                         dropoffLocation={form.watch("dropoffLocation")}
-                        tempLocation={form.watch("tempLocation")}
                         onLocationSelect={(location, type) => {
-                          if (type === 'pickup') {
-                            // Update form values for pickup location
-                            form.setValue("pickupLocation", {
-                              address: location.address,
-                              coordinates: location.coordinates
-                            }, {
-                              shouldValidate: true,
-                              shouldDirty: true,
-                              shouldTouch: true
-                            });
-
-                            // Update the LocationInput component
-                            setInputValue(location.address);
-                            setActiveLocation(null);
-                          } else {
-                            // Update form values for dropoff location
-                            form.setValue("dropoffLocation", {
-                              address: location.address,
-                              coordinates: location.coordinates
-                            }, {
-                              shouldValidate: true,
-                              shouldDirty: true,
-                              shouldTouch: true
-                            });
-
-                            // Update the LocationInput component
-                            setInputValue(location.address);
-                            setActiveLocation(null);
-                          }
+                          form.setValue(type === 'pickup' ? "pickupLocation" : "dropoffLocation", location, {
+                            shouldValidate: true,
+                            shouldDirty: true,
+                            shouldTouch: true
+                          });
+                          setActiveLocation(null);
                         }}
                       />
                     </div>
