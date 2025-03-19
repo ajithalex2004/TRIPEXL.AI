@@ -10,6 +10,22 @@ interface WeatherCondition {
 interface TrafficInfo {
   congestionLevel: number;
   averageSpeed: number;
+  segments: TrafficSegment[];
+  incidents: TrafficIncident[];
+}
+
+interface TrafficSegment {
+  start: google.maps.LatLng;
+  end: google.maps.LatLng;
+  duration: number;
+  congestionLevel: number;
+}
+
+interface TrafficIncident {
+  location: google.maps.LatLng;
+  type: string;
+  description: string;
+  severity: number;
 }
 
 interface RouteOptimizationResult {
@@ -18,6 +34,7 @@ interface RouteOptimizationResult {
   alternativeRoutes?: google.maps.DirectionsResult[];
   trafficAlerts: string[];
   weatherAlerts: string[];
+  segmentAnalysis: string[];
 }
 
 export class RouteOptimizer {
@@ -57,6 +74,7 @@ export class RouteOptimizer {
         origin: origin.coordinates,
         destination: destination.coordinates,
         travelMode: google.maps.TravelMode.DRIVING,
+        provideRouteAlternatives: true,
         drivingOptions: {
           departureTime: new Date(),
           trafficModel: google.maps.TrafficModel.BEST_GUESS
@@ -65,15 +83,62 @@ export class RouteOptimizer {
 
       const route = result.routes[0];
       const legs = route.legs[0];
+      const segments: TrafficSegment[] = [];
+      const incidents: TrafficIncident[] = [];
+
+      // Analyze each step of the route for traffic conditions
+      legs.steps.forEach((step, index) => {
+        const nextStep = legs.steps[index + 1];
+        if (nextStep) {
+          const duration = step.duration?.value || 0;
+          const distance = step.distance?.value || 0;
+          const speed = (distance / 1000) / (duration / 3600); // km/h
+
+          // Calculate congestion for this segment
+          const congestionLevel = this.calculateSegmentCongestion(speed, step);
+
+          segments.push({
+            start: step.start_location,
+            end: step.end_location,
+            duration: duration,
+            congestionLevel: congestionLevel
+          });
+
+          // Check for traffic incidents
+          if (congestionLevel > 150) {
+            incidents.push({
+              location: step.start_location,
+              type: "Heavy Traffic",
+              description: "Severe congestion detected",
+              severity: 3
+            });
+          }
+        }
+      });
 
       return {
         congestionLevel: this.calculateCongestionLevel(legs),
-        averageSpeed: this.calculateAverageSpeed(legs)
+        averageSpeed: this.calculateAverageSpeed(legs),
+        segments,
+        incidents
       };
     } catch (error) {
       console.error("Error fetching traffic data:", error);
       throw new Error("Failed to fetch traffic data");
     }
+  }
+
+  private calculateSegmentCongestion(speed: number, step: google.maps.DirectionsStep): number {
+    const baseSpeed = 50; // base urban speed in km/h
+    let congestion = (baseSpeed / speed) * 100;
+
+    // Adjust for road type
+    if (step.instructions.toLowerCase().includes("highway") || 
+        step.instructions.toLowerCase().includes("motorway")) {
+      congestion *= 0.8; // highways usually have higher speeds
+    }
+
+    return congestion;
   }
 
   private calculateCongestionLevel(legs: google.maps.DirectionsLeg): number {
@@ -91,7 +156,6 @@ export class RouteOptimizer {
   private getWeatherMultiplier(weather: WeatherCondition): number {
     let multiplier = 1;
 
-    // Adjust for weather conditions
     switch (weather.condition.toLowerCase()) {
       case 'rain':
       case 'drizzle':
@@ -109,14 +173,12 @@ export class RouteOptimizer {
         break;
     }
 
-    // Adjust for visibility
     if (weather.visibility < 1000) {
       multiplier *= 1.4;
     } else if (weather.visibility < 5000) {
       multiplier *= 1.2;
     }
 
-    // Adjust for precipitation intensity
     if (weather.rain && weather.rain > 10) {
       multiplier *= 1.3;
     }
@@ -136,29 +198,39 @@ export class RouteOptimizer {
     const directionsService = new google.maps.DirectionsService();
     const trafficAlerts: string[] = [];
     const weatherAlerts: string[] = [];
+    const segmentAnalysis: string[] = [];
 
     // Generate weather alerts
     if (weather.visibility < 1000) {
-      weatherAlerts.push("⚠️ Low visibility conditions");
+      weatherAlerts.push("⚠️ Low visibility conditions - Drive with caution");
     }
     if (weather.condition.toLowerCase() === 'thunderstorm') {
-      weatherAlerts.push("⚠️ Thunderstorm in the area");
+      weatherAlerts.push("⚠️ Thunderstorm in the area - Consider postponing trip");
     }
     if (weather.rain && weather.rain > 10) {
-      weatherAlerts.push("⚠️ Heavy rain");
+      weatherAlerts.push("⚠️ Heavy rain - Reduce speed and increase following distance");
     }
     if (weather.snow && weather.snow > 5) {
-      weatherAlerts.push("⚠️ Heavy snow");
+      weatherAlerts.push("⚠️ Heavy snow - Consider alternative transport");
     }
 
-    // Generate traffic alerts
-    if (traffic.congestionLevel > 150) {
-      trafficAlerts.push("🚗 Heavy traffic congestion");
-    } else if (traffic.congestionLevel > 120) {
-      trafficAlerts.push("🚗 Moderate traffic congestion");
-    }
+    // Analyze traffic segments and generate alerts
+    traffic.segments.forEach((segment, index) => {
+      if (segment.congestionLevel > 150) {
+        segmentAnalysis.push(`🚗 Severe congestion in segment ${index + 1}`);
+        trafficAlerts.push("🚫 Heavy traffic detected - Consider alternative route");
+      } else if (segment.congestionLevel > 120) {
+        segmentAnalysis.push(`🚗 Moderate congestion in segment ${index + 1}`);
+      }
+    });
+
+    // Add incident-based alerts
+    traffic.incidents.forEach(incident => {
+      trafficAlerts.push(`⚠️ ${incident.description} near ${incident.location.toString()}`);
+    });
+
     if (traffic.averageSpeed < 20) {
-      trafficAlerts.push("🚗 Very slow traffic conditions");
+      trafficAlerts.push("🐢 Very slow traffic conditions - Expect delays");
     }
 
     try {
@@ -186,7 +258,8 @@ export class RouteOptimizer {
         estimatedTime,
         alternativeRoutes: result.routes.slice(1),
         weatherAlerts,
-        trafficAlerts
+        trafficAlerts,
+        segmentAnalysis
       };
     } catch (error) {
       console.error("Error optimizing route:", error);
