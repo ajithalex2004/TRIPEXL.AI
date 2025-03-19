@@ -577,6 +577,7 @@ export function BookingForm() {
                           form.setValue("dropoffLocation", location, { shouldValidate: true });
                         }}
                         activeLocation={activeLocation}
+                        setActiveLocation={setActiveLocation}
                       />
                     </div>
                     <FormMessage>{form.formState.errors.pickupLocation?.message}</FormMessage>

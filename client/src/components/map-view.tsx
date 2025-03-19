@@ -4,15 +4,15 @@ import { LoadScriptNext, GoogleMap, Marker, DirectionsRenderer } from "@react-go
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { routeOptimizer } from "@/services/route-optimizer";
 import { VehicleLoadingIndicator } from "@/components/ui/vehicle-loading-indicator";
+import { LocationInput } from "@/components/location-input";
 
 const defaultCenter = {
   lat: 25.2048,
   lng: 55.2708
 };
 
-const libraries: ("places" | "geometry" | "drawing" | "visualization")[] = ["places"];
+const libraries: ("places" | "geometry" | "drawing" | "visualization")[] = ["places", "geometry"];
 
-// Use the provided API key
 const MAPS_API_KEY = "AIzaSyAtNTq_ILPC8Y5M_bJAiMORDf02sGoK84I";
 
 export interface Location {
@@ -29,14 +29,16 @@ export interface MapViewProps {
   onPickupSelect: (location: Location) => void;
   onDropoffSelect: (location: Location) => void;
   activeLocation: "pickup" | "dropoff" | null;
+  setActiveLocation: (location: "pickup" | "dropoff" | null) => void;
 }
 
-export function MapView({ 
-  pickupLocation, 
-  dropoffLocation, 
-  onPickupSelect, 
+export function MapView({
+  pickupLocation,
+  dropoffLocation,
+  onPickupSelect,
   onDropoffSelect,
-  activeLocation 
+  activeLocation,
+  setActiveLocation
 }: MapViewProps) {
   const [directions, setDirections] = useState<google.maps.DirectionsResult | null>(null);
   const [weatherAlerts, setWeatherAlerts] = useState<string[]>([]);
@@ -47,7 +49,6 @@ export function MapView({
   const [map, setMap] = useState<google.maps.Map | null>(null);
   const [isRouteOptimizationEnabled, setIsRouteOptimizationEnabled] = useState(true);
 
-  // Update route when both locations are set
   useEffect(() => {
     if (!pickupLocation?.coordinates || !dropoffLocation?.coordinates || !map) {
       setDirections(null);
@@ -68,10 +69,8 @@ export function MapView({
         setMapError(null);
       } catch (error: any) {
         console.error("Error optimizing route:", error);
-        // If we get an authorization error, fallback to basic mode
         if (error.message?.includes("not authorized")) {
           setIsRouteOptimizationEnabled(false);
-          // Try basic directions without optimization
           const directionsService = new google.maps.DirectionsService();
           try {
             const result = await directionsService.route({
@@ -95,7 +94,6 @@ export function MapView({
     updateRoute();
   }, [pickupLocation, dropoffLocation, map]);
 
-  // Center map on active location
   useEffect(() => {
     if (!map) return;
 
@@ -132,7 +130,6 @@ export function MapView({
       }
     } catch (error) {
       console.error("Error getting address:", error);
-      // Fallback to using coordinates as address if geocoding fails
       const newLocation: Location = {
         address: `${lat.toFixed(6)}, ${lng.toFixed(6)}`,
         coordinates: { lat, lng }
@@ -163,63 +160,86 @@ export function MapView({
         </Alert>
       )}
 
-      <LoadScriptNext 
-        googleMapsApiKey={MAPS_API_KEY}
-        libraries={libraries}
-        loadingElement={
-          <div className="h-full flex items-center justify-center">
-            <VehicleLoadingIndicator size="lg" />
+      <div className="space-y-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <h3 className="text-sm font-medium mb-2">Pickup Location</h3>
+            <LocationInput
+              value={pickupLocation?.address || ""}
+              placeholder="Enter pickup location"
+              onLocationSelect={onPickupSelect}
+              onFocus={() => setActiveLocation("pickup")}
+            />
           </div>
-        }
-      >
-        <div className="h-[400px] relative">
-          <GoogleMap
-            mapContainerStyle={{
-              width: '100%',
-              height: '100%',
-              borderRadius: '8px'
-            }}
-            center={
-              activeLocation === "pickup" && pickupLocation?.coordinates
-                ? pickupLocation.coordinates
-                : activeLocation === "dropoff" && dropoffLocation?.coordinates
-                ? dropoffLocation.coordinates
-                : defaultCenter
-            }
-            zoom={13}
-            onClick={handleMapClick}
-            onLoad={setMap}
-            options={{
-              zoomControl: true,
-              streetViewControl: false,
-              mapTypeControl: false,
-              fullscreenControl: false
-            }}
-          >
-            {pickupLocation && (
-              <Marker
-                position={pickupLocation.coordinates}
-                label={{
-                  text: "P",
-                  color: "white",
-                  className: "font-bold"
-                }}
-              />
-            )}
-            {dropoffLocation && (
-              <Marker
-                position={dropoffLocation.coordinates}
-                label={{
-                  text: "D",
-                  color: "white",
-                  className: "font-bold"
-                }}
-              />
-            )}
-            {directions && <DirectionsRenderer directions={directions} />}
-          </GoogleMap>
+          <div>
+            <h3 className="text-sm font-medium mb-2">Dropoff Location</h3>
+            <LocationInput
+              value={dropoffLocation?.address || ""}
+              placeholder="Enter dropoff location"
+              onLocationSelect={onDropoffSelect}
+              onFocus={() => setActiveLocation("dropoff")}
+            />
+          </div>
         </div>
-      </LoadScriptNext>
+
+        <LoadScriptNext
+          googleMapsApiKey={MAPS_API_KEY}
+          libraries={libraries}
+          loadingElement={
+            <div className="h-full flex items-center justify-center">
+              <VehicleLoadingIndicator size="lg" />
+            </div>
+          }
+        >
+          <div className="h-[400px] relative">
+            <GoogleMap
+              mapContainerStyle={{
+                width: '100%',
+                height: '100%',
+                borderRadius: '8px'
+              }}
+              center={
+                activeLocation === "pickup" && pickupLocation?.coordinates
+                  ? pickupLocation.coordinates
+                  : activeLocation === "dropoff" && dropoffLocation?.coordinates
+                  ? dropoffLocation.coordinates
+                  : defaultCenter
+              }
+              zoom={13}
+              onClick={handleMapClick}
+              onLoad={setMap}
+              options={{
+                zoomControl: true,
+                streetViewControl: false,
+                mapTypeControl: false,
+                fullscreenControl: false
+              }}
+            >
+              {pickupLocation && (
+                <Marker
+                  position={pickupLocation.coordinates}
+                  label={{
+                    text: "P",
+                    color: "white",
+                    className: "font-bold"
+                  }}
+                />
+              )}
+              {dropoffLocation && (
+                <Marker
+                  position={dropoffLocation.coordinates}
+                  label={{
+                    text: "D",
+                    color: "white",
+                    className: "font-bold"
+                  }}
+                />
+              )}
+              {directions && <DirectionsRenderer directions={directions} />}
+            </GoogleMap>
+          </div>
+        </LoadScriptNext>
+      </div>
 
       {(weatherAlerts.length > 0 || trafficAlerts.length > 0 || segmentAnalysis.length > 0) && (
         <div className="mt-4 space-y-2">
