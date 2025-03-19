@@ -3,6 +3,7 @@ import { Card } from "@/components/ui/card";
 import { LoadScriptNext, GoogleMap, Marker, DirectionsRenderer } from "@react-google-maps/api";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { routeOptimizer } from "@/services/route-optimizer";
+import { VehicleLoadingIndicator } from "@/components/ui/vehicle-loading-indicator";
 
 const defaultCenter = {
   lat: 25.2048,
@@ -38,8 +39,19 @@ export function MapView({
   const [weatherAlerts, setWeatherAlerts] = useState<string[]>([]);
   const [trafficAlerts, setTrafficAlerts] = useState<string[]>([]);
   const [segmentAnalysis, setSegmentAnalysis] = useState<string[]>([]);
-  const [mapError, setMapError] = useState(false);
+  const [mapError, setMapError] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
   const [map, setMap] = useState<google.maps.Map | null>(null);
+
+  const apiKey = import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
+
+  // Check API key on mount
+  useEffect(() => {
+    if (!apiKey) {
+      setMapError("Google Maps API key is missing. Please configure the API key.");
+      setIsLoading(false);
+    }
+  }, [apiKey]);
 
   // Update route when both locations are set
   useEffect(() => {
@@ -53,14 +65,18 @@ export function MapView({
 
     const updateRoute = async () => {
       try {
+        setIsLoading(true);
         const result = await routeOptimizer.getOptimizedRoute(pickupLocation, dropoffLocation);
         setDirections(result.route);
         setWeatherAlerts(result.weatherAlerts);
         setTrafficAlerts(result.trafficAlerts);
         setSegmentAnalysis(result.segmentAnalysis);
+        setMapError(null);
       } catch (error) {
         console.error("Error optimizing route:", error);
-        setMapError(true);
+        setMapError("Failed to optimize route. Please try again.");
+      } finally {
+        setIsLoading(false);
       }
     };
 
@@ -85,6 +101,7 @@ export function MapView({
     const lng = e.latLng.lng();
 
     try {
+      setIsLoading(true);
       const geocoder = new google.maps.Geocoder();
       const result = await geocoder.geocode({ location: { lat, lng } });
 
@@ -99,18 +116,44 @@ export function MapView({
         } else {
           onDropoffSelect(newLocation);
         }
+        setMapError(null);
       }
     } catch (error) {
       console.error("Error getting address:", error);
-      setMapError(true);
+      setMapError("Failed to get location address. Please try again.");
+    } finally {
+      setIsLoading(false);
     }
   }, [activeLocation, onPickupSelect, onDropoffSelect]);
 
+  if (!apiKey) {
+    return (
+      <Card className="p-4">
+        <Alert variant="destructive">
+          <AlertDescription>
+            Google Maps API key is missing. Please configure the API key to enable map functionality.
+          </AlertDescription>
+        </Alert>
+      </Card>
+    );
+  }
+
   return (
-    <Card className="p-4 h-full">
+    <Card className="p-4 h-full relative">
+      {isLoading && (
+        <div className="absolute inset-0 bg-background/80 backdrop-blur-sm z-50 flex items-center justify-center">
+          <VehicleLoadingIndicator size="lg" />
+        </div>
+      )}
+
       <LoadScriptNext 
-        googleMapsApiKey={import.meta.env.VITE_GOOGLE_MAPS_API_KEY || ""}
+        googleMapsApiKey={apiKey}
         libraries={libraries}
+        loadingElement={
+          <div className="h-full flex items-center justify-center">
+            <VehicleLoadingIndicator size="lg" />
+          </div>
+        }
       >
         <div className="h-[400px] relative">
           <GoogleMap
@@ -169,12 +212,12 @@ export function MapView({
             </Alert>
           ))}
           {trafficAlerts.map((alert, index) => (
-            <Alert key={`traffic-${index}`} variant="warning">
+            <Alert key={`traffic-${index}`} variant="destructive">
               <AlertDescription>{alert}</AlertDescription>
             </Alert>
           ))}
           {segmentAnalysis.map((analysis, index) => (
-            <Alert key={`segment-${index}`} variant="info">
+            <Alert key={`segment-${index}`} variant="default">
               <AlertDescription>{analysis}</AlertDescription>
             </Alert>
           ))}
@@ -182,9 +225,9 @@ export function MapView({
       )}
 
       {mapError && (
-        <p className="mt-2 text-xs text-destructive">
-          Error loading map. Please check your internet connection and try again.
-        </p>
+        <Alert variant="destructive" className="mt-4">
+          <AlertDescription>{mapError}</AlertDescription>
+        </Alert>
       )}
     </Card>
   );
