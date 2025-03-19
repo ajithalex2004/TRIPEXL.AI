@@ -30,6 +30,28 @@ import { MapView } from "@/components/map-view";
 import { motion, AnimatePresence } from "framer-motion";
 import { VehicleLoadingIndicator } from "@/components/ui/vehicle-loading-indicator";
 
+const DEFAULT_PICKUP_LOCATION = {
+  address: "Al Wahda Mall",
+  coordinates: {
+    lat: 24.4697,
+    lng: 54.3773
+  },
+  name: "Al Wahda Mall",
+  formatted_address: "Al Wahda Mall, Hazza Bin Zayed The First St, Al Wahda, Abu Dhabi",
+  place_id: "ChIJr2sMKkxdXj4RFG1JCQ935hw"
+};
+
+const DEFAULT_DROPOFF_LOCATION = {
+  address: "Deira City Centre",
+  coordinates: {
+    lat: 25.2524,
+    lng: 55.3300
+  },
+  name: "Deira City Centre",
+  formatted_address: "Deira City Centre, 8 Street, Port Saeed, Dubai",
+  place_id: "ChIJz3l4CkxcXj4R2yG4hHC9yjc"
+};
+
 export function BookingForm() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -64,14 +86,8 @@ export function BookingForm() {
       bookingType: "",
       purpose: "",
       priority: "",
-      pickupLocation: {
-        address: "",
-        coordinates: { lat: 0, lng: 0 }
-      },
-      dropoffLocation: {
-        address: "",
-        coordinates: { lat: 0, lng: 0 }
-      },
+      pickupLocation: DEFAULT_PICKUP_LOCATION,
+      dropoffLocation: DEFAULT_DROPOFF_LOCATION,
       pickupWindow: {
         start: "",
         end: ""
