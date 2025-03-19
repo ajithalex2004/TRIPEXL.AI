@@ -670,21 +670,33 @@ export function BookingForm() {
                         tempLocation={form.watch("tempLocation")}
                         onLocationSelect={(location, type) => {
                           if (type === 'pickup') {
-                            form.setValue("pickupLocation.address", location.address);
-                            form.setValue("pickupLocation.coordinates", location.coordinates);
-                            form.setValue("pickupLocation", location, { shouldValidate: true });
-                            const pickupInput = document.querySelector('input[placeholder="Enter pickup location"]') as HTMLInputElement;
-                            if (pickupInput) {
-                              pickupInput.value = location.address;
-                            }
+                            // Update form values for pickup location
+                            form.setValue("pickupLocation", {
+                              address: location.address,
+                              coordinates: location.coordinates
+                            }, {
+                              shouldValidate: true,
+                              shouldDirty: true,
+                              shouldTouch: true
+                            });
+
+                            // Update the LocationInput component
+                            setInputValue(location.address);
+                            setActiveLocation(null);
                           } else {
-                            form.setValue("dropoffLocation.address", location.address);
-                            form.setValue("dropoffLocation.coordinates", location.coordinates);
-                            form.setValue("dropoffLocation", location, { shouldValidate: true });
-                            const dropoffInput = document.querySelector('input[placeholder="Enter dropoff location"]') as HTMLInputElement;
-                            if (dropoffInput) {
-                              dropoffInput.value = location.address;
-                            }
+                            // Update form values for dropoff location
+                            form.setValue("dropoffLocation", {
+                              address: location.address,
+                              coordinates: location.coordinates
+                            }, {
+                              shouldValidate: true,
+                              shouldDirty: true,
+                              shouldTouch: true
+                            });
+
+                            // Update the LocationInput component
+                            setInputValue(location.address);
+                            setActiveLocation(null);
                           }
                         }}
                       />
