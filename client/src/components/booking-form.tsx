@@ -26,6 +26,7 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 import { LoadingIndicator } from "@/components/ui/loading-indicator";
 import { MapView } from "@/components/map-view";
+import { motion, AnimatePresence } from "framer-motion";
 
 export function BookingForm() {
   const { toast } = useToast();
@@ -192,159 +193,110 @@ export function BookingForm() {
 
 
   return (
-    <Card>
+    <Card className="transform transition-all duration-200 hover:shadow-lg">
       <CardHeader>
-        <h2 className="text-2xl font-bold">New Booking</h2>
+        <motion.h2
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5 }}
+          className="text-2xl font-bold"
+        >
+          New Booking
+        </motion.h2>
       </CardHeader>
       <CardContent>
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-            {/* Step 1: Basic Information */}
-            {currentStep === 1 && (
-              <div className="space-y-4">
-                {/* Employee Information */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {isEmployeeLoading ? (
-                    <div className="col-span-2 flex justify-center">
-                      <LoadingIndicator />
-                    </div>
-                  ) : (
-                    <>
-                      <FormField
-                        control={form.control}
-                        name="employeeId"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Employee ID *</FormLabel>
-                            <FormControl>
-                              <Input {...field} disabled value={employee?.employeeId || ""} />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                      <FormItem>
-                        <FormLabel>Employee Name</FormLabel>
-                        <FormControl>
-                          <Input disabled value={employee?.name || ""} />
-                        </FormControl>
-                      </FormItem>
-                    </>
-                  )}
-                </div>
-
-                {/* Booking Type */}
-                <FormField
-                  control={form.control}
-                  name="bookingType"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Booking Type *</FormLabel>
-                      <Select onValueChange={field.onChange} value={field.value}>
-                        <FormControl>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Select booking type" />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          <SelectItem value={BookingType.FREIGHT}>Freight</SelectItem>
-                          <SelectItem value={BookingType.PASSENGER}>Passenger</SelectItem>
-                          <SelectItem value={BookingType.AMBULANCE}>Ambulance</SelectItem>
-                        </SelectContent>
-                      </Select>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </div>
-            )}
-
-            {/* Step 2: Type-specific Fields */}
-            {currentStep === 2 && bookingType === "freight" && (
-              <div className="space-y-4">
-                <FormField
-                  control={form.control}
-                  name="cargoType"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Cargo Type *</FormLabel>
-                      <Select onValueChange={field.onChange} value={field.value}>
-                        <FormControl>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Select cargo type" />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          {Object.values(CargoType).map((type) => (
-                            <SelectItem key={type} value={type}>
-                              {type}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <FormField
-                    control={form.control}
-                    name="numBoxes"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Number of Boxes *</FormLabel>
-                        <FormControl>
-                          <Input
-                            type="number"
-                            {...field}
-                            onChange={(e) => {
-                              const value = parseInt(e.target.value) || 0;
-                              field.onChange(value);
-                              form.setValue(
-                                "boxSize",
-                                Array(value).fill("")
-                              );
-                            }}
-                            min={1}
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
+            <AnimatePresence mode="wait">
+              {currentStep === 1 && (
+                <motion.div
+                  key="step1"
+                  initial={{ opacity: 0, x: -20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={{ opacity: 0, x: 20 }}
+                  transition={{ duration: 0.5 }}
+                  className="space-y-4"
+                >
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {isEmployeeLoading ? (
+                      <div className="col-span-2 flex justify-center">
+                        <LoadingIndicator />
+                      </div>
+                    ) : (
+                      <>
+                        <FormField
+                          control={form.control}
+                          name="employeeId"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Employee ID *</FormLabel>
+                              <FormControl>
+                                <Input {...field} disabled value={employee?.employeeId || ""} />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                        <FormItem>
+                          <FormLabel>Employee Name</FormLabel>
+                          <FormControl>
+                            <Input disabled value={employee?.name || ""} />
+                          </FormControl>
+                        </FormItem>
+                      </>
                     )}
-                  />
-                  <FormField
-                    control={form.control}
-                    name="weight"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Approximate Weight (kg) *</FormLabel>
-                        <FormControl>
-                          <Input type="number" {...field} min={0} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                </div>
+                  </div>
 
-                {/* Dynamic Box Size Fields */}
-                {numBoxes > 0 && Array.from({ length: numBoxes }).map((_, index) => (
                   <FormField
-                    key={index}
                     control={form.control}
-                    name={`boxSize.${index}`}
+                    name="bookingType"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Box Size {index + 1} (in inches) *</FormLabel>
+                        <FormLabel>Booking Type *</FormLabel>
                         <Select onValueChange={field.onChange} value={field.value}>
                           <FormControl>
                             <SelectTrigger>
-                              <SelectValue placeholder={`Select size for box ${index + 1}`} />
+                              <SelectValue placeholder="Select booking type" />
                             </SelectTrigger>
                           </FormControl>
                           <SelectContent>
-                            {Object.values(BoxSize).map((size) => (
-                              <SelectItem key={size} value={size}>{size}</SelectItem>
+                            <SelectItem value={BookingType.FREIGHT}>Freight</SelectItem>
+                            <SelectItem value={BookingType.PASSENGER}>Passenger</SelectItem>
+                            <SelectItem value={BookingType.AMBULANCE}>Ambulance</SelectItem>
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </motion.div>
+              )}
+              {currentStep === 2 && bookingType === "freight" && (
+                <motion.div
+                  key="step2-freight"
+                  initial={{ opacity: 0, x: -20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={{ opacity: 0, x: 20 }}
+                  transition={{ duration: 0.5 }}
+                  className="space-y-4"
+                >
+                  <FormField
+                    control={form.control}
+                    name="cargoType"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Cargo Type *</FormLabel>
+                        <Select onValueChange={field.onChange} value={field.value}>
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select cargo type" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            {Object.values(CargoType).map((type) => (
+                              <SelectItem key={type} value={type}>
+                                {type}
+                              </SelectItem>
                             ))}
                           </SelectContent>
                         </Select>
@@ -352,269 +304,370 @@ export function BookingForm() {
                       </FormItem>
                     )}
                   />
-                ))}
-              </div>
-            )}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <FormField
+                      control={form.control}
+                      name="numBoxes"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Number of Boxes *</FormLabel>
+                          <FormControl>
+                            <Input
+                              type="number"
+                              {...field}
+                              onChange={(e) => {
+                                const value = parseInt(e.target.value) || 0;
+                                field.onChange(value);
+                                form.setValue(
+                                  "boxSize",
+                                  Array(value).fill("")
+                                );
+                              }}
+                              min={1}
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="weight"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Approximate Weight (kg) *</FormLabel>
+                          <FormControl>
+                            <Input type="number" {...field} min={0} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
 
-            {currentStep === 2 && bookingType === "passenger" && (
-              <div className="space-y-4">
-                <FormField
-                  control={form.control}
-                  name="tripType"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Trip Type *</FormLabel>
-                      <Select onValueChange={field.onChange} value={field.value}>
+                  {numBoxes > 0 && Array.from({ length: numBoxes }).map((_, index) => (
+                    <FormField
+                      key={index}
+                      control={form.control}
+                      name={`boxSize.${index}`}
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Box Size {index + 1} (in inches) *</FormLabel>
+                          <Select onValueChange={field.onChange} value={field.value}>
+                            <FormControl>
+                              <SelectTrigger>
+                                <SelectValue placeholder={`Select size for box ${index + 1}`} />
+                              </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                              {Object.values(BoxSize).map((size) => (
+                                <SelectItem key={size} value={size}>{size}</SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  ))}
+                </motion.div>
+              )}
+              {currentStep === 2 && bookingType === "passenger" && (
+                <motion.div
+                  key="step2-passenger"
+                  initial={{ opacity: 0, x: -20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={{ opacity: 0, x: 20 }}
+                  transition={{ duration: 0.5 }}
+                  className="space-y-4"
+                >
+                  <FormField
+                    control={form.control}
+                    name="tripType"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Trip Type *</FormLabel>
+                        <Select onValueChange={field.onChange} value={field.value}>
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select trip type" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            <SelectItem value={TripType.ONE_WAY}>One Way</SelectItem>
+                            <SelectItem value={TripType.ROUND_TRIP}>Round Trip</SelectItem>
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="numPassengers"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Number of Passengers *</FormLabel>
                         <FormControl>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Select trip type" />
-                          </SelectTrigger>
+                          <Input type="number" {...field} min={1} />
                         </FormControl>
-                        <SelectContent>
-                          <SelectItem value={TripType.ONE_WAY}>One Way</SelectItem>
-                          <SelectItem value={TripType.ROUND_TRIP}>Round Trip</SelectItem>
-                        </SelectContent>
-                      </Select>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name="numPassengers"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Number of Passengers *</FormLabel>
-                      <FormControl>
-                        <Input type="number" {...field} min={1} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </div>
-            )}
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </motion.div>
+              )}
+              {currentStep === 3 && (
+                <motion.div
+                  key="step3"
+                  initial={{ opacity: 0, x: -20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={{ opacity: 0, x: 20 }}
+                  transition={{ duration: 0.5 }}
+                  className="space-y-4"
+                >
+                  <FormField
+                    control={form.control}
+                    name="priority"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Priority *</FormLabel>
+                        <Select
+                          onValueChange={field.onChange}
+                          value={field.value}
+                          disabled
+                        >
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Priority is set automatically" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            <SelectItem value={Priority.CRITICAL}>Critical</SelectItem>
+                            <SelectItem value={Priority.EMERGENCY}>Emergency</SelectItem>
+                            <SelectItem value={Priority.HIGH}>High</SelectItem>
+                            <SelectItem value={Priority.NORMAL}>Normal</SelectItem>
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
 
-            {/* Step 3: Purpose and Priority */}
-            {currentStep === 3 && (
-              <div className="space-y-4">
-                {/* Priority field first */}
-                <FormField
-                  control={form.control}
-                  name="priority"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Priority *</FormLabel>
-                      <Select
-                        onValueChange={field.onChange}
-                        value={field.value}
-                        disabled
+                  <FormField
+                    control={form.control}
+                    name="purpose"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Purpose * (Priority will be set automatically)</FormLabel>
+                        <Select onValueChange={field.onChange} value={field.value}>
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select purpose" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            {Object.values(BookingPurpose).map((purpose) => (
+                              <SelectItem key={purpose} value={purpose}>{purpose}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </motion.div>
+              )}
+              {currentStep === 4 && (
+                <motion.div
+                  key="step4"
+                  initial={{ opacity: 0, x: -20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={{ opacity: 0, x: 20 }}
+                  transition={{ duration: 0.5 }}
+                  className="space-y-6"
+                >
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div className="space-y-2">
+                      <FormLabel>Pickup Location *</FormLabel>
+                      <div className="h-[400px] relative">
+                        <MapView
+                          onLocationSelect={(location) => {
+                            form.setValue("pickupLocation", location, { shouldValidate: true });
+                          }}
+                        />
+                      </div>
+                      <FormMessage>{form.formState.errors.pickupLocation?.message}</FormMessage>
+                    </div>
+                    <div className="space-y-2">
+                      <FormLabel>Dropoff Location *</FormLabel>
+                      <div className="h-[400px] relative">
+                        <MapView
+                          onLocationSelect={(location) => {
+                            form.setValue("dropoffLocation", location, { shouldValidate: true });
+                          }}
+                        />
+                      </div>
+                      <FormMessage>{form.formState.errors.dropoffLocation?.message}</FormMessage>
+                    </div>
+                  </div>
+                </motion.div>
+              )}
+              {currentStep === 5 && (
+                <motion.div
+                  key="step5"
+                  initial={{ opacity: 0, x: -20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={{ opacity: 0, x: 20 }}
+                  transition={{ duration: 0.5 }}
+                  className="space-y-4"
+                >
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-4">
+                      <FormLabel>Pickup Time Window *</FormLabel>
+                      <div className="grid grid-cols-2 gap-2">
+                        <FormField
+                          control={form.control}
+                          name="pickupWindow.start"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormControl>
+                                <Input type="datetime-local" {...field} />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                        <FormField
+                          control={form.control}
+                          name="pickupWindow.end"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormControl>
+                                <Input type="datetime-local" {...field} />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                      </div>
+                    </div>
+                    <div className="space-y-4">
+                      <FormLabel>Dropoff Time Window *</FormLabel>
+                      <div className="grid grid-cols-2 gap-2">
+                        <FormField
+                          control={form.control}
+                          name="dropoffWindow.start"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormControl>
+                                <Input type="datetime-local" {...field} />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                        <FormField
+                          control={form.control}
+                          name="dropoffWindow.end"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormControl>
+                                <Input type="datetime-local" {...field} />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                      </div>
+                    </div>
+                  </div>
+                </motion.div>
+              )}
+              {currentStep === 6 && (
+                <motion.div
+                  key="step6"
+                  initial={{ opacity: 0, x: -20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={{ opacity: 0, x: 20 }}
+                  transition={{ duration: 0.5 }}
+                  className="grid grid-cols-1 md:grid-cols-2 gap-4"
+                >
+                  <FormField
+                    control={form.control}
+                    name="referenceNo"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Reference No.</FormLabel>
+                        <FormControl>
+                          <Input {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="remarks"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Remarks</FormLabel>
+                        <FormControl>
+                          <Textarea {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </motion.div>
+              )}
+
+              <motion.div
+                className="flex justify-between pt-4"
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.5 }}
+              >
+                {currentStep > 1 && (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => setCurrentStep(prev => prev - 1)}
+                    className="transform transition-all duration-200 hover:scale-105"
+                  >
+                    Previous
+                  </Button>
+                )}
+                {currentStep < 6 ? (
+                  <Button
+                    type="button"
+                    onClick={handleNextStep}
+                    className="ml-auto transform transition-all duration-200 hover:scale-105"
+                  >
+                    Next
+                  </Button>
+                ) : (
+                  <Button
+                    type="submit"
+                    className="ml-auto transform transition-all duration-200 hover:scale-105"
+                    disabled={createBooking.isPending}
+                  >
+                    {createBooking.isPending ? (
+                      <motion.div
+                        className="w-full flex justify-center"
+                        initial={{ scale: 0.8 }}
+                        animate={{ scale: 1 }}
+                        transition={{ repeat: Infinity, duration: 1 }}
                       >
-                        <FormControl>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Priority is set automatically" />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          <SelectItem value={Priority.CRITICAL}>Critical</SelectItem>
-                          <SelectItem value={Priority.EMERGENCY}>Emergency</SelectItem>
-                          <SelectItem value={Priority.HIGH}>High</SelectItem>
-                          <SelectItem value={Priority.NORMAL}>Normal</SelectItem>
-                        </SelectContent>
-                      </Select>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={form.control}
-                  name="purpose"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Purpose * (Priority will be set automatically)</FormLabel>
-                      <Select onValueChange={field.onChange} value={field.value}>
-                        <FormControl>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Select purpose" />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          {Object.values(BookingPurpose).map((purpose) => (
-                            <SelectItem key={purpose} value={purpose}>{purpose}</SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </div>
-            )}
-
-            {/* Step 4: Locations */}
-            {currentStep === 4 && (
-              <div className="space-y-6">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div className="space-y-2">
-                    <FormLabel>Pickup Location *</FormLabel>
-                    <div className="h-[400px] relative">
-                      <MapView
-                        onLocationSelect={(location) => {
-                          form.setValue("pickupLocation", location, { shouldValidate: true });
-                        }}
-                      />
-                    </div>
-                    <FormMessage>{form.formState.errors.pickupLocation?.message}</FormMessage>
-                  </div>
-                  <div className="space-y-2">
-                    <FormLabel>Dropoff Location *</FormLabel>
-                    <div className="h-[400px] relative">
-                      <MapView
-                        onLocationSelect={(location) => {
-                          form.setValue("dropoffLocation", location, { shouldValidate: true });
-                        }}
-                      />
-                    </div>
-                    <FormMessage>{form.formState.errors.dropoffLocation?.message}</FormMessage>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {/* Step 5: Time Windows */}
-            {currentStep === 5 && (
-              <div className="space-y-4">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="space-y-4">
-                    <FormLabel>Pickup Time Window *</FormLabel>
-                    <div className="grid grid-cols-2 gap-2">
-                      <FormField
-                        control={form.control}
-                        name="pickupWindow.start"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormControl>
-                              <Input type="datetime-local" {...field} />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                      <FormField
-                        control={form.control}
-                        name="pickupWindow.end"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormControl>
-                              <Input type="datetime-local" {...field} />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                    </div>
-                  </div>
-                  <div className="space-y-4">
-                    <FormLabel>Dropoff Time Window *</FormLabel>
-                    <div className="grid grid-cols-2 gap-2">
-                      <FormField
-                        control={form.control}
-                        name="dropoffWindow.start"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormControl>
-                              <Input type="datetime-local" {...field} />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                      <FormField
-                        control={form.control}
-                        name="dropoffWindow.end"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormControl>
-                              <Input type="datetime-local" {...field} />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                    </div>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {/* Step 6: Optional Fields */}
-            {currentStep === 6 && (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <FormField
-                  control={form.control}
-                  name="referenceNo"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Reference No.</FormLabel>
-                      <FormControl>
-                        <Input {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name="remarks"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Remarks</FormLabel>
-                      <FormControl>
-                        <Textarea {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </div>
-            )}
-
-            {/* Navigation Buttons */}
-            <div className="flex justify-between pt-4">
-              {currentStep > 1 && (
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => setCurrentStep(prev => prev - 1)}
-                >
-                  Previous
-                </Button>
-              )}
-              {currentStep < 6 ? (
-                <Button
-                  type="button"
-                  onClick={handleNextStep}
-                  className="ml-auto"
-                >
-                  Next
-                </Button>
-              ) : (
-                <Button
-                  type="submit"
-                  className="ml-auto"
-                  disabled={createBooking.isPending}
-                >
-                  {createBooking.isPending ? (
-                    <div className="w-full flex justify-center">
-                      <LoadingIndicator size="sm" />
-                    </div>
-                  ) : (
-                    "Create Booking"
-                  )}
-                </Button>
-              )}
-            </div>
+                        <LoadingIndicator size="sm" />
+                      </motion.div>
+                    ) : (
+                      "Create Booking"
+                    )}
+                  </Button>
+                )}
+              </motion.div>
+            </AnimatePresence>
           </form>
         </Form>
       </CardContent>
