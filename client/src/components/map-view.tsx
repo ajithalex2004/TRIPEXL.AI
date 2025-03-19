@@ -15,14 +15,6 @@ const libraries: ("places" | "geometry" | "drawing" | "visualization")[] = ["pla
 
 const MAPS_API_KEY = "AIzaSyAtNTq_ILPC8Y5M_bJAiMORDf02sGoK84I";
 
-// Abu Dhabi bounds
-const ABU_DHABI_BOUNDS = {
-  north: 24.6,  // Northern limit
-  south: 24.3,  // Southern limit
-  east: 54.5,   // Eastern limit
-  west: 54.2    // Western limit
-};
-
 export interface Location {
   address: string;
   coordinates: {
@@ -102,7 +94,7 @@ export function MapView({
     setMap(map);
     setMapsInitialized(true);
 
-    // Enable POI visibility and set initial bounds
+    // Enable POI visibility
     map.setOptions({
       styles: [
         {
@@ -115,13 +107,6 @@ export function MapView({
         }
       ]
     });
-
-    // Set bounds to Abu Dhabi area
-    const bounds = new google.maps.LatLngBounds(
-      new google.maps.LatLng(ABU_DHABI_BOUNDS.south, ABU_DHABI_BOUNDS.west),
-      new google.maps.LatLng(ABU_DHABI_BOUNDS.north, ABU_DHABI_BOUNDS.east)
-    );
-    map.fitBounds(bounds);
   };
 
   return (
@@ -179,11 +164,7 @@ export function MapView({
                   featureType: "poi.business",
                   stylers: [{ visibility: "on" }]
                 }
-              ],
-              restriction: {
-                latLngBounds: ABU_DHABI_BOUNDS,
-                strictBounds: false
-              }
+              ]
             }}
           >
             {pickupLocation && (

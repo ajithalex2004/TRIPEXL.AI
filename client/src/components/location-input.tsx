@@ -173,10 +173,6 @@ export function LocationInput({
       const placesService = new google.maps.places.PlacesService(document.createElement('div'));
       placesService.textSearch({
         query: newValue,
-        bounds: new google.maps.LatLngBounds(
-          new google.maps.LatLng(24.3, 54.2), // SW bounds
-          new google.maps.LatLng(24.6, 54.5)  // NE bounds
-        )
       }, (results, status) => {
         if (status === google.maps.places.PlacesServiceStatus.OK && results?.[0]) {
           const firstResult = results[0];
