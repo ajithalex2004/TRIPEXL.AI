@@ -1,7 +1,8 @@
 import { useState, useCallback, useEffect } from "react";
 import { Card } from "@/components/ui/card";
 import { LoadScriptNext, GoogleMap, Marker, DirectionsRenderer } from "@react-google-maps/api";
-import { Search } from "lucide-react";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { routeOptimizer } from "@/services/route-optimizer";
 
 const defaultCenter = {
   lat: 25.2048,
@@ -34,6 +35,7 @@ export function MapView({
   activeLocation 
 }: MapViewProps) {
   const [directions, setDirections] = useState<google.maps.DirectionsResult | null>(null);
+  const [trafficAlerts, setTrafficAlerts] = useState<string[]>([]);
   const [mapError, setMapError] = useState(false);
   const [map, setMap] = useState<google.maps.Map | null>(null);
 
@@ -41,26 +43,22 @@ export function MapView({
   useEffect(() => {
     if (!pickupLocation?.coordinates || !dropoffLocation?.coordinates || !map) {
       setDirections(null);
+      setTrafficAlerts([]);
       return;
     }
 
-    const directionsService = new google.maps.DirectionsService();
-
-    directionsService.route(
-      {
-        origin: pickupLocation.coordinates,
-        destination: dropoffLocation.coordinates,
-        travelMode: google.maps.TravelMode.DRIVING,
-      },
-      (result, status) => {
-        if (status === google.maps.DirectionsStatus.OK && result) {
-          setDirections(result);
-        } else {
-          console.error("Error fetching directions:", status);
-          setMapError(true);
-        }
+    const updateRoute = async () => {
+      try {
+        const result = await routeOptimizer.getOptimizedRoute(pickupLocation, dropoffLocation);
+        setDirections(result.route);
+        setTrafficAlerts(result.trafficAlerts || []);
+      } catch (error) {
+        console.error("Error optimizing route:", error);
+        setMapError(true);
       }
-    );
+    };
+
+    updateRoute();
   }, [pickupLocation, dropoffLocation, map]);
 
   // Center map on active location
@@ -156,6 +154,16 @@ export function MapView({
           </GoogleMap>
         </div>
       </LoadScriptNext>
+
+      {trafficAlerts.length > 0 && (
+        <div className="mt-4 space-y-2">
+          {trafficAlerts.map((alert, index) => (
+            <Alert key={index} variant="warning">
+              <AlertDescription>{alert}</AlertDescription>
+            </Alert>
+          ))}
+        </div>
+      )}
 
       {mapError && (
         <p className="mt-2 text-xs text-destructive">
