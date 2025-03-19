@@ -13,8 +13,6 @@ const defaultCenter = {
 
 const libraries: ("places" | "geometry" | "drawing" | "visualization")[] = ["places", "geometry"];
 
-const MAPS_API_KEY = "AIzaSyAtNTq_ILPC8Y5M_bJAiMORDf02sGoK84I";
-
 export interface Location {
   address: string;
   coordinates: {
@@ -47,7 +45,7 @@ export function MapView({
   const [mapError, setMapError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [map, setMap] = useState<google.maps.Map | null>(null);
-  const [isRouteOptimizationEnabled, setIsRouteOptimizationEnabled] = useState(true);
+  const [mapsInitialized, setMapsInitialized] = useState(false);
 
   // Clear route-related states when locations change
   useEffect(() => {
@@ -60,7 +58,7 @@ export function MapView({
 
   // Only attempt route optimization when both locations are set
   useEffect(() => {
-    if (!pickupLocation?.coordinates || !dropoffLocation?.coordinates || !map) {
+    if (!pickupLocation?.coordinates || !dropoffLocation?.coordinates || !map || !mapsInitialized) {
       return;
     }
 
@@ -76,8 +74,6 @@ export function MapView({
       } catch (error: any) {
         console.error("Error optimizing route:", error);
         if (error.message?.includes("not authorized")) {
-          setIsRouteOptimizationEnabled(false);
-          // Try basic directions without optimization
           const directionsService = new google.maps.DirectionsService();
           try {
             const result = await directionsService.route({
@@ -99,7 +95,7 @@ export function MapView({
 
     const timeoutId = setTimeout(updateRoute, 500); // Add debounce
     return () => clearTimeout(timeoutId);
-  }, [pickupLocation, dropoffLocation, map]);
+  }, [pickupLocation, dropoffLocation, map, mapsInitialized]);
 
   // Center map on active location
   useEffect(() => {
@@ -113,7 +109,7 @@ export function MapView({
   }, [activeLocation, pickupLocation, dropoffLocation, map]);
 
   const handleMapClick = useCallback(async (e: google.maps.MapMouseEvent) => {
-    if (!e.latLng || !activeLocation) return;
+    if (!e.latLng || !activeLocation || !mapsInitialized) return;
 
     const lat = e.latLng.lat();
     const lng = e.latLng.lng();
@@ -150,7 +146,12 @@ export function MapView({
     } finally {
       setIsLoading(false);
     }
-  }, [activeLocation, onPickupSelect, onDropoffSelect]);
+  }, [activeLocation, onPickupSelect, onDropoffSelect, mapsInitialized]);
+
+  const handleMapLoad = useCallback((map: google.maps.Map) => {
+    setMap(map);
+    setMapsInitialized(true);
+  }, []);
 
   return (
     <Card className="p-4 h-full relative">
@@ -160,13 +161,13 @@ export function MapView({
         </div>
       )}
 
-      {!isRouteOptimizationEnabled && (
-        <Alert variant="default" className="mb-4">
-          <AlertDescription>
-            Running in basic mode: Route optimization features are currently limited.
-          </AlertDescription>
-        </Alert>
-      )}
+      {!mapsInitialized && (
+          <Alert variant="default" className="mb-4">
+            <AlertDescription>
+              Loading map...
+            </AlertDescription>
+          </Alert>
+        )}
 
       <div className="space-y-4">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -191,13 +192,18 @@ export function MapView({
         </div>
 
         <LoadScriptNext
-          googleMapsApiKey={MAPS_API_KEY}
+          googleMapsApiKey="AIzaSyAtNTq_ILPC8Y5M_bJAiMORDf02sGoK84I"
           libraries={libraries}
           loadingElement={
             <div className="h-full flex items-center justify-center">
               <VehicleLoadingIndicator size="lg" />
             </div>
           }
+          onLoad={handleMapLoad}
+          onError={(error) => {
+            console.error("Error loading Google Maps:", error);
+            setMapError("Failed to load Google Maps. Please refresh the page.");
+          }}
         >
           <div className="h-[400px] relative">
             <GoogleMap
@@ -215,7 +221,7 @@ export function MapView({
               }
               zoom={13}
               onClick={handleMapClick}
-              onLoad={setMap}
+              onLoad={handleMapLoad}
               options={{
                 zoomControl: true,
                 streetViewControl: false,
