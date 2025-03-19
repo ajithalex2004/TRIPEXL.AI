@@ -56,7 +56,7 @@ export function MapView({
   const [mapsInitialized, setMapsInitialized] = useState(false);
   const [popupLocation, setPopupLocation] = useState<PopupLocation | null>(null);
 
-  const handleMapEvent = async (e: google.maps.MapMouseEvent, eventType: string) => {
+  const handleMapClick = async (e: google.maps.MapMouseEvent) => {
     if (!e.latLng || !onLocationSelect || !mapsInitialized) return;
 
     try {
@@ -134,7 +134,7 @@ export function MapView({
 
       <div className="mb-4">
         <p className="text-sm text-muted-foreground">
-          {!pickupLocation ? "Click or right-click on the map to set pickup location" : "Set dropoff location"}
+          Click or right-click on the map to set locations
         </p>
       </div>
 
@@ -161,8 +161,8 @@ export function MapView({
             }}
             center={tempLocation?.coordinates || pickupLocation?.coordinates || dropoffLocation?.coordinates || defaultCenter}
             zoom={12}
-            onClick={(e) => handleMapEvent(e, 'click')}
-            onRightClick={(e) => handleMapEvent(e, 'rightClick')}
+            onClick={handleMapClick}
+            onRightClick={handleMapClick}
             onLoad={handleMapLoad}
             options={{
               zoomControl: true,
@@ -217,26 +217,22 @@ export function MapView({
                     {popupLocation.address}
                   </p>
                   <div className="flex gap-2">
-                    {(!pickupLocation || !dropoffLocation) && (
-                      <>
-                        <Button
-                          size="sm"
-                          onClick={() => handleLocationTypeSelect('pickup')}
-                          disabled={!!pickupLocation}
-                          className="bg-primary hover:bg-primary/90"
-                        >
-                          Set as Pickup
-                        </Button>
-                        <Button
-                          size="sm"
-                          onClick={() => handleLocationTypeSelect('dropoff')}
-                          disabled={!pickupLocation || !!dropoffLocation}
-                          className="bg-primary hover:bg-primary/90"
-                        >
-                          Set as Dropoff
-                        </Button>
-                      </>
-                    )}
+                    <Button
+                      size="sm"
+                      onClick={() => handleLocationTypeSelect('pickup')}
+                      disabled={!!pickupLocation}
+                      className="bg-primary hover:bg-primary/90"
+                    >
+                      Set as Pickup
+                    </Button>
+                    <Button
+                      size="sm"
+                      onClick={() => handleLocationTypeSelect('dropoff')}
+                      disabled={!pickupLocation || !!dropoffLocation}
+                      className="bg-primary hover:bg-primary/90"
+                    >
+                      Set as Dropoff
+                    </Button>
                   </div>
                 </div>
               </InfoWindow>
