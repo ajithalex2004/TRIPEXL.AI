@@ -27,6 +27,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { LoadingIndicator } from "@/components/ui/loading-indicator";
 import { MapView } from "@/components/map-view";
 import { motion, AnimatePresence } from "framer-motion";
+// Add new import
+import { VehicleLoadingIndicator } from "@/components/ui/vehicle-loading-indicator";
 
 export function BookingForm() {
   const { toast } = useToast();
@@ -229,7 +231,14 @@ export function BookingForm() {
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     {isEmployeeLoading ? (
                       <div className="col-span-2 flex justify-center">
-                        <LoadingIndicator />
+                        <motion.div
+                          initial={{ opacity: 0, scale: 0.8 }}
+                          animate={{ opacity: 1, scale: 1 }}
+                          exit={{ opacity: 0, scale: 0.8 }}
+                          transition={{ duration: 0.5 }}
+                        >
+                          <VehicleLoadingIndicator size="md" />
+                        </motion.div>
                       </div>
                     ) : (
                       <>
@@ -346,8 +355,8 @@ export function BookingForm() {
                         <FormItem>
                           <FormLabel>Approximate Weight (kg) *</FormLabel>
                           <FormControl>
-                            <Input 
-                              type="number" 
+                            <Input
+                              type="number"
                               {...field}
                               onChange={(e) => {
                                 const value = e.target.value === "" ? 0 : parseInt(e.target.value);
@@ -678,7 +687,7 @@ export function BookingForm() {
                         animate={{ scale: 1 }}
                         transition={{ repeat: Infinity, duration: 1 }}
                       >
-                        <LoadingIndicator size="sm" />
+                        <VehicleLoadingIndicator size="sm" />
                       </motion.div>
                     ) : (
                       "Create Booking"

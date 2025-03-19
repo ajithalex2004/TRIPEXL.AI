@@ -22,6 +22,7 @@ import type { Booking } from "@shared/schema";
 import { BookingType, BookingPurpose, Priority } from "@shared/schema";
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import { VehicleLoadingIndicator } from "@/components/ui/vehicle-loading-indicator";
 
 function BookingHistoryPage() {
   const { data: bookings, isLoading } = useQuery<Booking[]>({
@@ -136,7 +137,14 @@ function BookingHistoryPage() {
                     {isLoading ? (
                       <TableRow>
                         <TableCell colSpan={6} className="text-center py-8">
-                          <LoadingIndicator />
+                          <motion.div
+                            initial={{ opacity: 0, scale: 0.8 }}
+                            animate={{ opacity: 1, scale: 1 }}
+                            exit={{ opacity: 0, scale: 0.8 }}
+                            transition={{ duration: 0.5 }}
+                          >
+                            <VehicleLoadingIndicator size="lg" />
+                          </motion.div>
                         </TableCell>
                       </TableRow>
                     ) : !filteredBookings?.length ? (
