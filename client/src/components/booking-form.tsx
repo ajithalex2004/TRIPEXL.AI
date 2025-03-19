@@ -192,6 +192,13 @@ export function BookingForm() {
         data.employeeId = employee?.employeeId;
       }
 
+      // Add status and createdAt fields
+      data.status = "PENDING";
+      data.createdAt = new Date().toISOString();
+
+      // Generate a reference number
+      data.referenceNo = `BK${Date.now().toString().slice(-6)}`;
+
       createBooking.mutate(data);
     } catch (error) {
       console.error("Form submission error:", error);
