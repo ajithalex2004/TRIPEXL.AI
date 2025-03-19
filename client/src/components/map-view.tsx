@@ -33,7 +33,7 @@ export interface Location {
 export interface MapViewProps {
   pickupLocation?: Location | null;
   dropoffLocation?: Location | null;
-  tempLocation?: Location | null;  // Add this prop
+  tempLocation?: Location | null;
   onLocationSelect?: (location: Location, type: 'pickup' | 'dropoff') => void;
 }
 
@@ -46,7 +46,7 @@ interface PopupLocation {
 export function MapView({
   pickupLocation,
   dropoffLocation,
-  tempLocation, // Added tempLocation
+  tempLocation,
   onLocationSelect
 }: MapViewProps) {
   const [mapError, setMapError] = useState<string | null>(null);
@@ -55,7 +55,7 @@ export function MapView({
   const [mapsInitialized, setMapsInitialized] = useState(false);
   const [popupLocation, setPopupLocation] = useState<PopupLocation | null>(null);
 
-  const handleMapClick = async (e: google.maps.MapMouseEvent) => {
+  const handleLocationClick = async (e: google.maps.MapMouseEvent) => {
     if (!e.latLng || !onLocationSelect || !mapsInitialized) return;
 
     const lat = e.latLng.lat();
@@ -136,7 +136,7 @@ export function MapView({
 
       <div className="mb-4">
         <p className="text-sm text-muted-foreground">
-          {!pickupLocation ? "Click on the map to set pickup location first" : "Set dropoff location"}
+          {!pickupLocation ? "Click or right-click on the map to set pickup location" : "Set dropoff location"}
         </p>
       </div>
 
@@ -161,9 +161,10 @@ export function MapView({
               height: '100%',
               borderRadius: '8px'
             }}
-            center={tempLocation?.coordinates || pickupLocation?.coordinates || dropoffLocation?.coordinates || defaultCenter} // Updated center
+            center={tempLocation?.coordinates || pickupLocation?.coordinates || dropoffLocation?.coordinates || defaultCenter}
             zoom={12}
-            onClick={handleMapClick}
+            onClick={handleLocationClick}
+            onRightClick={handleLocationClick}
             onLoad={handleMapLoad}
             options={{
               zoomControl: true,
