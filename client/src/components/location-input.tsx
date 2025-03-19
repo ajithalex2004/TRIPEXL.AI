@@ -42,6 +42,8 @@ export function LocationInput({
   const [error, setError] = useState<string | null>(null);
   const [isOpen, setIsOpen] = useState(false);
   const [searchHistory, setSearchHistory] = useState<SavedLocation[]>([]);
+  const [inputValue, setInputValue] = useState(value);
+  const [isPlacesLoaded, setIsPlacesLoaded] = useState(false);
 
   // Load search history from localStorage
   useEffect(() => {
@@ -54,6 +56,23 @@ export function LocationInput({
         console.error("Error loading search history:", error);
       }
     }
+  }, []);
+
+  // Update input value when prop changes
+  useEffect(() => {
+    setInputValue(value);
+  }, [value]);
+
+  // Wait for Places API to load
+  useEffect(() => {
+    const checkPlacesAPI = () => {
+      if (window.google?.maps?.places) {
+        setIsPlacesLoaded(true);
+      } else {
+        setTimeout(checkPlacesAPI, 500);
+      }
+    };
+    checkPlacesAPI();
   }, []);
 
   // Save location to history
@@ -69,18 +88,18 @@ export function LocationInput({
 
   // Initialize Google Places Autocomplete
   useEffect(() => {
-    if (!inputRef.current || !window.google?.maps?.places) return;
+    if (!inputRef.current || !isPlacesLoaded) return;
 
     try {
       const options: google.maps.places.AutocompleteOptions = {
-        componentRestrictions: { country: "AE" }, // Restrict to UAE
-        fields: ["formatted_address", "geometry", "name"],
-        types: ["establishment", "geocode"],
+        componentRestrictions: { country: "AE" },
+        fields: ["formatted_address", "geometry", "name", "place_id"],
+        types: ["establishment", "geocode", "address"],
         bounds: new google.maps.LatLngBounds(
           new google.maps.LatLng(24.3, 54.2), // SW bounds of Abu Dhabi
           new google.maps.LatLng(24.6, 54.5)  // NE bounds of Abu Dhabi
         ),
-        strictBounds: false // Allow some results outside bounds
+        strictBounds: false
       };
 
       // Clean up previous instance
@@ -117,17 +136,26 @@ export function LocationInput({
         if (listener) {
           google.maps.event.removeListener(listener);
         }
+        if (autocompleteRef.current) {
+          google.maps.event.clearInstanceListeners(autocompleteRef.current);
+        }
       };
     } catch (error) {
       console.error("Error initializing Places Autocomplete:", error);
       setError("Unable to initialize location search. Please try again.");
     }
-  }, [onLocationSelect]);
+  }, [onLocationSelect, isPlacesLoaded]);
 
   const handleHistorySelect = (location: Location) => {
     onLocationSelect(location);
     saveToHistory(location);
     setIsOpen(false);
+    setInputValue(location.address);
+  };
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setInputValue(e.target.value);
+    setError(null);
   };
 
   return (
@@ -137,8 +165,9 @@ export function LocationInput({
           <Input
             ref={inputRef}
             type="text"
-            value={value}
+            value={inputValue}
             placeholder={placeholder}
+            onChange={handleInputChange}
             onFocus={(e) => {
               setIsOpen(true);
               onFocus?.();
