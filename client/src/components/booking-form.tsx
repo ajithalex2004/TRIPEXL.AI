@@ -90,7 +90,7 @@ export function BookingForm() {
       passengerInfo: [],
       referenceNo: "",
       remarks: "",
-      tempLocation: { // Added tempLocation
+      tempLocation: {
         address: "",
         coordinates: { lat: 0, lng: 0 }
       }
@@ -667,19 +667,23 @@ export function BookingForm() {
                       <MapView
                         pickupLocation={form.watch("pickupLocation")}
                         dropoffLocation={form.watch("dropoffLocation")}
-                        tempLocation={form.watch("tempLocation")} // Added tempLocation prop
+                        tempLocation={form.watch("tempLocation")}
                         onLocationSelect={(location, type) => {
                           if (type === 'pickup') {
+                            form.setValue("pickupLocation.address", location.address);
+                            form.setValue("pickupLocation.coordinates", location.coordinates);
                             form.setValue("pickupLocation", location, { shouldValidate: true });
-                            const pickupField = form.getValues("pickupLocation");
-                            if (pickupField) {
-                              setInputValue(pickupField.address);
+                            const pickupInput = document.querySelector('input[placeholder="Enter pickup location"]') as HTMLInputElement;
+                            if (pickupInput) {
+                              pickupInput.value = location.address;
                             }
                           } else {
+                            form.setValue("dropoffLocation.address", location.address);
+                            form.setValue("dropoffLocation.coordinates", location.coordinates);
                             form.setValue("dropoffLocation", location, { shouldValidate: true });
-                            const dropoffField = form.getValues("dropoffLocation");
-                            if (dropoffField) {
-                              setInputValue(dropoffField.address);
+                            const dropoffInput = document.querySelector('input[placeholder="Enter dropoff location"]') as HTMLInputElement;
+                            if (dropoffInput) {
+                              dropoffInput.value = location.address;
                             }
                           }
                         }}
