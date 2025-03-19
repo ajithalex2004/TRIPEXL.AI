@@ -31,6 +31,15 @@ interface MarkerAnimation {
   dropOffset: number;
 }
 
+// Simplified building shapes for the city silhouette
+const BUILDINGS = [
+  { width: 40, height: 120, spacing: 60 },
+  { width: 30, height: 180, spacing: 50 },
+  { width: 50, height: 150, spacing: 70 },
+  { width: 35, height: 200, spacing: 55 },
+  { width: 45, height: 160, spacing: 65 }
+];
+
 export function MapView({
   pickupLocation,
   dropoffLocation,
@@ -55,6 +64,37 @@ export function MapView({
     const lng = (x / CANVAS_WIDTH) * (MAP_BOUNDS.lng.max - MAP_BOUNDS.lng.min) + MAP_BOUNDS.lng.min;
     const lat = MAP_BOUNDS.lat.max - (y / CANVAS_HEIGHT) * (MAP_BOUNDS.lat.max - MAP_BOUNDS.lat.min);
     return { lat, lng };
+  };
+
+  // Draw city silhouette
+  const drawCitySilhouette = (ctx: CanvasRenderingContext2D) => {
+    const gradient = ctx.createLinearGradient(0, 0, 0, CANVAS_HEIGHT);
+    gradient.addColorStop(0, '#1a1b26');
+    gradient.addColorStop(1, '#2c2e3e');
+
+    ctx.fillStyle = gradient;
+    ctx.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
+
+    // Draw stars
+    for (let i = 0; i < 100; i++) {
+      const x = Math.random() * CANVAS_WIDTH;
+      const y = Math.random() * (CANVAS_HEIGHT * 0.7);
+      const size = Math.random() * 2;
+      ctx.fillStyle = `rgba(255, 255, 255, ${Math.random() * 0.5 + 0.5})`;
+      ctx.beginPath();
+      ctx.arc(x, y, size, 0, Math.PI * 2);
+      ctx.fill();
+    }
+
+    // Draw buildings
+    ctx.fillStyle = '#000000';
+    let x = 0;
+    while (x < CANVAS_WIDTH) {
+      const building = BUILDINGS[Math.floor(Math.random() * BUILDINGS.length)];
+      const height = building.height * (0.8 + Math.random() * 0.4);
+      ctx.fillRect(x, CANVAS_HEIGHT - height, building.width, height);
+      x += building.width + building.spacing;
+    }
   };
 
   // Reset animations when locations change
@@ -123,12 +163,11 @@ export function MapView({
     // Clear canvas
     ctx.clearRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
 
-    // Draw background
-    ctx.fillStyle = '#f3f4f6';
-    ctx.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
+    // Draw city silhouette background
+    drawCitySilhouette(ctx);
 
-    // Draw grid lines
-    ctx.strokeStyle = '#e5e7eb';
+    // Draw grid lines with reduced opacity
+    ctx.strokeStyle = 'rgba(229, 231, 235, 0.2)';
     ctx.lineWidth = 1;
 
     // Draw vertical grid lines
@@ -147,7 +186,7 @@ export function MapView({
       ctx.stroke();
     }
 
-    // Draw route line with progress animation
+    // Draw route line with glow effect
     if (pickupLocation && dropoffLocation && lineProgress > 0) {
       const pickup = toCanvasCoordinates(
         pickupLocation.coordinates.lat,
@@ -163,12 +202,18 @@ export function MapView({
       const endX = pickup.x + dx * lineProgress;
       const endY = pickup.y + dy * lineProgress;
 
-      ctx.strokeStyle = '#3b82f6';
-      ctx.lineWidth = 2;
+      // Draw glow effect
+      ctx.shadowBlur = 15;
+      ctx.shadowColor = '#3b82f6';
+      ctx.strokeStyle = '#60a5fa';
+      ctx.lineWidth = 4;
       ctx.beginPath();
       ctx.moveTo(pickup.x, pickup.y);
       ctx.lineTo(endX, endY);
       ctx.stroke();
+
+      // Reset shadow
+      ctx.shadowBlur = 0;
     }
 
     // Draw pickup point with animation
@@ -182,13 +227,19 @@ export function MapView({
       const pulseScale = 1 + Math.sin(Date.now() / 500) * 0.1;
       const finalScale = pickupAnimation.scale * pulseScale;
 
+      // Draw glow
+      ctx.shadowBlur = 15;
+      ctx.shadowColor = '#22c55e';
       ctx.fillStyle = `rgba(34, 197, 94, ${pickupAnimation.opacity})`;
       ctx.beginPath();
       ctx.arc(x, y + pickupAnimation.dropOffset, 8 * finalScale, 0, Math.PI * 2);
       ctx.fill();
 
+      // Reset shadow
+      ctx.shadowBlur = 0;
+
       // Draw label with animation
-      ctx.fillStyle = `rgba(0, 0, 0, ${pickupAnimation.opacity})`;
+      ctx.fillStyle = `rgba(255, 255, 255, ${pickupAnimation.opacity})`;
       ctx.font = '12px sans-serif';
       ctx.fillText('Pickup', x + 12, y + pickupAnimation.dropOffset);
     }
@@ -204,13 +255,19 @@ export function MapView({
       const pulseScale = 1 + Math.sin(Date.now() / 500) * 0.1;
       const finalScale = dropoffAnimation.scale * pulseScale;
 
+      // Draw glow
+      ctx.shadowBlur = 15;
+      ctx.shadowColor = '#ef4444';
       ctx.fillStyle = `rgba(239, 68, 68, ${dropoffAnimation.opacity})`;
       ctx.beginPath();
       ctx.arc(x, y + dropoffAnimation.dropOffset, 8 * finalScale, 0, Math.PI * 2);
       ctx.fill();
 
+      // Reset shadow
+      ctx.shadowBlur = 0;
+
       // Draw label with animation
-      ctx.fillStyle = `rgba(0, 0, 0, ${dropoffAnimation.opacity})`;
+      ctx.fillStyle = `rgba(255, 255, 255, ${dropoffAnimation.opacity})`;
       ctx.font = '12px sans-serif';
       ctx.fillText('Dropoff', x + 12, y + dropoffAnimation.dropOffset);
     }
