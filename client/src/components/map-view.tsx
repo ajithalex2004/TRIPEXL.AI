@@ -12,7 +12,7 @@ const defaultCenter = {
 
 const libraries: ("places" | "geometry" | "drawing" | "visualization")[] = ["places"];
 
-// Hardcode the API key temporarily for testing
+// Use the provided API key
 const MAPS_API_KEY = "AIzaSyAtNTq_ILPC8Y5M_bJAiMORDf02sGoK84I";
 
 export interface Location {
@@ -45,6 +45,7 @@ export function MapView({
   const [mapError, setMapError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [map, setMap] = useState<google.maps.Map | null>(null);
+  const [isRouteOptimizationEnabled, setIsRouteOptimizationEnabled] = useState(true);
 
   // Update route when both locations are set
   useEffect(() => {
@@ -65,9 +66,27 @@ export function MapView({
         setTrafficAlerts(result.trafficAlerts);
         setSegmentAnalysis(result.segmentAnalysis);
         setMapError(null);
-      } catch (error) {
+      } catch (error: any) {
         console.error("Error optimizing route:", error);
-        setMapError("Failed to optimize route. Please try again.");
+        // If we get an authorization error, fallback to basic mode
+        if (error.message?.includes("not authorized")) {
+          setIsRouteOptimizationEnabled(false);
+          // Try basic directions without optimization
+          const directionsService = new google.maps.DirectionsService();
+          try {
+            const result = await directionsService.route({
+              origin: pickupLocation.coordinates,
+              destination: dropoffLocation.coordinates,
+              travelMode: google.maps.TravelMode.DRIVING
+            });
+            setDirections(result);
+            setMapError(null);
+          } catch (dirError) {
+            setMapError("Unable to calculate route. Please try again.");
+          }
+        } else {
+          setMapError("Failed to optimize route. Please try again.");
+        }
       } finally {
         setIsLoading(false);
       }
@@ -113,7 +132,16 @@ export function MapView({
       }
     } catch (error) {
       console.error("Error getting address:", error);
-      setMapError("Failed to get location address. Please try again.");
+      // Fallback to using coordinates as address if geocoding fails
+      const newLocation: Location = {
+        address: `${lat.toFixed(6)}, ${lng.toFixed(6)}`,
+        coordinates: { lat, lng }
+      };
+      if (activeLocation === "pickup") {
+        onPickupSelect(newLocation);
+      } else {
+        onDropoffSelect(newLocation);
+      }
     } finally {
       setIsLoading(false);
     }
@@ -125,6 +153,14 @@ export function MapView({
         <div className="absolute inset-0 bg-background/80 backdrop-blur-sm z-50 flex items-center justify-center">
           <VehicleLoadingIndicator size="lg" />
         </div>
+      )}
+
+      {!isRouteOptimizationEnabled && (
+        <Alert variant="warning" className="mb-4">
+          <AlertDescription>
+            Running in basic mode: Route optimization features are currently limited.
+          </AlertDescription>
+        </Alert>
       )}
 
       <LoadScriptNext 
