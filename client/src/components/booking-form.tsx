@@ -89,14 +89,8 @@ export function BookingForm() {
       priority: "",
       pickupLocation: DEFAULT_PICKUP_LOCATION,
       dropoffLocation: DEFAULT_DROPOFF_LOCATION,
-      pickupWindow: {
-        start: "",
-        end: ""
-      },
-      dropoffWindow: {
-        start: "",
-        end: ""
-      },
+      pickupTime: "",
+      dropoffTime: "",
       cargoType: "",
       numBoxes: 0,
       weight: 0,
@@ -135,7 +129,7 @@ export function BookingForm() {
           : [],
       3: ["purpose", "priority"],
       4: ["pickupLocation", "dropoffLocation"],
-      5: ["pickupWindow.start", "pickupWindow.end", "dropoffWindow.start", "dropoffWindow.end"],
+      5: ["pickupTime", "dropoffTime"],
       6: []
     }[step] || [];
 
@@ -665,83 +659,39 @@ export function BookingForm() {
                   className="space-y-4"
                 >
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="space-y-4">
-                      <FormLabel>Pickup Time Window *</FormLabel>
-                      <div className="grid grid-cols-2 gap-2">
-                        <FormField
-                          control={form.control}
-                          name="pickupWindow.start"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel className="text-sm text-muted-foreground">Start</FormLabel>
-                              <FormControl>
-                                <DateTimePicker
-                                  date={field.value ? new Date(field.value) : undefined}
-                                  setDate={(date) => field.onChange(date?.toISOString())}
-                                />
-                              </FormControl>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-                        <FormField
-                          control={form.control}
-                          name="pickupWindow.end"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel className="text-sm text-muted-foreground">End</FormLabel>
-                              <FormControl>
-                                <DateTimePicker
-                                  date={field.value ? new Date(field.value) : undefined}
-                                  setDate={(date) => field.onChange(date?.toISOString())}
-                                  disabled={!form.watch("pickupWindow.start")}
-                                />
-                              </FormControl>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-                      </div>
-                    </div>
-                    <div className="space-y-4">
-                      <FormLabel>Dropoff Time Window *</FormLabel>
-                      <div className="grid grid-cols-2 gap-2">
-                        <FormField
-                          control={form.control}
-                          name="dropoffWindow.start"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel className="text-sm text-muted-foreground">Start</FormLabel>
-                              <FormControl>
-                                <DateTimePicker
-                                  date={field.value ? new Date(field.value) : undefined}
-                                  setDate={(date) => field.onChange(date?.toISOString())}
-                                  disabled={!form.watch("pickupWindow.end")}
-                                />
-                              </FormControl>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-                        <FormField
-                          control={form.control}
-                          name="dropoffWindow.end"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel className="text-sm text-muted-foreground">End</FormLabel>
-                              <FormControl>
-                                <DateTimePicker
-                                  date={field.value ? new Date(field.value) : undefined}
-                                  setDate={(date) => field.onChange(date?.toISOString())}
-                                  disabled={!form.watch("dropoffWindow.start")}
-                                />
-                              </FormControl>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-                      </div>
-                    </div>
+                    <FormField
+                      control={form.control}
+                      name="pickupTime"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Pickup Time *</FormLabel>
+                          <FormControl>
+                            <DateTimePicker
+                              date={field.value ? new Date(field.value) : undefined}
+                              setDate={(date) => field.onChange(date?.toISOString())}
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="dropoffTime"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Dropoff Time *</FormLabel>
+                          <FormControl>
+                            <DateTimePicker
+                              date={field.value ? new Date(field.value) : undefined}
+                              setDate={(date) => field.onChange(date?.toISOString())}
+                              disabled={!form.watch("pickupTime")}
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
                   </div>
                 </motion.div>
               )}
