@@ -561,7 +561,7 @@ export function BookingForm() {
                             <FormLabel>Pickup Location *</FormLabel>
                             <FormControl>
                               <LocationInput
-                                value={field.value?.address || ""}
+                                value={field.value?.formatted_address || field.value?.address || ""}
                                 placeholder="Enter pickup location"
                                 onLocationSelect={(location) => {
                                   form.setValue("pickupLocation", location, {
@@ -591,7 +591,7 @@ export function BookingForm() {
                             <FormLabel>Dropoff Location *</FormLabel>
                             <FormControl>
                               <LocationInput
-                                value={field.value?.address || ""}
+                                value={field.value?.formatted_address || field.value?.address || ""}
                                 placeholder="Enter dropoff location"
                                 onLocationSelect={(location) => {
                                   form.setValue("dropoffLocation", location, {
@@ -620,7 +620,10 @@ export function BookingForm() {
                         dropoffLocation={form.watch("dropoffLocation")}
                         onLocationSelect={(location, type) => {
                           const fieldName = type === 'pickup' ? "pickupLocation" : "dropoffLocation";
-                          form.setValue(fieldName, location, {
+                          form.setValue(fieldName, {
+                            ...location,
+                            address: location.formatted_address || location.name || location.address
+                          }, {
                             shouldValidate: true,
                             shouldDirty: true,
                             shouldTouch: true

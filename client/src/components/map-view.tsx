@@ -24,6 +24,9 @@ export interface Location {
     lat: number;
     lng: number;
   };
+  place_id?: string;
+  name?: string;
+  formatted_address?: string;
 }
 
 export interface MapViewProps {
@@ -60,10 +63,11 @@ export function MapView({
       const result = await geocoder.geocode({ location: { lat: e.latLng.lat(), lng: e.latLng.lng() } });
 
       if (result.results[0]) {
+        const place = result.results[0];
         setPopupLocation({
           lat: e.latLng.lat(),
           lng: e.latLng.lng(),
-          address: result.results[0].formatted_address
+          address: place.formatted_address
         });
       }
     } catch (error) {
@@ -81,16 +85,39 @@ export function MapView({
   const handleLocationTypeSelect = (type: 'pickup' | 'dropoff') => {
     if (!popupLocation) return;
 
-    const location: Location = {
-      address: popupLocation.address,
-      coordinates: {
-        lat: popupLocation.lat,
-        lng: popupLocation.lng
-      }
-    };
+    // Create a Places Service to get additional place details
+    const placesService = new google.maps.places.PlacesService(map!);
 
-    onLocationSelect?.(location, type);
-    setPopupLocation(null);
+    placesService.findPlaceFromQuery({
+      query: popupLocation.address,
+      fields: ['place_id', 'name', 'formatted_address', 'geometry']
+    }, (results, status) => {
+      if (status === google.maps.places.PlacesServiceStatus.OK && results?.[0]) {
+        const place = results[0];
+        const location: Location = {
+          address: popupLocation.address,
+          coordinates: {
+            lat: popupLocation.lat,
+            lng: popupLocation.lng
+          },
+          place_id: place.place_id,
+          name: place.name,
+          formatted_address: place.formatted_address
+        };
+        onLocationSelect(location, type);
+      } else {
+        // Fallback if place details are not found
+        const location: Location = {
+          address: popupLocation.address,
+          coordinates: {
+            lat: popupLocation.lat,
+            lng: popupLocation.lng
+          }
+        };
+        onLocationSelect(location, type);
+      }
+      setPopupLocation(null);
+    });
   };
 
   const handleMapLoad = (map: google.maps.Map) => {

@@ -30,7 +30,7 @@ export function LocationInput({
 
     const autocomplete = new google.maps.places.Autocomplete(inputRef.current, {
       componentRestrictions: { country: "AE" },
-      fields: ["address_components", "formatted_address", "geometry", "name"],
+      fields: ["place_id", "name", "formatted_address", "geometry"],
       types: ["address", "establishment"]
     });
 
@@ -43,7 +43,10 @@ export function LocationInput({
           coordinates: {
             lat: place.geometry.location.lat(),
             lng: place.geometry.location.lng()
-          }
+          },
+          place_id: place.place_id,
+          name: place.name,
+          formatted_address: place.formatted_address
         };
         onLocationSelect(location);
         setError(null);
@@ -64,13 +67,6 @@ export function LocationInput({
     setError(null);
     onSearchChange?.(newValue);
   };
-
-  // Keep input value in sync with prop
-  useEffect(() => {
-    if (inputRef.current) {
-      inputRef.current.value = value;
-    }
-  }, [value]);
 
   return (
     <div className="relative w-full">
