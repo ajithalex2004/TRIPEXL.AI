@@ -577,6 +577,7 @@ export function BookingForm() {
                             <FormLabel>Pickup Location *</FormLabel>
                             <FormControl>
                               <LocationInput
+                                inputId="pickup-location"
                                 value={field.value?.formatted_address || field.value?.address || ""}
                                 placeholder="Enter pickup location"
                                 onLocationSelect={(location) => {
@@ -607,6 +608,7 @@ export function BookingForm() {
                             <FormLabel>Dropoff Location *</FormLabel>
                             <FormControl>
                               <LocationInput
+                                inputId="dropoff-location"
                                 value={field.value?.formatted_address || field.value?.address || ""}
                                 placeholder="Enter dropoff location"
                                 onLocationSelect={(location) => {

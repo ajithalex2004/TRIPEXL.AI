@@ -10,6 +10,7 @@ interface LocationInputProps {
   onLocationSelect: (location: Location) => void;
   onSearchChange?: (query: string) => void;
   onFocus?: () => void;
+  inputId?: string;
 }
 
 export function LocationInput({
@@ -17,49 +18,49 @@ export function LocationInput({
   placeholder,
   onLocationSelect,
   onSearchChange,
-  onFocus
+  onFocus,
+  inputId
 }: LocationInputProps) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [error, setError] = useState<string | null>(null);
 
   // Initialize Google Places Autocomplete
   useEffect(() => {
-    if (!inputRef.current || !window.google?.maps?.places) {
-      return;
+    function initAutocomplete() {
+      if (!inputRef.current || !window.google?.maps?.places) {
+        return;
+      }
+
+      const autocomplete = new google.maps.places.Autocomplete(inputRef.current, {
+        componentRestrictions: { country: "AE" },
+        fields: ["place_id", "name", "formatted_address", "geometry"],
+        types: ["establishment", "geocode", "address", "point_of_interest"]
+      });
+
+      autocomplete.addListener("place_changed", () => {
+        const place = autocomplete.getPlace();
+
+        if (place?.geometry?.location) {
+          const location: Location = {
+            address: place.formatted_address || place.name || "",
+            coordinates: {
+              lat: place.geometry.location.lat(),
+              lng: place.geometry.location.lng()
+            },
+            place_id: place.place_id || "",
+            name: place.name || "",
+            formatted_address: place.formatted_address || ""
+          };
+          onLocationSelect(location);
+          setError(null);
+        } else {
+          setError("Please select a valid location from the dropdown");
+        }
+      });
     }
 
-    const autocomplete = new google.maps.places.Autocomplete(inputRef.current, {
-      componentRestrictions: { country: "AE" },
-      fields: ["place_id", "name", "formatted_address", "geometry"],
-      types: ["address", "establishment", "point_of_interest"]
-    });
-
-    const listener = autocomplete.addListener("place_changed", () => {
-      const place = autocomplete.getPlace();
-
-      if (place?.geometry?.location) {
-        const location: Location = {
-          address: place.formatted_address || place.name || "",
-          coordinates: {
-            lat: place.geometry.location.lat(),
-            lng: place.geometry.location.lng()
-          },
-          place_id: place.place_id || "",
-          name: place.name || "",
-          formatted_address: place.formatted_address || ""
-        };
-        onLocationSelect(location);
-        setError(null);
-      } else {
-        setError("Please select a valid location from the dropdown");
-      }
-    });
-
-    return () => {
-      if (listener) {
-        google.maps.event.removeListener(listener);
-      }
-    };
+    // Initialize when component mounts
+    initAutocomplete();
   }, [onLocationSelect]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -73,6 +74,7 @@ export function LocationInput({
       <div className="relative">
         <Input
           ref={inputRef}
+          id={inputId}
           type="text"
           value={value}
           placeholder={placeholder}
