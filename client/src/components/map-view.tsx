@@ -1,18 +1,7 @@
-import { useState, useCallback, useEffect } from "react";
+import { useState, useRef, useEffect } from "react";
 import { Card } from "@/components/ui/card";
-import { LoadScriptNext, GoogleMap, Marker, DirectionsRenderer } from "@react-google-maps/api";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { routeOptimizer } from "@/services/route-optimizer";
 import { VehicleLoadingIndicator } from "@/components/ui/vehicle-loading-indicator";
-
-const defaultCenter = {
-  lat: 25.2048,
-  lng: 55.2708
-};
-
-const libraries: ("places" | "geometry" | "drawing" | "visualization")[] = ["places", "geometry"];
-
-const MAPS_API_KEY = "AIzaSyAx8e4WQYlhtpMULTyVwAhaq17oxoU6Q-Y";
 
 export interface Location {
   address: string;
@@ -28,208 +17,185 @@ export interface MapViewProps {
   onLocationSelect?: (location: Location, type: 'pickup' | 'dropoff') => void;
 }
 
+const CANVAS_WIDTH = 800;
+const CANVAS_HEIGHT = 400;
+
+// Dubai coordinates bounds
+const MAP_BOUNDS = {
+  lat: { min: 25.0, max: 25.4 }, // Dubai latitude range
+  lng: { min: 55.1, max: 55.5 }  // Dubai longitude range
+};
+
 export function MapView({
   pickupLocation,
   dropoffLocation,
   onLocationSelect
 }: MapViewProps) {
-  const [directions, setDirections] = useState<google.maps.DirectionsResult | null>(null);
-  const [weatherAlerts, setWeatherAlerts] = useState<string[]>([]);
-  const [trafficAlerts, setTrafficAlerts] = useState<string[]>([]);
-  const [segmentAnalysis, setSegmentAnalysis] = useState<string[]>([]);
-  const [mapError, setMapError] = useState<string | null>(null);
-  const [isLoading, setIsLoading] = useState(false);
-  const [map, setMap] = useState<google.maps.Map | null>(null);
-  const [mapsLoaded, setMapsLoaded] = useState(false);
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const [error, setError] = useState<string | null>(null);
 
-  // Clear states when locations change
-  useEffect(() => {
-    setDirections(null);
-    setWeatherAlerts([]);
-    setTrafficAlerts([]);
-    setSegmentAnalysis([]);
-    setMapError(null);
-  }, [pickupLocation, dropoffLocation]);
+  // Convert geo coordinates to canvas coordinates
+  const toCanvasCoordinates = (lat: number, lng: number) => {
+    const x = ((lng - MAP_BOUNDS.lng.min) / (MAP_BOUNDS.lng.max - MAP_BOUNDS.lng.min)) * CANVAS_WIDTH;
+    const y = ((MAP_BOUNDS.lat.max - lat) / (MAP_BOUNDS.lat.max - MAP_BOUNDS.lat.min)) * CANVAS_HEIGHT;
+    return { x, y };
+  };
 
-  // Only attempt route optimization when both locations are set
-  useEffect(() => {
-    if (!pickupLocation?.coordinates || !dropoffLocation?.coordinates || !map || !mapsLoaded) {
-      return;
+  // Convert canvas coordinates to geo coordinates
+  const toGeoCoordinates = (x: number, y: number) => {
+    const lng = (x / CANVAS_WIDTH) * (MAP_BOUNDS.lng.max - MAP_BOUNDS.lng.min) + MAP_BOUNDS.lng.min;
+    const lat = MAP_BOUNDS.lat.max - (y / CANVAS_HEIGHT) * (MAP_BOUNDS.lat.max - MAP_BOUNDS.lat.min);
+    return { lat, lng };
+  };
+
+  // Draw the map
+  const drawMap = () => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+
+    // Clear canvas
+    ctx.clearRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
+
+    // Draw background
+    ctx.fillStyle = '#f3f4f6';
+    ctx.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
+
+    // Draw grid lines
+    ctx.strokeStyle = '#e5e7eb';
+    ctx.lineWidth = 1;
+
+    // Draw vertical grid lines
+    for (let x = 0; x <= CANVAS_WIDTH; x += 50) {
+      ctx.beginPath();
+      ctx.moveTo(x, 0);
+      ctx.lineTo(x, CANVAS_HEIGHT);
+      ctx.stroke();
     }
 
-    const updateRoute = async () => {
-      try {
-        setIsLoading(true);
-        setMapError(null);
-        const result = await routeOptimizer.getOptimizedRoute(pickupLocation, dropoffLocation);
-        setDirections(result.route);
-        setWeatherAlerts(result.weatherAlerts);
-        setTrafficAlerts(result.trafficAlerts);
-        setSegmentAnalysis(result.segmentAnalysis);
-      } catch (error: any) {
-        console.error("Error optimizing route:", error);
-        // Only show error if both locations are set
-        if (pickupLocation && dropoffLocation) {
-          setMapError("Unable to calculate route. Please try again.");
-        }
-      } finally {
-        setIsLoading(false);
-      }
+    // Draw horizontal grid lines
+    for (let y = 0; y <= CANVAS_HEIGHT; y += 50) {
+      ctx.beginPath();
+      ctx.moveTo(0, y);
+      ctx.lineTo(CANVAS_WIDTH, y);
+      ctx.stroke();
+    }
+
+    // Draw pickup point
+    if (pickupLocation) {
+      const { x, y } = toCanvasCoordinates(
+        pickupLocation.coordinates.lat,
+        pickupLocation.coordinates.lng
+      );
+      ctx.fillStyle = '#22c55e';
+      ctx.beginPath();
+      ctx.arc(x, y, 8, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = '#000';
+      ctx.font = '12px sans-serif';
+      ctx.fillText('Pickup', x + 12, y);
+    }
+
+    // Draw dropoff point
+    if (dropoffLocation) {
+      const { x, y } = toCanvasCoordinates(
+        dropoffLocation.coordinates.lat,
+        dropoffLocation.coordinates.lng
+      );
+      ctx.fillStyle = '#ef4444';
+      ctx.beginPath();
+      ctx.arc(x, y, 8, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = '#000';
+      ctx.font = '12px sans-serif';
+      ctx.fillText('Dropoff', x + 12, y);
+    }
+
+    // Draw route line
+    if (pickupLocation && dropoffLocation) {
+      const pickup = toCanvasCoordinates(
+        pickupLocation.coordinates.lat,
+        pickupLocation.coordinates.lng
+      );
+      const dropoff = toCanvasCoordinates(
+        dropoffLocation.coordinates.lat,
+        dropoffLocation.coordinates.lng
+      );
+
+      ctx.strokeStyle = '#3b82f6';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(pickup.x, pickup.y);
+      ctx.lineTo(dropoff.x, dropoff.y);
+      ctx.stroke();
+    }
+  };
+
+  // Handle canvas click
+  const handleCanvasClick = (event: React.MouseEvent<HTMLCanvasElement>) => {
+    if (!onLocationSelect) return;
+
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+
+    const rect = canvas.getBoundingClientRect();
+    const x = event.clientX - rect.left;
+    const y = event.clientY - rect.top;
+
+    const { lat, lng } = toGeoCoordinates(x, y);
+
+    const newLocation: Location = {
+      address: `${lat.toFixed(4)}, ${lng.toFixed(4)}`,
+      coordinates: { lat, lng }
     };
 
-    const timeoutId = setTimeout(updateRoute, 500); // Add debounce
-    return () => clearTimeout(timeoutId);
-  }, [pickupLocation, dropoffLocation, map, mapsLoaded]);
-
-  const handleMapClick = useCallback(async (e: google.maps.MapMouseEvent) => {
-    if (!e.latLng || !onLocationSelect || !mapsLoaded) return;
-
-    const lat = e.latLng.lat();
-    const lng = e.latLng.lng();
-
-    try {
-      setIsLoading(true);
-      const geocoder = new google.maps.Geocoder();
-      const result = await geocoder.geocode({ location: { lat, lng } });
-
-      if (result.results[0]) {
-        const newLocation: Location = {
-          address: result.results[0].formatted_address,
-          coordinates: { lat, lng }
-        };
-
-        // Determine which location to update based on which one is missing
-        if (!pickupLocation) {
-          onLocationSelect(newLocation, 'pickup');
-        } else if (!dropoffLocation) {
-          onLocationSelect(newLocation, 'dropoff');
-        }
-      }
-    } catch (error) {
-      console.error("Error getting address:", error);
-      const newLocation: Location = {
-        address: `${lat.toFixed(6)}, ${lng.toFixed(6)}`,
-        coordinates: { lat, lng }
-      };
-      if (!pickupLocation) {
-        onLocationSelect(newLocation, 'pickup');
-      } else if (!dropoffLocation) {
-        onLocationSelect(newLocation, 'dropoff');
-      }
-    } finally {
-      setIsLoading(false);
+    // Determine which location to update
+    if (!pickupLocation) {
+      onLocationSelect(newLocation, 'pickup');
+    } else if (!dropoffLocation) {
+      onLocationSelect(newLocation, 'dropoff');
     }
-  }, [pickupLocation, dropoffLocation, onLocationSelect, mapsLoaded]);
+  };
 
-  const handleMapLoad = useCallback((map: google.maps.Map) => {
-    setMap(map);
-    setMapsLoaded(true);
-  }, []);
-
-  const handleScriptLoad = useCallback(() => {
-    setMapsLoaded(true);
-  }, []);
+  // Draw map when locations change
+  useEffect(() => {
+    drawMap();
+  }, [pickupLocation, dropoffLocation]);
 
   return (
     <Card className="p-4 h-full relative">
-      {isLoading && (
-        <div className="absolute inset-0 bg-background/80 backdrop-blur-sm z-50 flex items-center justify-center">
-          <VehicleLoadingIndicator size="lg" />
-        </div>
-      )}
+      <div className="mb-4">
+        <p className="text-sm text-muted-foreground">
+          Click on the map to set pickup and dropoff locations
+        </p>
+      </div>
 
-      {!mapsLoaded && (
-        <Alert variant="default" className="mb-4">
-          <AlertDescription>
-            Loading map...
-          </AlertDescription>
-        </Alert>
-      )}
+      <canvas
+        ref={canvasRef}
+        width={CANVAS_WIDTH}
+        height={CANVAS_HEIGHT}
+        onClick={handleCanvasClick}
+        className="border rounded-lg cursor-crosshair"
+        style={{ width: '100%', height: 'auto' }}
+      />
 
-      <LoadScriptNext
-        googleMapsApiKey={MAPS_API_KEY}
-        libraries={libraries}
-        loadingElement={
-          <div className="h-full flex items-center justify-center">
-            <VehicleLoadingIndicator size="lg" />
-          </div>
-        }
-        onLoad={handleScriptLoad}
-        onError={(error) => {
-          console.error("Error loading Google Maps:", error);
-          setMapError("Failed to load Google Maps. Please check your internet connection and try again.");
-        }}
-      >
-        <div className="h-[400px] relative">
-          <GoogleMap
-            mapContainerStyle={{
-              width: '100%',
-              height: '100%',
-              borderRadius: '8px'
-            }}
-            center={
-              pickupLocation?.coordinates || 
-              dropoffLocation?.coordinates || 
-              defaultCenter
-            }
-            zoom={13}
-            onClick={handleMapClick}
-            onLoad={handleMapLoad}
-            options={{
-              zoomControl: true,
-              streetViewControl: false,
-              mapTypeControl: false,
-              fullscreenControl: false
-            }}
-          >
-            {pickupLocation && (
-              <Marker
-                position={pickupLocation.coordinates}
-                label={{
-                  text: "P",
-                  color: "white",
-                  className: "font-bold"
-                }}
-              />
-            )}
-            {dropoffLocation && (
-              <Marker
-                position={dropoffLocation.coordinates}
-                label={{
-                  text: "D",
-                  color: "white",
-                  className: "font-bold"
-                }}
-              />
-            )}
-            {directions && <DirectionsRenderer directions={directions} />}
-          </GoogleMap>
-        </div>
-      </LoadScriptNext>
-
-      {mapError && (
+      {error && (
         <Alert variant="destructive" className="mt-4">
-          <AlertDescription>{mapError}</AlertDescription>
+          <AlertDescription>{error}</AlertDescription>
         </Alert>
       )}
 
-      {(weatherAlerts.length > 0 || trafficAlerts.length > 0 || segmentAnalysis.length > 0) && (
-        <div className="mt-4 space-y-2">
-          {weatherAlerts.map((alert, index) => (
-            <Alert key={`weather-${index}`} variant="destructive">
-              <AlertDescription>{alert}</AlertDescription>
-            </Alert>
-          ))}
-          {trafficAlerts.map((alert, index) => (
-            <Alert key={`traffic-${index}`} variant="destructive">
-              <AlertDescription>{alert}</AlertDescription>
-            </Alert>
-          ))}
-          {segmentAnalysis.map((analysis, index) => (
-            <Alert key={`segment-${index}`} variant="default">
-              <AlertDescription>{analysis}</AlertDescription>
-            </Alert>
-          ))}
+      {pickupLocation && dropoffLocation && (
+        <div className="mt-4 p-4 border rounded-lg">
+          <h3 className="font-medium mb-2">Route Information</h3>
+          <p className="text-sm text-muted-foreground">
+            Pickup: {pickupLocation?.address}
+          </p>
+          <p className="text-sm text-muted-foreground">
+            Dropoff: {dropoffLocation?.address}
+          </p>
         </div>
       )}
     </Card>
