@@ -7,19 +7,7 @@ export default function Home() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-background/50 via-background to-background/90">
       <div className="container mx-auto p-4">
-        {/* Header */}
-        <motion.header 
-          className="mb-8"
-          initial={{ opacity: 0, y: -20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5 }}
-        >
-          <h1 className="text-4xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-primary to-primary/50">
-            Vehicle Booking System
-          </h1>
-        </motion.header>
-
-        {/* Booking Form Section - Now at the top */}
+        {/* Booking Form Section - At the top */}
         <motion.section
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -29,7 +17,7 @@ export default function Home() {
           <BookingForm />
         </motion.section>
 
-        {/* Vehicles and Map Section - Moved to bottom */}
+        {/* Vehicles and Map Section - At bottom */}
         <motion.section
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
