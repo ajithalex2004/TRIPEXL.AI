@@ -22,7 +22,7 @@ import type { Booking } from "@shared/schema";
 import { BookingType, BookingPurpose, Priority } from "@shared/schema";
 import { useState } from "react";
 
-export default function BookingHistoryPage() {
+function BookingHistoryPage() {
   const { data: bookings, isLoading } = useQuery<Booking[]>({
     queryKey: ["/api/bookings"],
   });
@@ -147,3 +147,5 @@ export default function BookingHistoryPage() {
     </div>
   );
 }
+
+export default BookingHistoryPage;
