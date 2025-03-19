@@ -88,7 +88,7 @@ export function BookingForm() {
     }
   }, [employee, form]);
 
-  // Add new useEffect after the existing employee effect
+  // Update useEffect after the existing employee effect
   React.useEffect(() => {
     if (bookingType === "freight") {
       form.setValue("purpose", BookingPurpose.FREIGHT_TRANSPORT);
@@ -167,6 +167,11 @@ export function BookingForm() {
 
   // Update purpose-priority mapping
   const getPriorityForPurpose = (purpose: string) => {
+    // Only set priority for non-freight bookings
+    if (bookingType === "freight") {
+      return Priority.NORMAL;
+    }
+
     const criticalPurposes = [
       BookingPurpose.BLOOD_BANK,
       BookingPurpose.ON_CALL,
@@ -180,8 +185,7 @@ export function BookingForm() {
     ];
 
     const highPurposes = [
-      BookingPurpose.DRUG_COLLECTION,
-      BookingPurpose.FREIGHT_TRANSPORT // Added to high priority
+      BookingPurpose.DRUG_COLLECTION
     ];
 
     if (criticalPurposes.includes(purpose)) {
