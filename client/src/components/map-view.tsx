@@ -215,7 +215,7 @@ export function MapView({
                     <Button
                       size="sm"
                       onClick={() => handleLocationTypeSelect('dropoff')}
-                      variant="outline"
+                      variant={pickupLocation && !dropoffLocation ? "default" : "outline"}
                       disabled={!pickupLocation || !!dropoffLocation}
                     >
                       Set as Dropoff

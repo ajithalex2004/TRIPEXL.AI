@@ -22,12 +22,6 @@ export function LocationInput({
   const inputRef = useRef<HTMLInputElement>(null);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    if (inputRef.current) {
-      inputRef.current.value = value;
-    }
-  }, [value]);
-
   // Initialize Google Places Autocomplete
   useEffect(() => {
     if (!inputRef.current || !window.google?.maps?.places) {
@@ -71,13 +65,20 @@ export function LocationInput({
     onSearchChange?.(newValue);
   };
 
+  // Keep input value in sync with prop
+  useEffect(() => {
+    if (inputRef.current) {
+      inputRef.current.value = value;
+    }
+  }, [value]);
+
   return (
     <div className="relative w-full">
       <div className="relative">
         <Input
           ref={inputRef}
           type="text"
-          defaultValue={value}
+          value={value}
           placeholder={placeholder}
           onChange={handleInputChange}
           onFocus={onFocus}

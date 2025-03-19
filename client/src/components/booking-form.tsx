@@ -571,9 +571,9 @@ export function BookingForm() {
                                   });
                                 }}
                                 onSearchChange={(query) => {
-                                  // Only update the address part during search
-                                  form.setValue("pickupLocation.address", query, {
-                                    shouldValidate: false
+                                  form.setValue("pickupLocation", {
+                                    ...field.value,
+                                    address: query
                                   });
                                 }}
                                 onFocus={() => setActiveLocation("pickup")}
@@ -601,9 +601,9 @@ export function BookingForm() {
                                   });
                                 }}
                                 onSearchChange={(query) => {
-                                  // Only update the address part during search
-                                  form.setValue("dropoffLocation.address", query, {
-                                    shouldValidate: false
+                                  form.setValue("dropoffLocation", {
+                                    ...field.value,
+                                    address: query
                                   });
                                 }}
                                 onFocus={() => setActiveLocation("dropoff")}
@@ -619,12 +619,12 @@ export function BookingForm() {
                         pickupLocation={form.watch("pickupLocation")}
                         dropoffLocation={form.watch("dropoffLocation")}
                         onLocationSelect={(location, type) => {
-                          form.setValue(type === 'pickup' ? "pickupLocation" : "dropoffLocation", location, {
+                          const fieldName = type === 'pickup' ? "pickupLocation" : "dropoffLocation";
+                          form.setValue(fieldName, location, {
                             shouldValidate: true,
                             shouldDirty: true,
                             shouldTouch: true
                           });
-                          setActiveLocation(null);
                         }}
                       />
                     </div>
