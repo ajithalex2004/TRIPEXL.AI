@@ -346,7 +346,17 @@ export function BookingForm() {
                         <FormItem>
                           <FormLabel>Approximate Weight (kg) *</FormLabel>
                           <FormControl>
-                            <Input type="number" {...field} min={0} />
+                            <Input 
+                              type="number" 
+                              {...field}
+                              onChange={(e) => {
+                                const value = e.target.value === "" ? 0 : parseInt(e.target.value);
+                                field.onChange(value);
+                              }}
+                              min={0}
+                              step={1}
+                              onWheel={(e) => e.currentTarget.blur()}
+                            />
                           </FormControl>
                           <FormMessage />
                         </FormItem>
