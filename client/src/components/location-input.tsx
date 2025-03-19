@@ -31,7 +31,7 @@ export function LocationInput({
     const autocomplete = new google.maps.places.Autocomplete(inputRef.current, {
       componentRestrictions: { country: "AE" },
       fields: ["place_id", "name", "formatted_address", "geometry"],
-      types: ["address", "establishment"]
+      types: ["address", "establishment", "point_of_interest"]
     });
 
     const listener = autocomplete.addListener("place_changed", () => {
@@ -39,14 +39,14 @@ export function LocationInput({
 
       if (place?.geometry?.location) {
         const location: Location = {
-          address: place.formatted_address || "", // Use formatted_address or empty string
+          address: place.formatted_address || place.name || "",
           coordinates: {
             lat: place.geometry.location.lat(),
             lng: place.geometry.location.lng()
           },
-          place_id: place.place_id || "", //Use place_id or empty string
-          name: place.name || "", //Use name or empty string
-          formatted_address: place.formatted_address || "" //Use formatted_address or empty string
+          place_id: place.place_id || "",
+          name: place.name || "",
+          formatted_address: place.formatted_address || ""
         };
         onLocationSelect(location);
         setError(null);

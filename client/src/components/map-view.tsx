@@ -156,7 +156,7 @@ export function MapView({
 
       <div className="mb-4">
         <p className="text-sm text-muted-foreground">
-          Click or right-click on the map to set locations
+          Click on the map or select a point of interest to set locations
         </p>
       </div>
 
