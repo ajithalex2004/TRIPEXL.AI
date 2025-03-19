@@ -86,6 +86,14 @@ export function BookingForm() {
     }
   }, [employee, form]);
 
+  // Add new useEffect after the existing employee effect
+  React.useEffect(() => {
+    if (bookingType === "freight") {
+      form.setValue("purpose", BookingPurpose.FREIGHT_TRANSPORT);
+      form.setValue("priority", Priority.NORMAL);
+    }
+  }, [bookingType, form]);
+
   // Update the step validation logic
   const isStepValid = async (step: number) => {
     const fields = {
