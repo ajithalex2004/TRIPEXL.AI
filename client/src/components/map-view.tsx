@@ -1,11 +1,12 @@
 import { useState, useRef, useEffect } from "react";
 import { Card } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { LoadScriptNext, GoogleMap, Marker, DirectionsRenderer } from "@react-google-maps/api";
+import { LoadScriptNext, GoogleMap, Marker, DirectionsRenderer, InfoWindow } from "@react-google-maps/api";
 import { VehicleLoadingIndicator } from "@/components/ui/vehicle-loading-indicator";
+import { Button } from "@/components/ui/button";
 
 const defaultCenter = {
-  lat: 25.276276,  // Updated coordinates
+  lat: 25.276276,
   lng: 55.386354
 };
 
@@ -27,6 +28,12 @@ export interface MapViewProps {
   onLocationSelect?: (location: Location, type: 'pickup' | 'dropoff') => void;
 }
 
+interface PopupLocation {
+  lat: number;
+  lng: number;
+  address: string;
+}
+
 export function MapView({
   pickupLocation,
   dropoffLocation,
@@ -36,6 +43,7 @@ export function MapView({
   const [isLoading, setIsLoading] = useState(false);
   const [map, setMap] = useState<google.maps.Map | null>(null);
   const [mapsInitialized, setMapsInitialized] = useState(false);
+  const [popupLocation, setPopupLocation] = useState<PopupLocation | null>(null);
 
   const handleMapClick = async (e: google.maps.MapMouseEvent) => {
     if (!e.latLng || !onLocationSelect || !mapsInitialized) return;
@@ -49,31 +57,37 @@ export function MapView({
       const result = await geocoder.geocode({ location: { lat, lng } });
 
       if (result.results[0]) {
-        const newLocation: Location = {
-          address: result.results[0].formatted_address,
-          coordinates: { lat, lng }
-        };
-
-        if (!pickupLocation) {
-          onLocationSelect(newLocation, 'pickup');
-        } else if (!dropoffLocation) {
-          onLocationSelect(newLocation, 'dropoff');
-        }
+        setPopupLocation({
+          lat,
+          lng,
+          address: result.results[0].formatted_address
+        });
       }
     } catch (error) {
       console.error("Error getting address:", error);
-      const newLocation: Location = {
-        address: `${lat.toFixed(6)}, ${lng.toFixed(6)}`,
-        coordinates: { lat, lng }
-      };
-      if (!pickupLocation) {
-        onLocationSelect(newLocation, 'pickup');
-      } else if (!dropoffLocation) {
-        onLocationSelect(newLocation, 'dropoff');
-      }
+      setPopupLocation({
+        lat,
+        lng,
+        address: `${lat.toFixed(6)}, ${lng.toFixed(6)}`
+      });
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const handleLocationTypeSelect = (type: 'pickup' | 'dropoff') => {
+    if (!popupLocation) return;
+
+    const location: Location = {
+      address: popupLocation.address,
+      coordinates: {
+        lat: popupLocation.lat,
+        lng: popupLocation.lng
+      }
+    };
+
+    onLocationSelect?.(location, type);
+    setPopupLocation(null);
   };
 
   const handleMapLoad = (map: google.maps.Map) => {
@@ -131,7 +145,7 @@ export function MapView({
               borderRadius: '8px'
             }}
             center={pickupLocation?.coordinates || dropoffLocation?.coordinates || defaultCenter}
-            zoom={15} // Increased zoom level for better POI visibility
+            zoom={15}
             onClick={handleMapClick}
             onLoad={handleMapLoad}
             options={{
@@ -139,7 +153,7 @@ export function MapView({
               streetViewControl: false,
               mapTypeControl: false,
               fullscreenControl: false,
-              clickableIcons: true, // Enable clicking on POI markers
+              clickableIcons: true,
               styles: [
                 {
                   featureType: "poi",
@@ -171,6 +185,32 @@ export function MapView({
                   className: "font-bold"
                 }}
               />
+            )}
+            {popupLocation && (
+              <InfoWindow
+                position={{ lat: popupLocation.lat, lng: popupLocation.lng }}
+                onCloseClick={() => setPopupLocation(null)}
+              >
+                <div className="p-2 space-y-2">
+                  <p className="text-sm font-medium">{popupLocation.address}</p>
+                  <div className="flex gap-2">
+                    <Button
+                      size="sm"
+                      onClick={() => handleLocationTypeSelect('pickup')}
+                      disabled={!!pickupLocation}
+                    >
+                      Set as Pickup
+                    </Button>
+                    <Button
+                      size="sm"
+                      onClick={() => handleLocationTypeSelect('dropoff')}
+                      disabled={!!dropoffLocation}
+                    >
+                      Set as Dropoff
+                    </Button>
+                  </div>
+                </div>
+              </InfoWindow>
             )}
           </GoogleMap>
         </div>
