@@ -12,6 +12,8 @@ const defaultCenter = {
 
 const libraries: ("places" | "geometry" | "drawing" | "visualization")[] = ["places", "geometry"];
 
+const MAPS_API_KEY = "AIzaSyAx8e4WQYlhtpMULTyVwAhaq17oxoU6Q-Y";
+
 export interface Location {
   address: string;
   coordinates: {
@@ -39,8 +41,6 @@ export function MapView({
   const [isLoading, setIsLoading] = useState(false);
   const [map, setMap] = useState<google.maps.Map | null>(null);
   const [mapsInitialized, setMapsInitialized] = useState(false);
-
-  const apiKey = import.meta.env.GOOGLE_MAPS_API_KEY;
 
   // Clear states when locations change
   useEffect(() => {
@@ -126,16 +126,6 @@ export function MapView({
     setMapsInitialized(true);
   }, []);
 
-  if (!apiKey) {
-    return (
-      <Alert variant="destructive">
-        <AlertDescription>
-          Google Maps API key is not configured. Please contact support.
-        </AlertDescription>
-      </Alert>
-    );
-  }
-
   return (
     <Card className="p-4 h-full relative">
       {isLoading && (
@@ -153,7 +143,7 @@ export function MapView({
       )}
 
       <LoadScriptNext
-        googleMapsApiKey={apiKey}
+        googleMapsApiKey={MAPS_API_KEY}
         libraries={libraries}
         loadingElement={
           <div className="h-full flex items-center justify-center">
