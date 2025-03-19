@@ -29,6 +29,7 @@ import { LoadingIndicator } from "@/components/ui/loading-indicator";
 import { MapView } from "@/components/map-view";
 import { motion, AnimatePresence } from "framer-motion";
 import { VehicleLoadingIndicator } from "@/components/ui/vehicle-loading-indicator";
+import { DateTimePicker } from "@/components/ui/date-time-picker";
 
 const DEFAULT_PICKUP_LOCATION = {
   address: "Al Wahda Mall",
@@ -674,10 +675,9 @@ export function BookingForm() {
                             <FormItem>
                               <FormLabel className="text-sm text-muted-foreground">Start</FormLabel>
                               <FormControl>
-                                <Input
-                                  type="datetime-local"
-                                  {...field}
-                                  min={new Date().toISOString().slice(0, 16)}
+                                <DateTimePicker
+                                  date={field.value ? new Date(field.value) : undefined}
+                                  setDate={(date) => field.onChange(date?.toISOString())}
                                 />
                               </FormControl>
                               <FormMessage />
@@ -691,10 +691,10 @@ export function BookingForm() {
                             <FormItem>
                               <FormLabel className="text-sm text-muted-foreground">End</FormLabel>
                               <FormControl>
-                                <Input
-                                  type="datetime-local"
-                                  {...field}
-                                  min={form.watch("pickupWindow.start") || new Date().toISOString().slice(0, 16)}
+                                <DateTimePicker
+                                  date={field.value ? new Date(field.value) : undefined}
+                                  setDate={(date) => field.onChange(date?.toISOString())}
+                                  disabled={!form.watch("pickupWindow.start")}
                                 />
                               </FormControl>
                               <FormMessage />
@@ -713,10 +713,10 @@ export function BookingForm() {
                             <FormItem>
                               <FormLabel className="text-sm text-muted-foreground">Start</FormLabel>
                               <FormControl>
-                                <Input
-                                  type="datetime-local"
-                                  {...field}
-                                  min={form.watch("pickupWindow.end") || new Date().toISOString().slice(0, 16)}
+                                <DateTimePicker
+                                  date={field.value ? new Date(field.value) : undefined}
+                                  setDate={(date) => field.onChange(date?.toISOString())}
+                                  disabled={!form.watch("pickupWindow.end")}
                                 />
                               </FormControl>
                               <FormMessage />
@@ -730,10 +730,10 @@ export function BookingForm() {
                             <FormItem>
                               <FormLabel className="text-sm text-muted-foreground">End</FormLabel>
                               <FormControl>
-                                <Input
-                                  type="datetime-local"
-                                  {...field}
-                                  min={form.watch("dropoffWindow.start") || new Date().toISOString().slice(0, 16)}
+                                <DateTimePicker
+                                  date={field.value ? new Date(field.value) : undefined}
+                                  setDate={(date) => field.onChange(date?.toISOString())}
+                                  disabled={!form.watch("dropoffWindow.start")}
                                 />
                               </FormControl>
                               <FormMessage />
