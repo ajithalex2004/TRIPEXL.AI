@@ -19,30 +19,22 @@ export function LocationInput({
   const inputRef = useRef<HTMLInputElement>(null);
   const autocompleteRef = useRef<google.maps.places.Autocomplete | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [isGoogleReady, setIsGoogleReady] = useState(false);
 
   useEffect(() => {
-    // Check if Google Maps is loaded
-    const checkGoogleMaps = setInterval(() => {
-      if (window.google && window.google.maps && window.google.maps.places) {
-        setIsGoogleReady(true);
-        clearInterval(checkGoogleMaps);
-      }
-    }, 100);
-
-    // Cleanup interval
-    return () => clearInterval(checkGoogleMaps);
-  }, []);
-
-  useEffect(() => {
-    if (!isGoogleReady || !inputRef.current) return;
+    if (!inputRef.current || !window.google?.maps?.places) return;
 
     try {
-      const options = {
+      const options: google.maps.places.AutocompleteOptions = {
         componentRestrictions: { country: "AE" }, // Restrict to UAE
-        fields: ["formatted_address", "geometry", "name"],
-        types: ["establishment", "geocode"]
+        fields: ["formatted_address", "geometry", "name", "place_id"],
+        types: ["establishment", "geocode"],
+        strictBounds: false
       };
+
+      // Clean up previous instance if it exists
+      if (autocompleteRef.current) {
+        google.maps.event.clearInstanceListeners(autocompleteRef.current);
+      }
 
       autocompleteRef.current = new google.maps.places.Autocomplete(
         inputRef.current,
@@ -76,7 +68,7 @@ export function LocationInput({
       console.error("Error initializing Places Autocomplete:", error);
       setError("Unable to initialize location search. Please try again.");
     }
-  }, [isGoogleReady, onLocationSelect]);
+  }, [onLocationSelect]);
 
   return (
     <div className="space-y-2">

@@ -31,7 +31,7 @@ interface TrafficIncident {
 interface RouteOptimizationResult {
   route: google.maps.DirectionsResult;
   estimatedTime: number;
-  alternativeRoutes?: google.maps.DirectionsResult[];
+  alternativeRoutes: google.maps.DirectionsResult[] | null;
   trafficAlerts: string[];
   weatherAlerts: string[];
   segmentAnalysis: string[];
@@ -42,46 +42,30 @@ const weatherCache = new Map<string, { data: WeatherCondition; timestamp: number
 const WEATHER_CACHE_DURATION = 10 * 60 * 1000; // 10 minutes
 
 export class RouteOptimizer {
-  private async getWeatherConditions(location: Location): Promise<WeatherCondition> {
-    // Create a cache key based on rounded coordinates (to avoid floating point precision issues)
-    const cacheKey = `${Math.round(location.coordinates.lat * 1000) / 1000},${Math.round(location.coordinates.lng * 1000) / 1000}`;
-    const cached = weatherCache.get(cacheKey);
-
-    if (cached && Date.now() - cached.timestamp < WEATHER_CACHE_DURATION) {
-      return cached.data;
-    }
-
+  private async getBasicDirections(
+    origin: Location,
+    destination: Location
+  ): Promise<google.maps.DirectionsResult> {
+    const directionsService = new google.maps.DirectionsService();
     try {
-      const response = await fetch(
-        `https://api.openweathermap.org/data/2.5/weather?lat=${location.coordinates.lat}&lon=${location.coordinates.lng}&appid=${import.meta.env.VITE_OPENWEATHER_API_KEY}&units=metric`
-      );
-
-      if (!response.ok) {
-        throw new Error('Weather API request failed');
-      }
-
-      const data = await response.json();
-      const weatherData = {
-        condition: data.weather[0].main,
-        visibility: data.visibility,
-        rain: data.rain?.["1h"],
-        snow: data.snow?.["1h"]
-      };
-
-      // Cache the result
-      weatherCache.set(cacheKey, {
-        data: weatherData,
-        timestamp: Date.now()
+      return await directionsService.route({
+        origin: origin.coordinates,
+        destination: destination.coordinates,
+        travelMode: google.maps.TravelMode.DRIVING,
+        provideRouteAlternatives: true
       });
-
-      return weatherData;
     } catch (error) {
-      console.error("Error fetching weather data:", error);
-      return {
-        condition: "Clear",
-        visibility: 10000
-      };
+      console.error("Error getting basic directions:", error);
+      throw new Error("Unable to calculate route");
     }
+  }
+
+  private async getWeatherConditions(location: Location): Promise<WeatherCondition> {
+    // Return default conditions since we don't have OpenWeather API key
+    return {
+      condition: "Clear",
+      visibility: 10000
+    };
   }
 
   private async getTrafficInfo(
@@ -89,55 +73,41 @@ export class RouteOptimizer {
     destination: Location
   ): Promise<TrafficInfo> {
     try {
-      const directionsService = new google.maps.DirectionsService();
-      const result = await directionsService.route({
-        origin: origin.coordinates,
-        destination: destination.coordinates,
-        travelMode: google.maps.TravelMode.DRIVING,
-        provideRouteAlternatives: true,
-        drivingOptions: {
-          departureTime: new Date(),
-          trafficModel: google.maps.TrafficModel.BEST_GUESS
-        }
-      });
-
+      const result = await this.getBasicDirections(origin, destination);
       const route = result.routes[0];
       const legs = route.legs[0];
       const segments: TrafficSegment[] = [];
       const incidents: TrafficIncident[] = [];
 
-      // Process route segments in batches to stay within rate limits
-      for (let i = 0; i < legs.steps.length; i++) {
-        const step = legs.steps[i];
-        const nextStep = legs.steps[i + 1];
+      // Process route segments
+      if (legs?.steps) {
+        for (let i = 0; i < legs.steps.length; i++) {
+          const step = legs.steps[i];
+          const nextStep = legs.steps[i + 1];
 
-        if (nextStep) {
-          const duration = step.duration?.value || 0;
-          const distance = step.distance?.value || 0;
-          const speed = (distance / 1000) / (duration / 3600); // km/h
+          if (nextStep) {
+            const duration = step.duration?.value || 0;
+            const distance = step.distance?.value || 0;
+            const speed = (distance / 1000) / (duration / 3600); // km/h
 
-          const congestionLevel = this.calculateSegmentCongestion(speed, step);
+            const congestionLevel = this.calculateSegmentCongestion(speed, step);
 
-          segments.push({
-            start: step.start_location,
-            end: step.end_location,
-            duration: duration,
-            congestionLevel: congestionLevel
-          });
-
-          if (congestionLevel > 150) {
-            incidents.push({
-              location: step.start_location,
-              type: "Heavy Traffic",
-              description: "Severe congestion detected",
-              severity: 3
+            segments.push({
+              start: step.start_location,
+              end: step.end_location,
+              duration: duration,
+              congestionLevel: congestionLevel
             });
-          }
-        }
 
-        // Add delay between processing segments to stay within rate limits
-        if (i > 0 && i % 10 === 0) {
-          await new Promise(resolve => setTimeout(resolve, 1000));
+            if (congestionLevel > 150) {
+              incidents.push({
+                location: step.start_location,
+                type: "Heavy Traffic",
+                description: "Severe congestion detected",
+                severity: 3
+              });
+            }
+          }
         }
       }
 
@@ -149,7 +119,7 @@ export class RouteOptimizer {
       };
     } catch (error) {
       console.error("Error fetching traffic data:", error);
-      throw new Error("Failed to fetch traffic data");
+      throw error;
     }
   }
 
@@ -214,98 +184,90 @@ export class RouteOptimizer {
     return multiplier;
   }
 
-  private async optimizeRoute(
+  public async getOptimizedRoute(
     origin: Location,
-    destination: Location,
-    weather: WeatherCondition,
-    traffic: TrafficInfo
+    destination: Location
   ): Promise<RouteOptimizationResult> {
-    const directionsService = new google.maps.DirectionsService();
-    const trafficAlerts: string[] = [];
-    const weatherAlerts: string[] = [];
-    const segmentAnalysis: string[] = [];
-
-    // Generate weather alerts
-    if (weather.visibility < 1000) {
-      weatherAlerts.push("⚠️ Low visibility conditions - Drive with caution");
-    }
-    if (weather.condition.toLowerCase() === 'thunderstorm') {
-      weatherAlerts.push("⚠️ Thunderstorm in the area - Consider postponing trip");
-    }
-    if (weather.rain && weather.rain > 10) {
-      weatherAlerts.push("⚠️ Heavy rain - Reduce speed and increase following distance");
-    }
-    if (weather.snow && weather.snow > 5) {
-      weatherAlerts.push("⚠️ Heavy snow - Consider alternative transport");
-    }
-
-    // Analyze traffic segments and generate alerts
-    traffic.segments.forEach((segment, index) => {
-      if (segment.congestionLevel > 150) {
-        segmentAnalysis.push(`🚗 Severe congestion in segment ${index + 1}`);
-        trafficAlerts.push("🚫 Heavy traffic detected - Consider alternative route");
-      } else if (segment.congestionLevel > 120) {
-        segmentAnalysis.push(`🚗 Moderate congestion in segment ${index + 1}`);
-      }
-    });
-
-    // Add incident-based alerts
-    traffic.incidents.forEach(incident => {
-      trafficAlerts.push(`⚠️ ${incident.description} near ${incident.location.toString()}`);
-    });
-
-    if (traffic.averageSpeed < 20) {
-      trafficAlerts.push("🐢 Very slow traffic conditions - Expect delays");
-    }
-
     try {
-      const result = await directionsService.route({
-        origin: origin.coordinates,
-        destination: destination.coordinates,
-        travelMode: google.maps.TravelMode.DRIVING,
-        provideRouteAlternatives: true,
-        drivingOptions: {
-          departureTime: new Date(),
-          trafficModel: google.maps.TrafficModel.BEST_GUESS
+      // Get basic directions first
+      const directionsResult = await this.getBasicDirections(origin, destination);
+
+      // Get weather and traffic info in parallel
+      const [weather, traffic] = await Promise.all([
+        this.getWeatherConditions(origin),
+        this.getTrafficInfo(origin, destination)
+      ]);
+
+      const weatherAlerts: string[] = [];
+      const trafficAlerts: string[] = [];
+      const segmentAnalysis: string[] = [];
+
+      // Generate weather alerts
+      if (weather.visibility < 1000) {
+        weatherAlerts.push("⚠️ Low visibility conditions - Drive with caution");
+      }
+      if (weather.condition.toLowerCase() === 'thunderstorm') {
+        weatherAlerts.push("⚠️ Thunderstorm in the area - Consider postponing trip");
+      }
+      if (weather.rain && weather.rain > 10) {
+        weatherAlerts.push("⚠️ Heavy rain - Reduce speed and increase following distance");
+      }
+      if (weather.snow && weather.snow > 5) {
+        weatherAlerts.push("⚠️ Heavy snow - Consider alternative transport");
+      }
+
+      // Analyze traffic segments and generate alerts
+      traffic.segments.forEach((segment, index) => {
+        if (segment.congestionLevel > 150) {
+          segmentAnalysis.push(`🚗 Severe congestion in segment ${index + 1}`);
+          trafficAlerts.push("🚫 Heavy traffic detected - Consider alternative route");
+        } else if (segment.congestionLevel > 120) {
+          segmentAnalysis.push(`🚗 Moderate congestion in segment ${index + 1}`);
         }
       });
+
+      // Add incident-based alerts
+      traffic.incidents.forEach(incident => {
+        trafficAlerts.push(`⚠️ ${incident.description}`);
+      });
+
+      if (traffic.averageSpeed < 20) {
+        trafficAlerts.push("🐢 Very slow traffic conditions - Expect delays");
+      }
 
       // Calculate estimated time considering both weather and traffic
       const weatherMultiplier = this.getWeatherMultiplier(weather);
       const trafficMultiplier = traffic.congestionLevel > 150 ? 1.5 : 
                                traffic.congestionLevel > 120 ? 1.3 : 1;
 
-      const baseDuration = result.routes[0].legs[0].duration?.value || 0;
+      const baseDuration = directionsResult.routes[0].legs[0].duration?.value || 0;
       const estimatedTime = Math.round(baseDuration * weatherMultiplier * trafficMultiplier);
 
       return {
-        route: result,
+        route: directionsResult,
         estimatedTime,
-        alternativeRoutes: result.routes.slice(1),
+        alternativeRoutes: directionsResult.routes.length > 1 ? directionsResult.routes.slice(1) : null,
         weatherAlerts,
         trafficAlerts,
         segmentAnalysis
       };
     } catch (error) {
-      console.error("Error optimizing route:", error);
-      throw new Error("Failed to optimize route");
-    }
-  }
-
-  public async getOptimizedRoute(
-    origin: Location,
-    destination: Location
-  ): Promise<RouteOptimizationResult> {
-    try {
-      const [weather, traffic] = await Promise.all([
-        this.getWeatherConditions(origin),
-        this.getTrafficInfo(origin, destination)
-      ]);
-
-      return await this.optimizeRoute(origin, destination, weather, traffic);
-    } catch (error) {
       console.error("Error in route optimization:", error);
-      throw new Error("Failed to get optimized route");
+      // Return basic directions without optimization
+      try{
+        const basicDirections = await this.getBasicDirections(origin, destination);
+        return {
+          route: basicDirections,
+          estimatedTime: basicDirections.routes[0].legs[0].duration?.value || 0,
+          alternativeRoutes: basicDirections.routes.length > 1 ? basicDirections.routes.slice(1) : null,
+          weatherAlerts: [],
+          trafficAlerts: [],
+          segmentAnalysis: []
+        };
+      } catch (error) {
+        console.error("Error getting basic directions:", error);
+        throw new Error("Failed to get any route");
+      }
     }
   }
 }
