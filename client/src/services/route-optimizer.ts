@@ -48,15 +48,17 @@ export class RouteOptimizer {
   ): Promise<google.maps.DirectionsResult> {
     const directionsService = new google.maps.DirectionsService();
     try {
-      return await directionsService.route({
+      const result = await directionsService.route({
         origin: origin.coordinates,
         destination: destination.coordinates,
         travelMode: google.maps.TravelMode.DRIVING,
-        provideRouteAlternatives: true
+        provideRouteAlternatives: true,
+        optimizeWaypoints: true
       });
+      return result;
     } catch (error) {
       console.error("Error getting basic directions:", error);
-      throw new Error("Unable to calculate route");
+      throw error;
     }
   }
 
@@ -128,7 +130,7 @@ export class RouteOptimizer {
     let congestion = (baseSpeed / speed) * 100;
 
     // Adjust for road type
-    if (step.instructions.toLowerCase().includes("highway") || 
+    if (step.instructions.toLowerCase().includes("highway") ||
         step.instructions.toLowerCase().includes("motorway")) {
       congestion *= 0.8; // highways usually have higher speeds
     }
@@ -189,8 +191,9 @@ export class RouteOptimizer {
     destination: Location
   ): Promise<RouteOptimizationResult> {
     try {
-      // Get basic directions first
+      console.log("Getting route from:", origin, "to:", destination);
       const directionsResult = await this.getBasicDirections(origin, destination);
+      console.log("Got directions result:", directionsResult);
 
       // Get weather and traffic info in parallel
       const [weather, traffic] = await Promise.all([
@@ -237,8 +240,8 @@ export class RouteOptimizer {
 
       // Calculate estimated time considering both weather and traffic
       const weatherMultiplier = this.getWeatherMultiplier(weather);
-      const trafficMultiplier = traffic.congestionLevel > 150 ? 1.5 : 
-                               traffic.congestionLevel > 120 ? 1.3 : 1;
+      const trafficMultiplier = traffic.congestionLevel > 150 ? 1.5 :
+                                traffic.congestionLevel > 120 ? 1.3 : 1;
 
       const baseDuration = directionsResult.routes[0].legs[0].duration?.value || 0;
       const estimatedTime = Math.round(baseDuration * weatherMultiplier * trafficMultiplier);
@@ -254,7 +257,7 @@ export class RouteOptimizer {
     } catch (error) {
       console.error("Error in route optimization:", error);
       // Return basic directions without optimization
-      try{
+      try {
         const basicDirections = await this.getBasicDirections(origin, destination);
         return {
           route: basicDirections,

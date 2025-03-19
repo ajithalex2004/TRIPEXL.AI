@@ -19,7 +19,6 @@ const libraries: ("places" | "geometry" | "drawing" | "visualization")[] = ["pla
 
 const MAPS_API_KEY = "AIzaSyAtNTq_ILPC8Y5M_bJAiMORDf02sGoK84I";
 
-// ... rest of the imports and interfaces remain the same ...
 
 export interface Location {
   address: string;
@@ -67,21 +66,41 @@ export function MapView({
   // Draw route when both locations are set
   useEffect(() => {
     const drawRoute = async () => {
-      if (!pickupLocation || !dropoffLocation || !map) return;
+      if (!pickupLocation || !dropoffLocation || !map) {
+        console.log("Missing required data for route:", { pickupLocation, dropoffLocation, map });
+        return;
+      }
 
       try {
+        console.log("Drawing route between:", pickupLocation, "and", dropoffLocation);
         setIsLoading(true);
+        setMapError(null);
+
         const optimizedRoute = await routeOptimizer.getOptimizedRoute(pickupLocation, dropoffLocation);
+        console.log("Got optimized route:", optimizedRoute);
+
+        if (optimizedRoute.route.routes.length === 0) {
+          throw new Error("No routes found");
+        }
 
         setDirectionsResult(optimizedRoute.route);
         setRouteInfo({
-          distance: optimizedRoute.route.routes[0].legs[0].distance?.text || "",
+          distance: optimizedRoute.route.routes[0].legs[0].distance?.text || "Unknown distance",
           duration: `${Math.round(optimizedRoute.estimatedTime / 60)} mins`,
           alerts: [...optimizedRoute.weatherAlerts, ...optimizedRoute.trafficAlerts]
         });
+
+        // Fit the map to show the entire route
+        const bounds = new google.maps.LatLngBounds();
+        bounds.extend(pickupLocation.coordinates);
+        bounds.extend(dropoffLocation.coordinates);
+        map.fitBounds(bounds);
+
       } catch (error) {
         console.error("Error getting route:", error);
-        setMapError("Failed to load route information");
+        setMapError("Failed to load route information. Please try again.");
+        setDirectionsResult(null);
+        setRouteInfo(null);
       } finally {
         setIsLoading(false);
       }
@@ -222,17 +241,7 @@ export function MapView({
               streetViewControl: false,
               mapTypeControl: false,
               fullscreenControl: false,
-              clickableIcons: true,
-              styles: [
-                {
-                  featureType: "poi",
-                  stylers: [{ visibility: "on" }]
-                },
-                {
-                  featureType: "poi.business",
-                  stylers: [{ visibility: "on" }]
-                }
-              ]
+              clickableIcons: true
             }}
           >
             {directionsResult && (
@@ -307,7 +316,7 @@ export function MapView({
       </LoadScriptNext>
 
       {mapError && (
-        <Alert variant="destructive">
+        <Alert variant="destructive" className="mt-2">
           <AlertDescription>{mapError}</AlertDescription>
         </Alert>
       )}
