@@ -612,11 +612,11 @@ export function BookingForm() {
                         pickupLocation={form.watch("pickupLocation")}
                         dropoffLocation={form.watch("dropoffLocation")}
                         onLocationSelect={(location, type) => {
-                          form.setValue(
-                            type === 'pickup' ? "pickupLocation" : "dropoffLocation",
-                            location,
-                            { shouldValidate: true }
-                          );
+                          if (type === 'pickup') {
+                            form.setValue("pickupLocation", location, { shouldValidate: true });
+                          } else {
+                            form.setValue("dropoffLocation", location, { shouldValidate: true });
+                          }
                         }}
                       />
                     </div>
