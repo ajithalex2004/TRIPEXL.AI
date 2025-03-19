@@ -37,8 +37,20 @@ interface RouteOptimizationResult {
   segmentAnalysis: string[];
 }
 
+// Cache for weather data to minimize API calls
+const weatherCache = new Map<string, { data: WeatherCondition; timestamp: number }>();
+const WEATHER_CACHE_DURATION = 10 * 60 * 1000; // 10 minutes
+
 export class RouteOptimizer {
   private async getWeatherConditions(location: Location): Promise<WeatherCondition> {
+    // Create a cache key based on rounded coordinates (to avoid floating point precision issues)
+    const cacheKey = `${Math.round(location.coordinates.lat * 1000) / 1000},${Math.round(location.coordinates.lng * 1000) / 1000}`;
+    const cached = weatherCache.get(cacheKey);
+
+    if (cached && Date.now() - cached.timestamp < WEATHER_CACHE_DURATION) {
+      return cached.data;
+    }
+
     try {
       const response = await fetch(
         `https://api.openweathermap.org/data/2.5/weather?lat=${location.coordinates.lat}&lon=${location.coordinates.lng}&appid=${import.meta.env.VITE_OPENWEATHER_API_KEY}&units=metric`
@@ -49,12 +61,20 @@ export class RouteOptimizer {
       }
 
       const data = await response.json();
-      return {
+      const weatherData = {
         condition: data.weather[0].main,
         visibility: data.visibility,
         rain: data.rain?.["1h"],
         snow: data.snow?.["1h"]
       };
+
+      // Cache the result
+      weatherCache.set(cacheKey, {
+        data: weatherData,
+        timestamp: Date.now()
+      });
+
+      return weatherData;
     } catch (error) {
       console.error("Error fetching weather data:", error);
       return {
@@ -86,15 +106,16 @@ export class RouteOptimizer {
       const segments: TrafficSegment[] = [];
       const incidents: TrafficIncident[] = [];
 
-      // Analyze each step of the route for traffic conditions
-      legs.steps.forEach((step, index) => {
-        const nextStep = legs.steps[index + 1];
+      // Process route segments in batches to stay within rate limits
+      for (let i = 0; i < legs.steps.length; i++) {
+        const step = legs.steps[i];
+        const nextStep = legs.steps[i + 1];
+
         if (nextStep) {
           const duration = step.duration?.value || 0;
           const distance = step.distance?.value || 0;
           const speed = (distance / 1000) / (duration / 3600); // km/h
 
-          // Calculate congestion for this segment
           const congestionLevel = this.calculateSegmentCongestion(speed, step);
 
           segments.push({
@@ -104,7 +125,6 @@ export class RouteOptimizer {
             congestionLevel: congestionLevel
           });
 
-          // Check for traffic incidents
           if (congestionLevel > 150) {
             incidents.push({
               location: step.start_location,
@@ -114,7 +134,12 @@ export class RouteOptimizer {
             });
           }
         }
-      });
+
+        // Add delay between processing segments to stay within rate limits
+        if (i > 0 && i % 10 === 0) {
+          await new Promise(resolve => setTimeout(resolve, 1000));
+        }
+      }
 
       return {
         congestionLevel: this.calculateCongestionLevel(legs),
