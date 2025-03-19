@@ -75,39 +75,44 @@ export function DateTimePicker({ date, setDate, disabled }: DateTimePickerProps)
           disabled={(date) => date < new Date()}
           initialFocus
         />
-        <div className="border-t p-3 flex items-center gap-2">
-          <Clock className="h-4 w-4 text-muted-foreground" />
-          <Select
-            value={selectedHour}
-            onValueChange={setSelectedHour}
-          >
-            <SelectTrigger className="w-[70px]">
-              <SelectValue placeholder="Hour" />
-            </SelectTrigger>
-            <SelectContent position="popper">
-              {hours.map((hour) => (
-                <SelectItem key={hour} value={hour}>
-                  {hour}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          <span className="text-muted-foreground">:</span>
-          <Select
-            value={selectedMinute}
-            onValueChange={setSelectedMinute}
-          >
-            <SelectTrigger className="w-[70px]">
-              <SelectValue placeholder="Minute" />
-            </SelectTrigger>
-            <SelectContent position="popper">
-              {minutes.map((minute) => (
-                <SelectItem key={minute} value={minute}>
-                  {minute}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+        <div className="border-t p-3 space-y-2">
+          <div className="flex items-center justify-between px-1">
+            <span className="text-sm font-medium">Time</span>
+            <Clock className="h-4 w-4 text-muted-foreground" />
+          </div>
+          <div className="flex items-center gap-2">
+            <Select
+              value={selectedHour}
+              onValueChange={setSelectedHour}
+            >
+              <SelectTrigger className="w-[80px]">
+                <SelectValue placeholder="Hour" />
+              </SelectTrigger>
+              <SelectContent position="popper" className="h-[200px]">
+                {hours.map((hour) => (
+                  <SelectItem key={hour} value={hour}>
+                    {hour}:00
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <span className="text-xl text-muted-foreground">:</span>
+            <Select
+              value={selectedMinute}
+              onValueChange={setSelectedMinute}
+            >
+              <SelectTrigger className="w-[80px]">
+                <SelectValue placeholder="Minute" />
+              </SelectTrigger>
+              <SelectContent position="popper" className="h-[200px]">
+                {minutes.map((minute) => (
+                  <SelectItem key={minute} value={minute}>
+                    {minute}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
         </div>
       </PopoverContent>
     </Popover>
