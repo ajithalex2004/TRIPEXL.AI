@@ -1,8 +1,6 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { Card } from "@/components/ui/card";
-import { LoadScriptNext, GoogleMap, Marker } from "@react-google-maps/api";
-import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
+import { LoadScriptNext, GoogleMap, Marker, DirectionsRenderer } from "@react-google-maps/api";
 import { Search } from "lucide-react";
 
 const defaultCenter = {
@@ -10,102 +8,123 @@ const defaultCenter = {
   lng: 55.2708
 };
 
-export interface MapViewProps {
-  onLocationSelect: (location: {
-    address: string;
-    coordinates: {
-      lat: number;
-      lng: number;
-    };
-  }) => void;
-}
-
 const libraries: ("places" | "geometry" | "drawing" | "visualization")[] = ["places"];
 
-export function MapView({ onLocationSelect }: MapViewProps) {
-  const [marker, setMarker] = useState(defaultCenter);
-  const [searchQuery, setSearchQuery] = useState("");
-  const [address, setAddress] = useState("");
+export interface Location {
+  address: string;
+  coordinates: {
+    lat: number;
+    lng: number;
+  };
+}
+
+export interface MapViewProps {
+  pickupLocation?: Location | null;
+  dropoffLocation?: Location | null;
+  onPickupSelect: (location: Location) => void;
+  onDropoffSelect: (location: Location) => void;
+  activeLocation: "pickup" | "dropoff" | null;
+}
+
+export function MapView({ 
+  pickupLocation, 
+  dropoffLocation, 
+  onPickupSelect, 
+  onDropoffSelect,
+  activeLocation 
+}: MapViewProps) {
+  const [directions, setDirections] = useState<google.maps.DirectionsResult | null>(null);
   const [mapError, setMapError] = useState(false);
+  const [map, setMap] = useState<google.maps.Map | null>(null);
+
+  // Update route when both locations are set
+  useEffect(() => {
+    if (!pickupLocation?.coordinates || !dropoffLocation?.coordinates || !map) {
+      setDirections(null);
+      return;
+    }
+
+    const directionsService = new google.maps.DirectionsService();
+
+    directionsService.route(
+      {
+        origin: pickupLocation.coordinates,
+        destination: dropoffLocation.coordinates,
+        travelMode: google.maps.TravelMode.DRIVING,
+      },
+      (result, status) => {
+        if (status === google.maps.DirectionsStatus.OK && result) {
+          setDirections(result);
+        } else {
+          console.error("Error fetching directions:", status);
+          setMapError(true);
+        }
+      }
+    );
+  }, [pickupLocation, dropoffLocation, map]);
+
+  // Center map on active location
+  useEffect(() => {
+    if (!map) return;
+
+    if (activeLocation === "pickup" && pickupLocation) {
+      map.panTo(pickupLocation.coordinates);
+    } else if (activeLocation === "dropoff" && dropoffLocation) {
+      map.panTo(dropoffLocation.coordinates);
+    }
+  }, [activeLocation, pickupLocation, dropoffLocation, map]);
 
   const handleMapClick = useCallback(async (e: google.maps.MapMouseEvent) => {
-    if (!e.latLng) return;
+    if (!e.latLng || !activeLocation) return;
 
     const lat = e.latLng.lat();
     const lng = e.latLng.lng();
-    setMarker({ lat, lng });
 
-    // Get address from coordinates using Geocoding service
     try {
       const geocoder = new google.maps.Geocoder();
       const result = await geocoder.geocode({ location: { lat, lng } });
+
       if (result.results[0]) {
-        const newAddress = result.results[0].formatted_address;
-        setAddress(newAddress);
-        onLocationSelect({
-          address: newAddress,
+        const newLocation: Location = {
+          address: result.results[0].formatted_address,
           coordinates: { lat, lng }
-        });
+        };
+
+        if (activeLocation === "pickup") {
+          onPickupSelect(newLocation);
+        } else {
+          onDropoffSelect(newLocation);
+        }
       }
     } catch (error) {
       console.error("Error getting address:", error);
       setMapError(true);
     }
-  }, [onLocationSelect]);
-
-  const handleSearch = useCallback(async () => {
-    if (!searchQuery) return;
-
-    try {
-      const geocoder = new google.maps.Geocoder();
-      const result = await geocoder.geocode({ address: searchQuery });
-      if (result.results[0]?.geometry?.location) {
-        const lat = result.results[0].geometry.location.lat();
-        const lng = result.results[0].geometry.location.lng();
-        const newAddress = result.results[0].formatted_address;
-
-        setMarker({ lat, lng });
-        setAddress(newAddress);
-        onLocationSelect({
-          address: newAddress,
-          coordinates: { lat, lng }
-        });
-      }
-    } catch (error) {
-      console.error("Error searching location:", error);
-      setMapError(true);
-    }
-  }, [searchQuery, onLocationSelect]);
+  }, [activeLocation, onPickupSelect, onDropoffSelect]);
 
   return (
     <Card className="p-4 h-full">
-      <div className="mb-4 flex gap-2">
-        <Input
-          placeholder="Search location..."
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
-          onKeyPress={(e) => e.key === "Enter" && handleSearch()}
-          className="text-sm"
-        />
-        <Button onClick={handleSearch} size="sm">
-          <Search className="h-4 w-4" />
-        </Button>
-      </div>
-
       <LoadScriptNext 
         googleMapsApiKey={import.meta.env.VITE_GOOGLE_MAPS_API_KEY || ""}
         libraries={libraries}
       >
-        <div className="h-[300px] relative">
+        <div className="h-[400px] relative">
           <GoogleMap
             mapContainerStyle={{
               width: '100%',
               height: '100%',
               borderRadius: '8px'
             }}
-            center={marker}
+            center={
+              activeLocation === "pickup" && pickupLocation?.coordinates
+                ? pickupLocation.coordinates
+                : activeLocation === "dropoff" && dropoffLocation?.coordinates
+                ? dropoffLocation.coordinates
+                : defaultCenter
+            }
             zoom={13}
             onClick={handleMapClick}
+            onLoad={setMap}
             options={{
               zoomControl: true,
               streetViewControl: false,
@@ -113,7 +132,27 @@ export function MapView({ onLocationSelect }: MapViewProps) {
               fullscreenControl: false
             }}
           >
-            <Marker position={marker} />
+            {pickupLocation && (
+              <Marker
+                position={pickupLocation.coordinates}
+                label={{
+                  text: "P",
+                  color: "white",
+                  className: "font-bold"
+                }}
+              />
+            )}
+            {dropoffLocation && (
+              <Marker
+                position={dropoffLocation.coordinates}
+                label={{
+                  text: "D",
+                  color: "white",
+                  className: "font-bold"
+                }}
+              />
+            )}
+            {directions && <DirectionsRenderer directions={directions} />}
           </GoogleMap>
         </div>
       </LoadScriptNext>
@@ -121,12 +160,6 @@ export function MapView({ onLocationSelect }: MapViewProps) {
       {mapError && (
         <p className="mt-2 text-xs text-destructive">
           Error loading map. Please check your internet connection and try again.
-        </p>
-      )}
-
-      {address && (
-        <p className="mt-2 text-xs text-muted-foreground truncate">
-          Selected: {address}
         </p>
       )}
     </Card>

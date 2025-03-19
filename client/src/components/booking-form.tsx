@@ -27,13 +27,13 @@ import { Textarea } from "@/components/ui/textarea";
 import { LoadingIndicator } from "@/components/ui/loading-indicator";
 import { MapView } from "@/components/map-view";
 import { motion, AnimatePresence } from "framer-motion";
-// Add new import
 import { VehicleLoadingIndicator } from "@/components/ui/vehicle-loading-indicator";
 
 export function BookingForm() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [currentStep, setCurrentStep] = React.useState(1);
+  const [activeLocation, setActiveLocation] = React.useState<"pickup" | "dropoff" | null>(null);
 
   // Fetch logged in employee data
   const { data: employee, isLoading: isEmployeeLoading } = useQuery({
@@ -529,29 +529,58 @@ export function BookingForm() {
                   transition={{ duration: 0.5 }}
                   className="space-y-6"
                 >
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div className="space-y-2">
-                      <FormLabel>Pickup Location *</FormLabel>
-                      <div className="h-[400px] relative">
-                        <MapView
-                          onLocationSelect={(location) => {
-                            form.setValue("pickupLocation", location, { shouldValidate: true });
-                          }}
-                        />
-                      </div>
-                      <FormMessage>{form.formState.errors.pickupLocation?.message}</FormMessage>
+                  <div className="space-y-2">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                      <FormField
+                        control={form.control}
+                        name="pickupLocation.address"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Pickup Location *</FormLabel>
+                            <FormControl>
+                              <Input
+                                {...field}
+                                placeholder="Enter pickup location"
+                                onClick={() => setActiveLocation("pickup")}
+                              />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      <FormField
+                        control={form.control}
+                        name="dropoffLocation.address"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Dropoff Location *</FormLabel>
+                            <FormControl>
+                              <Input
+                                {...field}
+                                placeholder="Enter dropoff location"
+                                onClick={() => setActiveLocation("dropoff")}
+                              />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
                     </div>
-                    <div className="space-y-2">
-                      <FormLabel>Dropoff Location *</FormLabel>
-                      <div className="h-[400px] relative">
-                        <MapView
-                          onLocationSelect={(location) => {
-                            form.setValue("dropoffLocation", location, { shouldValidate: true });
-                          }}
-                        />
-                      </div>
-                      <FormMessage>{form.formState.errors.dropoffLocation?.message}</FormMessage>
+                    <div className="h-[400px] relative">
+                      <MapView
+                        pickupLocation={form.watch("pickupLocation")}
+                        dropoffLocation={form.watch("dropoffLocation")}
+                        onPickupSelect={(location) => {
+                          form.setValue("pickupLocation", location, { shouldValidate: true });
+                        }}
+                        onDropoffSelect={(location) => {
+                          form.setValue("dropoffLocation", location, { shouldValidate: true });
+                        }}
+                        activeLocation={activeLocation}
+                      />
                     </div>
+                    <FormMessage>{form.formState.errors.pickupLocation?.message}</FormMessage>
+                    <FormMessage>{form.formState.errors.dropoffLocation?.message}</FormMessage>
                   </div>
                 </motion.div>
               )}
