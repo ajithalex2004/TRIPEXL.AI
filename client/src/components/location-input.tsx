@@ -24,6 +24,7 @@ interface LocationInputProps {
   value: string;
   placeholder: string;
   onLocationSelect: (location: Location) => void;
+  onSearchChange?: (query: string) => void;
   onFocus?: () => void;
 }
 
@@ -35,6 +36,7 @@ export function LocationInput({
   value,
   placeholder,
   onLocationSelect,
+  onSearchChange,
   onFocus
 }: LocationInputProps) {
   const inputRef = useRef<HTMLInputElement>(null);
@@ -162,6 +164,36 @@ export function LocationInput({
     const newValue = e.target.value;
     setInputValue(newValue);
     setError(null);
+
+    // Notify parent component about search change for map update
+    onSearchChange?.(newValue);
+
+    // If Places service is available, try to get predictions
+    if (window.google?.maps?.places) {
+      const placesService = new google.maps.places.PlacesService(document.createElement('div'));
+      placesService.textSearch({
+        query: newValue,
+        bounds: new google.maps.LatLngBounds(
+          new google.maps.LatLng(24.3, 54.2), // SW bounds
+          new google.maps.LatLng(24.6, 54.5)  // NE bounds
+        )
+      }, (results, status) => {
+        if (status === google.maps.places.PlacesServiceStatus.OK && results?.[0]) {
+          const firstResult = results[0];
+          if (firstResult.geometry?.location) {
+            const location: Location = {
+              address: firstResult.formatted_address || firstResult.name || "",
+              coordinates: {
+                lat: firstResult.geometry.location.lat(),
+                lng: firstResult.geometry.location.lng()
+              }
+            };
+            // Update map without selecting the location
+            onSearchChange?.(location.address);
+          }
+        }
+      });
+    }
   };
 
   return (

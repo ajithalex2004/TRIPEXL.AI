@@ -35,10 +35,8 @@ export function BookingForm() {
   const queryClient = useQueryClient();
   const [currentStep, setCurrentStep] = React.useState(1);
   const [activeLocation, setActiveLocation] = React.useState<"pickup" | "dropoff" | null>(null);
-  const [inputValue, setInputValue] = React.useState(''); // Added state for input value
+  const [inputValue, setInputValue] = React.useState('');
 
-
-  // Fetch logged in employee data with proper headers
   const { data: employee, isLoading: isEmployeeLoading } = useQuery({
     queryKey: ["/api/employee/current"],
     queryFn: async () => {
@@ -92,21 +90,22 @@ export function BookingForm() {
       passengerInfo: [],
       referenceNo: "",
       remarks: "",
+      tempLocation: { // Added tempLocation
+        address: "",
+        coordinates: { lat: 0, lng: 0 }
+      }
     }
   });
 
-  // Update form when employee data is loaded
   React.useEffect(() => {
     if (employee?.employeeId) {
       form.setValue("employeeId", employee.employeeId);
     }
   }, [employee, form]);
 
-  // Watch form values for conditional validation
   const bookingType = form.watch("bookingType");
   const numBoxes = form.watch("numBoxes");
 
-  // Update useEffect after the existing employee effect
   React.useEffect(() => {
     if (bookingType === "freight") {
       form.setValue("purpose", BookingPurpose.FREIGHT_TRANSPORT);
@@ -114,7 +113,6 @@ export function BookingForm() {
     }
   }, [bookingType, form]);
 
-  // Update the step validation logic
   const isStepValid = async (step: number) => {
     const fields = {
       1: ["employeeId", "bookingType"],
@@ -126,7 +124,7 @@ export function BookingForm() {
       3: ["purpose", "priority"],
       4: ["pickupLocation", "dropoffLocation"],
       5: ["pickupWindow.start", "pickupWindow.end", "dropoffWindow.start", "dropoffWindow.end"],
-      6: [] // Optional fields
+      6: []
     }[step] || [];
 
     if (fields.length === 0) return true;
@@ -135,7 +133,6 @@ export function BookingForm() {
     return result;
   };
 
-  // Handle next step
   const handleNextStep = async () => {
     const isValid = await isStepValid(currentStep);
     if (isValid) {
@@ -184,7 +181,6 @@ export function BookingForm() {
         return;
       }
 
-      // Ensure we have an employee ID
       if (!data.employeeId) {
         data.employeeId = employee?.employeeId;
       }
@@ -200,9 +196,7 @@ export function BookingForm() {
     }
   };
 
-  // Update purpose-priority mapping
   const getPriorityForPurpose = (purpose: string) => {
-    // Only set priority for non-freight bookings
     if (bookingType === "freight") {
       return Priority.NORMAL;
     }
@@ -233,14 +227,12 @@ export function BookingForm() {
     return Priority.NORMAL;
   };
 
-  // Watch purpose field to update priority
   const purpose = form.watch("purpose");
   React.useEffect(() => {
     if (purpose) {
       form.setValue("priority", getPriorityForPurpose(purpose));
     }
   }, [purpose, form]);
-
 
   return (
     <Card className="transform transition-all duration-200 hover:shadow-lg">
@@ -579,7 +571,37 @@ export function BookingForm() {
                                 onLocationSelect={(location) => {
                                   form.setValue("pickupLocation", location, { shouldValidate: true });
                                   setActiveLocation(null);
-                                  setInputValue(location.address); // Update input value
+                                  setInputValue(location.address);
+                                }}
+                                onSearchChange={(query) => {
+                                  if (query && window.google?.maps?.places) {
+                                    const placesService = new google.maps.places.PlacesService(
+                                      document.createElement('div')
+                                    );
+                                    placesService.textSearch({
+                                      query,
+                                      bounds: new google.maps.LatLngBounds(
+                                        new google.maps.LatLng(24.3, 54.2),
+                                        new google.maps.LatLng(24.6, 54.5)
+                                      )
+                                    }, (results, status) => {
+                                      if (
+                                        status === google.maps.places.PlacesServiceStatus.OK &&
+                                        results?.[0]?.geometry?.location
+                                      ) {
+                                        const location = results[0];
+                                        form.setValue("tempLocation", {
+                                          address: location.formatted_address || location.name || "",
+                                          coordinates: {
+                                            lat: location.geometry.location.lat(),
+                                            lng: location.geometry.location.lng()
+                                          }
+                                        });
+                                      } else {
+                                        console.error("Places Service Error:", status);
+                                      }
+                                    });
+                                  }
                                 }}
                                 onFocus={() => setActiveLocation("pickup")}
                               />
@@ -601,7 +623,37 @@ export function BookingForm() {
                                 onLocationSelect={(location) => {
                                   form.setValue("dropoffLocation", location, { shouldValidate: true });
                                   setActiveLocation(null);
-                                  setInputValue(location.address); // Update input value
+                                  setInputValue(location.address);
+                                }}
+                                onSearchChange={(query) => {
+                                  if (query && window.google?.maps?.places) {
+                                    const placesService = new google.maps.places.PlacesService(
+                                      document.createElement('div')
+                                    );
+                                    placesService.textSearch({
+                                      query,
+                                      bounds: new google.maps.LatLngBounds(
+                                        new google.maps.LatLng(24.3, 54.2),
+                                        new google.maps.LatLng(24.6, 54.5)
+                                      )
+                                    }, (results, status) => {
+                                      if (
+                                        status === google.maps.places.PlacesServiceStatus.OK &&
+                                        results?.[0]?.geometry?.location
+                                      ) {
+                                        const location = results[0];
+                                        form.setValue("tempLocation", {
+                                          address: location.formatted_address || location.name || "",
+                                          coordinates: {
+                                            lat: location.geometry.location.lat(),
+                                            lng: location.geometry.location.lng()
+                                          }
+                                        });
+                                      } else {
+                                        console.error("Places Service Error:", status);
+                                      }
+                                    });
+                                  }
                                 }}
                                 onFocus={() => setActiveLocation("dropoff")}
                               />
@@ -615,17 +667,16 @@ export function BookingForm() {
                       <MapView
                         pickupLocation={form.watch("pickupLocation")}
                         dropoffLocation={form.watch("dropoffLocation")}
+                        tempLocation={form.watch("tempLocation")} // Added tempLocation prop
                         onLocationSelect={(location, type) => {
                           if (type === 'pickup') {
                             form.setValue("pickupLocation", location, { shouldValidate: true });
-                            // Update the pickup location input field
                             const pickupField = form.getValues("pickupLocation");
                             if (pickupField) {
                               setInputValue(pickupField.address);
                             }
                           } else {
                             form.setValue("dropoffLocation", location, { shouldValidate: true });
-                            // Update the dropoff location input field
                             const dropoffField = form.getValues("dropoffLocation");
                             if (dropoffField) {
                               setInputValue(dropoffField.address);

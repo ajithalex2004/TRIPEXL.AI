@@ -33,6 +33,7 @@ export interface Location {
 export interface MapViewProps {
   pickupLocation?: Location | null;
   dropoffLocation?: Location | null;
+  tempLocation?: Location | null;  // Add this prop
   onLocationSelect?: (location: Location, type: 'pickup' | 'dropoff') => void;
 }
 
@@ -45,6 +46,7 @@ interface PopupLocation {
 export function MapView({
   pickupLocation,
   dropoffLocation,
+  tempLocation, // Added tempLocation
   onLocationSelect
 }: MapViewProps) {
   const [mapError, setMapError] = useState<string | null>(null);
@@ -159,7 +161,7 @@ export function MapView({
               height: '100%',
               borderRadius: '8px'
             }}
-            center={pickupLocation?.coordinates || dropoffLocation?.coordinates || defaultCenter}
+            center={tempLocation?.coordinates || pickupLocation?.coordinates || dropoffLocation?.coordinates || defaultCenter} // Updated center
             zoom={12}
             onClick={handleMapClick}
             onLoad={handleMapLoad}
