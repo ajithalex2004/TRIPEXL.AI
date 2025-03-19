@@ -43,7 +43,6 @@ export function LocationInput({
   const [isOpen, setIsOpen] = useState(false);
   const [searchHistory, setSearchHistory] = useState<SavedLocation[]>([]);
   const [inputValue, setInputValue] = useState(value);
-  const [isPlacesLoaded, setIsPlacesLoaded] = useState(false);
 
   // Load search history from localStorage
   useEffect(() => {
@@ -63,18 +62,6 @@ export function LocationInput({
     setInputValue(value);
   }, [value]);
 
-  // Wait for Places API to load
-  useEffect(() => {
-    const checkPlacesAPI = () => {
-      if (window.google?.maps?.places) {
-        setIsPlacesLoaded(true);
-      } else {
-        setTimeout(checkPlacesAPI, 500);
-      }
-    };
-    checkPlacesAPI();
-  }, []);
-
   // Save location to history
   const saveToHistory = (location: Location) => {
     const newHistory = [
@@ -88,12 +75,12 @@ export function LocationInput({
 
   // Initialize Google Places Autocomplete
   useEffect(() => {
-    if (!inputRef.current || !isPlacesLoaded) return;
+    if (!inputRef.current || !window.google?.maps?.places) return;
 
     try {
       const options: google.maps.places.AutocompleteOptions = {
         componentRestrictions: { country: "AE" },
-        fields: ["formatted_address", "geometry", "name", "place_id"],
+        fields: ["formatted_address", "geometry", "name"],
         types: ["establishment", "geocode", "address"],
         bounds: new google.maps.LatLngBounds(
           new google.maps.LatLng(24.3, 54.2), // SW bounds of Abu Dhabi
@@ -114,6 +101,7 @@ export function LocationInput({
 
       const listener = autocompleteRef.current.addListener("place_changed", () => {
         const place = autocompleteRef.current?.getPlace();
+        console.log("Place selected:", place);
 
         if (place?.geometry?.location) {
           const location: Location = {
@@ -127,6 +115,7 @@ export function LocationInput({
           saveToHistory(location);
           setError(null);
           setIsOpen(false);
+          setInputValue(location.address);
         } else {
           setError("Please select a location from the dropdown.");
         }
@@ -144,7 +133,7 @@ export function LocationInput({
       console.error("Error initializing Places Autocomplete:", error);
       setError("Unable to initialize location search. Please try again.");
     }
-  }, [onLocationSelect, isPlacesLoaded]);
+  }, [onLocationSelect]);
 
   const handleHistorySelect = (location: Location) => {
     onLocationSelect(location);
@@ -154,7 +143,8 @@ export function LocationInput({
   };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setInputValue(e.target.value);
+    const newValue = e.target.value;
+    setInputValue(newValue);
     setError(null);
   };
 
