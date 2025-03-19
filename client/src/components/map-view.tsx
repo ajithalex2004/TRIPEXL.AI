@@ -1,7 +1,6 @@
 import { useState, useRef, useEffect } from "react";
 import { Card } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { VehicleLoadingIndicator } from "@/components/ui/vehicle-loading-indicator";
 
 export interface Location {
   address: string;
@@ -26,6 +25,12 @@ const MAP_BOUNDS = {
   lng: { min: 55.1, max: 55.5 }  // Dubai longitude range
 };
 
+interface MarkerAnimation {
+  scale: number;
+  opacity: number;
+  dropOffset: number;
+}
+
 export function MapView({
   pickupLocation,
   dropoffLocation,
@@ -33,6 +38,10 @@ export function MapView({
 }: MapViewProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [error, setError] = useState<string | null>(null);
+  const animationRef = useRef<number>();
+  const [pickupAnimation, setPickupAnimation] = useState<MarkerAnimation>({ scale: 0, opacity: 0, dropOffset: -50 });
+  const [dropoffAnimation, setDropoffAnimation] = useState<MarkerAnimation>({ scale: 0, opacity: 0, dropOffset: -50 });
+  const [lineProgress, setLineProgress] = useState(0);
 
   // Convert geo coordinates to canvas coordinates
   const toCanvasCoordinates = (lat: number, lng: number) => {
@@ -47,6 +56,61 @@ export function MapView({
     const lat = MAP_BOUNDS.lat.max - (y / CANVAS_HEIGHT) * (MAP_BOUNDS.lat.max - MAP_BOUNDS.lat.min);
     return { lat, lng };
   };
+
+  // Reset animations when locations change
+  useEffect(() => {
+    if (pickupLocation) {
+      setPickupAnimation({ scale: 0, opacity: 0, dropOffset: -50 });
+    }
+    if (dropoffLocation) {
+      setDropoffAnimation({ scale: 0, opacity: 0, dropOffset: -50 });
+      setLineProgress(0);
+    }
+  }, [pickupLocation, dropoffLocation]);
+
+  // Animation loop
+  useEffect(() => {
+    const animate = () => {
+      // Update pickup animation
+      if (pickupLocation) {
+        setPickupAnimation(prev => ({
+          scale: Math.min(1, prev.scale + 0.1),
+          opacity: Math.min(1, prev.opacity + 0.1),
+          dropOffset: Math.max(0, prev.dropOffset + 5)
+        }));
+      }
+
+      // Update dropoff animation
+      if (dropoffLocation) {
+        setDropoffAnimation(prev => ({
+          scale: Math.min(1, prev.scale + 0.1),
+          opacity: Math.min(1, prev.opacity + 0.1),
+          dropOffset: Math.max(0, prev.dropOffset + 5)
+        }));
+      }
+
+      // Update line progress
+      if (pickupLocation && dropoffLocation) {
+        setLineProgress(prev => Math.min(1, prev + 0.05));
+      }
+
+      // Continue animation if not complete
+      if (
+        pickupAnimation.scale < 1 ||
+        dropoffAnimation.scale < 1 ||
+        lineProgress < 1
+      ) {
+        animationRef.current = requestAnimationFrame(animate);
+      }
+    };
+
+    animationRef.current = requestAnimationFrame(animate);
+    return () => {
+      if (animationRef.current) {
+        cancelAnimationFrame(animationRef.current);
+      }
+    };
+  }, [pickupLocation, dropoffLocation, pickupAnimation, dropoffAnimation, lineProgress]);
 
   // Draw the map
   const drawMap = () => {
@@ -83,38 +147,8 @@ export function MapView({
       ctx.stroke();
     }
 
-    // Draw pickup point
-    if (pickupLocation) {
-      const { x, y } = toCanvasCoordinates(
-        pickupLocation.coordinates.lat,
-        pickupLocation.coordinates.lng
-      );
-      ctx.fillStyle = '#22c55e';
-      ctx.beginPath();
-      ctx.arc(x, y, 8, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.fillStyle = '#000';
-      ctx.font = '12px sans-serif';
-      ctx.fillText('Pickup', x + 12, y);
-    }
-
-    // Draw dropoff point
-    if (dropoffLocation) {
-      const { x, y } = toCanvasCoordinates(
-        dropoffLocation.coordinates.lat,
-        dropoffLocation.coordinates.lng
-      );
-      ctx.fillStyle = '#ef4444';
-      ctx.beginPath();
-      ctx.arc(x, y, 8, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.fillStyle = '#000';
-      ctx.font = '12px sans-serif';
-      ctx.fillText('Dropoff', x + 12, y);
-    }
-
-    // Draw route line
-    if (pickupLocation && dropoffLocation) {
+    // Draw route line with progress animation
+    if (pickupLocation && dropoffLocation && lineProgress > 0) {
       const pickup = toCanvasCoordinates(
         pickupLocation.coordinates.lat,
         pickupLocation.coordinates.lng
@@ -124,12 +158,61 @@ export function MapView({
         dropoffLocation.coordinates.lng
       );
 
+      const dx = dropoff.x - pickup.x;
+      const dy = dropoff.y - pickup.y;
+      const endX = pickup.x + dx * lineProgress;
+      const endY = pickup.y + dy * lineProgress;
+
       ctx.strokeStyle = '#3b82f6';
       ctx.lineWidth = 2;
       ctx.beginPath();
       ctx.moveTo(pickup.x, pickup.y);
-      ctx.lineTo(dropoff.x, dropoff.y);
+      ctx.lineTo(endX, endY);
       ctx.stroke();
+    }
+
+    // Draw pickup point with animation
+    if (pickupLocation) {
+      const { x, y } = toCanvasCoordinates(
+        pickupLocation.coordinates.lat,
+        pickupLocation.coordinates.lng
+      );
+
+      // Pulsing effect
+      const pulseScale = 1 + Math.sin(Date.now() / 500) * 0.1;
+      const finalScale = pickupAnimation.scale * pulseScale;
+
+      ctx.fillStyle = `rgba(34, 197, 94, ${pickupAnimation.opacity})`;
+      ctx.beginPath();
+      ctx.arc(x, y + pickupAnimation.dropOffset, 8 * finalScale, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Draw label with animation
+      ctx.fillStyle = `rgba(0, 0, 0, ${pickupAnimation.opacity})`;
+      ctx.font = '12px sans-serif';
+      ctx.fillText('Pickup', x + 12, y + pickupAnimation.dropOffset);
+    }
+
+    // Draw dropoff point with animation
+    if (dropoffLocation) {
+      const { x, y } = toCanvasCoordinates(
+        dropoffLocation.coordinates.lat,
+        dropoffLocation.coordinates.lng
+      );
+
+      // Pulsing effect
+      const pulseScale = 1 + Math.sin(Date.now() / 500) * 0.1;
+      const finalScale = dropoffAnimation.scale * pulseScale;
+
+      ctx.fillStyle = `rgba(239, 68, 68, ${dropoffAnimation.opacity})`;
+      ctx.beginPath();
+      ctx.arc(x, y + dropoffAnimation.dropOffset, 8 * finalScale, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Draw label with animation
+      ctx.fillStyle = `rgba(0, 0, 0, ${dropoffAnimation.opacity})`;
+      ctx.font = '12px sans-serif';
+      ctx.fillText('Dropoff', x + 12, y + dropoffAnimation.dropOffset);
     }
   };
 
@@ -159,10 +242,21 @@ export function MapView({
     }
   };
 
-  // Draw map when locations change
+  // Continuous map redraw for animations
   useEffect(() => {
-    drawMap();
-  }, [pickupLocation, dropoffLocation]);
+    const animate = () => {
+      drawMap();
+      animationRef.current = requestAnimationFrame(animate);
+    };
+
+    animationRef.current = requestAnimationFrame(animate);
+
+    return () => {
+      if (animationRef.current) {
+        cancelAnimationFrame(animationRef.current);
+      }
+    };
+  }, [pickupLocation, dropoffLocation, pickupAnimation, dropoffAnimation, lineProgress]);
 
   return (
     <Card className="p-4 h-full relative">
