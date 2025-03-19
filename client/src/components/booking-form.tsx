@@ -35,6 +35,8 @@ export function BookingForm() {
   const queryClient = useQueryClient();
   const [currentStep, setCurrentStep] = React.useState(1);
   const [activeLocation, setActiveLocation] = React.useState<"pickup" | "dropoff" | null>(null);
+  const [inputValue, setInputValue] = React.useState(''); // Added state for input value
+
 
   // Fetch logged in employee data with proper headers
   const { data: employee, isLoading: isEmployeeLoading } = useQuery({
@@ -577,6 +579,7 @@ export function BookingForm() {
                                 onLocationSelect={(location) => {
                                   form.setValue("pickupLocation", location, { shouldValidate: true });
                                   setActiveLocation(null);
+                                  setInputValue(location.address); // Update input value
                                 }}
                                 onFocus={() => setActiveLocation("pickup")}
                               />
@@ -598,6 +601,7 @@ export function BookingForm() {
                                 onLocationSelect={(location) => {
                                   form.setValue("dropoffLocation", location, { shouldValidate: true });
                                   setActiveLocation(null);
+                                  setInputValue(location.address); // Update input value
                                 }}
                                 onFocus={() => setActiveLocation("dropoff")}
                               />
@@ -614,8 +618,18 @@ export function BookingForm() {
                         onLocationSelect={(location, type) => {
                           if (type === 'pickup') {
                             form.setValue("pickupLocation", location, { shouldValidate: true });
+                            // Update the pickup location input field
+                            const pickupField = form.getValues("pickupLocation");
+                            if (pickupField) {
+                              setInputValue(pickupField.address);
+                            }
                           } else {
                             form.setValue("dropoffLocation", location, { shouldValidate: true });
+                            // Update the dropoff location input field
+                            const dropoffField = form.getValues("dropoffLocation");
+                            if (dropoffField) {
+                              setInputValue(dropoffField.address);
+                            }
                           }
                         }}
                       />

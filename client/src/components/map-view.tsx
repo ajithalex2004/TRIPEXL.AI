@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from "react";
 import { Card } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { LoadScriptNext, GoogleMap, Marker, DirectionsRenderer, InfoWindow } from "@react-google-maps/api";
+import { LoadScriptNext, GoogleMap, Marker, InfoWindow } from "@react-google-maps/api";
 import { VehicleLoadingIndicator } from "@/components/ui/vehicle-loading-indicator";
 import { Button } from "@/components/ui/button";
 
@@ -134,7 +134,7 @@ export function MapView({
 
       <div className="mb-4">
         <p className="text-sm text-muted-foreground">
-          Click on the map to set pickup and dropoff locations
+          {!pickupLocation ? "Click on the map to set pickup location first" : "Set dropoff location"}
         </p>
       </div>
 
@@ -213,20 +213,24 @@ export function MapView({
                 <div className="p-2 space-y-2">
                   <p className="text-sm font-medium">{popupLocation.address}</p>
                   <div className="flex gap-2">
-                    <Button
-                      size="sm"
-                      onClick={() => handleLocationTypeSelect('pickup')}
-                      disabled={!!pickupLocation}
-                    >
-                      Set as Pickup
-                    </Button>
-                    <Button
-                      size="sm"
-                      onClick={() => handleLocationTypeSelect('dropoff')}
-                      disabled={!!dropoffLocation}
-                    >
-                      Set as Dropoff
-                    </Button>
+                    {!pickupLocation && (
+                      <Button
+                        size="sm"
+                        onClick={() => handleLocationTypeSelect('pickup')}
+                        className="bg-primary hover:bg-primary/90"
+                      >
+                        Set as Pickup
+                      </Button>
+                    )}
+                    {pickupLocation && !dropoffLocation && (
+                      <Button
+                        size="sm"
+                        onClick={() => handleLocationTypeSelect('dropoff')}
+                        className="bg-primary hover:bg-primary/90"
+                      >
+                        Set as Dropoff
+                      </Button>
+                    )}
                   </div>
                 </div>
               </InfoWindow>
