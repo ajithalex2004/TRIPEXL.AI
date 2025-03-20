@@ -9,6 +9,7 @@ import BookingHistory from "@/pages/booking-history";
 import LoginPage from "@/pages/auth/login";
 import RegisterPage from "@/pages/auth/register";
 import VehicleGroupManagement from "@/pages/vehicle-group-management";
+import VehicleTypeManagement from "@/pages/vehicle-type-management";
 import { Layout } from "@/components/layout";
 
 function ProtectedRoute({ component: Component }: { component: React.ComponentType }) {
@@ -40,8 +41,8 @@ function Router() {
       <Route path="/auth/register" component={RegisterPage} />
       <Route path="/" component={() => <ProtectedRoute component={Home} />} />
       <Route path="/bookings" component={() => <ProtectedRoute component={BookingHistory} />} />
-      {/* Vehicle Group Management as a standalone route */}
       <Route path="/vehicle-groups" component={() => <StandaloneRoute component={VehicleGroupManagement} />} />
+      <Route path="/vehicle-types" component={() => <StandaloneRoute component={VehicleTypeManagement} />} />
       <Route component={NotFound} />
     </Switch>
   );

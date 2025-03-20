@@ -12,7 +12,7 @@ import {
 } from "@/components/ui/sidebar";
 import { Logo } from "@/components/ui/logo";
 import { Footer } from "@/components/ui/footer";
-import { History, Database } from "lucide-react";
+import { History, Database, Truck } from "lucide-react";
 
 export function Layout({ children }: { children: React.ReactNode }) {
   return (
@@ -33,10 +33,18 @@ export function Layout({ children }: { children: React.ReactNode }) {
                 </Link>
               </SidebarMenuItem>
               <SidebarMenuItem>
-                <Link href="/vehicle-groups" target="_blank">
+                <Link href="/vehicle-groups">
                   <SidebarMenuButton className="w-full">
                     <Database className="w-4 h-4" />
                     <span>Vehicle Groups</span>
+                  </SidebarMenuButton>
+                </Link>
+              </SidebarMenuItem>
+              <SidebarMenuItem>
+                <Link href="/vehicle-types">
+                  <SidebarMenuButton className="w-full">
+                    <Truck className="w-4 h-4" />
+                    <span>Vehicle Types</span>
                   </SidebarMenuButton>
                 </Link>
               </SidebarMenuItem>
