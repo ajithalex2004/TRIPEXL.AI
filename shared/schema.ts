@@ -138,16 +138,16 @@ export const contactInfo = z.object({
 });
 
 
-// Add Vehicle Groups table
+// Update Vehicle Groups table with new fields
 export const vehicleGroups = pgTable("vehicle_groups", {
   id: serial("id").primaryKey(),
+  groupCode: text("group_code").notNull().unique(),
+  region: text("region").notNull(),
   name: text("name").notNull().unique(),
   type: text("type").notNull(),
+  department: text("department").notNull(),
+  imageUrl: text("image_url"),
   description: text("description"),
-  capacity: integer("capacity").notNull(),
-  manager: text("manager").references(() => employees.employeeId),
-  status: text("status").notNull().default("Active"),
-  baseLocation: json("base_location").$type<z.infer<typeof locations>>(),
   isActive: boolean("is_active").notNull().default(true),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow()
@@ -334,8 +334,19 @@ export const insertVehicleSchema = createInsertSchema(vehicles);
 export const insertDriverSchema = createInsertSchema(drivers);
 export const insertLocationMasterSchema = createInsertSchema(locationsMaster);
 
-// Add Vehicle Group insert schema and type
-export const insertVehicleGroupSchema = createInsertSchema(vehicleGroups);
+// Update insert schema for Vehicle Groups
+export const insertVehicleGroupSchema = createInsertSchema(vehicleGroups)
+  .extend({
+    type: z.enum(Object.values(VehicleGroupType) as [string, ...string[]]),
+    department: z.enum(Object.values(Department) as [string, ...string[]]),
+    groupCode: z.string().min(1, "Vehicle group code is required")
+      .max(20, "Vehicle group code cannot exceed 20 characters"),
+    region: z.string().min(1, "Region is required"),
+    name: z.string().min(1, "Vehicle group name is required")
+      .max(100, "Vehicle group name cannot exceed 100 characters"),
+    imageUrl: z.string().optional(),
+    description: z.string().optional()
+  });
 
 export type Employee = typeof employees.$inferSelect;
 export type User = typeof users.$inferSelect;
