@@ -42,6 +42,7 @@ import {
   AlertDialogAction,
 } from "@/components/ui/alert-dialog";
 import { useLocation } from "wouter";
+import { format } from "date-fns";
 
 // Update the Location interface to match schema requirements
 export interface Location {
@@ -375,9 +376,17 @@ export function BookingForm() {
   // Update DateTimePicker implementation
   const renderDateTimePicker = (field: any, minDate?: Date) => (
     <DateTimePicker
-      value={field.value}
+      value={field.value ? new Date(field.value) : null}
       onChange={(date: Date | null) => {
-        field.onChange(date?.toISOString() || "");
+        if (date) {
+          // Check if the selected date is before minDate
+          if (minDate && date < minDate) {
+            date = minDate;
+          }
+          field.onChange(date.toISOString());
+        } else {
+          field.onChange("");
+        }
       }}
       onBlur={field.onBlur}
       disabled={field.disabled}
@@ -982,7 +991,7 @@ export function BookingForm() {
                     <Button
                       type="button"
                       onClick={handleNextStep}
-                      className="ml-auto transform transition-all duration-200 hover:scale-105"
+                      className="ml-auto transform transition-all duration-2000 hover:scale-105"
                     >
                       Next
                     </Button>

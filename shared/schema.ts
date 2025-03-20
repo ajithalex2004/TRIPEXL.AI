@@ -171,31 +171,8 @@ export const insertBookingSchema = createInsertSchema(bookings)
         lng: z.number()
       })
     }),
-    pickupTime: z.string().superRefine((val, ctx) => {
-      const pickupDate = new Date(val);
-      const now = new Date();
-      const priority = ctx.parent.priority || Priority.NORMAL;
-
-      let minOffset = 0;
-      switch (priority) {
-        case Priority.EMERGENCY:
-          minOffset = 30 * 60 * 1000; // 30 minutes
-          break;
-        case Priority.HIGH:
-          minOffset = 60 * 60 * 1000; // 1 hour
-          break;
-        case Priority.NORMAL:
-          minOffset = 3 * 60 * 60 * 1000; // 3 hours
-          break;
-      }
-
-      if (pickupDate.getTime() < now.getTime() + minOffset) {
-        ctx.addIssue({
-          code: z.ZodIssueCode.custom,
-          message: "Pickup time must be after the minimum required time based on priority"
-        });
-      }
-    }),
+    pickupTime: z.string().min(1, "Pickup time is required"),
+    dropoffTime: z.string().min(1, "Dropoff time is required"),
     // Optional fields
     referenceNo: z.string().optional(),
     remarks: z.string().optional(),
