@@ -26,7 +26,6 @@ export function LocationInput({
   const inputRef = useRef<HTMLInputElement>(null);
   const [error, setError] = useState<string | null>(null);
 
-  // Initialize Google Places Autocomplete
   useEffect(() => {
     const loadGoogleMapsScript = () => {
       const script = document.createElement("script");
@@ -49,8 +48,8 @@ export function LocationInput({
         types: ["establishment", "geocode", "address", "point_of_interest"],
         strictBounds: true,
         bounds: new google.maps.LatLngBounds(
-          { lat: 22.6, lng: 51.5 }, // SW bound
-          { lat: 26.5, lng: 56.4 }  // NE bound
+          { lat: 22.6, lng: 51.5 }, // SW bound for UAE
+          { lat: 26.5, lng: 56.4 }  // NE bound for UAE
         )
       });
 
