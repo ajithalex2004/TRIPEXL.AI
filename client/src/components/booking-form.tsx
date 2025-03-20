@@ -274,6 +274,7 @@ export function BookingForm() {
     setLocation("/"); // Redirect to home page after closing dialog
   };
 
+  // Update the onSubmit function to properly format the data
   const onSubmit = async (data: any) => {
     try {
       const isValid = await form.trigger();
@@ -305,6 +306,18 @@ export function BookingForm() {
         return;
       }
 
+      // Format the location data to match the schema
+      const formatLocation = (location: any) => ({
+        address: location.address || "",
+        coordinates: {
+          lat: location.coordinates.lat,
+          lng: location.coordinates.lng
+        },
+        name: location.name || location.address || "",
+        formatted_address: location.formatted_address || location.address || "",
+        place_id: location.place_id || ""
+      });
+
       // Format the data to match the schema
       const bookingData = {
         ...data,
@@ -312,14 +325,22 @@ export function BookingForm() {
         createdAt: new Date().toISOString(),
         referenceNo: `BK${Date.now().toString().slice(-6)}`,
         employeeId: data.employeeId || employee?.employeeId,
+        pickupLocation: formatLocation(data.pickupLocation),
+        dropoffLocation: formatLocation(data.dropoffLocation),
         // Ensure passenger details are properly formatted
         passengerDetails: data.bookingType === "passenger"
-          ? data.passengerDetails.slice(0, data.numPassengers)
+          ? data.passengerDetails.slice(0, data.numPassengers).map((p: any) => ({
+              name: p.name || "",
+              contact: p.contact || ""
+            }))
           : [],
         // Ensure box sizes are properly formatted
         boxSize: data.bookingType === "freight"
           ? data.boxSize.slice(0, data.numBoxes)
-          : []
+          : [],
+        // Convert times to ISO strings
+        pickupTime: new Date(data.pickupTime).toISOString(),
+        dropoffTime: new Date(data.dropoffTime).toISOString()
       };
 
       console.log("Submitting booking data:", bookingData);
