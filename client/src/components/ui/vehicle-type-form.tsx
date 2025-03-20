@@ -1,7 +1,8 @@
 import { useEffect } from "react";
 import { useForm } from "react-hook-form";
+import { useQuery } from "@tanstack/react-query";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { InsertVehicleTypeMaster, Department, insertVehicleTypeMasterSchema, VehicleTypeMaster } from "@shared/schema";
+import { InsertVehicleTypeMaster, Department, insertVehicleTypeMasterSchema, VehicleTypeMaster, VehicleGroup } from "@shared/schema";
 import {
   Form,
   FormControl,
@@ -29,6 +30,13 @@ interface VehicleTypeFormProps {
 
 export function VehicleTypeForm({ onSubmit, initialData, isEditing }: VehicleTypeFormProps) {
   const { toast } = useToast();
+
+  // Fetch vehicle groups for the dropdown
+  const { data: vehicleGroups } = useQuery<VehicleGroup[]>({
+    queryKey: ["/api/vehicle-groups"],
+    staleTime: 0,
+  });
+
   const form = useForm<InsertVehicleTypeMaster>({
     resolver: zodResolver(insertVehicleTypeMasterSchema),
     defaultValues: {
@@ -99,9 +107,20 @@ export function VehicleTypeForm({ onSubmit, initialData, isEditing }: VehicleTyp
             render={({ field }) => (
               <FormItem>
                 <FormLabel>Vehicle Group *</FormLabel>
-                <FormControl>
-                  <Input placeholder="Enter vehicle group" {...field} />
-                </FormControl>
+                <Select onValueChange={field.onChange} value={field.value}>
+                  <FormControl>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select vehicle group" />
+                    </SelectTrigger>
+                  </FormControl>
+                  <SelectContent>
+                    {vehicleGroups?.map((group) => (
+                      <SelectItem key={group.id} value={group.name}>
+                        {group.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
                 <FormMessage />
               </FormItem>
             )}
