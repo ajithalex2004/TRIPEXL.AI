@@ -56,7 +56,27 @@ export interface Location {
   formatted_address?: string;
 }
 
-// Add these helper functions at the top of the file
+// Add helper function at the top after imports
+function generateBookingReference(bookingType: string): string {
+  const prefix = (() => {
+    switch (bookingType) {
+      case "freight":
+        return "VRF";
+      case "passenger":
+        return "VRP";
+      case "ambulance":
+        return "VRA";
+      default:
+        return "VRB"; // Default fallback
+    }
+  })();
+
+  const year = new Date().getFullYear().toString().slice(-2); // Get YY format
+  const sequence = Math.floor(10000 + Math.random() * 90000); // Generate 5 digit number starting from 10000
+
+  return `${prefix}${year}${sequence}`;
+}
+
 function getMinimumPickupTime(): Date {
   const now = new Date();
   const today = new Date();
@@ -348,7 +368,7 @@ export function BookingForm() {
         dropoffTime: dropoffTime.toISOString(),
         status: "PENDING",
         createdAt: new Date().toISOString(),
-        referenceNo: `BK${Date.now().toString().slice(-6)}`,
+        referenceNo: generateBookingReference(data.bookingType),
         remarks: data.remarks || "",
 
         // Type-specific data
@@ -960,8 +980,7 @@ export function BookingForm() {
                 {currentStep === 3 && (
                   <motion.div
                     key="step3"
-                    initial={{ opacity: 0, x: -20 }}
-                    animate={{ opacity: 1, x: 0 }}
+                    initial={{ opacity: 0, x: -20 }}                    animate={{ opacity: 1, x: 0 }}
                     exit={{ opacity: 0, x: 20 }}
                     transition={{ duration: 0.5 }}
                     className="space-y-4"
