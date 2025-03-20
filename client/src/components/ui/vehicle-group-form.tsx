@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { InsertVehicleGroup, Department, VehicleGroupType } from "@shared/schema";
+import { InsertVehicleGroup, Department, VehicleGroupType, insertVehicleGroupSchema } from "@shared/schema";
 import {
   Form,
   FormControl,
