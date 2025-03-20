@@ -2,7 +2,43 @@ import { pgTable, text, serial, integer, timestamp, json, boolean } from "drizzl
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
-// Enums
+// Vehicle Types Enum
+export const VehicleType = {
+  AMBULANCE: "Ambulance",
+  PASSENGER_VAN: "Passenger Van",
+  CARGO_VAN: "Cargo Van",
+  BUS: "Bus",
+  SUV: "SUV",
+  TRUCK: "Truck"
+} as const;
+
+// Vehicle Status Enum
+export const VehicleStatus = {
+  AVAILABLE: "Available",
+  IN_SERVICE: "In Service",
+  MAINTENANCE: "Under Maintenance",
+  OUT_OF_SERVICE: "Out of Service"
+} as const;
+
+// Driver Status Enum
+export const DriverStatus = {
+  AVAILABLE: "Available",
+  ON_DUTY: "On Duty",
+  OFF_DUTY: "Off Duty",
+  ON_LEAVE: "On Leave"
+} as const;
+
+// Department Enum
+export const Department = {
+  OPERATIONS: "Operations",
+  LOGISTICS: "Logistics",
+  MEDICAL: "Medical",
+  ADMINISTRATION: "Administration",
+  MAINTENANCE: "Maintenance",
+  SECURITY: "Security"
+} as const;
+
+// Keep existing enums
 export const BookingType = {
   FREIGHT: "freight",
   PASSENGER: "passenger",
@@ -57,7 +93,7 @@ export const BookingPurpose = {
   ONCOLOGY: "Oncology Patient Pick Up/ Drop off",
   GUEST: "Guest",
   VIP_TRANSFER: "VIP Transfer",
-  FREIGHT_TRANSPORT: "Freight Transport" // Added new purpose
+  FREIGHT_TRANSPORT: "Freight Transport"
 } as const;
 
 export const CargoType = {
@@ -73,7 +109,6 @@ export const CargoType = {
   LIVESTOCK: "Livestock"
 } as const;
 
-// Base schemas
 export const locations = z.object({
   address: z.string(),
   coordinates: z.object({
@@ -93,19 +128,80 @@ export const contactInfo = z.object({
   number: z.string()
 });
 
-// Table schemas
+
+export const vehicles = pgTable("vehicles", {
+  id: serial("id").primaryKey(),
+  vehicleNumber: text("vehicle_number").notNull().unique(),
+  name: text("name").notNull(),
+  type: text("type").notNull(),
+  make: text("make").notNull(),
+  model: text("model").notNull(),
+  year: integer("year").notNull(),
+  registrationNumber: text("registration_number").notNull().unique(),
+  loadCapacity: integer("load_capacity").notNull(),
+  passengerCapacity: integer("passenger_capacity"),
+  status: text("status").notNull().default("Available"),
+  currentLocation: json("current_location").$type<z.infer<typeof locations>>().notNull(),
+  lastMaintenanceDate: timestamp("last_maintenance_date"),
+  nextMaintenanceDate: timestamp("next_maintenance_date"),
+  features: text("features").array().default([]),
+  imageUrl: text("image_url"),
+  isActive: boolean("is_active").notNull().default(true),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow()
+});
+
+export const drivers = pgTable("drivers", {
+  id: serial("id").primaryKey(),
+  employeeId: text("employee_id").notNull().unique(),
+  name: text("name").notNull(),
+  licenseNumber: text("license_number").notNull().unique(),
+  licenseType: text("license_type").notNull(),
+  licenseExpiry: timestamp("license_expiry").notNull(),
+  phone: text("phone").notNull(),
+  email: text("email").notNull(),
+  status: text("status").notNull().default("Available"),
+  currentLocation: json("current_location").$type<z.infer<typeof locations>>().notNull(),
+  specializations: text("specializations").array().default([]),
+  preferredVehicleTypes: text("preferred_vehicle_types").array(),
+  rating: integer("rating"),
+  avatarUrl: text("avatar_url"),
+  isActive: boolean("is_active").notNull().default(true),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow()
+});
+
 export const employees = pgTable("employees", {
   id: serial("id").primaryKey(),
   employeeId: text("employee_id").notNull().unique(),
   name: text("name").notNull(),
   email: text("email").notNull().unique(),
-  phone: text("phone").notNull().unique(),
+  phone: text("phone").notNull(),
   department: text("department").notNull(),
+  designation: text("designation").notNull(),
+  location: json("location").$type<z.infer<typeof locations>>(),
+  supervisor: text("supervisor").references(() => employees.employeeId),
+  emergencyContact: text("emergency_contact"),
+  joiningDate: timestamp("joining_date").notNull(),
   isActive: boolean("is_active").notNull().default(true),
-  createdAt: timestamp("created_at").notNull().defaultNow()
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow()
 });
 
-// Update bookings table schema to include new passenger fields
+export const locationsMaster = pgTable("locations_master", {
+  id: serial("id").primaryKey(),
+  name: text("name").notNull(),
+  address: text("address").notNull(),
+  coordinates: json("coordinates").$type<{ lat: number; lng: number }>().notNull(),
+  type: text("type").notNull(), 
+  contactPerson: text("contact_person"),
+  contactPhone: text("contact_phone"),
+  operatingHours: json("operating_hours").$type<{ open: string; close: string }[]>(),
+  isActive: boolean("is_active").notNull().default(true),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow()
+});
+
 export const bookings = pgTable("bookings", {
   id: serial("id").primaryKey(),
   employeeId: text("employee_id").references(() => employees.employeeId),
@@ -113,26 +209,22 @@ export const bookings = pgTable("bookings", {
   purpose: text("purpose").notNull(),
   priority: text("priority").notNull(),
 
-  // Freight specific fields
   cargoType: text("cargo_type"),
   numBoxes: integer("num_boxes"),
   weight: integer("weight"),
   boxSize: text("box_size").array(),
 
-  // Passenger specific fields
   tripType: text("trip_type"),
   numPassengers: integer("num_passengers"),
   withDriver: boolean("with_driver").default(false),
   bookingForSelf: boolean("booking_for_self").default(false),
   passengerDetails: json("passenger_details").$type<{ name: string; contact: string }[]>(),
 
-  // Location and timing
   pickupLocation: json("pickup_location").$type<z.infer<typeof locations>>().notNull(),
   dropoffLocation: json("dropoff_location").$type<z.infer<typeof locations>>().notNull(),
   pickupTime: text("pickup_time").notNull(),
   dropoffTime: text("dropoff_time").notNull(),
 
-  // Reference and notes
   referenceNo: text("reference_no"),
   remarks: text("remarks"),
 
@@ -140,7 +232,29 @@ export const bookings = pgTable("bookings", {
   createdAt: timestamp("created_at").notNull().defaultNow()
 });
 
-// Update insert schema to include passenger fields validation
+export const users = pgTable("users", {
+  id: serial("id").primaryKey(),
+  employeeId: text("employee_id").references(() => employees.employeeId),
+  email: text("email").notNull().unique(),
+  passwordHash: text("password_hash").notNull(),
+  phoneNumber: text("phone_number"),
+  isVerified: boolean("is_verified").notNull().default(false),
+  lastLogin: timestamp("last_login"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow()
+});
+
+export const otpVerifications = pgTable("otp_verifications", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").references(() => users.id),
+  otp: text("otp").notNull(),
+  type: text("type").notNull(),
+  expiresAt: timestamp("expires_at").notNull(),
+  isUsed: boolean("is_used").notNull().default(false),
+  createdAt: timestamp("created_at").notNull().defaultNow()
+});
+
+
 export const insertBookingSchema = createInsertSchema(bookings)
   .extend({
     bookingType: z.enum([BookingType.FREIGHT, BookingType.PASSENGER, BookingType.AMBULANCE]),
@@ -173,53 +287,9 @@ export const insertBookingSchema = createInsertSchema(bookings)
     }),
     pickupTime: z.string().min(1, "Pickup time is required"),
     dropoffTime: z.string().min(1, "Dropoff time is required"),
-    // Optional fields
     referenceNo: z.string().optional(),
     remarks: z.string().optional(),
   });
-
-export const users = pgTable("users", {
-  id: serial("id").primaryKey(),
-  employeeId: text("employee_id").references(() => employees.employeeId),
-  email: text("email").notNull().unique(),
-  passwordHash: text("password_hash").notNull(),
-  phoneNumber: text("phone_number"),
-  isVerified: boolean("is_verified").notNull().default(false),
-  lastLogin: timestamp("last_login"),
-  createdAt: timestamp("created_at").notNull().defaultNow(),
-  updatedAt: timestamp("updated_at").notNull().defaultNow()
-});
-
-export const otpVerifications = pgTable("otp_verifications", {
-  id: serial("id").primaryKey(),
-  userId: integer("user_id").references(() => users.id),
-  otp: text("otp").notNull(),
-  type: text("type").notNull(),
-  expiresAt: timestamp("expires_at").notNull(),
-  isUsed: boolean("is_used").notNull().default(false),
-  createdAt: timestamp("created_at").notNull().defaultNow()
-});
-
-export const vehicles = pgTable("vehicles", {
-  id: serial("id").primaryKey(),
-  name: text("name").notNull(),
-  type: text("type").notNull(),
-  loadCapacity: integer("load_capacity").notNull(),
-  imageUrl: text("image_url").notNull(),
-  status: text("status").notNull().default("available"),
-  currentLocation: json("current_location").$type<z.infer<typeof locations>>().notNull(),
-  features: text("features").array().default([])
-});
-
-export const drivers = pgTable("drivers", {
-  id: serial("id").primaryKey(),
-  name: text("name").notNull(),
-  status: text("status").notNull().default("available"),
-  avatarUrl: text("avatar_url").notNull(),
-  currentLocation: json("current_location").$type<z.infer<typeof locations>>().notNull(),
-  specializations: text("specializations").array().default([])
-});
-
 
 export const insertEmployeeSchema = createInsertSchema(employees);
 export const insertUserSchema = createInsertSchema(users).omit({
@@ -234,8 +304,9 @@ export const insertOtpVerificationSchema = createInsertSchema(otpVerifications).
   createdAt: true
 });
 
-export const insertVehicleSchema = createInsertSchema(vehicles).omit({ features: true });
-export const insertDriverSchema = createInsertSchema(drivers).omit({ specializations: true });
+export const insertVehicleSchema = createInsertSchema(vehicles);
+export const insertDriverSchema = createInsertSchema(drivers);
+export const insertLocationMasterSchema = createInsertSchema(locationsMaster);
 
 export type Employee = typeof employees.$inferSelect;
 export type User = typeof users.$inferSelect;
@@ -243,9 +314,12 @@ export type OtpVerification = typeof otpVerifications.$inferSelect;
 export type Vehicle = typeof vehicles.$inferSelect;
 export type Driver = typeof drivers.$inferSelect;
 export type Booking = typeof bookings.$inferSelect;
+export type LocationMaster = typeof locationsMaster.$inferSelect;
+
 export type InsertEmployee = z.infer<typeof insertEmployeeSchema>;
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type InsertOtpVerification = z.infer<typeof insertOtpVerificationSchema>;
 export type InsertVehicle = z.infer<typeof insertVehicleSchema>;
 export type InsertDriver = z.infer<typeof insertDriverSchema>;
 export type InsertBooking = z.infer<typeof insertBookingSchema>;
+export type InsertLocationMaster = z.infer<typeof insertLocationMasterSchema>;
