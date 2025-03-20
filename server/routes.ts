@@ -7,6 +7,7 @@ import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import XLSX from "xlsx";
 import multer from "multer";
+import vehicleTypeMasterRouter from "./routes/vehicle-type-master";
 
 // Configure multer for handling file uploads
 const upload = multer({
@@ -31,6 +32,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Initialize default user
   await authService.initializeDefaultUser();
+
+  // Add vehicle type master routes
+  app.use(vehicleTypeMasterRouter);
 
   // Auth routes
   app.post("/api/login", async (req, res) => {

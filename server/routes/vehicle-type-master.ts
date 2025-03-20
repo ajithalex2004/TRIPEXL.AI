@@ -1,8 +1,8 @@
 import { Router } from "express";
 import { storage } from "../storage";
 import { insertVehicleTypeMasterSchema } from "@shared/schema";
-import XLSX from "xlsx";
 import multer from "multer";
+import XLSX from "xlsx";
 
 const router = Router();
 
@@ -27,8 +27,25 @@ const upload = multer({
 // Get all vehicle types
 router.get("/api/vehicle-types", async (_req, res) => {
   try {
+    console.log("Fetching all vehicle types");
     const types = await storage.getAllVehicleTypes();
+    console.log("Retrieved vehicle types:", types);
     res.json(types);
+  } catch (error: any) {
+    console.error("Error fetching vehicle types:", error);
+    res.status(500).json({ message: error.message });
+  }
+});
+
+// Get single vehicle type
+router.get("/api/vehicle-types/:id", async (req, res) => {
+  try {
+    const id = parseInt(req.params.id);
+    const type = await storage.getVehicleType(id);
+    if (!type) {
+      return res.status(404).json({ message: "Vehicle type not found" });
+    }
+    res.json(type);
   } catch (error: any) {
     res.status(500).json({ message: error.message });
   }
@@ -37,10 +54,22 @@ router.get("/api/vehicle-types", async (_req, res) => {
 // Create new vehicle type
 router.post("/api/vehicle-types", async (req, res) => {
   try {
-    const data = insertVehicleTypeMasterSchema.parse(req.body);
-    const newType = await storage.createVehicleType(data);
-    res.status(201).json(newType);
+    console.log("Creating vehicle type with data:", req.body);
+    const result = insertVehicleTypeMasterSchema.safeParse(req.body);
+
+    if (!result.success) {
+      console.error("Invalid vehicle type data:", result.error.issues);
+      return res.status(400).json({ 
+        error: "Invalid vehicle type data", 
+        details: result.error.issues 
+      });
+    }
+
+    const type = await storage.createVehicleType(result.data);
+    console.log("Created vehicle type:", type);
+    res.status(201).json(type);
   } catch (error: any) {
+    console.error("Error creating vehicle type:", error);
     res.status(400).json({ message: error.message });
   }
 });
@@ -49,8 +78,16 @@ router.post("/api/vehicle-types", async (req, res) => {
 router.patch("/api/vehicle-types/:id", async (req, res) => {
   try {
     const id = parseInt(req.params.id);
-    const data = insertVehicleTypeMasterSchema.partial().parse(req.body);
-    const updatedType = await storage.updateVehicleType(id, data);
+    const result = insertVehicleTypeMasterSchema.partial().safeParse(req.body);
+
+    if (!result.success) {
+      return res.status(400).json({ 
+        error: "Invalid vehicle type data", 
+        details: result.error.issues 
+      });
+    }
+
+    const updatedType = await storage.updateVehicleType(id, result.data);
     res.json(updatedType);
   } catch (error: any) {
     res.status(400).json({ message: error.message });
