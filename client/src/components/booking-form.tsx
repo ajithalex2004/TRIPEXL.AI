@@ -57,29 +57,26 @@ export interface Location {
 }
 
 // Update the helper function at the top of the file
-function getMinimumPickupTime(priority: string): Date {
+function getMinimumPickupTime(): Date {
   const now = new Date();
   const today = new Date();
   today.setHours(now.getHours());
   today.setMinutes(now.getMinutes());
   today.setSeconds(now.getSeconds());
+  return today;
+}
 
-  let minOffset = 0;
+function getMinimumOffset(priority: string): number {
   switch (priority) {
     case Priority.EMERGENCY:
-      minOffset = 30 * 60 * 1000; // 30 minutes
-      break;
+      return 30 * 60 * 1000; // 30 minutes
     case Priority.HIGH:
-      minOffset = 60 * 60 * 1000; // 1 hour
-      break;
+      return 60 * 60 * 1000; // 1 hour
     case Priority.NORMAL:
-      minOffset = 3 * 60 * 60 * 1000; // 3 hours
-      break;
+      return 3 * 60 * 60 * 1000; // 3 hours
     default:
-      return today;
+      return 0;
   }
-
-  return new Date(today.getTime() + minOffset);
 }
 
 // Add interface for passenger details
@@ -370,41 +367,47 @@ export function BookingForm() {
   React.useEffect(() => {
     const priority = form.watch("priority");
     if (priority) {
-      const minPickupTime = getMinimumPickupTime(priority);
+      const minPickupTime = getMinimumPickupTime();
+      const minOffset = getMinimumOffset(priority);
       const currentPickupTime = form.watch("pickupTime");
 
       // If current pickup time is before minimum allowed time, update it
-      if (currentPickupTime && new Date(currentPickupTime) < minPickupTime) {
-        form.setValue("pickupTime", minPickupTime.toISOString(), {
-          shouldValidate: true,
-          shouldDirty: true,
-          shouldTouch: true
-        });
+      if (currentPickupTime) {
+        const currentDate = new Date(currentPickupTime);
+        if (currentDate < minPickupTime) {
+          currentDate.setMinutes(currentDate.getMinutes() + minOffset / (60 * 1000));
+          form.setValue("pickupTime", currentDate.toISOString(), {
+            shouldValidate: true,
+            shouldDirty: true,
+            shouldTouch: true
+          });
+        }
       }
     }
   }, [form.watch("priority"), form]);
 
   // Update DateTimePicker implementation
-  const renderDateTimePicker = (field: any, minDate?: Date) => (
+  const renderDateTimePicker = (field: any) => (
     <DateTimePicker
       value={field.value ? new Date(field.value) : null}
       onChange={(date: Date | null) => {
         if (date) {
-          const selectedTime = date.getTime();
-          const minTime = minDate ? minDate.getTime() : new Date().getTime();
+          const selectedDate = new Date(date);
+          const now = getMinimumPickupTime();
+          const minOffset = getMinimumOffset(form.watch("priority"));
 
-          // If selected time is before minimum time, adjust only the time portion
-          if (selectedTime < minTime) {
-            const adjustedDate = new Date(date);
-            const minDateTime = new Date(minDate || new Date());
+          // Only apply time restrictions if the selected date is today
+          if (selectedDate.toDateString() === now.toDateString()) {
+            const minTime = now.getTime() + minOffset;
 
-            adjustedDate.setHours(minDateTime.getHours());
-            adjustedDate.setMinutes(minDateTime.getMinutes());
-
-            field.onChange(adjustedDate.toISOString());
-          } else {
-            field.onChange(date.toISOString());
+            if (selectedDate.getTime() < minTime) {
+              // Adjust only the time portion while keeping the selected date
+              selectedDate.setHours(now.getHours());
+              selectedDate.setMinutes(now.getMinutes() + minOffset / (60 * 1000));
+            }
           }
+
+          field.onChange(selectedDate.toISOString());
         } else {
           field.onChange("");
         }
@@ -922,7 +925,7 @@ export function BookingForm() {
                           <FormItem>
                             <FormLabel>Pickup Time *</FormLabel>
                             <FormControl>
-                              {renderDateTimePicker(field, getMinimumPickupTime(form.watch("priority")))}
+                              {renderDateTimePicker(field)}
                             </FormControl>
                             <FormDescription>
                               {form.watch("priority") === Priority.EMERGENCY && "Must be at least 30 minutes from now"}
