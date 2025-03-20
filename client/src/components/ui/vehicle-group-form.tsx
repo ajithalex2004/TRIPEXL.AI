@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { InsertVehicleGroup, Department, VehicleGroupType, insertVehicleGroupSchema, VehicleGroup } from "@shared/schema";
@@ -32,15 +32,30 @@ export function VehicleGroupForm({ onSubmit, initialData, isEditing }: VehicleGr
   const form = useForm<InsertVehicleGroup>({
     resolver: zodResolver(insertVehicleGroupSchema),
     defaultValues: {
-      groupCode: initialData?.groupCode || "",
-      region: initialData?.region || "",
-      name: initialData?.name || "",
-      type: initialData?.type || "",
-      department: initialData?.department || "",
-      imageUrl: initialData?.imageUrl || "",
-      description: initialData?.description || ""
+      groupCode: "",
+      region: "",
+      name: "",
+      type: "",
+      department: "",
+      imageUrl: "",
+      description: ""
     }
   });
+
+  // Update form values when initialData changes
+  useEffect(() => {
+    if (initialData) {
+      form.reset({
+        groupCode: initialData.groupCode,
+        region: initialData.region,
+        name: initialData.name,
+        type: initialData.type,
+        department: initialData.department,
+        imageUrl: initialData.imageUrl || "",
+        description: initialData.description || ""
+      });
+    }
+  }, [initialData, form.reset]);
 
   const handleSubmit = async (data: InsertVehicleGroup) => {
     try {
