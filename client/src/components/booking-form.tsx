@@ -268,6 +268,7 @@ export function BookingForm() {
     }
   };
 
+  // Update the mutation and onSubmit handlers
   const createBooking = useMutation({
     mutationFn: async (data: any) => {
       const response = await apiRequest("POST", "/api/bookings", data);
@@ -280,8 +281,8 @@ export function BookingForm() {
     onSuccess: (response) => {
       // Show success toast
       toast({
-        title: "Success!",
-        description: `Booking created successfully. Reference: ${response.referenceNo}`,
+        title: "Booking Created Successfully!",
+        description: `Your booking reference number is: ${response.referenceNo}`,
         variant: "default",
       });
 
@@ -296,7 +297,7 @@ export function BookingForm() {
       console.error("Booking creation error:", error);
       toast({
         title: "Booking Creation Failed",
-        description: error.message || "Failed to create booking. Please try again.",
+        description: error.message || "Please try again",
         variant: "destructive",
       });
     },
@@ -322,22 +323,20 @@ export function BookingForm() {
         return;
       }
 
+      // Generate booking reference number based on type
+      const referenceNo = generateBookingReference(data.bookingType);
+
       // Format location data strictly according to schema
-      const formatLocation = (location: any) => {
-        if (!location || !location.coordinates) {
-          throw new Error("Invalid location data");
-        }
-        return {
-          address: location.address || "",
-          coordinates: {
-            lat: Number(location.coordinates.lat),
-            lng: Number(location.coordinates.lng)
-          },
-          name: location.name || location.address || "",
-          formatted_address: location.formatted_address || location.address || "",
-          place_id: location.place_id || ""
-        };
-      };
+      const formatLocation = (location: any) => ({
+        address: location.address,
+        coordinates: {
+          lat: Number(location.coordinates.lat),
+          lng: Number(location.coordinates.lng)
+        },
+        name: location.name || location.address,
+        formatted_address: location.formatted_address || location.address,
+        place_id: location.place_id || ""
+      });
 
       // Validate dates
       const pickupTime = new Date(data.pickupTime);
@@ -355,9 +354,6 @@ export function BookingForm() {
         });
         return;
       }
-
-      // Generate booking reference number based on type
-      const referenceNo = generateBookingReference(data.bookingType);
 
       // Format the booking data with all required fields
       const bookingData = {
@@ -1006,8 +1002,7 @@ export function BookingForm() {
                       render={({ field }) => (
                         <FormItem>
                           <FormLabel>Purpose *</FormLabel>
-                          <Select
-                            onValueChange={field.onChange}
+                          <Select                            onValueChange={field.onChange}
                             value={field.value}
                             disabled={form.watch("bookingType") === "freight"}
                           >
