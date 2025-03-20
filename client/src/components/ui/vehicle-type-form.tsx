@@ -39,7 +39,7 @@ export function VehicleTypeForm({ onSubmit, initialData, isEditing }: VehicleTyp
   const form = useForm<InsertVehicleTypeMaster>({
     resolver: zodResolver(insertVehicleTypeMasterSchema),
     defaultValues: {
-      vehicleGroup: "",
+      groupId: 0,
       vehicleTypeCode: "",
       numberOfPassengers: 0,
       region: "",
@@ -61,7 +61,7 @@ export function VehicleTypeForm({ onSubmit, initialData, isEditing }: VehicleTyp
   useEffect(() => {
     if (initialData) {
       form.reset({
-        vehicleGroup: initialData.vehicleGroup,
+        groupId: initialData.groupId,
         vehicleTypeCode: initialData.vehicleTypeCode,
         numberOfPassengers: initialData.numberOfPassengers,
         region: initialData.region,
@@ -100,13 +100,13 @@ export function VehicleTypeForm({ onSubmit, initialData, isEditing }: VehicleTyp
         <div className="grid grid-cols-3 gap-4">
           <FormField
             control={form.control}
-            name="vehicleGroup"
+            name="groupId"
             render={({ field }) => (
               <FormItem>
                 <FormLabel>Vehicle Group *</FormLabel>
                 <Select
-                  onValueChange={field.onChange}
-                  value={field.value}
+                  onValueChange={(value) => field.onChange(parseInt(value))}
+                  value={field.value?.toString()}
                   disabled={loadingGroups}
                 >
                   <FormControl>
@@ -116,7 +116,7 @@ export function VehicleTypeForm({ onSubmit, initialData, isEditing }: VehicleTyp
                   </FormControl>
                   <SelectContent>
                     {vehicleGroups?.map((group) => (
-                      <SelectItem key={group.id} value={group.name}>
+                      <SelectItem key={group.id} value={group.id.toString()}>
                         {group.name}
                       </SelectItem>
                     ))}

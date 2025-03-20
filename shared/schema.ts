@@ -1,6 +1,7 @@
-import { pgTable, text, serial, integer, timestamp, json, boolean } from "drizzle-orm/pg-core";
+import { pgTable, text, serial, integer, timestamp, json, boolean, index } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
+import { relations } from "drizzle-orm";
 
 // Vehicle Types Enum
 export const VehicleType = {
@@ -145,7 +146,7 @@ export const contactInfo = z.object({
 });
 
 
-// Update Vehicle Groups table with new fields
+// Vehicle Groups table
 export const vehicleGroups = pgTable("vehicle_groups", {
   id: serial("id").primaryKey(),
   groupCode: text("group_code").notNull().unique(),
@@ -160,13 +161,57 @@ export const vehicleGroups = pgTable("vehicle_groups", {
   updatedAt: timestamp("updated_at").notNull().defaultNow()
 });
 
-// Update vehicles table to include group reference
+// Vehicle group relations
+export const vehicleGroupsRelations = relations(vehicleGroups, ({ many }) => ({
+  vehicleTypes: many(vehicleTypeMaster),
+  vehicles: many(vehicles)
+}));
+
+// Vehicle Types Master table with relations
+export const vehicleTypeMaster = pgTable("vehicle_type_master", {
+  id: serial("id").primaryKey(),
+  groupId: integer("group_id").references(() => vehicleGroups.id).notNull(),
+  vehicleTypeCode: text("vehicle_type_code").notNull().unique(),
+  numberOfPassengers: integer("number_of_passengers").notNull(),
+  region: text("region").notNull(),
+  section: text("section"),
+  specialVehicleType: text("special_vehicle_type"),
+  roadSpeedThreshold: integer("road_speed_threshold").notNull(),
+  servicePlan: text("service_plan").notNull(),
+  costPerKm: integer("cost_per_km").notNull(),
+  maximumWeight: integer("maximum_weight").notNull(),
+  vehicleType: text("vehicle_type").notNull(),
+  department: text("department").notNull(),
+  unit: text("unit"),
+  alertBefore: integer("alert_before").notNull(),
+  idleFuelConsumption: integer("idle_fuel_consumption").notNull(),
+  vehicleVolume: integer("vehicle_volume").notNull(),
+  isActive: boolean("is_active").notNull().default(true),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow()
+}, (table) => {
+  return {
+    groupIdIdx: index("group_id_idx").on(table.groupId),
+    vehicleTypeCodeIdx: index("vehicle_type_code_idx").on(table.vehicleTypeCode),
+    regionIdx: index("region_idx").on(table.region)
+  };
+});
+
+// Vehicle type master relations
+export const vehicleTypeMasterRelations = relations(vehicleTypeMaster, ({ one }) => ({
+  group: one(vehicleGroups, {
+    fields: [vehicleTypeMaster.groupId],
+    references: [vehicleGroups.id]
+  })
+}));
+
+// Vehicles table with relations
 export const vehicles = pgTable("vehicles", {
   id: serial("id").primaryKey(),
   groupId: integer("group_id").references(() => vehicleGroups.id),
+  typeId: integer("type_id").references(() => vehicleTypeMaster.id),
   vehicleNumber: text("vehicle_number").notNull().unique(),
   name: text("name").notNull(),
-  type: text("type").notNull(),
   make: text("make").notNull(),
   model: text("model").notNull(),
   year: integer("year").notNull(),
@@ -182,7 +227,25 @@ export const vehicles = pgTable("vehicles", {
   isActive: boolean("is_active").notNull().default(true),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow()
+}, (table) => {
+  return {
+    groupIdIdx: index("vehicles_group_id_idx").on(table.groupId),
+    typeIdIdx: index("vehicles_type_id_idx").on(table.typeId),
+    statusIdx: index("vehicles_status_idx").on(table.status)
+  };
 });
+
+// Vehicle relations
+export const vehiclesRelations = relations(vehicles, ({ one }) => ({
+  group: one(vehicleGroups, {
+    fields: [vehicles.groupId],
+    references: [vehicleGroups.id]
+  }),
+  type: one(vehicleTypeMaster, {
+    fields: [vehicles.typeId],
+    references: [vehicleTypeMaster.id]
+  })
+}));
 
 export const drivers = pgTable("drivers", {
   id: serial("id").primaryKey(),
@@ -355,45 +418,21 @@ export const insertVehicleGroupSchema = createInsertSchema(vehicleGroups)
     description: z.string().optional()
   });
 
-// Add after the existing vehicle types
-export const vehicleTypeMaster = pgTable("vehicle_type_master", {
-  id: serial("id").primaryKey(),
-  vehicleGroup: text("vehicle_group").notNull(),
-  vehicleTypeCode: text("vehicle_type_code").notNull().unique(),
-  numberOfPassengers: integer("number_of_passengers").notNull(),
-  region: text("region").notNull(),
-  section: text("section").notNull(),
-  specialVehicleType: text("special_vehicle_type"),
-  roadSpeedThreshold: integer("road_speed_threshold").notNull(),
-  servicePlan: text("service_plan").notNull(),
-  costPerKm: integer("cost_per_km").notNull(),
-  maximumWeight: integer("maximum_weight").notNull(),
-  vehicleType: text("vehicle_type").notNull(),
-  department: text("department").notNull(),
-  unit: text("unit").notNull(),
-  alertBefore: integer("alert_before").notNull(),
-  idleFuelConsumption: integer("idle_fuel_consumption").notNull(),
-  vehicleVolume: integer("vehicle_volume").notNull(),
-  isActive: boolean("is_active").notNull().default(true),
-  createdAt: timestamp("created_at").notNull().defaultNow(),
-  updatedAt: timestamp("updated_at").notNull().defaultNow()
-});
-
 // Update insert schema for Vehicle Types
 export const insertVehicleTypeMasterSchema = createInsertSchema(vehicleTypeMaster)
   .extend({
-    vehicleGroup: z.string().min(1, "Vehicle group is required"),
+    groupId: z.number().min(1, "Vehicle group is required"),
     vehicleTypeCode: z.string().min(1, "Vehicle type code is required"),
     numberOfPassengers: z.number().min(0, "Number of passengers must be positive"),
     region: z.string().min(1, "Region is required"),
-    section: z.string().optional(), // Made optional
+    section: z.string().optional(), 
     roadSpeedThreshold: z.number().min(0, "Road speed threshold must be positive"),
     servicePlan: z.string().min(1, "Service plan is required"),
     costPerKm: z.number().min(0, "Cost per KM must be positive"),
     maximumWeight: z.number().min(0, "Maximum weight must be positive"),
     vehicleType: z.string().min(1, "Vehicle type is required"),
     department: z.enum(Object.values(Department) as [string, ...string[]]),
-    unit: z.string().optional(), // Made optional
+    unit: z.string().optional(), 
     alertBefore: z.number().min(0, "Alert before must be positive"),
     idleFuelConsumption: z.number().min(0, "Idle fuel consumption must be positive"),
     vehicleVolume: z.number().min(0, "Vehicle volume must be positive")
