@@ -287,25 +287,6 @@ export function BookingForm() {
         return;
       }
 
-      // Ensure we have all required data
-      if (!data.pickupLocation || !data.dropoffLocation) {
-        toast({
-          title: "Missing Location Data",
-          description: "Please select both pickup and dropoff locations.",
-          variant: "destructive"
-        });
-        return;
-      }
-
-      if (!data.pickupTime || !data.dropoffTime) {
-        toast({
-          title: "Missing Time Data",
-          description: "Please select both pickup and dropoff times.",
-          variant: "destructive"
-        });
-        return;
-      }
-
       // Format the location data to match the schema
       const formatLocation = (location: any) => ({
         address: location.address || "",
@@ -318,6 +299,35 @@ export function BookingForm() {
         place_id: location.place_id || ""
       });
 
+      // Format passenger details if it's a passenger booking
+      const formattedPassengerDetails = data.bookingType === "passenger"
+        ? data.passengerDetails
+            .slice(0, data.numPassengers)
+            .map((p: any) => ({
+              name: p.name || "",
+              contact: p.contact || ""
+            }))
+        : [];
+
+      // Format box sizes if it's a freight booking
+      const formattedBoxSizes = data.bookingType === "freight"
+        ? data.boxSize?.slice(0, data.numBoxes) || []
+        : [];
+
+      // Format pickup and dropoff times
+      const pickupTime = new Date(data.pickupTime);
+      const dropoffTime = new Date(data.dropoffTime);
+
+      // Validate times
+      if (dropoffTime <= pickupTime) {
+        toast({
+          title: "Invalid Time Selection",
+          description: "Dropoff time must be after pickup time",
+          variant: "destructive"
+        });
+        return;
+      }
+
       // Format the data to match the schema
       const bookingData = {
         ...data,
@@ -327,20 +337,10 @@ export function BookingForm() {
         employeeId: data.employeeId || employee?.employeeId,
         pickupLocation: formatLocation(data.pickupLocation),
         dropoffLocation: formatLocation(data.dropoffLocation),
-        // Ensure passenger details are properly formatted
-        passengerDetails: data.bookingType === "passenger"
-          ? data.passengerDetails.slice(0, data.numPassengers).map((p: any) => ({
-              name: p.name || "",
-              contact: p.contact || ""
-            }))
-          : [],
-        // Ensure box sizes are properly formatted
-        boxSize: data.bookingType === "freight"
-          ? data.boxSize.slice(0, data.numBoxes)
-          : [],
-        // Convert times to ISO strings
-        pickupTime: new Date(data.pickupTime).toISOString(),
-        dropoffTime: new Date(data.dropoffTime).toISOString()
+        passengerDetails: formattedPassengerDetails,
+        boxSize: formattedBoxSizes,
+        pickupTime: pickupTime.toISOString(),
+        dropoffTime: dropoffTime.toISOString()
       };
 
       console.log("Submitting booking data:", bookingData);
@@ -490,37 +490,52 @@ export function BookingForm() {
         value={field.value ? new Date(field.value) : null}
         onChange={(date) => {
           if (date) {
+            field.onChange(date.toISOString());
+
+            // Only validate after complete selection
             const selectedDate = new Date(date);
             const pickupDate = pickupTime ? new Date(pickupTime) : null;
 
-            // Check if selected time is before pickup time
-            if (pickupDate && selectedDate <= pickupDate) {
-              toast({
-                title: "Time Selection Error",
-                description: "Dropoff time must be after pickup time",
-                variant: "destructive"
-              });
-              return;
-            }
+            if (pickupDate) {
+              // Check if selected time is valid based on pickup and ETA
+              const hasValidationError = (() => {
+                if (selectedDate <= pickupDate) {
+                  return {
+                    title: "Invalid Time Selection",
+                    message: "Dropoff time must be after pickup time"
+                  };
+                }
 
-            // Check if selected time is before ETA
-            if (pickupDate && routeDuration) {
-              const eta = new Date(pickupDate.getTime() + (routeDuration * 1000));
-              if (selectedDate < eta) {
+                if (routeDuration) {
+                  const eta = new Date(pickupDate.getTime() + (routeDuration * 1000));
+                  if (selectedDate < eta) {
+                    return {
+                      title: "Invalid Time Selection",
+                      message: `Dropoff time must be after estimated arrival (${format(eta, "HH:mm")})`
+                    };
+                  }
+                }
+
+                return null;
+              })();
+
+              // Show error only if validation fails
+              if (hasValidationError) {
                 toast({
-                  title: "Time Selection Error",
-                  description: `Dropoff time must be after estimated arrival (${format(eta, "HH:mm")})`,
-                  variant: "destructive"
+                  title: hasValidationError.title,
+                  description: hasValidationError.message,
+                  variant: "destructive",
+                }, {
+                  duration: 3000
                 });
-                return;
+                // Reset the field if validation fails
+                field.onChange(null);
               }
             }
-
-            field.onChange(date.toISOString());
           }
         }}
         onBlur={field.onBlur}
-        disabled={!pickupTime} // Only disable if we don't have pickup time
+        disabled={!pickupTime}
       />
     );
   };
@@ -993,8 +1008,9 @@ export function BookingForm() {
                     key="step4"
                     initial={{ opacity: 0, x: -20 }}
                     animate={{ opacity: 1, x: 0 }}
-                    exit={{ opacity: 0, x: 20 }}
-                    transition={{ duration: 0.5 }}                    className="space-y-6"
+                    exit={{ opacity: 0, x: 20}}
+                    transition={{ duration: 0.5 }}
+                    className="spacey-6"
                   >
                     <div className="space-y-2">
                       {/* Location and Map Section */}
