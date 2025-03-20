@@ -56,7 +56,7 @@ export interface Location {
   formatted_address?: string;
 }
 
-// Update the helper function at the top of the file
+// Add these helper functions at the top of the file
 function getMinimumPickupTime(): Date {
   const now = new Date();
   const today = new Date();
@@ -944,8 +944,15 @@ export function BookingForm() {
                             <FormLabel>Estimated Dropoff Time</FormLabel>
                             <FormControl>
                               <DateTimePicker
-                                date={field.value ? new Date(field.value) : undefined}
-                                setDate={(date) => field.onChange(date?.toISOString())}
+                                value={field.value ? new Date(field.value) : null}
+                                onChange={(date: Date | null) => {
+                                  if (date) {
+                                    field.onChange(date.toISOString());
+                                  } else {
+                                    field.onChange("");
+                                  }
+                                }}
+                                onBlur={field.onBlur}
                                 disabled={true}
                               />
                             </FormControl>
