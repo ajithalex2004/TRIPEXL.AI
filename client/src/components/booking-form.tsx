@@ -261,6 +261,9 @@ export function BookingForm() {
       queryClient.invalidateQueries({ queryKey: ["/api/bookings"] });
       setCreatedReferenceNo(response.referenceNo);
       setShowSuccessDialog(true);
+
+      // Clear form data
+      form.reset();
     },
     onError: (error: any) => {
       console.error("Booking creation error:", error);
@@ -1289,22 +1292,31 @@ export function BookingForm() {
       </Card>
 
       <AlertDialog open={showSuccessDialog} onOpenChange={setShowSuccessDialog}>
-        <AlertDialogContent>
+        <AlertDialogContent className="sm:max-w-[425px]">
           <AlertDialogHeader>
-            <AlertDialogTitle className="text-xl text-center">Order has been Created!</AlertDialogTitle>
-            <AlertDialogDescription className="text-center py-4">
-              Your booking reference number is:
-              <span className="block text-xl font-semibold text-primary mt-2">
-                {createdReferenceNo}
-              </span>
+            <AlertDialogTitle className="text-center text-xl">
+              Booking Created Successfully!
+            </AlertDialogTitle>
+            <AlertDialogDescription className="text-center space-y-2">
+              <p className="text-lg font-medium text-primary">
+                Reference Number: {createdReferenceNo}
+              </p>
+              <p>
+                Your booking has been created and will be processed shortly.
+                You can track your booking status in the booking history.
+              </p>
             </AlertDialogDescription>
           </AlertDialogHeader>
-          <AlertDialogFooter className="flex justify-center">
+          <AlertDialogFooter className="sm:justify-center">
             <AlertDialogAction
-              onClick={handleSuccessDialogClose}
-              className="w-24"
+              onClick={() => {
+                setShowSuccessDialog(false);
+                setCurrentStep(1);
+                setLocation("/booking-history");
+              }}
+              className="w-full sm:w-auto"
             >
-              OK
+              View Booking History
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
