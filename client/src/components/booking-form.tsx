@@ -147,7 +147,7 @@ export function BookingForm() {
       priority: "",
       pickupLocation: DEFAULT_PICKUP_LOCATION,
       dropoffLocation: DEFAULT_DROPOFF_LOCATION,
-      pickupTime: "",
+      pickupTime: new Date().toISOString(), // Set default to current time
       dropoffTime: "",
       cargoType: "",
       numBoxes: 0,
@@ -389,7 +389,7 @@ export function BookingForm() {
   // Update DateTimePicker implementation
   const renderDateTimePicker = (field: any) => (
     <DateTimePicker
-      value={field.value ? new Date(field.value) : null}
+      value={field.value ? new Date(field.value) : new Date()}
       onChange={(date: Date | null) => {
         if (date) {
           const selectedDate = new Date(date);
@@ -986,8 +986,7 @@ export function BookingForm() {
                       )}
                     />
                     <FormField
-                      control={form.control}
-                      name="remarks"
+                      control={form.control}                      name="remarks"
                       render={({ field }) => (
                         <FormItem>
                           <FormLabel>Remarks</FormLabel>
