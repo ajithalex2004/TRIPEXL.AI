@@ -60,9 +60,16 @@ export function VehicleGroupForm({ onSubmit, initialData, isEditing }: VehicleGr
   const handleSubmit = async (data: InsertVehicleGroup) => {
     try {
       await onSubmit(data);
-      if (!isEditing) {
-        form.reset();
-      }
+      // Clear form after both create and update operations
+      form.reset({
+        groupCode: "",
+        region: "",
+        name: "",
+        type: "",
+        department: "",
+        imageUrl: "",
+        description: ""
+      });
     } catch (error: any) {
       toast({
         title: "Error",

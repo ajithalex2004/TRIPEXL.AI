@@ -90,6 +90,7 @@ export default function VehicleGroupManagement() {
     try {
       if (selectedGroup) {
         await updateMutation.mutateAsync({ ...data, id: selectedGroup.id });
+        setSelectedGroup(null); // Reset selected group after update
       } else {
         await createMutation.mutateAsync(data);
       }
