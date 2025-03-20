@@ -61,8 +61,8 @@ function BookingHistoryPage() {
           </CardHeader>
           <CardContent>
             {/* Search and Filters */}
-            <div className="mb-8">
-              <div className="flex items-center gap-2 mb-4">
+            <div className="mb-8 space-y-6">
+              <div className="flex items-center gap-2">
                 <Filter className="h-5 w-5 text-primary" />
                 <h3 className="font-semibold text-lg">Filters</h3>
               </div>
@@ -81,14 +81,14 @@ function BookingHistoryPage() {
                     placeholder="Search booking reference..."
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
-                    className="w-full bg-background/50 backdrop-blur-sm border-white/10 transition-all duration-200 hover:bg-background/70 focus:bg-background/70"
+                    className="w-full bg-background/50 backdrop-blur-sm border-white/10"
                   />
                 </div>
 
                 <div className="space-y-2">
                   <span className="font-medium">Booking Type</span>
                   <Select value={typeFilter} onValueChange={setTypeFilter}>
-                    <SelectTrigger className="bg-background/50 backdrop-blur-sm border-white/10 transition-all duration-200 hover:bg-background/70">
+                    <SelectTrigger className="bg-background/50 backdrop-blur-sm border-white/10">
                       <SelectValue placeholder="All Types" />
                     </SelectTrigger>
                     <SelectContent>
@@ -101,9 +101,9 @@ function BookingHistoryPage() {
                 </div>
 
                 <div className="space-y-2">
-                  <span className="font-medium">Booking Purpose</span>
+                  <span className="font-medium">Purpose</span>
                   <Select value={purposeFilter} onValueChange={setPurposeFilter}>
-                    <SelectTrigger className="bg-background/50 backdrop-blur-sm border-white/10 transition-all duration-200 hover:bg-background/70">
+                    <SelectTrigger className="bg-background/50 backdrop-blur-sm border-white/10">
                       <SelectValue placeholder="All Purposes" />
                     </SelectTrigger>
                     <SelectContent>
@@ -118,7 +118,7 @@ function BookingHistoryPage() {
                 <div className="space-y-2">
                   <span className="font-medium">Priority Level</span>
                   <Select value={priorityFilter} onValueChange={setPriorityFilter}>
-                    <SelectTrigger className="bg-background/50 backdrop-blur-sm border-white/10 transition-all duration-200 hover:bg-background/70">
+                    <SelectTrigger className="bg-background/50 backdrop-blur-sm border-white/10">
                       <SelectValue placeholder="All Priorities" />
                     </SelectTrigger>
                     <SelectContent>
@@ -144,6 +144,8 @@ function BookingHistoryPage() {
                     <TableHead className="text-primary/80">Reference No.</TableHead>
                     <TableHead className="text-primary/80">Type</TableHead>
                     <TableHead className="text-primary/80">Purpose</TableHead>
+                    <TableHead className="text-primary/80">Pickup</TableHead>
+                    <TableHead className="text-primary/80">Dropoff</TableHead>
                     <TableHead className="text-primary/80">Priority</TableHead>
                     <TableHead className="text-primary/80">Status</TableHead>
                     <TableHead className="text-primary/80">Created At</TableHead>
@@ -153,12 +155,13 @@ function BookingHistoryPage() {
                   <AnimatePresence mode="wait">
                     {isLoading ? (
                       <TableRow>
-                        <TableCell colSpan={6} className="text-center py-8">
+                        <TableCell colSpan={8} className="text-center py-8">
                           <motion.div
                             initial={{ opacity: 0, scale: 0.8 }}
                             animate={{ opacity: 1, scale: 1 }}
                             exit={{ opacity: 0, scale: 0.8 }}
                             transition={{ duration: 0.5 }}
+                            className="flex justify-center"
                           >
                             <VehicleLoadingIndicator size="lg" />
                           </motion.div>
@@ -166,7 +169,7 @@ function BookingHistoryPage() {
                       </TableRow>
                     ) : !filteredBookings?.length ? (
                       <TableRow>
-                        <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
+                        <TableCell colSpan={8} className="text-center py-8 text-muted-foreground">
                           No bookings found
                         </TableCell>
                       </TableRow>
@@ -180,9 +183,25 @@ function BookingHistoryPage() {
                           transition={{ duration: 0.2 }}
                           className="border-white/10 backdrop-blur-sm transition-all duration-200 hover:bg-background/40"
                         >
-                          <TableCell className="font-medium">{booking.referenceNo || "-"}</TableCell>
-                          <TableCell>{booking.bookingType}</TableCell>
+                          <TableCell className="font-medium">{booking.referenceNo}</TableCell>
+                          <TableCell className="capitalize">{booking.bookingType}</TableCell>
                           <TableCell>{booking.purpose}</TableCell>
+                          <TableCell>
+                            <div className="flex flex-col">
+                              <span className="font-medium">{booking.pickupLocation.address}</span>
+                              <span className="text-sm text-muted-foreground">
+                                {format(new Date(booking.pickupTime), "MMM d, yyyy HH:mm")}
+                              </span>
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            <div className="flex flex-col">
+                              <span className="font-medium">{booking.dropoffLocation.address}</span>
+                              <span className="text-sm text-muted-foreground">
+                                {format(new Date(booking.dropoffTime), "MMM d, yyyy HH:mm")}
+                              </span>
+                            </div>
+                          </TableCell>
                           <TableCell>
                             <span className={`px-2 py-1 rounded-full text-xs ${
                               booking.priority === Priority.CRITICAL
@@ -196,7 +215,19 @@ function BookingHistoryPage() {
                               {booking.priority}
                             </span>
                           </TableCell>
-                          <TableCell>{booking.status}</TableCell>
+                          <TableCell>
+                            <span className={`px-2 py-1 rounded-full text-xs ${
+                              booking.status === "PENDING"
+                                ? "bg-yellow-500/20 text-yellow-500"
+                                : booking.status === "COMPLETED"
+                                ? "bg-green-500/20 text-green-500"
+                                : booking.status === "CANCELLED"
+                                ? "bg-red-500/20 text-red-500"
+                                : "bg-blue-500/20 text-blue-500"
+                            }`}>
+                              {booking.status}
+                            </span>
+                          </TableCell>
                           <TableCell className="text-muted-foreground">
                             {format(new Date(booking.createdAt), "MMM d, yyyy HH:mm")}
                           </TableCell>

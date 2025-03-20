@@ -1,5 +1,6 @@
 {pkgs}: {
   deps = [
+    pkgs.postgresql
     pkgs.clang
     pkgs.pkg-config
     pkgs.mesa
