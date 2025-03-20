@@ -250,8 +250,12 @@ export function BookingForm() {
 
   const createBooking = useMutation({
     mutationFn: async (data: any) => {
-      const res = await apiRequest("POST", "/api/bookings", data);
-      return res.json();
+      const response = await apiRequest("POST", "/api/bookings", data);
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || "Failed to create booking");
+      }
+      return response.json();
     },
     onSuccess: (response) => {
       queryClient.invalidateQueries({ queryKey: ["/api/bookings"] });
@@ -259,9 +263,10 @@ export function BookingForm() {
       setShowSuccessDialog(true);
     },
     onError: (error: any) => {
+      console.error("Booking creation error:", error);
       toast({
-        title: "Error",
-        description: error.message || "Failed to create booking",
+        title: "Booking Creation Failed",
+        description: error.message || "Failed to create booking. Please try again.",
         variant: "destructive",
       });
     },
@@ -304,7 +309,7 @@ export function BookingForm() {
         };
       };
 
-      // Validate and format dates
+      // Validate dates
       const pickupTime = new Date(data.pickupTime);
       const dropoffTime = new Date(data.dropoffTime);
 
@@ -336,36 +341,27 @@ export function BookingForm() {
         referenceNo: `BK${Date.now().toString().slice(-6)}`,
         remarks: data.remarks || "",
 
-        // Booking type specific data
-        cargoType: data.bookingType === "freight" ? data.cargoType : "",
-        numBoxes: data.bookingType === "freight" ? Number(data.numBoxes) : 0,
-        weight: data.bookingType === "freight" ? Number(data.weight) : 0,
+        // Type-specific data
+        cargoType: data.bookingType === "freight" ? data.cargoType : null,
+        numBoxes: data.bookingType === "freight" ? Number(data.numBoxes) : null,
+        weight: data.bookingType === "freight" ? Number(data.weight) : null,
         boxSize: data.bookingType === "freight" ? data.boxSize?.slice(0, data.numBoxes) || [] : [],
 
-        tripType: data.bookingType === "passenger" ? data.tripType : "",
-        numPassengers: data.bookingType === "passenger" ? Number(data.numPassengers) : 0,
-        withDriver: !!data.withDriver,
-        bookingForSelf: !!data.bookingForSelf,
+        tripType: data.bookingType === "passenger" ? data.tripType : null,
+        numPassengers: data.bookingType === "passenger" ? Number(data.numPassengers) : null,
+        withDriver: data.bookingType === "passenger" ? !!data.withDriver : false,
+        bookingForSelf: data.bookingType === "passenger" ? !!data.bookingForSelf : false,
         passengerDetails: data.bookingType === "passenger"
           ? data.passengerDetails
-              .slice(0, data.numPassengers)
-              .map((p: any) => ({
-                name: p.name || "",
-                contact: p.contact || ""
-              }))
+            .slice(0, data.numPassengers)
+            .map((p: any) => ({
+              name: p.name || "",
+              contact: p.contact || ""
+            }))
           : []
       };
 
-      try {
-        await createBooking.mutateAsync(bookingData);
-      } catch (error: any) {
-        console.error("Booking creation error:", error);
-        toast({
-          title: "Booking Creation Failed",
-          description: error.message || "There was a problem creating your booking.",
-          variant: "destructive"
-        });
-      }
+      await createBooking.mutateAsync(bookingData);
     } catch (error: any) {
       console.error("Form submission error:", error);
       toast({
@@ -962,47 +958,53 @@ export function BookingForm() {
                   >
                     <FormField
                       control={form.control}
-                      name="priority"
+                      name="purpose"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>Priority *</FormLabel>
+                          <FormLabel>Purpose *</FormLabel>
                           <Select
                             onValueChange={field.onChange}
                             value={field.value}
-                            disabled
+                            disabled={form.watch("bookingType") === "freight"}
                           >
                             <FormControl>
                               <SelectTrigger>
-                                <SelectValue placeholder="Priority is set automatically" />
+                                <SelectValue placeholder="Select booking purpose" />
                               </SelectTrigger>
                             </FormControl>
                             <SelectContent>
-                              <SelectItem value={Priority.CRITICAL}>Critical</SelectItem>
-                              <SelectItem value={Priority.EMERGENCY}>Emergency</SelectItem>
-                              <SelectItem value={Priority.HIGH}>High</SelectItem>
-                              <SelectItem value={Priority.NORMAL}>Normal</SelectItem>
+                              {Object.values(BookingPurpose).map((purpose) => (
+                                <SelectItem key={purpose} value={purpose}>
+                                  {purpose}
+                                </SelectItem>
+                              ))}
                             </SelectContent>
                           </Select>
                           <FormMessage />
                         </FormItem>
                       )}
                     />
-
                     <FormField
                       control={form.control}
-                      name="purpose"
-                      render={({ field }) => (
+                      name="priority"
+                      render={({field }) => (
                         <FormItem>
-                          <FormLabel>Purpose * (Priority will be set automatically)</FormLabel>
-                          <Select onValueChange={field.onChange} value={field.value}>
+                          <FormLabel>Priority Level *</FormLabel>
+                          <Select
+                            onValueChange={field.onChange}
+                            value={field.value}
+                            disabled={form.watch("bookingType") === "freight"}
+                          >
                             <FormControl>
                               <SelectTrigger>
-                                <SelectValue placeholder="Select purpose" />
+                                <SelectValue placeholder="Select priority level" />
                               </SelectTrigger>
                             </FormControl>
                             <SelectContent>
-                              {Object.values(BookingPurpose).map((purpose) => (
-                                <SelectItem key={purpose} value={purpose}>{purpose}</SelectItem>
+                              {Object.values(Priority).map((priority) => (
+                                <SelectItem key={priority} value={priority}>
+                                  {priority}
+                                </SelectItem>
                               ))}
                             </SelectContent>
                           </Select>
@@ -1250,47 +1252,36 @@ export function BookingForm() {
                   </motion.div>
                 )}
 
-                <motion.div
-                  className="flex justify-between pt-4"
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.5 }}
-                >
-                  {currentStep > 1 && (
-                    <Button
-                      type="button"
-                      variant="outline"
-                      onClick={() => setCurrentStep(prev => prev - 1)}
-                      className="transform transition-all duration-200 hover:scale-105"
-                    >
-                      Previous
-                    </Button>
-                  )}
+                <div className="flex justify-between mt-8">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => setCurrentStep(currentStep - 1)}
+                    disabled={currentStep === 1}
+                  >
+                    Previous
+                  </Button>
                   {currentStep < 6 ? (
-                    <Button
-                      type="button"
-                      onClick={handleNextStep}
-                      className="ml-auto transform transition-all duration-2000 hover:scale-105"
-                    >
+                    <Button type="button" onClick={handleNextStep}>
                       Next
                     </Button>
                   ) : (
                     <Button
                       type="submit"
-                      className="ml-auto transform transition-all duration-200 hover:scale-105"
                       disabled={createBooking.isPending}
+                      className="bg-primary text-white hover:bg-primary/90"
                     >
                       {createBooking.isPending ? (
-                        <div className="flex items-center gap-2">
-                          <VehicleLoadingIndicator size="sm" />
-                          <span>Creating Booking...</span>
-                        </div>
+                        <>
+                          <LoadingIndicator className="mr-2" />
+                          Creating Booking...
+                        </>
                       ) : (
                         "Create Booking"
                       )}
                     </Button>
                   )}
-                </motion.div>
+                </div>
               </AnimatePresence>
             </form>
           </Form>
