@@ -15,6 +15,8 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { motion, AnimatePresence } from "framer-motion";
+import { Filter, Search } from "lucide-react";
 import { VehicleGroup, InsertVehicleGroup } from "@shared/schema";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
@@ -91,12 +93,12 @@ export default function VehicleGroupManagement() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-background/50 via-background to-background/90 p-6">
-      <div className="max-w-7xl mx-auto space-y-6">
-        <div className="flex items-center justify-between">
-          <h1 className="text-2xl font-bold text-primary">Vehicle Group Management</h1>
-        </div>
-
-        <Card>
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5 }}
+      >
+        <Card className="backdrop-blur-xl bg-background/60 border border-white/10 shadow-2xl">
           <CardHeader>
             <CardTitle>{selectedGroup ? "Edit Vehicle Group" : "Create Vehicle Group"}</CardTitle>
           </CardHeader>
@@ -109,60 +111,83 @@ export default function VehicleGroupManagement() {
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="mt-6 backdrop-blur-xl bg-background/60 border border-white/10 shadow-2xl">
           <CardHeader>
             <CardTitle>Vehicle Groups List</CardTitle>
           </CardHeader>
           <CardContent>
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Group Code</TableHead>
-                  <TableHead>Name</TableHead>
-                  <TableHead>Region</TableHead>
-                  <TableHead>Type</TableHead>
-                  <TableHead>Department</TableHead>
-                  <TableHead>Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {isLoading ? (
-                  <TableRow>
-                    <TableCell colSpan={6} className="text-center">
-                      Loading...
-                    </TableCell>
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 0.4, duration: 0.5 }}
+            >
+              <Table>
+                <TableHeader>
+                  <TableRow className="border-white/10 hover:bg-background/40">
+                    <TableHead className="text-primary/80">Group Code</TableHead>
+                    <TableHead className="text-primary/80">Name</TableHead>
+                    <TableHead className="text-primary/80">Region</TableHead>
+                    <TableHead className="text-primary/80">Type</TableHead>
+                    <TableHead className="text-primary/80">Department</TableHead>
+                    <TableHead className="text-primary/80">Actions</TableHead>
                   </TableRow>
-                ) : !vehicleGroups?.length ? (
-                  <TableRow>
-                    <TableCell colSpan={6} className="text-center text-muted-foreground">
-                      No vehicle groups found
-                    </TableCell>
-                  </TableRow>
-                ) : (
-                  vehicleGroups?.map((group) => (
-                    <TableRow key={group.id}>
-                      <TableCell>{group.groupCode}</TableCell>
-                      <TableCell>{group.name}</TableCell>
-                      <TableCell>{group.region}</TableCell>
-                      <TableCell>{group.type}</TableCell>
-                      <TableCell>{group.department}</TableCell>
-                      <TableCell>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => setSelectedGroup(group)}
+                </TableHeader>
+                <TableBody>
+                  <AnimatePresence mode="wait">
+                    {isLoading ? (
+                      <TableRow>
+                        <TableCell colSpan={6} className="text-center py-8">
+                          <motion.div
+                            initial={{ opacity: 0, scale: 0.8 }}
+                            animate={{ opacity: 1, scale: 1 }}
+                            exit={{ opacity: 0, scale: 0.8 }}
+                            transition={{ duration: 0.5 }}
+                            className="flex justify-center"
+                          >
+                            Loading...
+                          </motion.div>
+                        </TableCell>
+                      </TableRow>
+                    ) : !vehicleGroups?.length ? (
+                      <TableRow>
+                        <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
+                          No vehicle groups found
+                        </TableCell>
+                      </TableRow>
+                    ) : (
+                      vehicleGroups?.map((group) => (
+                        <motion.tr
+                          key={group.id}
+                          initial={{ opacity: 0, x: -20 }}
+                          animate={{ opacity: 1, x: 0 }}
+                          exit={{ opacity: 0, x: 20 }}
+                          transition={{ duration: 0.2 }}
+                          className="border-white/10 backdrop-blur-sm transition-all duration-200 hover:bg-background/40"
                         >
-                          Edit
-                        </Button>
-                      </TableCell>
-                    </TableRow>
-                  ))
-                )}
-              </TableBody>
-            </Table>
+                          <TableCell className="font-medium">{group.groupCode}</TableCell>
+                          <TableCell>{group.name}</TableCell>
+                          <TableCell>{group.region}</TableCell>
+                          <TableCell>{group.type}</TableCell>
+                          <TableCell>{group.department}</TableCell>
+                          <TableCell>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => setSelectedGroup(group)}
+                            >
+                              Edit
+                            </Button>
+                          </TableCell>
+                        </motion.tr>
+                      ))
+                    )}
+                  </AnimatePresence>
+                </TableBody>
+              </Table>
+            </motion.div>
           </CardContent>
         </Card>
-      </div>
+      </motion.div>
     </div>
   );
 }
