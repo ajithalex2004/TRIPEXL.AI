@@ -7,6 +7,15 @@ export default function Home() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-background/50 via-background to-background/90">
       <div className="container mx-auto p-4">
+        <motion.h1
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5 }}
+          className="text-3xl font-bold text-center mb-8 bg-gradient-to-r from-primary/80 to-primary bg-clip-text text-transparent"
+        >
+          FleetWise
+        </motion.h1>
+
         {/* Booking Form Section - At the top */}
         <motion.section
           initial={{ opacity: 0, y: 20 }}
