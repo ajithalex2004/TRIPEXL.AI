@@ -979,10 +979,10 @@ export function BookingForm() {
                               {renderDateTimePicker(field)}
                             </FormControl>
                             <FormDescription>
-                              {form.watch("priority") === Priority.CRITICAL && "Time should be at least immediately from now"}
-                              {form.watch("priority") === Priority.EMERGENCY && "Time should be at least 30 minutes from now"}
-                              {form.watch("priority") === Priority.HIGH && "Time should be at least 1 hour from now"}
-                              {form.watch("priority") === Priority.NORMAL && "Time should be at least 3 hours from now"}
+                              {form.watch("priority") === Priority.CRITICAL && "Pickup time: Immediate"}
+                              {form.watch("priority") === Priority.EMERGENCY && "Pickup time: Minimum 30 minutes from now"}
+                              {form.watch("priority") === Priority.HIGH && "Pickup time: Minimum 1 hour from now"}
+                              {form.watch("priority") === Priority.NORMAL && "Pickup time: Minimum 3 hours from now"}
                             </FormDescription>
                             <FormMessage />
                           </FormItem>
@@ -1008,7 +1008,7 @@ export function BookingForm() {
                               />
                             </FormControl>
                             <FormDescription>
-                              Automatically calculated based on route ETA
+                              ETA
                             </FormDescription>
                             <FormMessage />
                           </FormItem>
