@@ -148,7 +148,7 @@ export function BookingForm() {
       priority: "",
       pickupLocation: DEFAULT_PICKUP_LOCATION,
       dropoffLocation: DEFAULT_DROPOFF_LOCATION,
-      pickupTime: new Date().toISOString(), // Set default to current time
+      pickupTime: getMinimumPickupTime().toISOString(), // Set default to current time
       dropoffTime: "",
       cargoType: "",
       numBoxes: 0,
@@ -390,7 +390,7 @@ export function BookingForm() {
   // Update DateTimePicker implementation
   const renderDateTimePicker = (field: any) => (
     <DateTimePicker
-      value={new Date()}
+      value={field.value ? new Date(field.value) : new Date()}
       onChange={(date: Date | null) => {
         if (date) {
           const selectedDate = new Date(date);
@@ -402,7 +402,6 @@ export function BookingForm() {
             const minTime = now.getTime() + minOffset;
 
             if (selectedDate.getTime() < minTime) {
-              // Adjust only the time portion while keeping the selected date
               selectedDate.setHours(now.getHours());
               selectedDate.setMinutes(now.getMinutes() + minOffset / (60 * 1000));
             }
@@ -410,7 +409,7 @@ export function BookingForm() {
 
           field.onChange(selectedDate.toISOString());
         } else {
-          field.onChange("");
+          field.onChange(new Date().toISOString());
         }
       }}
       onBlur={field.onBlur}
@@ -987,7 +986,8 @@ export function BookingForm() {
                       )}
                     />
                     <FormField
-                      control={form.control}                      name="remarks"
+                      control={form.control}
+                      name="remarks"
                       render={({ field }) => (
                         <FormItem>
                           <FormLabel>Remarks</FormLabel>
