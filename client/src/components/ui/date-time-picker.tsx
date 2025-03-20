@@ -53,6 +53,15 @@ export function DateTimePicker({ value, onChange, onBlur, disabled }: DateTimePi
     i.toString().padStart(2, "0")
   );
 
+  // Function to disable past dates
+  const disablePastDates = (date: Date) => {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const compareDate = new Date(date);
+    compareDate.setHours(0, 0, 0, 0);
+    return compareDate < today;
+  };
+
   return (
     <Popover>
       <PopoverTrigger asChild>
@@ -73,6 +82,7 @@ export function DateTimePicker({ value, onChange, onBlur, disabled }: DateTimePi
           mode="single"
           selected={selectedDate}
           onSelect={setSelectedDate}
+          disabled={disablePastDates}
           initialFocus
         />
         <div className="border-t p-3 space-y-2">
