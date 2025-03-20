@@ -996,127 +996,136 @@ export function BookingForm() {
                     className="space-y-6"
                   >
                     <div className="space-y-2">
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-                        <FormField
-                          control={form.control}
-                          name="pickupLocation"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>Pickup Location *</FormLabel>
-                              <FormControl>
-                                <LocationInput
-                                  inputId="pickup-location"
-                                  value={field.value?.formatted_address || field.value?.address || ""}
-                                  placeholder="Enter pickup location"
-                                  onLocationSelect={(location) => {
-                                    form.setValue("pickupLocation", location, {
-                                      shouldValidate: true,
-                                      shouldDirty: true,
-                                      shouldTouch: true
-                                    });
-                                  }}
-                                  onSearchChange={(query) => {
-                                    form.setValue("pickupLocation", {
-                                      ...field.value,
-                                      address: query
-                                    });
-                                  }}
-                                  onFocus={() => setActiveLocation("pickup")}
-                                />
-                              </FormControl>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />                        <FormField
-                          control={form.control}
-                          name="dropoffLocation"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>Dropoff Location *</FormLabel>
-                              <FormControl>
-                                <LocationInput
-                                  inputId="dropoff-location"
-                                  value={field.value?.formatted_address || field.value?.address || ""}
-                                  placeholder="Enter dropoff location"
-                                  onLocationSelect={(location) => {
-                                    form.setValue("dropoffLocation", location, {
-                                      shouldValidate: true,
-                                      shouldDirty: true,
-                                      shouldTouch: true
-                                    });
-                                  }}
-                                  onSearchChange={(query) => {
-                                    form.setValue("dropoffLocation", {
-                                      ...field.value,
-                                      address: query
-                                    });
-                                  }}
-                                  onFocus={() => setActiveLocation("dropoff")}
-                                />
-                              </FormControl>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-                      </div>
-                      <div className="h-[400px] relative">
-                        <MapView
-                          pickupLocation={form.watch("pickupLocation")}
-                          dropoffLocation={form.watch("dropoffLocation")}
-                          onLocationSelect={(location, type) => {
-                            const fieldName = type === 'pickup' ? "pickupLocation" : "dropoffLocation";
-                            form.setValue(fieldName, location, {
-                              shouldValidate: true,
-                              shouldDirty: true,
-                              shouldTouch: true
-                            });
-                          }}
-                          onRouteCalculated={(duration) => {
-                            handleRouteCalculated(duration);
-                          }}
-                        />
+                      {/* Location and Map Section */}
+                      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                        {/* Location Inputs */}
+                        <div className="space-y-4">
+                          <FormField
+                            control={form.control}
+                            name="pickupLocation"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>Pickup Location *</FormLabel>
+                                <FormControl>
+                                  <LocationInput
+                                    value={field.value?.address || ""}
+                                    placeholder="Enter pickup location"
+                                    onLocationSelect={(location) => {
+                                      form.setValue("pickupLocation", location, {
+                                        shouldValidate: true,
+                                        shouldDirty: true,
+                                        shouldTouch: true
+                                      });
+                                    }}
+                                    onSearchChange={(query) => {
+                                      form.setValue("pickupLocation", {
+                                        ...field.value,
+                                        address: query
+                                      });
+                                    }}
+                                    inputId="pickup-location"
+                                  />
+                                </FormControl>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+
+                          <FormField
+                            control={form.control}
+                            name="dropoffLocation"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>Dropoff Location *</FormLabel>
+                                <FormControl>
+                                  <LocationInput
+                                    value={field.value?.address || ""}
+                                    placeholder="Enter dropoff location"
+                                    onLocationSelect={(location) => {
+                                      form.setValue("dropoffLocation", location, {
+                                        shouldValidate: true,
+                                        shouldDirty: true,
+                                        shouldTouch: true
+                                      });
+                                    }}
+                                    onSearchChange={(query) => {
+                                      form.setValue("dropoffLocation", {
+                                        ...field.value,
+                                        address: query
+                                      });
+                                    }}
+                                    inputId="dropoff-location"
+                                  />
+                                </FormControl>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+
+                          {/* Time Selection Fields */}
+                          <div className="space-y-4 mt-6">
+                            <FormField
+                              control={form.control}
+                              name="pickupTime"
+                              render={({ field }) => (
+                                <FormItem>
+                                  <FormLabel>Pickup Time *</FormLabel>
+                                  <FormControl>
+                                    {renderDateTimePicker(field)}
+                                  </FormControl>
+                                  <FormMessage />
+                                </FormItem>
+                              )}
+                            />
+
+                            <FormField
+                              control={form.control}
+                              name="dropoffTime"
+                              render={({ field }) => (
+                                <FormItem>
+                                  <FormLabel>Time of Dropoff *</FormLabel>
+                                  <FormControl>
+                                    {renderDropoffDateTimePicker(field)}
+                                  </FormControl>
+                                  <FormDescription>
+                                    {routeDuration > 0 && form.watch("pickupTime") ? (
+                                      <div className="space-y-1">
+                                        <p>Pickup: {format(new Date(form.watch("pickupTime")), "HH:mm")}</p>
+                                        <p>Estimated arrival: {format(new Date(new Date(form.watch("pickupTime")).getTime() + (routeDuration * 1000)), "HH:mm")}</p>
+                                        <p className="text-muted-foreground text-sm">Must be after estimated arrival time</p>
+                                      </div>
+                                    ) : (
+                                      'Select pickup time and route first'
+                                    )}
+                                  </FormDescription>
+                                  <FormMessage />
+                                </FormItem>
+                              )}
+                            />
+                          </div>
+                        </div>
+
+                        {/* Map View */}
+                        <div className="space-y-4">
+                          <div className="h-[500px] relative rounded-lg overflow-hidden border">
+                            <MapView
+                              pickupLocation={form.watch("pickupLocation")}
+                              dropoffLocation={form.watch("dropoffLocation")}
+                              onLocationSelect={(location, type) => {
+                                const fieldName = type === 'pickup' ? "pickupLocation" : "dropoffLocation";
+                                form.setValue(fieldName, location, {
+                                  shouldValidate: true,
+                                  shouldDirty: true,
+                                  shouldTouch: true
+                                });
+                              }}
+                              onRouteCalculated={handleRouteCalculated}
+                            />
+                          </div>
+                        </div>
                       </div>
                       {/* Time Selection Section */}
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <FormField
-                          control={form.control}
-                          name="pickupTime"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>Pickup Time *</FormLabel>
-                              <FormControl>
-                                {renderDateTimePicker(field)}
-                              </FormControl>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
 
-                        <FormField
-                          control={form.control}
-                          name="dropoffTime"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>Time of Dropoff *</FormLabel>
-                              <FormControl>
-                                {renderDropoffDateTimePicker(field)}
-                              </FormControl>
-                              <FormDescription>
-                                {routeDuration > 0 && form.watch("pickupTime") ? (
-                                  <div className="space-y-1">
-                                    <p>Pickup time: {format(new Date(form.watch("pickupTime")), "HH:mm")}</p>
-                                    <p>Estimated arrival: {format(new Date(new Date(form.watch("pickupTime")).getTime() + (routeDuration * 1000)), "HH:mm")}</p>
-                                    <p className="text-muted-foreground">Dropoff time must be after estimated arrival</p>
-                                  </div>
-                                ) : (
-                                  'Select pickup time and route first'
-                                )}
-                              </FormDescription>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-                      </div>
                       <FormMessage>{form.formState.errors.pickupLocation?.message}</FormMessage>
                       <FormMessage>{form.formState.errors.dropoffLocation?.message}</FormMessage>
                     </div>
