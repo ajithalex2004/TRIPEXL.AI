@@ -12,9 +12,13 @@ import {
 } from "@/components/ui/sidebar";
 import { Logo } from "@/components/ui/logo";
 import { Footer } from "@/components/ui/footer";
-import { History } from "lucide-react";
+import { History, Database } from "lucide-react";
 
 export function Layout({ children }: { children: React.ReactNode }) {
+  const openVehicleGroups = () => {
+    window.open("/vehicle-groups", "_blank", "width=1200,height=800");
+  };
+
   return (
     <SidebarProvider>
       <div className="flex min-h-screen relative">
@@ -31,6 +35,12 @@ export function Layout({ children }: { children: React.ReactNode }) {
                     <span>Booking History</span>
                   </SidebarMenuButton>
                 </Link>
+              </SidebarMenuItem>
+              <SidebarMenuItem>
+                <SidebarMenuButton className="w-full" onClick={openVehicleGroups}>
+                  <Database className="w-4 h-4" />
+                  <span>Vehicle Groups</span>
+                </SidebarMenuButton>
               </SidebarMenuItem>
               <SidebarMenuItem>
                 <LogoutButton />

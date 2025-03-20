@@ -6,6 +6,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import {
   Table,
   TableBody,
@@ -89,65 +90,79 @@ export default function VehicleGroupManagement() {
   };
 
   return (
-    <div className="container mx-auto p-6 space-y-6">
-      <Card>
-        <CardHeader>
-          <CardTitle>{selectedGroup ? "Edit Vehicle Group" : "Create Vehicle Group"}</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <VehicleGroupForm
-            onSubmit={handleSubmit}
-            initialData={selectedGroup || undefined}
-            isEditing={!!selectedGroup}
-          />
-        </CardContent>
-      </Card>
+    <div className="min-h-screen bg-gradient-to-br from-background/50 via-background to-background/90 p-6">
+      <div className="max-w-7xl mx-auto space-y-6">
+        <div className="flex items-center justify-between">
+          <h1 className="text-2xl font-bold text-primary">Vehicle Group Management</h1>
+        </div>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Vehicle Groups List</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Group Code</TableHead>
-                <TableHead>Name</TableHead>
-                <TableHead>Region</TableHead>
-                <TableHead>Type</TableHead>
-                <TableHead>Department</TableHead>
-                <TableHead>Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {isLoading ? (
+        <Card>
+          <CardHeader>
+            <CardTitle>{selectedGroup ? "Edit Vehicle Group" : "Create Vehicle Group"}</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <VehicleGroupForm
+              onSubmit={handleSubmit}
+              initialData={selectedGroup || undefined}
+              isEditing={!!selectedGroup}
+            />
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Vehicle Groups List</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <Table>
+              <TableHeader>
                 <TableRow>
-                  <TableCell colSpan={6} className="text-center">
-                    Loading...
-                  </TableCell>
+                  <TableHead>Group Code</TableHead>
+                  <TableHead>Name</TableHead>
+                  <TableHead>Region</TableHead>
+                  <TableHead>Type</TableHead>
+                  <TableHead>Department</TableHead>
+                  <TableHead>Actions</TableHead>
                 </TableRow>
-              ) : vehicleGroups?.map((group) => (
-                <TableRow key={group.id}>
-                  <TableCell>{group.groupCode}</TableCell>
-                  <TableCell>{group.name}</TableCell>
-                  <TableCell>{group.region}</TableCell>
-                  <TableCell>{group.type}</TableCell>
-                  <TableCell>{group.department}</TableCell>
-                  <TableCell>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => setSelectedGroup(group)}
-                    >
-                      Edit
-                    </Button>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </CardContent>
-      </Card>
+              </TableHeader>
+              <TableBody>
+                {isLoading ? (
+                  <TableRow>
+                    <TableCell colSpan={6} className="text-center">
+                      Loading...
+                    </TableCell>
+                  </TableRow>
+                ) : !vehicleGroups?.length ? (
+                  <TableRow>
+                    <TableCell colSpan={6} className="text-center text-muted-foreground">
+                      No vehicle groups found
+                    </TableCell>
+                  </TableRow>
+                ) : (
+                  vehicleGroups?.map((group) => (
+                    <TableRow key={group.id}>
+                      <TableCell>{group.groupCode}</TableCell>
+                      <TableCell>{group.name}</TableCell>
+                      <TableCell>{group.region}</TableCell>
+                      <TableCell>{group.type}</TableCell>
+                      <TableCell>{group.department}</TableCell>
+                      <TableCell>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => setSelectedGroup(group)}
+                        >
+                          Edit
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  ))
+                )}
+              </TableBody>
+            </Table>
+          </CardContent>
+        </Card>
+      </div>
     </div>
   );
 }
