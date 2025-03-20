@@ -38,6 +38,15 @@ export const Department = {
   SECURITY: "Security"
 } as const;
 
+// Add Vehicle Group Type
+export const VehicleGroupType = {
+  AMBULANCE_FLEET: "Ambulance Fleet",
+  PASSENGER_FLEET: "Passenger Fleet",
+  CARGO_FLEET: "Cargo Fleet",
+  SPECIAL_FLEET: "Special Fleet",
+  EXECUTIVE_FLEET: "Executive Fleet"
+} as const;
+
 // Keep existing enums
 export const BookingType = {
   FREIGHT: "freight",
@@ -129,8 +138,25 @@ export const contactInfo = z.object({
 });
 
 
+// Add Vehicle Groups table
+export const vehicleGroups = pgTable("vehicle_groups", {
+  id: serial("id").primaryKey(),
+  name: text("name").notNull().unique(),
+  type: text("type").notNull(),
+  description: text("description"),
+  capacity: integer("capacity").notNull(),
+  manager: text("manager").references(() => employees.employeeId),
+  status: text("status").notNull().default("Active"),
+  baseLocation: json("base_location").$type<z.infer<typeof locations>>(),
+  isActive: boolean("is_active").notNull().default(true),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow()
+});
+
+// Update vehicles table to include group reference
 export const vehicles = pgTable("vehicles", {
   id: serial("id").primaryKey(),
+  groupId: integer("group_id").references(() => vehicleGroups.id),
   vehicleNumber: text("vehicle_number").notNull().unique(),
   name: text("name").notNull(),
   type: text("type").notNull(),
@@ -193,7 +219,7 @@ export const locationsMaster = pgTable("locations_master", {
   name: text("name").notNull(),
   address: text("address").notNull(),
   coordinates: json("coordinates").$type<{ lat: number; lng: number }>().notNull(),
-  type: text("type").notNull(), 
+  type: text("type").notNull(),
   contactPerson: text("contact_person"),
   contactPhone: text("contact_phone"),
   operatingHours: json("operating_hours").$type<{ open: string; close: string }[]>(),
@@ -308,6 +334,9 @@ export const insertVehicleSchema = createInsertSchema(vehicles);
 export const insertDriverSchema = createInsertSchema(drivers);
 export const insertLocationMasterSchema = createInsertSchema(locationsMaster);
 
+// Add Vehicle Group insert schema and type
+export const insertVehicleGroupSchema = createInsertSchema(vehicleGroups);
+
 export type Employee = typeof employees.$inferSelect;
 export type User = typeof users.$inferSelect;
 export type OtpVerification = typeof otpVerifications.$inferSelect;
@@ -315,6 +344,7 @@ export type Vehicle = typeof vehicles.$inferSelect;
 export type Driver = typeof drivers.$inferSelect;
 export type Booking = typeof bookings.$inferSelect;
 export type LocationMaster = typeof locationsMaster.$inferSelect;
+export type VehicleGroup = typeof vehicleGroups.$inferSelect;
 
 export type InsertEmployee = z.infer<typeof insertEmployeeSchema>;
 export type InsertUser = z.infer<typeof insertUserSchema>;
@@ -323,3 +353,4 @@ export type InsertVehicle = z.infer<typeof insertVehicleSchema>;
 export type InsertDriver = z.infer<typeof insertDriverSchema>;
 export type InsertBooking = z.infer<typeof insertBookingSchema>;
 export type InsertLocationMaster = z.infer<typeof insertLocationMasterSchema>;
+export type InsertVehicleGroup = z.infer<typeof insertVehicleGroupSchema>;
