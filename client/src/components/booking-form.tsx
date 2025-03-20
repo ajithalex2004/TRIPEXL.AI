@@ -333,7 +333,7 @@ export function BookingForm() {
 
       // Format location data strictly according to schema
       const formatLocation = (location: any) => ({
-        address: location.address,
+        address: location.address || "",
         coordinates: {
           lat: Number(location.coordinates.lat),
           lng: Number(location.coordinates.lng)
@@ -346,54 +346,57 @@ export function BookingForm() {
         referenceNo,
         employeeId: data.employeeId || employee?.employeeId,
         bookingType: data.bookingType,
-        purpose: data.purpose,
+        purpose: data.purpose || BookingPurpose.FREIGHT_TRANSPORT,
         priority: data.priority,
         status: "PENDING",
-        createdAt: new Date().toISOString(),
 
         // Location information
         pickupLocation: formatLocation(data.pickupLocation),
         dropoffLocation: formatLocation(data.dropoffLocation),
 
         // Timing information
-        pickupTime: data.pickupTime,
-        dropoffTime: data.dropoffTime,
-        estimatedDuration: routeDuration,
+        pickupTime: new Date(data.pickupTime).toISOString(),
+        dropoffTime: new Date(data.dropoffTime).toISOString(),
+
+        // Additional notes
+        remarks: data.remarks || "",
 
         // Freight-specific fields
         ...(data.bookingType === "freight" && {
           cargoType: data.cargoType,
-          numBoxes: Number(data.numBoxes),
-          weight: Number(data.weight),
-          boxSize: data.boxSize?.slice(0, data.numBoxes) || []
+          numBoxes: Number(data.numBoxes || 0),
+          weight: Number(data.weight || 0),
+          boxSize: Array.isArray(data.boxSize) ? data.boxSize : []
         }),
 
         // Passenger-specific fields
         ...(data.bookingType === "passenger" && {
           tripType: data.tripType,
-          numPassengers: Number(data.numPassengers),
-          withDriver: !!data.withDriver,
-          bookingForSelf: !!data.bookingForSelf,
-          passengerDetails: data.passengerDetails
-            ?.slice(0, data.numPassengers)
-            ?.map((p: any) => ({
+          numPassengers: Number(data.numPassengers || 1),
+          withDriver: Boolean(data.withDriver),
+          bookingForSelf: Boolean(data.bookingForSelf),
+          passengerDetails: Array.isArray(data.passengerDetails) ? 
+            data.passengerDetails.map((p: any) => ({
               name: p.name || "",
               contact: p.contact || ""
-            })) || []
-        }),
-
-        // Additional notes
-        remarks: data.remarks || ""
+            })) : []
+        })
       };
 
-      console.log("Submitting booking:", bookingData);
-      await createBooking.mutateAsync(bookingData);
+      console.log("Submitting booking data:", bookingData);
+      const response = await createBooking.mutateAsync(bookingData);
+
+      if (response?.referenceNo) {
+        setCreatedReferenceNo(response.referenceNo);
+        setShowSuccessDialog(true);
+      }
     } catch (error: any) {
       console.error("Form submission error:", error);
       toast({
-        title: "Error",
-        description: error.message || "Failed to create booking",
-        variant: "destructive"
+        title: "Error Creating Booking",
+        description: error.message || "Failed to create booking. Please try again.",
+        variant: "destructive",
+        duration: 5000
       });
     }
   };
@@ -1003,28 +1006,28 @@ export function BookingForm() {
                       name="purpose"
                       render={({ field }) => (
                         <FormItem>
-                        <FormLabel>Purpose *</FormLabel>
-                        <Select
-                          onValueChange={field.onChange}
-                          value={field.value}
-                          disabled={form.watch("bookingType") === "freight"}
-                        >
-                          <FormControl>
-                            <SelectTrigger>
-                              <SelectValue placeholder="Select booking purpose" />
-                            </SelectTrigger>
-                          </FormControl>
-                          <SelectContent>
-                            {Object.values(BookingPurpose).map((purpose) => (
-                              <SelectItem key={purpose} value={purpose}>
-                                {purpose}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                        <FormMessage />
-                      </FormItem>
-                    )}
+                          <FormLabel>Purpose *</FormLabel>
+                          <Select
+                            onValueChange={field.onChange}
+                            value={field.value}
+                            disabled={form.watch("bookingType") === "freight"}
+                          >
+                            <FormControl>
+                              <SelectTrigger>
+                                <SelectValue placeholder="Select booking purpose" />
+                              </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                              {Object.values(BookingPurpose).map((purpose) => (
+                                <SelectItem key={purpose} value={purpose}>
+                                  {purpose}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                          <FormMessage />
+                        </FormItem>
+                      )}
                     />
                     <FormField
                       control={form.control}
@@ -1339,17 +1342,17 @@ export function BookingForm() {
             <AlertDialogTitle className="text-center text-xl font-bold text-primary">
               Booking Created Successfully!
             </AlertDialogTitle>
-          <AlertDialogDescription className="text-center space-y-4 py-4">
-            <p className="text-lg">
-              Your booking reference number is:
-            </p>
-            <p className="text-2xl font-semibold text-primary">
-              {createdReferenceNo}
-            </p>
-            <p className="text-sm text-muted-foreground">
-              You can track your booking status in the booking history.
-            </p>
-          </AlertDialogDescription>
+            <AlertDialogDescription className="text-center space-y-4 py-4">
+              <p className="text-lg">
+                Your booking reference number is:
+              </p>
+              <p className="text-2xl font-semibold text-primary">
+                {createdReferenceNo}
+              </p>
+              <p className="text-sm text-muted-foreground">
+                You can track your booking status in the booking history.
+              </p>
+            </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter className="sm:justify-center">
             <AlertDialogAction
