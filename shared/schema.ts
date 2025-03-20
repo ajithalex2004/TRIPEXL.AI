@@ -38,13 +38,10 @@ export const Department = {
   SECURITY: "Security"
 } as const;
 
-// Add Vehicle Group Type
+// Update Vehicle Group Type
 export const VehicleGroupType = {
-  AMBULANCE_FLEET: "Ambulance Fleet",
-  PASSENGER_FLEET: "Passenger Fleet",
-  CARGO_FLEET: "Cargo Fleet",
-  SPECIAL_FLEET: "Special Fleet",
-  EXECUTIVE_FLEET: "Executive Fleet"
+  LIGHT_VEHICLE: "LIGHT VEHICLE",
+  HEAVY_VEHICLE: "HEAVY VEHICLE"
 } as const;
 
 // Keep existing enums
