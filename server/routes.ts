@@ -1,7 +1,7 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import { insertBookingSchema, insertUserSchema } from "@shared/schema";
+import { insertBookingSchema, insertUserSchema, insertVehicleGroupSchema } from "@shared/schema";
 import { authService } from "./services/auth";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
@@ -210,6 +210,63 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error('Error fetching employee:', error);
       res.status(500).json({ error: "Failed to fetch employee information" });
+    }
+  });
+
+  // Vehicle Group routes
+  app.get("/api/vehicle-groups", async (_req, res) => {
+    try {
+      const groups = await storage.getAllVehicleGroups();
+      res.json(groups);
+    } catch (error: any) {
+      console.error("Error fetching vehicle groups:", error);
+      res.status(500).json({ error: "Failed to fetch vehicle groups" });
+    }
+  });
+
+  app.post("/api/vehicle-groups", async (req, res) => {
+    const result = insertVehicleGroupSchema.safeParse(req.body);
+    if (!result.success) {
+      return res.status(400).json({ 
+        error: "Invalid vehicle group data", 
+        details: result.error.issues 
+      });
+    }
+
+    try {
+      const group = await storage.createVehicleGroup(result.data);
+      res.status(201).json(group);
+    } catch (error: any) {
+      console.error("Error creating vehicle group:", error);
+      res.status(500).json({ error: "Failed to create vehicle group" });
+    }
+  });
+
+  app.patch("/api/vehicle-groups/:id", async (req, res) => {
+    const id = parseInt(req.params.id);
+    if (isNaN(id)) {
+      return res.status(400).json({ error: "Invalid group ID" });
+    }
+
+    try {
+      const group = await storage.getVehicleGroup(id);
+      if (!group) {
+        return res.status(404).json({ error: "Vehicle group not found" });
+      }
+
+      const result = insertVehicleGroupSchema.partial().safeParse(req.body);
+      if (!result.success) {
+        return res.status(400).json({ 
+          error: "Invalid update data", 
+          details: result.error.issues 
+        });
+      }
+
+      const updatedGroup = await storage.updateVehicleGroup(id, result.data);
+      res.json(updatedGroup);
+    } catch (error: any) {
+      console.error("Error updating vehicle group:", error);
+      res.status(500).json({ error: "Failed to update vehicle group" });
     }
   });
 
