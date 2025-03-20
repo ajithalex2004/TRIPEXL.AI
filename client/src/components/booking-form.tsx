@@ -306,6 +306,30 @@ export function BookingForm() {
   }, [form.watch("pickupTime"), routeDuration, form]);
 
 
+  // Add effect to handle bookingForSelf changes
+  React.useEffect(() => {
+    const bookingForSelf = form.watch("bookingForSelf");
+    const numPassengers = form.watch("numPassengers");
+
+    if (bookingForSelf && numPassengers > 0 && employee) {
+      // Update first passenger's details with employee info
+      const passengerDetails = form.getValues("passengerDetails") || [];
+      passengerDetails[0] = {
+        name: employee.name,
+        contact: employee.phone
+      };
+      form.setValue("passengerDetails", passengerDetails, {
+        shouldValidate: true,
+        shouldDirty: true,
+        shouldTouch: true
+      });
+    } else if (!bookingForSelf && numPassengers > 0) {
+      const passengerDetails = form.getValues("passengerDetails") || [];
+      passengerDetails[0] = { name: "", contact: "" };
+      form.setValue("passengerDetails", passengerDetails);
+    }
+  }, [form.watch("bookingForSelf"), employee, form, form.watch("numPassengers")]);
+
   return (
     <>
       <Card className="transform transition-all duration-200 hover:shadow-lg">
