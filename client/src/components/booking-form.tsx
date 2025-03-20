@@ -512,50 +512,38 @@ export function BookingForm() {
         onChange={(date) => {
           if (date) {
             field.onChange(date.toISOString());
+          }
+        }}
+        onBlur={() => {
+          const selectedDate = field.value ? new Date(field.value) : null;
+          const pickupDate = pickupTime ? new Date(pickupTime) : null;
 
-            // Only validate after complete selection
-            const selectedDate = new Date(date);
-            const pickupDate = pickupTime ? new Date(pickupTime) : null;
+          if (selectedDate && pickupDate) {
+            // Validation when leaving the control
+            if (selectedDate <= pickupDate) {
+              toast({
+                title: "Invalid Time Selection",
+                description: "Dropoff time must be after pickup time",
+                variant: "destructive"
+              });
+              field.onChange(null);
+              return;
+            }
 
-            if (pickupDate) {
-              // Check if selected time is valid based on pickup and ETA
-              const hasValidationError = (() => {
-                if (selectedDate <= pickupDate) {
-                  return {
-                    title: "Invalid Time Selection",
-                    message: "Dropoff time must be after pickup time"
-                  };
-                }
-
-                if (routeDuration) {
-                  const eta = new Date(pickupDate.getTime() + (routeDuration * 1000));
-                  if (selectedDate < eta) {
-                    return {
-                      title: "Invalid Time Selection",
-                      message: `Dropoff time must be after estimated arrival (${format(eta, "HH:mm")})`
-                    };
-                  }
-                }
-
-                return null;
-              })();
-
-              // Show error only if validation fails
-              if (hasValidationError) {
+            if (routeDuration) {
+              const eta = new Date(pickupDate.getTime() + (routeDuration * 1000));
+              if (selectedDate < eta) {
                 toast({
-                  title: hasValidationError.title,
-                  description: hasValidationError.message,
-                  variant: "destructive",
-                }, {
-                  duration: 3000
+                  title: "Invalid Time Selection",
+                  description: `Dropoff time must be after estimated arrival (${format(eta, "HH:mm")})`,
+                  variant: "destructive"
                 });
-                // Reset the field if validation fails
                 field.onChange(null);
+                return;
               }
             }
           }
         }}
-        onBlur={field.onBlur}
         disabled={!pickupTime}
       />
     );
@@ -1029,7 +1017,7 @@ export function BookingForm() {
                     key="step4"
                     initial={{ opacity: 0, x: -20 }}
                     animate={{ opacity: 1, x: 0 }}
-                    exit={{ opacity: 0, x: 20}}
+                    exit={{ opacity: 0, x: 20 }}
                     transition={{ duration: 0.5 }}
                     className="spacey-6"
                   >
