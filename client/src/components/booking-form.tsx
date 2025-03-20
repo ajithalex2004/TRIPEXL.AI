@@ -346,6 +346,51 @@ export function BookingForm() {
     }
   }, [purpose, form]);
 
+  // Update useEffect for handling priority changes to set immediate time for Critical
+  React.useEffect(() => {
+    const priority = form.watch("priority");
+    if (priority) {
+      const currentTime = new Date();
+
+      if (priority === Priority.CRITICAL) {
+        // For Critical priority, set to current time
+        form.setValue("pickupTime", currentTime.toISOString(), {
+          shouldValidate: true,
+          shouldDirty: true,
+          shouldTouch: true
+        });
+
+        // Update dropoff time if route duration is available
+        if (routeDuration) {
+          const estimatedDropoff = new Date(currentTime.getTime() + (routeDuration * 1000));
+          form.setValue("dropoffTime", estimatedDropoff.toISOString(), {
+            shouldValidate: true,
+            shouldDirty: true,
+            shouldTouch: true
+          });
+        }
+      } else {
+        const minPickupTime = getMinimumPickupTime();
+        const minOffset = getMinimumOffset(priority);
+        const currentPickupTime = form.watch("pickupTime");
+
+        if (currentPickupTime) {
+          const currentDate = new Date(currentPickupTime);
+          if (currentDate < minPickupTime) {
+            const adjustedTime = new Date(minPickupTime.getTime() + minOffset);
+            form.setValue("pickupTime", adjustedTime.toISOString(), {
+              shouldValidate: true,
+              shouldDirty: true,
+              shouldTouch: true
+            });
+          }
+        }
+      }
+    }
+  }, [form.watch("priority"), routeDuration, form]);
+
+
+  // Update the handleRouteCalculated function to properly set dropoff time
   const handleRouteCalculated = (durationInSeconds: number) => {
     setRouteDuration(durationInSeconds);
 
@@ -362,24 +407,37 @@ export function BookingForm() {
     }
   };
 
-  // Update useEffect for handling route duration changes
-  React.useEffect(() => {
-    if (routeDuration) {
-      const pickupTime = form.watch("pickupTime");
-      if (pickupTime) {
-        const pickupDate = new Date(pickupTime);
-        const estimatedDropoff = new Date(pickupDate.getTime() + (routeDuration * 1000));
-        form.setValue("dropoffTime", estimatedDropoff.toISOString(), {
-          shouldValidate: true,
-          shouldDirty: true,
-          shouldTouch: true
-        });
-      }
-    }
-  }, [form.watch("pickupTime"), routeDuration, form]);
+  // Update DateTimePicker implementation
+  const renderDateTimePicker = (field: any) => (
+    <DateTimePicker
+      value={field.value ? new Date(field.value) : new Date()}
+      onChange={(date) => {
+        if (date) {
+          const selectedDate = new Date(date);
+          const now = getMinimumPickupTime();
+          const minOffset = getMinimumOffset(form.watch("priority"));
 
+          // Only apply time restrictions if the selected date is today
+          if (selectedDate.toDateString() === now.toDateString()) {
+            const minTime = now.getTime() + minOffset;
 
-  // Update the useEffect hook that handles bookingForSelf changes
+            if (selectedDate.getTime() < minTime) {
+              selectedDate.setHours(now.getHours());
+              selectedDate.setMinutes(now.getMinutes() + minOffset / (60 * 1000));
+            }
+          }
+
+          field.onChange(selectedDate.toISOString());
+        } else {
+          field.onChange(new Date().toISOString());
+        }
+      }}
+      onBlur={field.onBlur}
+      disabled={field.disabled}
+    />
+  );
+
+  // Update useEffect for handling bookingForSelf changes
   React.useEffect(() => {
     const bookingForSelf = form.watch("bookingForSelf");
 
@@ -415,58 +473,6 @@ export function BookingForm() {
     }
   }, [form.watch("bookingForSelf"), employee, form]);
 
-  // In the BookingForm component, add this effect
-  React.useEffect(() => {
-    const priority = form.watch("priority");
-    if (priority) {
-      const minPickupTime = getMinimumPickupTime();
-      const minOffset = getMinimumOffset(priority);
-      const currentPickupTime = form.watch("pickupTime");
-
-      // If current pickup time is before minimum allowed time, update it
-      if (currentPickupTime) {
-        const currentDate = new Date(currentPickupTime);
-        if (currentDate < minPickupTime) {
-          currentDate.setMinutes(currentDate.getMinutes() + minOffset / (60 * 1000));
-          form.setValue("pickupTime", currentDate.toISOString(), {
-            shouldValidate: true,
-            shouldDirty: true,
-            shouldTouch: true
-          });
-        }
-      }
-    }
-  }, [form.watch("priority"), form]);
-
-  // Update DateTimePicker implementation
-  const renderDateTimePicker = (field: any) => (
-    <DateTimePicker
-      value={field.value ? new Date(field.value) : new Date()}
-      onChange={(date) => {
-        if (date) {
-          const selectedDate = new Date(date);
-          const now = getMinimumPickupTime();
-          const minOffset = getMinimumOffset(form.watch("priority"));
-
-          // Only apply time restrictions if the selected date is today
-          if (selectedDate.toDateString() === now.toDateString()) {
-            const minTime = now.getTime() + minOffset;
-
-            if (selectedDate.getTime() < minTime) {
-              selectedDate.setHours(now.getHours());
-              selectedDate.setMinutes(now.getMinutes() + minOffset / (60 * 1000));
-            }
-          }
-
-          field.onChange(selectedDate.toISOString());
-        } else {
-          field.onChange(new Date().toISOString());
-        }
-      }}
-      onBlur={field.onBlur}
-      disabled={field.disabled}
-    />
-  );
 
   return (
     <>
@@ -994,7 +1000,7 @@ export function BookingForm() {
                         name="dropoffTime"
                         render={({ field }) => (
                           <FormItem>
-                            <FormLabel>Estimated Dropoff Time</FormLabel>
+                            <FormLabel>Estimated Time of Dropoff</FormLabel>
                             <FormControl>
                               <DateTimePicker
                                 value={field.value ? new Date(field.value) : null}
@@ -1008,7 +1014,7 @@ export function BookingForm() {
                               />
                             </FormControl>
                             <FormDescription>
-                              ETA
+                              ETA: {routeDuration ? `${Math.round(routeDuration / 60)} minutes` : 'Calculating...'}
                             </FormDescription>
                             <FormMessage />
                           </FormItem>
