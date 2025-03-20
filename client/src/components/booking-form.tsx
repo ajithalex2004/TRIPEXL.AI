@@ -407,6 +407,22 @@ export function BookingForm() {
     }
   };
 
+  // Update useEffect for handling route duration updates
+  React.useEffect(() => {
+    if (routeDuration > 0) {
+      const pickupTime = form.watch("pickupTime");
+      if (pickupTime) {
+        const pickupDate = new Date(pickupTime);
+        const estimatedDropoff = new Date(pickupDate.getTime() + (routeDuration * 1000));
+        form.setValue("dropoffTime", estimatedDropoff.toISOString(), {
+          shouldValidate: true,
+          shouldDirty: true,
+          shouldTouch: true
+        });
+      }
+    }
+  }, [routeDuration, form.watch("pickupTime"), form]);
+
   // Update DateTimePicker implementation
   const renderDateTimePicker = (field: any) => (
     <DateTimePicker
@@ -1014,7 +1030,9 @@ export function BookingForm() {
                               />
                             </FormControl>
                             <FormDescription>
-                              ETA: {routeDuration ? `${Math.round(routeDuration / 60)} minutes` : 'Calculating...'}
+                              {routeDuration > 0 
+                                ? `Estimated travel time: ${Math.round(routeDuration / 60)} minutes`
+                                : 'Calculating route duration...'}
                             </FormDescription>
                             <FormMessage />
                           </FormItem>
