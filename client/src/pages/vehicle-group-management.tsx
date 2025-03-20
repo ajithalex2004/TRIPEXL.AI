@@ -20,16 +20,16 @@ import { VehicleGroup, InsertVehicleGroup } from "@shared/schema";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { VehicleGroupForm } from "@/components/ui/vehicle-group-form";
+import { Download } from "lucide-react";
 
 export default function VehicleGroupManagement() {
   const [selectedGroup, setSelectedGroup] = useState<VehicleGroup | null>(null);
   const { toast } = useToast();
 
-  // Updated query configuration
   const { data: vehicleGroups, isLoading, error } = useQuery<VehicleGroup[]>({
     queryKey: ["/api/vehicle-groups"],
-    staleTime: 0, // Always fetch fresh data
-    retry: 3, // Retry failed requests
+    staleTime: 0,
+    retry: 3,
   });
 
   const createMutation = useMutation({
@@ -98,7 +98,37 @@ export default function VehicleGroupManagement() {
     }
   };
 
-  // Error state handling
+  const handleExport = async () => {
+    try {
+      const response = await fetch("/api/vehicle-groups/export");
+      if (!response.ok) {
+        throw new Error("Failed to export vehicle groups");
+      }
+
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "vehicle-groups.xlsx";
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+
+      toast({
+        title: "Success",
+        description: "Vehicle groups exported successfully",
+      });
+    } catch (error: any) {
+      console.error("Export error:", error);
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      });
+    }
+  };
+
   if (error) {
     console.error("Query error:", error);
     toast({
@@ -129,8 +159,17 @@ export default function VehicleGroupManagement() {
         </Card>
 
         <Card className="mt-6 backdrop-blur-xl bg-background/60 border border-white/10 shadow-2xl">
-          <CardHeader>
+          <CardHeader className="flex flex-row items-center justify-between">
             <CardTitle>Vehicle Groups List</CardTitle>
+            <Button
+              onClick={handleExport}
+              variant="outline"
+              className="flex items-center gap-2"
+              disabled={!vehicleGroups?.length}
+            >
+              <Download className="w-4 h-4" />
+              Export to Excel
+            </Button>
           </CardHeader>
           <CardContent>
             <motion.div

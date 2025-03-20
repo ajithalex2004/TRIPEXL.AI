@@ -5,6 +5,7 @@ import { insertBookingSchema, insertUserSchema, insertVehicleGroupSchema } from 
 import { authService } from "./services/auth";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
+import XLSX from "xlsx";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   const httpServer = createServer(app);
@@ -223,6 +224,42 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error: any) {
       console.error("Error fetching vehicle groups:", error);
       res.status(500).json({ error: "Failed to fetch vehicle groups" });
+    }
+  });
+
+  app.get("/api/vehicle-groups/export", async (_req, res) => {
+    try {
+      const groups = await storage.getAllVehicleGroups();
+
+      // Transform data for Excel export (include only mandatory fields)
+      const exportData = groups.map(group => ({
+        'Group Code': group.groupCode,
+        'Name': group.name,
+        'Region': group.region,
+        'Type': group.type,
+        'Department': group.department,
+        'Status': group.isActive ? 'Active' : 'Inactive',
+        'Created Date': new Date(group.createdAt).toLocaleDateString(),
+      }));
+
+      // Create workbook and worksheet
+      const wb = XLSX.utils.book_new();
+      const ws = XLSX.utils.json_to_sheet(exportData);
+
+      // Add worksheet to workbook
+      XLSX.utils.book_append_sheet(wb, ws, "Vehicle Groups");
+
+      // Generate buffer
+      const buf = XLSX.write(wb, { type: 'buffer', bookType: 'xlsx' });
+
+      // Set headers for file download
+      res.setHeader('Content-Disposition', 'attachment; filename=vehicle-groups.xlsx');
+      res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+
+      res.send(buf);
+    } catch (error: any) {
+      console.error("Error exporting vehicle groups:", error);
+      res.status(500).json({ error: "Failed to export vehicle groups" });
     }
   });
 
