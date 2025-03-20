@@ -105,7 +105,7 @@ export const employees = pgTable("employees", {
   createdAt: timestamp("created_at").notNull().defaultNow()
 });
 
-// Extend booking schema with new fields
+// Update bookings table schema to include new passenger fields
 export const bookings = pgTable("bookings", {
   id: serial("id").primaryKey(),
   employeeId: text("employee_id").references(() => employees.employeeId),
@@ -122,14 +122,15 @@ export const bookings = pgTable("bookings", {
   // Passenger specific fields
   tripType: text("trip_type"),
   numPassengers: integer("num_passengers"),
-  passengerInfo: json("passenger_info").$type<z.infer<typeof contactInfo>[]>(),
+  withDriver: boolean("with_driver").default(false),
+  bookingForSelf: boolean("booking_for_self").default(false),
+  passengerDetails: json("passenger_details").$type<{ name: string; contact: string }[]>(),
 
   // Location and timing
   pickupLocation: json("pickup_location").$type<z.infer<typeof locations>>().notNull(),
   dropoffLocation: json("dropoff_location").$type<z.infer<typeof locations>>().notNull(),
-  pickupWindow: json("pickup_window").$type<z.infer<typeof timeWindow>>().notNull(),
-  dropoffWindow: json("dropoff_window").$type<z.infer<typeof timeWindow>>().notNull(),
-  estimatedTime: integer("estimated_time"),
+  pickupTime: text("pickup_time").notNull(),
+  dropoffTime: text("dropoff_time").notNull(),
 
   // Reference and notes
   referenceNo: text("reference_no"),
@@ -139,40 +140,36 @@ export const bookings = pgTable("bookings", {
   createdAt: timestamp("created_at").notNull().defaultNow()
 });
 
-// Insert schemas
+// Update insert schema to include passenger fields validation
 export const insertBookingSchema = createInsertSchema(bookings)
   .extend({
     bookingType: z.enum([BookingType.FREIGHT, BookingType.PASSENGER, BookingType.AMBULANCE]),
     purpose: z.enum(Object.values(BookingPurpose) as [string, ...string[]]),
     priority: z.enum(Object.values(Priority) as [string, ...string[]]),
+    tripType: z.enum(Object.values(TripType) as [string, ...string[]]).optional(),
+    withDriver: z.boolean().optional(),
+    bookingForSelf: z.boolean().optional(),
+    passengerDetails: z.array(
+      z.object({
+        name: z.string().min(1, "Passenger name is required"),
+        contact: z.string().min(1, "Contact details are required")
+      })
+    ).optional(),
     boxSize: z.array(z.enum(Object.values(BoxSize) as [string, ...string[]]))
-      .nonempty("At least one box size is required")
-      .optional()
-      .nullable(),
-    tripType: z.enum(Object.values(TripType) as [string, ...string[]])
-      .optional()
-      .nullable(),
+      .optional(),
     pickupLocation: z.object({
-      address: z.string().nonempty("Pickup address is required"),
+      address: z.string().min(1, "Pickup address is required"),
       coordinates: z.object({
         lat: z.number(),
         lng: z.number()
       })
     }),
     dropoffLocation: z.object({
-      address: z.string().nonempty("Dropoff address is required"),
+      address: z.string().min(1, "Dropoff address is required"),
       coordinates: z.object({
         lat: z.number(),
         lng: z.number()
       })
-    }),
-    pickupWindow: z.object({
-      start: z.string().nonempty("Pickup start time is required"),
-      end: z.string().nonempty("Pickup end time is required")
-    }),
-    dropoffWindow: z.object({
-      start: z.string().nonempty("Dropoff start time is required"),
-      end: z.string().nonempty("Dropoff end time is required")
     }),
     // Optional fields
     referenceNo: z.string().optional(),

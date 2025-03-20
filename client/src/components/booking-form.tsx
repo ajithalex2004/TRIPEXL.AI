@@ -13,10 +13,12 @@ import {
   FormItem,
   FormLabel,
   FormMessage,
+  FormDescription,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardContent } from "@/components/ui/card";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   Select,
   SelectContent,
@@ -40,6 +42,12 @@ import {
   AlertDialogAction,
 } from "@/components/ui/alert-dialog";
 import { useLocation } from "wouter";
+
+// Add interface for passenger details
+interface PassengerDetail {
+  name: string;
+  contact: string;
+}
 
 const DEFAULT_PICKUP_LOCATION = {
   address: "Al Wahda Mall",
@@ -114,6 +122,9 @@ export function BookingForm() {
       passengerInfo: [],
       referenceNo: "",
       remarks: "",
+      withDriver: false,
+      bookingForSelf: false,
+      passengerDetails: [] as PassengerDetail[],
     }
   });
 
@@ -139,7 +150,7 @@ export function BookingForm() {
       2: bookingType === "freight"
         ? ["cargoType", "numBoxes", "weight"]
         : bookingType === "passenger"
-          ? ["tripType", "numPassengers"]
+          ? ["tripType", "numPassengers", "withDriver", "bookingForSelf", "passengerDetails"]
           : [],
       3: ["purpose", "priority"],
       4: ["pickupLocation", "dropoffLocation"],
@@ -523,6 +534,49 @@ export function BookingForm() {
                         </FormItem>
                       )}
                     />
+
+                    <div className="flex space-x-6">
+                      <FormField
+                        control={form.control}
+                        name="withDriver"
+                        render={({ field }) => (
+                          <FormItem className="flex flex-row items-start space-x-3 space-y-0">
+                            <FormControl>
+                              <Checkbox
+                                checked={field.value}
+                                onCheckedChange={field.onChange}
+                              />
+                            </FormControl>
+                            <div className="space-y-1 leading-none">
+                              <FormLabel>
+                                With Driver
+                              </FormLabel>
+                            </div>
+                          </FormItem>
+                        )}
+                      />
+
+                      <FormField
+                        control={form.control}
+                        name="bookingForSelf"
+                        render={({ field }) => (
+                          <FormItem className="flex flex-row items-start space-x-3 space-y-0">
+                            <FormControl>
+                              <Checkbox
+                                checked={field.value}
+                                onCheckedChange={field.onChange}
+                              />
+                            </FormControl>
+                            <div className="space-y-1 leading-none">
+                              <FormLabel>
+                                Booking For Self
+                              </FormLabel>
+                            </div>
+                          </FormItem>
+                        )}
+                      />
+                    </div>
+
                     <FormField
                       control={form.control}
                       name="numPassengers"
@@ -536,6 +590,11 @@ export function BookingForm() {
                               onChange={(e) => {
                                 const value = e.target.value === "" ? 0 : parseInt(e.target.value);
                                 field.onChange(value);
+                                // Initialize passenger details array
+                                form.setValue(
+                                  "passengerDetails",
+                                  Array(value).fill({ name: "", contact: "" })
+                                );
                               }}
                               min={1}
                               step={1}
@@ -546,6 +605,41 @@ export function BookingForm() {
                         </FormItem>
                       )}
                     />
+
+                    {/* Dynamic Passenger Details Fields */}
+                    {Array.from({ length: form.watch("numPassengers") || 0 }).map((_, index) => (
+                      <div key={index} className="space-y-4 p-4 border rounded-lg">
+                        <h4 className="font-medium">Passenger {index + 1} Details</h4>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          <FormField
+                            control={form.control}
+                            name={`passengerDetails.${index}.name`}
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>Passenger Name *</FormLabel>
+                                <FormControl>
+                                  <Input {...field} placeholder="Enter passenger name" />
+                                </FormControl>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+                          <FormField
+                            control={form.control}
+                            name={`passengerDetails.${index}.contact`}
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>Contact Details *</FormLabel>
+                                <FormControl>
+                                  <Input {...field} placeholder="Enter contact number" />
+                                </FormControl>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+                        </div>
+                      </div>
+                    ))}
                   </motion.div>
                 )}
                 {currentStep === 3 && (
