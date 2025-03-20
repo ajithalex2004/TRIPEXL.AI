@@ -4,6 +4,7 @@ import bcrypt from 'bcryptjs';
 import { type Employee } from '@shared/schema';
 import { type User, type InsertUser } from '@shared/schema';
 import { type OtpVerification, type InsertOtpVerification } from '@shared/schema';
+import { type VehicleTypeMaster, type InsertVehicleTypeMaster } from '@shared/schema'; // Import VehicleTypeMaster
 
 const locations = z.object({
   address: z.string(),
@@ -79,6 +80,12 @@ export interface IStorage {
   getVehicleGroup(id: number): Promise<VehicleGroup | null>;
   createVehicleGroup(group: InsertVehicleGroup): Promise<VehicleGroup>;
   updateVehicleGroup(id: number, data: Partial<InsertVehicleGroup>): Promise<VehicleGroup>;
+
+  // Vehicle Type Master methods
+  getAllVehicleTypes(): Promise<VehicleTypeMaster[]>;
+  getVehicleType(id: number): Promise<VehicleTypeMaster | null>;
+  createVehicleType(type: InsertVehicleTypeMaster): Promise<VehicleTypeMaster>;
+  updateVehicleType(id: number, data: Partial<InsertVehicleTypeMaster>): Promise<VehicleTypeMaster>;
 }
 
 export class MemStorage implements IStorage {
@@ -90,6 +97,7 @@ export class MemStorage implements IStorage {
   private users: Map<number, User>;
   private otpVerifications: Map<number, OtpVerification>;
   private vehicleGroups: Map<number, VehicleGroup>; // Add vehicle groups storage
+  private vehicleTypes: Map<number, VehicleTypeMaster>; // Add vehicle types storage
 
   constructor() {
     this.vehicles = new Map();
@@ -99,14 +107,16 @@ export class MemStorage implements IStorage {
     this.users = new Map();
     this.otpVerifications = new Map();
     this.vehicleGroups = new Map(); // Initialize vehicle groups map
-    this.currentId = { 
-      vehicles: 1, 
-      drivers: 1, 
-      bookings: 1, 
-      users: 1, 
-      employees: 1, 
+    this.vehicleTypes = new Map(); // Initialize vehicle types map
+    this.currentId = {
+      vehicles: 1,
+      drivers: 1,
+      bookings: 1,
+      users: 1,
+      employees: 1,
       otpVerifications: 1,
-      vehicleGroups: 1 // Add vehicle groups counter
+      vehicleGroups: 1, // Add vehicle groups counter
+      vehicleTypes: 1 // Add vehicle types counter
     };
 
     // Initialize with mock data
@@ -500,6 +510,44 @@ export class MemStorage implements IStorage {
     };
     this.vehicleGroups.set(id, updatedGroup);
     return updatedGroup;
+  }
+
+  // Implement Vehicle Type methods
+  async getAllVehicleTypes(): Promise<VehicleTypeMaster[]> {
+    return Array.from(this.vehicleTypes.values());
+  }
+
+  async getVehicleType(id: number): Promise<VehicleTypeMaster | null> {
+    const type = this.vehicleTypes.get(id);
+    return type || null;
+  }
+
+  async createVehicleType(type: InsertVehicleTypeMaster): Promise<VehicleTypeMaster> {
+    const id = this.currentId.vehicleTypes++;
+    const newType: VehicleTypeMaster = {
+      ...type,
+      id,
+      isActive: true,
+      createdAt: new Date(),
+      updatedAt: new Date()
+    };
+    this.vehicleTypes.set(id, newType);
+    return newType;
+  }
+
+  async updateVehicleType(id: number, data: Partial<InsertVehicleTypeMaster>): Promise<VehicleTypeMaster> {
+    const existingType = this.vehicleTypes.get(id);
+    if (!existingType) {
+      throw new Error("Vehicle type not found");
+    }
+
+    const updatedType: VehicleTypeMaster = {
+      ...existingType,
+      ...data,
+      updatedAt: new Date()
+    };
+    this.vehicleTypes.set(id, updatedType);
+    return updatedType;
   }
 }
 

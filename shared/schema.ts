@@ -345,6 +345,51 @@ export const insertVehicleGroupSchema = createInsertSchema(vehicleGroups)
     description: z.string().optional()
   });
 
+// Add after the existing vehicle types
+export const vehicleTypeMaster = pgTable("vehicle_type_master", {
+  id: serial("id").primaryKey(),
+  vehicleGroup: text("vehicle_group").notNull(),
+  vehicleTypeCode: text("vehicle_type_code").notNull().unique(),
+  numberOfPassengers: integer("number_of_passengers").notNull(),
+  region: text("region").notNull(),
+  section: text("section").notNull(),
+  specialVehicleType: text("special_vehicle_type"),
+  roadSpeedThreshold: integer("road_speed_threshold").notNull(),
+  servicePlan: text("service_plan").notNull(),
+  costPerKm: integer("cost_per_km").notNull(),
+  maximumWeight: integer("maximum_weight").notNull(),
+  vehicleTypeImage: text("vehicle_type_image"),
+  vehicleType: text("vehicle_type").notNull(),
+  department: text("department").notNull(),
+  unit: text("unit").notNull(),
+  alertBefore: integer("alert_before").notNull(),
+  idleFuelConsumption: integer("idle_fuel_consumption").notNull(),
+  vehicleVolume: integer("vehicle_volume").notNull(),
+  isActive: boolean("is_active").notNull().default(true),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow()
+});
+
+// Add after other insert schemas
+export const insertVehicleTypeMasterSchema = createInsertSchema(vehicleTypeMaster)
+  .extend({
+    vehicleGroup: z.string().min(1, "Vehicle group is required"),
+    vehicleTypeCode: z.string().min(1, "Vehicle type code is required"),
+    numberOfPassengers: z.number().min(0, "Number of passengers must be positive"),
+    region: z.string().min(1, "Region is required"),
+    section: z.string().min(1, "Section is required"),
+    roadSpeedThreshold: z.number().min(0, "Road speed threshold must be positive"),
+    servicePlan: z.string().min(1, "Service plan is required"),
+    costPerKm: z.number().min(0, "Cost per KM must be positive"),
+    maximumWeight: z.number().min(0, "Maximum weight must be positive"),
+    vehicleType: z.string().min(1, "Vehicle type is required"),
+    department: z.enum(Object.values(Department) as [string, ...string[]]),
+    unit: z.string().min(1, "Unit is required"),
+    alertBefore: z.number().min(0, "Alert before must be positive"),
+    idleFuelConsumption: z.number().min(0, "Idle fuel consumption must be positive"),
+    vehicleVolume: z.number().min(0, "Vehicle volume must be positive")
+  });
+
 export type Employee = typeof employees.$inferSelect;
 export type User = typeof users.$inferSelect;
 export type OtpVerification = typeof otpVerifications.$inferSelect;
@@ -362,3 +407,7 @@ export type InsertDriver = z.infer<typeof insertDriverSchema>;
 export type InsertBooking = z.infer<typeof insertBookingSchema>;
 export type InsertLocationMaster = z.infer<typeof insertLocationMasterSchema>;
 export type InsertVehicleGroup = z.infer<typeof insertVehicleGroupSchema>;
+
+// Add after other type exports
+export type VehicleTypeMaster = typeof vehicleTypeMaster.$inferSelect;
+export type InsertVehicleTypeMaster = z.infer<typeof insertVehicleTypeMasterSchema>;
