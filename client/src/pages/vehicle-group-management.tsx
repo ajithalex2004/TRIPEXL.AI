@@ -16,7 +16,6 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { motion, AnimatePresence } from "framer-motion";
-import { Filter, Search } from "lucide-react";
 import { VehicleGroup, InsertVehicleGroup } from "@shared/schema";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
@@ -26,8 +25,11 @@ export default function VehicleGroupManagement() {
   const [selectedGroup, setSelectedGroup] = useState<VehicleGroup | null>(null);
   const { toast } = useToast();
 
-  const { data: vehicleGroups, isLoading } = useQuery<VehicleGroup[]>({
+  // Updated query configuration
+  const { data: vehicleGroups, isLoading, error } = useQuery<VehicleGroup[]>({
     queryKey: ["/api/vehicle-groups"],
+    staleTime: 0, // Always fetch fresh data
+    retry: 3, // Retry failed requests
   });
 
   const createMutation = useMutation({
@@ -35,7 +37,7 @@ export default function VehicleGroupManagement() {
       const response = await apiRequest("POST", "/api/vehicle-groups", data);
       if (!response.ok) {
         const error = await response.json();
-        throw new Error(error.message);
+        throw new Error(error.message || "Failed to create vehicle group");
       }
       return response.json();
     },
@@ -48,6 +50,7 @@ export default function VehicleGroupManagement() {
       });
     },
     onError: (error: Error) => {
+      console.error("Create error:", error);
       toast({
         title: "Error",
         description: error.message,
@@ -61,7 +64,7 @@ export default function VehicleGroupManagement() {
       const response = await apiRequest("PATCH", `/api/vehicle-groups/${id}`, data);
       if (!response.ok) {
         const error = await response.json();
-        throw new Error(error.message);
+        throw new Error(error.message || "Failed to update vehicle group");
       }
       return response.json();
     },
@@ -74,6 +77,7 @@ export default function VehicleGroupManagement() {
       });
     },
     onError: (error: Error) => {
+      console.error("Update error:", error);
       toast({
         title: "Error",
         description: error.message,
@@ -83,12 +87,26 @@ export default function VehicleGroupManagement() {
   });
 
   const handleSubmit = async (data: InsertVehicleGroup) => {
-    if (selectedGroup) {
-      await updateMutation.mutateAsync({ ...data, id: selectedGroup.id });
-    } else {
-      await createMutation.mutateAsync(data);
+    try {
+      if (selectedGroup) {
+        await updateMutation.mutateAsync({ ...data, id: selectedGroup.id });
+      } else {
+        await createMutation.mutateAsync(data);
+      }
+    } catch (error) {
+      console.error("Submit error:", error);
     }
   };
+
+  // Error state handling
+  if (error) {
+    console.error("Query error:", error);
+    toast({
+      title: "Error",
+      description: "Failed to fetch vehicle groups",
+      variant: "destructive",
+    });
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-background/50 via-background to-background/90 p-6">

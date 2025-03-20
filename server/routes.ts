@@ -216,7 +216,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Vehicle Group routes
   app.get("/api/vehicle-groups", async (_req, res) => {
     try {
+      console.log("Fetching all vehicle groups");
       const groups = await storage.getAllVehicleGroups();
+      console.log("Retrieved vehicle groups:", groups);
       res.json(groups);
     } catch (error: any) {
       console.error("Error fetching vehicle groups:", error);
@@ -225,8 +227,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   app.post("/api/vehicle-groups", async (req, res) => {
+    console.log("Creating vehicle group with data:", req.body);
     const result = insertVehicleGroupSchema.safeParse(req.body);
     if (!result.success) {
+      console.error("Invalid vehicle group data:", result.error.issues);
       return res.status(400).json({ 
         error: "Invalid vehicle group data", 
         details: result.error.issues 
@@ -235,6 +239,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
     try {
       const group = await storage.createVehicleGroup(result.data);
+      console.log("Created vehicle group:", group);
       res.status(201).json(group);
     } catch (error: any) {
       console.error("Error creating vehicle group:", error);
