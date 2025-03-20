@@ -8,7 +8,6 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Card, CardHeader, CardContent } from "@/components/ui/card";
-import { LoadingIndicator } from "@/components/ui/loading-indicator";
 import { Input } from "@/components/ui/input";
 import {
   Select,
@@ -25,11 +24,9 @@ import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { VehicleLoadingIndicator } from "@/components/ui/vehicle-loading-indicator";
 import { Filter, Search } from "lucide-react";
-import { Link, useLocation } from "wouter";
 import { BookingForm } from "@/components/booking-form";
 
 function BookingHistoryPage() {
-  const [location, setLocation] = useLocation();
   const { data: bookings, isLoading } = useQuery<Booking[]>({
     queryKey: ["/api/bookings"],
   });
@@ -58,36 +55,23 @@ function BookingHistoryPage() {
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5 }}
       >
-        <Tabs
-          defaultValue="history"
-          value={activeTab}
-          onValueChange={setActiveTab}
-          className="w-full"
-        >
+        <Tabs defaultValue="history" value={activeTab} onValueChange={setActiveTab}>
           <div className="flex items-center justify-between mb-6">
-            <h2 className="text-2xl font-semibold text-primary">Transport Management</h2>
+            <h2 className="text-lg font-medium text-primary">Transport Management</h2>
             <TabsList className="grid w-[400px] grid-cols-2">
-              <TabsTrigger
-                value="new"
-                onClick={() => setLocation("/booking-form")}
-                className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
-              >
-                New Booking
-              </TabsTrigger>
-              <TabsTrigger
-                value="history"
-                onClick={() => setLocation("/booking-history")}
-                className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
-              >
-                Booking History
-              </TabsTrigger>
+              <TabsTrigger value="new">New Booking</TabsTrigger>
+              <TabsTrigger value="history">Booking History</TabsTrigger>
             </TabsList>
           </div>
+
+          <TabsContent value="new">
+            <BookingForm />
+          </TabsContent>
 
           <TabsContent value="history">
             <Card className="backdrop-blur-xl bg-background/60 border border-white/10 shadow-2xl">
               <CardHeader>
-                <h3 className="text-xl font-medium text-primary/90">Booking History</h3>
+                <h3 className="text-lg font-medium text-primary/90">Booking History</h3>
               </CardHeader>
               <CardContent>
                 {/* Search and Filters */}
@@ -274,10 +258,6 @@ function BookingHistoryPage() {
                 </motion.div>
               </CardContent>
             </Card>
-          </TabsContent>
-
-          <TabsContent value="new">
-            <BookingForm />
           </TabsContent>
         </Tabs>
       </motion.div>
