@@ -973,7 +973,20 @@ export function BookingForm() {
                               shouldTouch: true
                             });
                           }}
-                          onRouteCalculated={handleRouteCalculated}
+                          onRouteCalculated={(duration) => {
+                            setRouteDuration(duration);
+                            // Update dropoff time whenever route is calculated
+                            const pickupTime = form.watch("pickupTime");
+                            if (pickupTime) {
+                              const pickupDate = new Date(pickupTime);
+                              const estimatedDropoff = new Date(pickupDate.getTime() + (duration * 1000));
+                              form.setValue("dropoffTime", estimatedDropoff.toISOString(), {
+                                shouldValidate: true,
+                                shouldDirty: true,
+                                shouldTouch: true
+                              });
+                            }
+                          }}
                         />
                       </div>
                       <FormMessage>{form.formState.errors.pickupLocation?.message}</FormMessage>
@@ -1018,21 +1031,16 @@ export function BookingForm() {
                           <FormItem>
                             <FormLabel>Estimated Time of Dropoff</FormLabel>
                             <FormControl>
-                              <DateTimePicker
-                                value={field.value ? new Date(field.value) : null}
-                                onChange={(date) => {
-                                  if (date) {
-                                    field.onChange(date.toISOString());
-                                  }
-                                }}
-                                onBlur={field.onBlur}
+                              <Input
+                                value={field.value ? format(new Date(field.value), "PPP HH:mm") : "Calculating..."}
                                 disabled={true}
+                                className="bg-muted"
                               />
                             </FormControl>
                             <FormDescription>
-                              {routeDuration > 0 
-                                ? `Estimated travel time: ${Math.round(routeDuration / 60)} minutes`
-                                : 'Calculating route duration...'}
+                              {routeDuration > 0
+                                ? `Route duration: ${Math.round(routeDuration / 60)} minutes`
+                                : 'Select pickup and dropoff locations to calculate route'}
                             </FormDescription>
                             <FormMessage />
                           </FormItem>
