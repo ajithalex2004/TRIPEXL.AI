@@ -26,10 +26,10 @@ interface DateTimePickerProps {
 export function DateTimePicker({ date, setDate, disabled }: DateTimePickerProps) {
   const [selectedDate, setSelectedDate] = React.useState<Date | undefined>(date);
   const [selectedHour, setSelectedHour] = React.useState<string>(
-    date ? format(date, "HH") : "00"
+    date ? format(date, "HH") : format(new Date(), "HH")
   );
   const [selectedMinute, setSelectedMinute] = React.useState<string>(
-    date ? format(date, "mm") : "00"
+    date ? format(date, "mm") : format(new Date(), "mm")
   );
 
   // Update the final date when any component changes
@@ -72,7 +72,6 @@ export function DateTimePicker({ date, setDate, disabled }: DateTimePickerProps)
           mode="single"
           selected={selectedDate}
           onSelect={setSelectedDate}
-          disabled={(date) => date < new Date()}
           initialFocus
         />
         <div className="border-t p-3 space-y-2">
