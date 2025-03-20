@@ -287,38 +287,31 @@ export function BookingForm() {
         return;
       }
 
-      // Format the location data to match the schema
-      const formatLocation = (location: any) => ({
-        address: location.address || "",
-        coordinates: {
-          lat: location.coordinates.lat,
-          lng: location.coordinates.lng
-        },
-        name: location.name || location.address || "",
-        formatted_address: location.formatted_address || location.address || "",
-        place_id: location.place_id || ""
-      });
+      // Format location data strictly according to schema
+      const formatLocation = (location: any) => {
+        if (!location || !location.coordinates) {
+          throw new Error("Invalid location data");
+        }
+        return {
+          address: location.address || "",
+          coordinates: {
+            lat: Number(location.coordinates.lat),
+            lng: Number(location.coordinates.lng)
+          },
+          name: location.name || location.address || "",
+          formatted_address: location.formatted_address || location.address || "",
+          place_id: location.place_id || ""
+        };
+      };
 
-      // Format passenger details if it's a passenger booking
-      const formattedPassengerDetails = data.bookingType === "passenger"
-        ? data.passengerDetails
-            .slice(0, data.numPassengers)
-            .map((p: any) => ({
-              name: p.name || "",
-              contact: p.contact || ""
-            }))
-        : [];
-
-      // Format box sizes if it's a freight booking
-      const formattedBoxSizes = data.bookingType === "freight"
-        ? data.boxSize?.slice(0, data.numBoxes) || []
-        : [];
-
-      // Format pickup and dropoff times
+      // Validate and format dates
       const pickupTime = new Date(data.pickupTime);
       const dropoffTime = new Date(data.dropoffTime);
 
-      // Validate times
+      if (isNaN(pickupTime.getTime()) || isNaN(dropoffTime.getTime())) {
+        throw new Error("Invalid date selection");
+      }
+
       if (dropoffTime <= pickupTime) {
         toast({
           title: "Invalid Time Selection",
@@ -328,28 +321,56 @@ export function BookingForm() {
         return;
       }
 
-      // Format the data to match the schema
+      // Format the booking data
       const bookingData = {
-        ...data,
+        employeeId: data.employeeId || employee?.employeeId,
+        bookingType: data.bookingType,
+        purpose: data.purpose,
+        priority: data.priority,
+        pickupLocation: formatLocation(data.pickupLocation),
+        dropoffLocation: formatLocation(data.dropoffLocation),
+        pickupTime: pickupTime.toISOString(),
+        dropoffTime: dropoffTime.toISOString(),
         status: "PENDING",
         createdAt: new Date().toISOString(),
         referenceNo: `BK${Date.now().toString().slice(-6)}`,
-        employeeId: data.employeeId || employee?.employeeId,
-        pickupLocation: formatLocation(data.pickupLocation),
-        dropoffLocation: formatLocation(data.dropoffLocation),
-        passengerDetails: formattedPassengerDetails,
-        boxSize: formattedBoxSizes,
-        pickupTime: pickupTime.toISOString(),
-        dropoffTime: dropoffTime.toISOString()
+        remarks: data.remarks || "",
+
+        // Booking type specific data
+        cargoType: data.bookingType === "freight" ? data.cargoType : "",
+        numBoxes: data.bookingType === "freight" ? Number(data.numBoxes) : 0,
+        weight: data.bookingType === "freight" ? Number(data.weight) : 0,
+        boxSize: data.bookingType === "freight" ? data.boxSize?.slice(0, data.numBoxes) || [] : [],
+
+        tripType: data.bookingType === "passenger" ? data.tripType : "",
+        numPassengers: data.bookingType === "passenger" ? Number(data.numPassengers) : 0,
+        withDriver: !!data.withDriver,
+        bookingForSelf: !!data.bookingForSelf,
+        passengerDetails: data.bookingType === "passenger"
+          ? data.passengerDetails
+              .slice(0, data.numPassengers)
+              .map((p: any) => ({
+                name: p.name || "",
+                contact: p.contact || ""
+              }))
+          : []
       };
 
-      console.log("Submitting booking data:", bookingData);
-      createBooking.mutate(bookingData);
-    } catch (error) {
+      try {
+        await createBooking.mutateAsync(bookingData);
+      } catch (error: any) {
+        console.error("Booking creation error:", error);
+        toast({
+          title: "Booking Creation Failed",
+          description: error.message || "There was a problem creating your booking.",
+          variant: "destructive"
+        });
+      }
+    } catch (error: any) {
       console.error("Form submission error:", error);
       toast({
         title: "Error",
-        description: "There was a problem submitting your booking. Please try again.",
+        description: error.message || "There was a problem with your booking data.",
         variant: "destructive"
       });
     }
