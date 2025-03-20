@@ -362,17 +362,19 @@ export function BookingForm() {
     }
   };
 
-  // Update dropoff time whenever pickup time changes
+  // Update useEffect for handling route duration changes
   React.useEffect(() => {
-    const pickupTime = form.watch("pickupTime");
-    if (pickupTime && routeDuration) {
-      const pickupDate = new Date(pickupTime);
-      const estimatedDropoff = new Date(pickupDate.getTime() + (routeDuration * 1000));
-      form.setValue("dropoffTime", estimatedDropoff.toISOString(), {
-        shouldValidate: true,
-        shouldDirty: true,
-        shouldTouch: true
-      });
+    if (routeDuration) {
+      const pickupTime = form.watch("pickupTime");
+      if (pickupTime) {
+        const pickupDate = new Date(pickupTime);
+        const estimatedDropoff = new Date(pickupDate.getTime() + (routeDuration * 1000));
+        form.setValue("dropoffTime", estimatedDropoff.toISOString(), {
+          shouldValidate: true,
+          shouldDirty: true,
+          shouldTouch: true
+        });
+      }
     }
   }, [form.watch("pickupTime"), routeDuration, form]);
 
@@ -985,6 +987,7 @@ export function BookingForm() {
                           </FormItem>
                         )}
                       />
+                      {/* Dropoff Time Field */}
                       <FormField
                         control={form.control}
                         name="dropoffTime"
@@ -994,17 +997,18 @@ export function BookingForm() {
                             <FormControl>
                               <DateTimePicker
                                 value={field.value ? new Date(field.value) : null}
-                                onChange={(date: Date | null) => {
+                                onChange={(date) => {
                                   if (date) {
                                     field.onChange(date.toISOString());
-                                  } else {
-                                    field.onChange("");
                                   }
                                 }}
                                 onBlur={field.onBlur}
                                 disabled={true}
                               />
                             </FormControl>
+                            <FormDescription>
+                              Automatically calculated based on route ETA
+                            </FormDescription>
                             <FormMessage />
                           </FormItem>
                         )}
