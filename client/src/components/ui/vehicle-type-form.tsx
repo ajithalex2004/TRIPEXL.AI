@@ -46,8 +46,7 @@ export function VehicleTypeForm({ onSubmit, initialData, isEditing }: VehicleTyp
       section: "",
       fuelEfficiency: 0, 
       fuelPricePerLitre: 0,
-      fuelType: "Petrol", // Add default fuel type
-      roadSpeedThreshold: 0,
+      fuelType: "Petrol",
       servicePlan: "",
       costPerKm: 0,
       vehicleType: "",
@@ -79,7 +78,7 @@ export function VehicleTypeForm({ onSubmit, initialData, isEditing }: VehicleTyp
     if (initialData) {
       form.reset({
         ...initialData,
-        fuelType: initialData.fuelType || "Petrol" // Add this line
+        fuelType: initialData.fuelType || "Petrol"
       });
     }
   }, [initialData, form]);
@@ -101,27 +100,27 @@ export function VehicleTypeForm({ onSubmit, initialData, isEditing }: VehicleTyp
     <Form {...form}>
       <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-4">
         <div className="grid grid-cols-3 gap-4">
-          {/* Keep existing fields up to fuelPricePerLitre */}
-
+          {/* Vehicle Group, Vehicle Type Code, and Vehicle Type at the top */}
           <FormField
             control={form.control}
-            name="fuelType"
+            name="groupId"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Fuel Type *</FormLabel>
+                <FormLabel>Vehicle Group *</FormLabel>
                 <Select
-                  onValueChange={field.onChange}
-                  value={field.value}
+                  onValueChange={(value) => field.onChange(parseInt(value))}
+                  value={field.value?.toString()}
+                  disabled={loadingGroups}
                 >
                   <FormControl>
                     <SelectTrigger>
-                      <SelectValue placeholder="Select fuel type" />
+                      <SelectValue placeholder="Select vehicle group" />
                     </SelectTrigger>
                   </FormControl>
                   <SelectContent>
-                    {Object.values(VehicleFuelType).map((type) => (
-                      <SelectItem key={type} value={type}>
-                        {type}
+                    {vehicleGroups?.map((group) => (
+                      <SelectItem key={group.id} value={group.id.toString()}>
+                        {group.name}
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -130,52 +129,14 @@ export function VehicleTypeForm({ onSubmit, initialData, isEditing }: VehicleTyp
               </FormItem>
             )}
           />
-
-          {/* Keep remaining fields */}
           <FormField
             control={form.control}
-            name="roadSpeedThreshold"
+            name="vehicleTypeCode"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Road Speed Threshold *</FormLabel>
+                <FormLabel>Vehicle Type Code *</FormLabel>
                 <FormControl>
-                  <Input
-                    type="number"
-                    placeholder="Enter road speed threshold"
-                    {...field}
-                    onChange={e => field.onChange(Number(e.target.value))}
-                  />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-          <FormField
-            control={form.control}
-            name="servicePlan"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Service Plan *</FormLabel>
-                <FormControl>
-                  <Input placeholder="Enter service plan" {...field} />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-          <FormField
-            control={form.control}
-            name="costPerKm"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Cost Per KM (Calculated) *</FormLabel>
-                <FormControl>
-                  <Input
-                    type="number"
-                    {...field}
-                    disabled
-                    value={field.value}
-                  />
+                  <Input placeholder="Enter vehicle type code" {...field} />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -210,6 +171,120 @@ export function VehicleTypeForm({ onSubmit, initialData, isEditing }: VehicleTyp
                     ))}
                   </SelectContent>
                 </Select>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          {/* Other fields */}
+          <FormField
+            control={form.control}
+            name="numberOfPassengers"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Number of Passengers *</FormLabel>
+                <FormControl>
+                  <Input
+                    type="number"
+                    placeholder="Enter number of passengers"
+                    {...field}
+                    onChange={e => field.onChange(Number(e.target.value))}
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          <FormField
+            control={form.control}
+            name="fuelEfficiency"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Fuel Efficiency (KM/L) *</FormLabel>
+                <FormControl>
+                  <Input
+                    type="number"
+                    placeholder="Enter fuel efficiency"
+                    {...field}
+                    onChange={e => field.onChange(Number(e.target.value))}
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          <FormField
+            control={form.control}
+            name="fuelPricePerLitre"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Fuel Price Per Litre *</FormLabel>
+                <FormControl>
+                  <Input
+                    type="number"
+                    placeholder="Enter fuel price per litre"
+                    {...field}
+                    onChange={e => field.onChange(Number(e.target.value))}
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          <FormField
+            control={form.control}
+            name="fuelType"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Fuel Type *</FormLabel>
+                <Select
+                  onValueChange={field.onChange}
+                  value={field.value}
+                >
+                  <FormControl>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select fuel type" />
+                    </SelectTrigger>
+                  </FormControl>
+                  <SelectContent>
+                    {Object.values(VehicleFuelType).map((type) => (
+                      <SelectItem key={type} value={type}>
+                        {type}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          <FormField
+            control={form.control}
+            name="servicePlan"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Service Plan *</FormLabel>
+                <FormControl>
+                  <Input placeholder="Enter service plan" {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          <FormField
+            control={form.control}
+            name="costPerKm"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Cost Per KM (Calculated) *</FormLabel>
+                <FormControl>
+                  <Input
+                    type="number"
+                    {...field}
+                    disabled
+                    value={field.value}
+                  />
+                </FormControl>
                 <FormMessage />
               </FormItem>
             )}
@@ -268,6 +343,8 @@ export function VehicleTypeForm({ onSubmit, initialData, isEditing }: VehicleTyp
               </FormItem>
             )}
           />
+
+          {/* Region, Department, Section, Unit at the bottom */}
           <FormField
             control={form.control}
             name="region"
@@ -331,23 +408,6 @@ export function VehicleTypeForm({ onSubmit, initialData, isEditing }: VehicleTyp
                 <FormControl>
                   <Input
                     placeholder="Enter unit (optional)"
-                    {...field}
-                    value={field.value ?? ""}
-                  />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-          <FormField
-            control={form.control}
-            name="vehicleTypeImage"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Vehicle Type Image URL</FormLabel>
-                <FormControl>
-                  <Input
-                    placeholder="Enter image URL"
                     {...field}
                     value={field.value ?? ""}
                   />

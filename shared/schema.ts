@@ -177,7 +177,7 @@ export const vehicleGroupsRelations = relations(vehicleGroups, ({ many }) => ({
   vehicles: many(vehicles)
 }));
 
-// Update vehicleTypeMaster table
+// Update vehicleTypeMaster table by removing roadSpeedThreshold
 export const vehicleTypeMaster = pgTable("vehicle_type_master", {
   id: serial("id").primaryKey(),
   groupId: integer("group_id").references(() => vehicleGroups.id).notNull(),
@@ -187,8 +187,7 @@ export const vehicleTypeMaster = pgTable("vehicle_type_master", {
   section: text("section"),
   fuelEfficiency: integer("fuel_efficiency").notNull(), // KM/L
   fuelPricePerLitre: integer("fuel_price_per_litre").notNull(), // Price per litre
-  fuelType: text("fuel_type").notNull(), // Add this line
-  roadSpeedThreshold: integer("road_speed_threshold").notNull(),
+  fuelType: text("fuel_type").notNull(),
   servicePlan: text("service_plan").notNull(),
   costPerKm: integer("cost_per_km").notNull(),
   vehicleType: text("vehicle_type").notNull(),
@@ -433,8 +432,7 @@ export const insertVehicleTypeMasterSchema = createInsertSchema(vehicleTypeMaste
     section: z.string().optional(), 
     fuelEfficiency: z.number().min(0, "Fuel efficiency must be positive"),
     fuelPricePerLitre: z.number().min(0, "Fuel price per litre must be positive"),
-    fuelType: z.enum(Object.values(VehicleFuelType) as [string, ...string[]]), // Add this line
-    roadSpeedThreshold: z.number().min(0, "Road speed threshold must be positive"),
+    fuelType: z.enum(Object.values(VehicleFuelType) as [string, ...string[]]),
     servicePlan: z.string().min(1, "Service plan is required"),
     costPerKm: z.number().min(0, "Cost per KM must be positive"),
     vehicleType: z.string().min(1, "Vehicle type is required"),
