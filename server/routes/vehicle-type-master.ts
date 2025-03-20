@@ -41,12 +41,16 @@ router.get("/api/vehicle-types", async (_req, res) => {
 router.get("/api/vehicle-types/:id", async (req, res) => {
   try {
     const id = parseInt(req.params.id);
+    console.log("Fetching vehicle type with ID:", id);
     const type = await storage.getVehicleType(id);
     if (!type) {
+      console.log("Vehicle type not found with ID:", id);
       return res.status(404).json({ message: "Vehicle type not found" });
     }
+    console.log("Retrieved vehicle type:", type);
     res.json(type);
   } catch (error: any) {
+    console.error("Error fetching vehicle type:", error);
     res.status(500).json({ message: error.message });
   }
 });
