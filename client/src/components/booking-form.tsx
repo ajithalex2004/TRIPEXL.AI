@@ -56,19 +56,30 @@ export interface Location {
   formatted_address?: string;
 }
 
-// Add this helper function at the top of the file after imports
+// Update the helper function at the top of the file
 function getMinimumPickupTime(priority: string): Date {
   const now = new Date();
+  const today = new Date();
+  today.setHours(now.getHours());
+  today.setMinutes(now.getMinutes());
+  today.setSeconds(now.getSeconds());
+
+  let minOffset = 0;
   switch (priority) {
     case Priority.EMERGENCY:
-      return new Date(now.getTime() + 30 * 60 * 1000); // 30 minutes
+      minOffset = 30 * 60 * 1000; // 30 minutes
+      break;
     case Priority.HIGH:
-      return new Date(now.getTime() + 60 * 60 * 1000); // 1 hour
+      minOffset = 60 * 60 * 1000; // 1 hour
+      break;
     case Priority.NORMAL:
-      return new Date(now.getTime() + 3 * 60 * 60 * 1000); // 3 hours
+      minOffset = 3 * 60 * 60 * 1000; // 3 hours
+      break;
     default:
-      return now;
+      return today;
   }
+
+  return new Date(today.getTime() + minOffset);
 }
 
 // Add interface for passenger details
@@ -379,18 +390,27 @@ export function BookingForm() {
       value={field.value ? new Date(field.value) : null}
       onChange={(date: Date | null) => {
         if (date) {
-          // Check if the selected date is before minDate
-          if (minDate && date < minDate) {
-            date = minDate;
+          const selectedTime = date.getTime();
+          const minTime = minDate ? minDate.getTime() : new Date().getTime();
+
+          // If selected time is before minimum time, adjust only the time portion
+          if (selectedTime < minTime) {
+            const adjustedDate = new Date(date);
+            const minDateTime = new Date(minDate || new Date());
+
+            adjustedDate.setHours(minDateTime.getHours());
+            adjustedDate.setMinutes(minDateTime.getMinutes());
+
+            field.onChange(adjustedDate.toISOString());
+          } else {
+            field.onChange(date.toISOString());
           }
-          field.onChange(date.toISOString());
         } else {
           field.onChange("");
         }
       }}
       onBlur={field.onBlur}
       disabled={field.disabled}
-      minDate={minDate}
     />
   );
 
@@ -973,7 +993,7 @@ export function BookingForm() {
 
                 <motion.div
                   className="flex justify-between pt-4"
-                  initial={{ opacity: 0, y: 20 }}
+                  initial={{ opacity:0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ duration: 0.5 }}
                 >
