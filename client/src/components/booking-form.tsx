@@ -356,39 +356,53 @@ export function BookingForm() {
         return;
       }
 
-      // Format the booking data
+      // Generate booking reference number based on type
+      const referenceNo = generateBookingReference(data.bookingType);
+
+      // Format the booking data with all required fields
       const bookingData = {
+        // Basic booking information
+        referenceNo,
         employeeId: data.employeeId || employee?.employeeId,
         bookingType: data.bookingType,
         purpose: data.purpose,
         priority: data.priority,
-        pickupLocation: formatLocation(data.pickupLocation),
-        dropoffLocation: formatLocation(data.dropoffLocation),
-        pickupTime: pickupTime.toISOString(),
-        dropoffTime: dropoffTime.toISOString(),
         status: "PENDING",
         createdAt: new Date().toISOString(),
-        referenceNo: generateBookingReference(data.bookingType),
+
+        // Location information
+        pickupLocation: formatLocation(data.pickupLocation),
+        dropoffLocation: formatLocation(data.dropoffLocation),
+
+        // Timing information
+        pickupTime: pickupTime.toISOString(),
+        dropoffTime: dropoffTime.toISOString(),
+        estimatedDuration: routeDuration,
+
+        // Additional notes
         remarks: data.remarks || "",
 
-        // Type-specific data
-        cargoType: data.bookingType === "freight" ? data.cargoType : null,
-        numBoxes: data.bookingType === "freight" ? Number(data.numBoxes) : null,
-        weight: data.bookingType === "freight" ? Number(data.weight) : null,
-        boxSize: data.bookingType === "freight" ? data.boxSize?.slice(0, data.numBoxes) || [] : [],
+        // Freight-specific fields
+        ...(data.bookingType === "freight" && {
+          cargoType: data.cargoType,
+          numBoxes: Number(data.numBoxes),
+          weight: Number(data.weight),
+          boxSize: data.boxSize?.slice(0, data.numBoxes) || []
+        }),
 
-        tripType: data.bookingType === "passenger" ? data.tripType : null,
-        numPassengers: data.bookingType === "passenger" ? Number(data.numPassengers) : null,
-        withDriver: data.bookingType === "passenger" ? !!data.withDriver : false,
-        bookingForSelf: data.bookingType === "passenger" ? !!data.bookingForSelf : false,
-        passengerDetails: data.bookingType === "passenger"
-          ? data.passengerDetails
+        // Passenger-specific fields
+        ...(data.bookingType === "passenger" && {
+          tripType: data.tripType,
+          numPassengers: Number(data.numPassengers),
+          withDriver: !!data.withDriver,
+          bookingForSelf: !!data.bookingForSelf,
+          passengerDetails: data.passengerDetails
             .slice(0, data.numPassengers)
             .map((p: any) => ({
               name: p.name || "",
               contact: p.contact || ""
             }))
-          : []
+        })
       };
 
       await createBooking.mutateAsync(bookingData);
@@ -980,7 +994,8 @@ export function BookingForm() {
                 {currentStep === 3 && (
                   <motion.div
                     key="step3"
-                    initial={{ opacity: 0, x: -20 }}                    animate={{ opacity: 1, x: 0 }}
+                    initial={{ opacity: 0, x: -20 }}
+                    animate={{ opacity: 1, x: 0 }}
                     exit={{ opacity: 0, x: 20 }}
                     transition={{ duration: 0.5 }}
                     className="space-y-4"
@@ -1016,7 +1031,7 @@ export function BookingForm() {
                     <FormField
                       control={form.control}
                       name="priority"
-                      render={({field }) => (
+                      render={({ field }) => (
                         <FormItem>
                           <FormLabel>Priority Level *</FormLabel>
                           <Select
