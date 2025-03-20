@@ -276,6 +276,7 @@ export function BookingForm() {
       const response = await apiRequest("POST", "/api/bookings", data);
       if (!response.ok) {
         const error = await response.json();
+        console.error("Booking creation error:", error);
         throw new Error(error.message || "Failed to create booking");
       }
       return response.json();
@@ -336,28 +337,8 @@ export function BookingForm() {
         coordinates: {
           lat: Number(location.coordinates.lat),
           lng: Number(location.coordinates.lng)
-        },
-        name: location.name || location.address,
-        formatted_address: location.formatted_address || location.address,
-        place_id: location.place_id || ""
+        }
       });
-
-      // Validate dates
-      const pickupTime = new Date(data.pickupTime);
-      const dropoffTime = new Date(data.dropoffTime);
-
-      if (isNaN(pickupTime.getTime()) || isNaN(dropoffTime.getTime())) {
-        throw new Error("Invalid date selection");
-      }
-
-      if (dropoffTime <= pickupTime) {
-        toast({
-          title: "Invalid Time Selection",
-          description: "Dropoff time must be after pickup time",
-          variant: "destructive"
-        });
-        return;
-      }
 
       // Format the booking data with all required fields
       const bookingData = {
@@ -375,12 +356,9 @@ export function BookingForm() {
         dropoffLocation: formatLocation(data.dropoffLocation),
 
         // Timing information
-        pickupTime: pickupTime.toISOString(),
-        dropoffTime: dropoffTime.toISOString(),
+        pickupTime: data.pickupTime,
+        dropoffTime: data.dropoffTime,
         estimatedDuration: routeDuration,
-
-        // Additional notes
-        remarks: data.remarks || "",
 
         // Freight-specific fields
         ...(data.bookingType === "freight" && {
@@ -397,12 +375,15 @@ export function BookingForm() {
           withDriver: !!data.withDriver,
           bookingForSelf: !!data.bookingForSelf,
           passengerDetails: data.passengerDetails
-            .slice(0, data.numPassengers)
-            .map((p: any) => ({
+            ?.slice(0, data.numPassengers)
+            ?.map((p: any) => ({
               name: p.name || "",
               contact: p.contact || ""
-            }))
-        })
+            })) || []
+        }),
+
+        // Additional notes
+        remarks: data.remarks || ""
       };
 
       console.log("Submitting booking:", bookingData);
@@ -1022,28 +1003,28 @@ export function BookingForm() {
                       name="purpose"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>Purpose *</FormLabel>
-                          <Select
-                            onValueChange={field.onChange}
-                            value={field.value}
-                            disabled={form.watch("bookingType") === "freight"}
-                          >
-                            <FormControl>
-                              <SelectTrigger>
-                                <SelectValue placeholder="Select booking purpose" />
-                              </SelectTrigger>
-                            </FormControl>
-                            <SelectContent>
-                              {Object.values(BookingPurpose).map((purpose) => (
-                                <SelectItem key={purpose} value={purpose}>
-                                  {purpose}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                          <FormMessage />
-                        </FormItem>
-                      )}
+                        <FormLabel>Purpose *</FormLabel>
+                        <Select
+                          onValueChange={field.onChange}
+                          value={field.value}
+                          disabled={form.watch("bookingType") === "freight"}
+                        >
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select booking purpose" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            {Object.values(BookingPurpose).map((purpose) => (
+                              <SelectItem key={purpose} value={purpose}>
+                                {purpose}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )}
                     />
                     <FormField
                       control={form.control}
