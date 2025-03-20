@@ -61,7 +61,6 @@ export function MapView({
     duration: string;
   } | null>(null);
 
-  // Update the drawRoute function to properly calculate and notify of route duration
   const drawRoute = async () => {
     if (!pickupLocation || !dropoffLocation || !map) {
       console.log("Missing location data:", { pickupLocation, dropoffLocation });
@@ -117,10 +116,11 @@ export function MapView({
     }
   };
 
-  // Update useEffect to recalculate route when locations change
   useEffect(() => {
-    drawRoute();
-  }, [pickupLocation, dropoffLocation, map, onRouteCalculated]);
+    if (map && pickupLocation && dropoffLocation) {
+      drawRoute();
+    }
+  }, [pickupLocation, dropoffLocation, map]);
 
   const handleMapClick = async (e: google.maps.MapMouseEvent) => {
     if (!e.latLng || !onLocationSelect || !mapsInitialized) return;
@@ -152,38 +152,19 @@ export function MapView({
   const handleLocationTypeSelect = (type: 'pickup' | 'dropoff') => {
     if (!popupLocation || !map) return;
 
-    // Create a Places Service to get additional place details
-    const placesService = new google.maps.places.PlacesService(map);
+    const location: Location = {
+      address: popupLocation.address,
+      coordinates: {
+        lat: popupLocation.lat,
+        lng: popupLocation.lng
+      },
+      name: popupLocation.name || popupLocation.address,
+      formatted_address: popupLocation.formatted_address || popupLocation.address,
+      place_id: popupLocation.place_id
+    };
 
-    placesService.findPlaceFromQuery({
-      query: popupLocation.address,
-      fields: ['place_id', 'name', 'formatted_address', 'geometry']
-    }, (results, status) => {
-      if (status === google.maps.places.PlacesServiceStatus.OK && results?.[0]) {
-        const place = results[0];
-        const location: Location = {
-          address: place.formatted_address || place.name || popupLocation.address,
-          coordinates: {
-            lat: popupLocation.lat,
-            lng: popupLocation.lng
-          },
-          place_id: place.place_id,
-          name: place.name,
-          formatted_address: place.formatted_address
-        };
-        onLocationSelect(location, type);
-      } else {
-        const location: Location = {
-          address: popupLocation.address,
-          coordinates: {
-            lat: popupLocation.lat,
-            lng: popupLocation.lng
-          }
-        };
-        onLocationSelect(location, type);
-      }
-      setPopupLocation(null);
-    });
+    onLocationSelect?.(location, type);
+    setPopupLocation(null);
   };
 
   const handleMapLoad = (map: google.maps.Map) => {
@@ -194,7 +175,7 @@ export function MapView({
   };
 
   return (
-    <Card className="p-4 h-full relative">
+    <Card className="p-4 h-full relative shadow-lg">
       {isLoading && (
         <div className="absolute inset-0 bg-background/80 backdrop-blur-sm z-50 flex items-center justify-center">
           <VehicleLoadingIndicator size="lg" />
@@ -211,13 +192,13 @@ export function MapView({
         googleMapsApiKey={MAPS_API_KEY}
         libraries={libraries}
         loadingElement={
-          <div className="h-full flex items-center justify-center">
+          <div className="h-full w-full flex items-center justify-center min-h-[400px]">
             <VehicleLoadingIndicator size="lg" />
           </div>
         }
         onLoad={() => setMapsInitialized(true)}
       >
-        <div className="h-[400px] relative">
+        <div className="h-[500px] relative">
           <GoogleMap
             mapContainerStyle={{
               width: '100%',
@@ -233,7 +214,14 @@ export function MapView({
               streetViewControl: false,
               mapTypeControl: false,
               fullscreenControl: false,
-              clickableIcons: true
+              clickableIcons: true,
+              styles: [
+                {
+                  featureType: "poi",
+                  elementType: "labels",
+                  stylers: [{ visibility: "off" }]
+                }
+              ]
             }}
           >
             {directionsResult && (
@@ -313,7 +301,7 @@ export function MapView({
         </Alert>
       )}
 
-      {pickupLocation && dropoffLocation && routeInfo && (
+      {routeInfo && pickupLocation && dropoffLocation && (
         <div className="mt-4 p-4 border rounded-lg space-y-2">
           <h3 className="font-medium mb-2">Route Information</h3>
           <div className="flex items-center gap-2 text-sm text-muted-foreground">
@@ -324,10 +312,10 @@ export function MapView({
           </div>
           <div className="mt-2">
             <p className="text-sm text-muted-foreground">
-              Pickup: {pickupLocation.formatted_address || pickupLocation.name || pickupLocation.address}
+              From: {pickupLocation.formatted_address || pickupLocation.name || pickupLocation.address}
             </p>
             <p className="text-sm text-muted-foreground">
-              Dropoff: {dropoffLocation.formatted_address || dropoffLocation.name || dropoffLocation.address}
+              To: {dropoffLocation.formatted_address || dropoffLocation.name || dropoffLocation.address}
             </p>
           </div>
         </div>
