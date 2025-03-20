@@ -997,7 +997,7 @@ export function BookingForm() {
                     key="step3"
                     initial={{ opacity: 0, x: -20 }}
                     animate={{ opacity: 1, x: 0 }}
-                    exit={{ opacity: 0, x: 20 }}
+                    exit={{ opacity: 0, x: 20}}
                     transition={{ duration: 0.5 }}                    className="space-y-4"
                   >
                     <FormField
@@ -1349,17 +1349,17 @@ export function BookingForm() {
               You can track your booking status in the booking history.
             </p>
           </AlertDialogDescription>
-        </AlertDialogHeader>
-        <AlertDialogFooter className="sm:justify-center">
-          <AlertDialogAction
-            onClick={handleSuccessDialogClose}
-            className="w-full sm:w-auto bg-primary text-white hover:bg-primary/90"
-          >
-            View Booking History
-          </AlertDialogAction>
-        </AlertDialogFooter>
-      </AlertDialogContent>
-    </AlertDialog>
-  </>
-);
+          </AlertDialogHeader>
+          <AlertDialogFooter className="sm:justify-center">
+            <AlertDialogAction
+              onClick={handleSuccessDialogClose}
+              className="w-full sm:w-auto bg-primary text-white hover:bg-primary/90"
+            >
+              View Booking History
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </>
+  );
 }
