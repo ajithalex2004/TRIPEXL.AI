@@ -32,9 +32,8 @@ export function VehicleTypeForm({ onSubmit, initialData, isEditing }: VehicleTyp
   const { toast } = useToast();
 
   // Fetch vehicle groups for the dropdown
-  const { data: vehicleGroups } = useQuery<VehicleGroup[]>({
+  const { data: vehicleGroups, isLoading: loadingGroups } = useQuery<VehicleGroup[]>({
     queryKey: ["/api/vehicle-groups"],
-    staleTime: 0,
   });
 
   const form = useForm<InsertVehicleTypeMaster>({
@@ -55,8 +54,7 @@ export function VehicleTypeForm({ onSubmit, initialData, isEditing }: VehicleTyp
       unit: "",
       alertBefore: 0,
       idleFuelConsumption: 0,
-      vehicleVolume: 0,
-      vehicleTypeImage: ""
+      vehicleVolume: 0
     }
   });
 
@@ -78,8 +76,7 @@ export function VehicleTypeForm({ onSubmit, initialData, isEditing }: VehicleTyp
         unit: initialData.unit,
         alertBefore: initialData.alertBefore,
         idleFuelConsumption: initialData.idleFuelConsumption,
-        vehicleVolume: initialData.vehicleVolume,
-        vehicleTypeImage: initialData.vehicleTypeImage ?? ""
+        vehicleVolume: initialData.vehicleVolume
       });
     }
   }, [initialData, form.reset]);
@@ -107,7 +104,11 @@ export function VehicleTypeForm({ onSubmit, initialData, isEditing }: VehicleTyp
             render={({ field }) => (
               <FormItem>
                 <FormLabel>Vehicle Group *</FormLabel>
-                <Select onValueChange={field.onChange} value={field.value}>
+                <Select 
+                  onValueChange={field.onChange} 
+                  value={field.value}
+                  disabled={loadingGroups}
+                >
                   <FormControl>
                     <SelectTrigger>
                       <SelectValue placeholder="Select vehicle group" />
@@ -125,7 +126,6 @@ export function VehicleTypeForm({ onSubmit, initialData, isEditing }: VehicleTyp
               </FormItem>
             )}
           />
-
           <FormField
             control={form.control}
             name="vehicleTypeCode"
@@ -139,7 +139,6 @@ export function VehicleTypeForm({ onSubmit, initialData, isEditing }: VehicleTyp
               </FormItem>
             )}
           />
-
           <FormField
             control={form.control}
             name="numberOfPassengers"
@@ -158,7 +157,6 @@ export function VehicleTypeForm({ onSubmit, initialData, isEditing }: VehicleTyp
               </FormItem>
             )}
           />
-
           <FormField
             control={form.control}
             name="region"
@@ -172,7 +170,6 @@ export function VehicleTypeForm({ onSubmit, initialData, isEditing }: VehicleTyp
               </FormItem>
             )}
           />
-
           <FormField
             control={form.control}
             name="section"
@@ -186,7 +183,6 @@ export function VehicleTypeForm({ onSubmit, initialData, isEditing }: VehicleTyp
               </FormItem>
             )}
           />
-
           <FormField
             control={form.control}
             name="specialVehicleType"
@@ -204,7 +200,6 @@ export function VehicleTypeForm({ onSubmit, initialData, isEditing }: VehicleTyp
               </FormItem>
             )}
           />
-
           <FormField
             control={form.control}
             name="roadSpeedThreshold"
@@ -223,7 +218,6 @@ export function VehicleTypeForm({ onSubmit, initialData, isEditing }: VehicleTyp
               </FormItem>
             )}
           />
-
           <FormField
             control={form.control}
             name="servicePlan"
@@ -237,7 +231,6 @@ export function VehicleTypeForm({ onSubmit, initialData, isEditing }: VehicleTyp
               </FormItem>
             )}
           />
-
           <FormField
             control={form.control}
             name="costPerKm"
@@ -256,7 +249,6 @@ export function VehicleTypeForm({ onSubmit, initialData, isEditing }: VehicleTyp
               </FormItem>
             )}
           />
-
           <FormField
             control={form.control}
             name="maximumWeight"
@@ -275,7 +267,6 @@ export function VehicleTypeForm({ onSubmit, initialData, isEditing }: VehicleTyp
               </FormItem>
             )}
           />
-
           <FormField
             control={form.control}
             name="vehicleType"
@@ -289,7 +280,6 @@ export function VehicleTypeForm({ onSubmit, initialData, isEditing }: VehicleTyp
               </FormItem>
             )}
           />
-
           <FormField
             control={form.control}
             name="department"
@@ -314,7 +304,6 @@ export function VehicleTypeForm({ onSubmit, initialData, isEditing }: VehicleTyp
               </FormItem>
             )}
           />
-
           <FormField
             control={form.control}
             name="unit"
@@ -328,7 +317,6 @@ export function VehicleTypeForm({ onSubmit, initialData, isEditing }: VehicleTyp
               </FormItem>
             )}
           />
-
           <FormField
             control={form.control}
             name="alertBefore"
@@ -347,7 +335,6 @@ export function VehicleTypeForm({ onSubmit, initialData, isEditing }: VehicleTyp
               </FormItem>
             )}
           />
-
           <FormField
             control={form.control}
             name="idleFuelConsumption"
@@ -366,7 +353,6 @@ export function VehicleTypeForm({ onSubmit, initialData, isEditing }: VehicleTyp
               </FormItem>
             )}
           />
-
           <FormField
             control={form.control}
             name="vehicleVolume"
@@ -385,7 +371,6 @@ export function VehicleTypeForm({ onSubmit, initialData, isEditing }: VehicleTyp
               </FormItem>
             )}
           />
-
           <FormField
             control={form.control}
             name="vehicleTypeImage"
