@@ -175,9 +175,13 @@ export function VehicleTypeForm({ onSubmit, initialData, isEditing }: VehicleTyp
             name="section"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Section *</FormLabel>
+                <FormLabel>Section</FormLabel>
                 <FormControl>
-                  <Input placeholder="Enter section" {...field} />
+                  <Input 
+                    placeholder="Enter section (optional)" 
+                    {...field}
+                    value={field.value ?? ""}
+                  />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -309,9 +313,13 @@ export function VehicleTypeForm({ onSubmit, initialData, isEditing }: VehicleTyp
             name="unit"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Unit *</FormLabel>
+                <FormLabel>Unit</FormLabel>
                 <FormControl>
-                  <Input placeholder="Enter unit" {...field} />
+                  <Input 
+                    placeholder="Enter unit (optional)" 
+                    {...field}
+                    value={field.value ?? ""}
+                  />
                 </FormControl>
                 <FormMessage />
               </FormItem>

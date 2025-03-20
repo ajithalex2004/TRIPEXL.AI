@@ -358,7 +358,6 @@ export const vehicleTypeMaster = pgTable("vehicle_type_master", {
   servicePlan: text("service_plan").notNull(),
   costPerKm: integer("cost_per_km").notNull(),
   maximumWeight: integer("maximum_weight").notNull(),
-  vehicleTypeImage: text("vehicle_type_image"),
   vehicleType: text("vehicle_type").notNull(),
   department: text("department").notNull(),
   unit: text("unit").notNull(),
@@ -370,21 +369,21 @@ export const vehicleTypeMaster = pgTable("vehicle_type_master", {
   updatedAt: timestamp("updated_at").notNull().defaultNow()
 });
 
-// Add after other insert schemas
+// Update insert schema for Vehicle Types
 export const insertVehicleTypeMasterSchema = createInsertSchema(vehicleTypeMaster)
   .extend({
     vehicleGroup: z.string().min(1, "Vehicle group is required"),
     vehicleTypeCode: z.string().min(1, "Vehicle type code is required"),
     numberOfPassengers: z.number().min(0, "Number of passengers must be positive"),
     region: z.string().min(1, "Region is required"),
-    section: z.string().min(1, "Section is required"),
+    section: z.string().optional(), // Made optional
     roadSpeedThreshold: z.number().min(0, "Road speed threshold must be positive"),
     servicePlan: z.string().min(1, "Service plan is required"),
     costPerKm: z.number().min(0, "Cost per KM must be positive"),
     maximumWeight: z.number().min(0, "Maximum weight must be positive"),
     vehicleType: z.string().min(1, "Vehicle type is required"),
     department: z.enum(Object.values(Department) as [string, ...string[]]),
-    unit: z.string().min(1, "Unit is required"),
+    unit: z.string().optional(), // Made optional
     alertBefore: z.number().min(0, "Alert before must be positive"),
     idleFuelConsumption: z.number().min(0, "Idle fuel consumption must be positive"),
     vehicleVolume: z.number().min(0, "Vehicle volume must be positive")
