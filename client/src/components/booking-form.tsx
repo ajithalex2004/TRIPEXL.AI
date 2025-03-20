@@ -195,6 +195,43 @@ export function BookingForm() {
       6: [] as const
     }[step] || [];
 
+    // Additional validation for passenger booking
+    if (step === 2 && bookingType === "passenger") {
+      const numPassengers = form.getValues("numPassengers");
+      const passengerDetails = form.getValues("passengerDetails");
+
+      if (numPassengers === 0) {
+        toast({
+          title: "Please enter passenger count",
+          description: "At least one passenger is required.",
+          variant: "destructive"
+        });
+        return false;
+      }
+
+      if (!passengerDetails || passengerDetails.length < numPassengers) {
+        toast({
+          title: "Incomplete passenger details",
+          description: "Please provide details for all passengers.",
+          variant: "destructive"
+        });
+        return false;
+      }
+
+      // Validate that all passenger details are filled
+      const hasEmptyDetails = passengerDetails.some(
+        (passenger, idx) => idx < numPassengers && (!passenger.name || !passenger.contact)
+      );
+      if (hasEmptyDetails) {
+        toast({
+          title: "Incomplete passenger details",
+          description: "Please fill in all required passenger information.",
+          variant: "destructive"
+        });
+        return false;
+      }
+    }
+
     return await form.trigger(fields);
   };
 
@@ -340,29 +377,41 @@ export function BookingForm() {
   }, [form.watch("pickupTime"), routeDuration, form]);
 
 
-  // Add effect to handle bookingForSelf changes
+  // Update the useEffect hook that handles bookingForSelf changes
   React.useEffect(() => {
     const bookingForSelf = form.watch("bookingForSelf");
-    const numPassengers = form.watch("numPassengers");
 
-    if (bookingForSelf && numPassengers > 0 && employee) {
-      // Update first passenger's details with employee info
-      const passengerDetails = form.getValues("passengerDetails") || [];
-      passengerDetails[0] = {
-        name: employee.name,
-        contact: employee.phone
-      };
-      form.setValue("passengerDetails", passengerDetails, {
+    if (bookingForSelf) {
+      // Set passenger count to 1 and fill in employee details
+      form.setValue("numPassengers", 1, {
         shouldValidate: true,
         shouldDirty: true,
         shouldTouch: true
       });
-    } else if (!bookingForSelf && numPassengers > 0) {
-      const passengerDetails = form.getValues("passengerDetails") || [];
-      passengerDetails[0] = { name: "", contact: "" };
-      form.setValue("passengerDetails", passengerDetails);
+      if (employee) {
+        form.setValue("passengerDetails", [{
+          name: employee.name,
+          contact: employee.phone
+        }], {
+          shouldValidate: true,
+          shouldDirty: true,
+          shouldTouch: true
+        });
+      }
+    } else {
+      // Reset passenger count and details when unchecked
+      form.setValue("numPassengers", 0, {
+        shouldValidate: true,
+        shouldDirty: true,
+        shouldTouch: true
+      });
+      form.setValue("passengerDetails", [], {
+        shouldValidate: true,
+        shouldDirty: true,
+        shouldTouch: true
+      });
     }
-  }, [form.watch("bookingForSelf"), employee, form, form.watch("numPassengers")]);
+  }, [form.watch("bookingForSelf"), employee, form]);
 
   // In the BookingForm component, add this effect
   React.useEffect(() => {
