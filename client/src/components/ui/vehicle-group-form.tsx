@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { InsertVehicleGroup, Department, VehicleGroupType, insertVehicleGroupSchema } from "@shared/schema";
+import { InsertVehicleGroup, Department, VehicleGroupType, insertVehicleGroupSchema, VehicleGroup } from "@shared/schema";
 import {
   Form,
   FormControl,
@@ -23,7 +23,7 @@ import { useToast } from "@/hooks/use-toast";
 
 interface VehicleGroupFormProps {
   onSubmit: (data: InsertVehicleGroup) => void;
-  initialData?: InsertVehicleGroup;
+  initialData?: VehicleGroup;
   isEditing?: boolean;
 }
 
@@ -31,21 +31,23 @@ export function VehicleGroupForm({ onSubmit, initialData, isEditing }: VehicleGr
   const { toast } = useToast();
   const form = useForm<InsertVehicleGroup>({
     resolver: zodResolver(insertVehicleGroupSchema),
-    defaultValues: initialData || {
-      groupCode: "",
-      region: "",
-      name: "",
-      type: "",
-      department: "",
-      imageUrl: "",
-      description: ""
+    defaultValues: {
+      groupCode: initialData?.groupCode || "",
+      region: initialData?.region || "",
+      name: initialData?.name || "",
+      type: initialData?.type || "",
+      department: initialData?.department || "",
+      imageUrl: initialData?.imageUrl || "",
+      description: initialData?.description || ""
     }
   });
 
   const handleSubmit = async (data: InsertVehicleGroup) => {
     try {
       await onSubmit(data);
-      form.reset();
+      if (!isEditing) {
+        form.reset();
+      }
     } catch (error: any) {
       toast({
         title: "Error",

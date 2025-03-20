@@ -57,9 +57,8 @@ export default function VehicleGroupManagement() {
   });
 
   const updateMutation = useMutation({
-    mutationFn: async (data: InsertVehicleGroup & { id: number }) => {
-      const { id, ...updateData } = data;
-      const response = await apiRequest("PATCH", `/api/vehicle-groups/${id}`, updateData);
+    mutationFn: async ({ id, ...data }: InsertVehicleGroup & { id: number }) => {
+      const response = await apiRequest("PATCH", `/api/vehicle-groups/${id}`, data);
       if (!response.ok) {
         const error = await response.json();
         throw new Error(error.message);
@@ -105,7 +104,7 @@ export default function VehicleGroupManagement() {
           <CardContent>
             <VehicleGroupForm
               onSubmit={handleSubmit}
-              initialData={selectedGroup || undefined}
+              initialData={selectedGroup}
               isEditing={!!selectedGroup}
             />
           </CardContent>
