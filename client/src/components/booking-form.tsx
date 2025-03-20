@@ -440,7 +440,7 @@ export function BookingForm() {
   const renderDateTimePicker = (field: any) => (
     <DateTimePicker
       value={field.value ? new Date(field.value) : new Date()}
-      onChange={(date: Date | null) => {
+      onChange={(date) => {
         if (date) {
           const selectedDate = new Date(date);
           const now = getMinimumPickupTime();

@@ -18,18 +18,19 @@ import {
 } from "@/components/ui/select";
 
 interface DateTimePickerProps {
-  date: Date | undefined;
-  setDate: (date: Date | undefined) => void;
+  value: Date | null;
+  onChange: (date: Date | null) => void;
+  onBlur?: () => void;
   disabled?: boolean;
 }
 
-export function DateTimePicker({ date, setDate, disabled }: DateTimePickerProps) {
-  const [selectedDate, setSelectedDate] = React.useState<Date | undefined>(date);
+export function DateTimePicker({ value, onChange, onBlur, disabled }: DateTimePickerProps) {
+  const [selectedDate, setSelectedDate] = React.useState<Date | undefined>(value || undefined);
   const [selectedHour, setSelectedHour] = React.useState<string>(
-    date ? format(date, "HH") : format(new Date(), "HH")
+    value ? format(value, "HH") : format(new Date(), "HH")
   );
   const [selectedMinute, setSelectedMinute] = React.useState<string>(
-    date ? format(date, "mm") : format(new Date(), "mm")
+    value ? format(value, "mm") : format(new Date(), "mm")
   );
 
   // Update the final date when any component changes
@@ -38,9 +39,9 @@ export function DateTimePicker({ date, setDate, disabled }: DateTimePickerProps)
       const newDate = new Date(selectedDate);
       newDate.setHours(parseInt(selectedHour, 10));
       newDate.setMinutes(parseInt(selectedMinute, 10));
-      setDate(newDate);
+      onChange(newDate);
     }
-  }, [selectedDate, selectedHour, selectedMinute, setDate]);
+  }, [selectedDate, selectedHour, selectedMinute, onChange]);
 
   // Generate hours (00-23)
   const hours = Array.from({ length: 24 }, (_, i) =>
@@ -60,11 +61,11 @@ export function DateTimePicker({ date, setDate, disabled }: DateTimePickerProps)
           disabled={disabled}
           className={cn(
             "w-full justify-start text-left font-normal",
-            !date && "text-muted-foreground"
+            !value && "text-muted-foreground"
           )}
         >
           <CalendarIcon className="mr-2 h-4 w-4" />
-          {date ? format(date, "PPP HH:mm") : <span>Pick date and time</span>}
+          {value ? format(value, "PPP HH:mm") : <span>Pick date and time</span>}
         </Button>
       </PopoverTrigger>
       <PopoverContent className="w-auto p-0" align="start">
