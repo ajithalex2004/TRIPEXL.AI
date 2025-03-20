@@ -72,9 +72,13 @@ function generateBookingReference(bookingType: string): string {
   })();
 
   const year = new Date().getFullYear().toString().slice(-2); // Get YY format
-  const sequence = Math.floor(10000 + Math.random() * 90000); // Generate 5 digit number starting from 10000
+  const baseNumber = 2510001; // Starting sequence number
 
-  return `${prefix}${year}${sequence}`;
+  // In a production environment, this would be fetched from the database
+  // For now, we'll use the starting number
+  const sequenceNumber = baseNumber;
+
+  return `${prefix}${year}${sequenceNumber}`;
 }
 
 function getMinimumPickupTime(): Date {
@@ -348,7 +352,7 @@ export function BookingForm() {
         bookingType: data.bookingType,
         purpose: data.purpose || BookingPurpose.FREIGHT_TRANSPORT,
         priority: data.priority,
-        status: "PENDING",
+        status: "Pending for Approval", // Updated status
 
         // Location information
         pickupLocation: formatLocation(data.pickupLocation),
@@ -375,7 +379,7 @@ export function BookingForm() {
           numPassengers: Number(data.numPassengers || 1),
           withDriver: Boolean(data.withDriver),
           bookingForSelf: Boolean(data.bookingForSelf),
-          passengerDetails: Array.isArray(data.passengerDetails) ? 
+          passengerDetails: Array.isArray(data.passengerDetails) ?
             data.passengerDetails.map((p: any) => ({
               name: p.name || "",
               contact: p.contact || ""

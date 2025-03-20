@@ -234,7 +234,7 @@ function BookingHistoryPage() {
                               <TableCell>
                                 <span
                                   className={`px-2 py-1 rounded-full text-xs ${
-                                    booking.status === "PENDING"
+                                    booking.status === "Pending for Approval"
                                       ? "bg-yellow-500/20 text-yellow-500"
                                       : booking.status === "COMPLETED"
                                       ? "bg-green-500/20 text-green-500"
