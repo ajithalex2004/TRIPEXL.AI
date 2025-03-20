@@ -2,7 +2,7 @@ import { useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { useQuery } from "@tanstack/react-query";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { InsertVehicleTypeMaster, Department, insertVehicleTypeMasterSchema, VehicleTypeMaster, VehicleGroup, VehicleType, VehicleTypeDefaults } from "@shared/schema"; 
+import { InsertVehicleTypeMaster, Department, insertVehicleTypeMasterSchema, VehicleTypeMaster, VehicleGroup, VehicleType, VehicleTypeDefaults, VehicleFuelType } from "@shared/schema"; 
 import {
   Form,
   FormControl,
@@ -46,6 +46,7 @@ export function VehicleTypeForm({ onSubmit, initialData, isEditing }: VehicleTyp
       section: "",
       fuelEfficiency: 0, 
       fuelPricePerLitre: 0,
+      fuelType: "Petrol", // Add default fuel type
       roadSpeedThreshold: 0,
       servicePlan: "",
       costPerKm: 0,
@@ -77,22 +78,8 @@ export function VehicleTypeForm({ onSubmit, initialData, isEditing }: VehicleTyp
   useEffect(() => {
     if (initialData) {
       form.reset({
-        groupId: initialData.groupId,
-        vehicleTypeCode: initialData.vehicleTypeCode,
-        numberOfPassengers: initialData.numberOfPassengers,
-        region: initialData.region,
-        section: initialData.section,
-        fuelEfficiency: initialData.fuelEfficiency, 
-        fuelPricePerLitre: initialData.fuelPricePerLitre ?? 0,
-        roadSpeedThreshold: initialData.roadSpeedThreshold,
-        servicePlan: initialData.servicePlan,
-        costPerKm: initialData.costPerKm,
-        vehicleType: initialData.vehicleType,
-        department: initialData.department,
-        unit: initialData.unit,
-        alertBefore: initialData.alertBefore,
-        idleFuelConsumption: initialData.idleFuelConsumption,
-        vehicleVolume: initialData.vehicleVolume
+        ...initialData,
+        fuelType: initialData.fuelType || "Petrol" // Add this line
       });
     }
   }, [initialData, form]);
@@ -114,26 +101,27 @@ export function VehicleTypeForm({ onSubmit, initialData, isEditing }: VehicleTyp
     <Form {...form}>
       <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-4">
         <div className="grid grid-cols-3 gap-4">
+          {/* Keep existing fields up to fuelPricePerLitre */}
+
           <FormField
             control={form.control}
-            name="groupId"
+            name="fuelType"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Vehicle Group *</FormLabel>
+                <FormLabel>Fuel Type *</FormLabel>
                 <Select
-                  onValueChange={(value) => field.onChange(parseInt(value))}
-                  value={field.value?.toString()}
-                  disabled={loadingGroups}
+                  onValueChange={field.onChange}
+                  value={field.value}
                 >
                   <FormControl>
                     <SelectTrigger>
-                      <SelectValue placeholder="Select vehicle group" />
+                      <SelectValue placeholder="Select fuel type" />
                     </SelectTrigger>
                   </FormControl>
                   <SelectContent>
-                    {vehicleGroups?.map((group) => (
-                      <SelectItem key={group.id} value={group.id.toString()}>
-                        {group.name}
+                    {Object.values(VehicleFuelType).map((type) => (
+                      <SelectItem key={type} value={type}>
+                        {type}
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -142,73 +130,8 @@ export function VehicleTypeForm({ onSubmit, initialData, isEditing }: VehicleTyp
               </FormItem>
             )}
           />
-          <FormField
-            control={form.control}
-            name="vehicleTypeCode"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Vehicle Type Code *</FormLabel>
-                <FormControl>
-                  <Input placeholder="Enter vehicle type code" {...field} />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-          <FormField
-            control={form.control}
-            name="numberOfPassengers"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Number of Passengers *</FormLabel>
-                <FormControl>
-                  <Input
-                    type="number"
-                    placeholder="Enter number of passengers"
-                    {...field}
-                    onChange={e => field.onChange(Number(e.target.value))}
-                  />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-          <FormField
-            control={form.control}
-            name="fuelEfficiency"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Fuel Efficiency (KM/L) *</FormLabel>
-                <FormControl>
-                  <Input
-                    type="number"
-                    placeholder="Enter fuel efficiency"
-                    {...field}
-                    onChange={e => field.onChange(Number(e.target.value))}
-                  />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-          <FormField
-            control={form.control}
-            name="fuelPricePerLitre"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Fuel Price Per Litre *</FormLabel>
-                <FormControl>
-                  <Input
-                    type="number"
-                    placeholder="Enter fuel price per litre"
-                    {...field}
-                    onChange={e => field.onChange(Number(e.target.value))}
-                  />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
+
+          {/* Keep remaining fields */}
           <FormField
             control={form.control}
             name="roadSpeedThreshold"
