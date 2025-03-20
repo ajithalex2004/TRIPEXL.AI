@@ -20,7 +20,7 @@ import { VehicleGroup, InsertVehicleGroup } from "@shared/schema";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { VehicleGroupForm } from "@/components/ui/vehicle-group-form";
-import { Download, Upload } from "lucide-react";
+import { Download, Upload, FileDown } from "lucide-react";
 import { Input } from "@/components/ui/input";
 
 export default function VehicleGroupManagement() {
@@ -122,7 +122,7 @@ export default function VehicleGroupManagement() {
     try {
       if (selectedGroup) {
         await updateMutation.mutateAsync({ ...data, id: selectedGroup.id });
-        setSelectedGroup(null); // Reset selected group after update
+        setSelectedGroup(null);
       } else {
         await createMutation.mutateAsync(data);
       }
@@ -154,6 +154,37 @@ export default function VehicleGroupManagement() {
       });
     } catch (error: any) {
       console.error("Export error:", error);
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleDownloadTemplate = async () => {
+    try {
+      const response = await fetch("/api/vehicle-groups/template");
+      if (!response.ok) {
+        throw new Error("Failed to download template");
+      }
+
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "vehicle-groups-template.xlsx";
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+
+      toast({
+        title: "Success",
+        description: "Template downloaded successfully",
+      });
+    } catch (error: any) {
+      console.error("Template download error:", error);
       toast({
         title: "Error",
         description: error.message,
@@ -206,6 +237,14 @@ export default function VehicleGroupManagement() {
           <CardHeader className="flex flex-row items-center justify-between">
             <CardTitle>Vehicle Groups List</CardTitle>
             <div className="flex items-center gap-4">
+              <Button
+                onClick={handleDownloadTemplate}
+                variant="outline"
+                className="flex items-center gap-2"
+              >
+                <FileDown className="w-4 h-4" />
+                Download Template
+              </Button>
               <div className="relative">
                 <Input
                   type="file"

@@ -386,5 +386,48 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Add this new endpoint after the other vehicle-groups routes
+  app.get("/api/vehicle-groups/template", async (_req, res) => {
+    try {
+      // Create a template with mandatory fields
+      const templateData = [{
+        'Group Code': '',
+        'Name': '',
+        'Region': '',
+        'Type': 'LIGHT VEHICLE or HEAVY VEHICLE',
+        'Department': 'Operations, Logistics, Medical, Administration, Maintenance, or Security'
+      }];
+
+      // Create workbook and worksheet
+      const wb = XLSX.utils.book_new();
+      const ws = XLSX.utils.json_to_sheet(templateData);
+
+      // Add column widths
+      const colWidths = [
+        { wch: 15 }, // Group Code
+        { wch: 20 }, // Name
+        { wch: 15 }, // Region
+        { wch: 25 }, // Type
+        { wch: 40 }, // Department
+      ];
+      ws['!cols'] = colWidths;
+
+      // Add worksheet to workbook
+      XLSX.utils.book_append_sheet(wb, ws, "Template");
+
+      // Generate buffer
+      const buf = XLSX.write(wb, { type: 'buffer', bookType: 'xlsx' });
+
+      // Set headers for file download
+      res.setHeader('Content-Disposition', 'attachment; filename=vehicle-groups-template.xlsx');
+      res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+
+      res.send(buf);
+    } catch (error: any) {
+      console.error("Error generating template:", error);
+      res.status(500).json({ error: "Failed to generate template" });
+    }
+  });
+
   return httpServer;
 }
