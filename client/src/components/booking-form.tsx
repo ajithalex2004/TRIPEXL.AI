@@ -496,20 +496,20 @@ export function BookingForm() {
             // Check if selected time is before pickup time
             if (pickupDate && selectedDate <= pickupDate) {
               toast({
-                title: "Invalid Time Selection",
-                description: `Please select a time after ${format(pickupDate, "PPp")}`,
+                title: "Time Selection Error",
+                description: "Dropoff time must be after pickup time",
                 variant: "destructive"
               });
               return;
             }
 
             // Check if selected time is before ETA
-            if (pickupTime && routeDuration) {
-              const eta = new Date(new Date(pickupTime).getTime() + (routeDuration * 1000));
+            if (pickupDate && routeDuration) {
+              const eta = new Date(pickupDate.getTime() + (routeDuration * 1000));
               if (selectedDate < eta) {
                 toast({
-                  title: "Time Too Early",
-                  description: `Based on the route, earliest possible time is ${format(eta, "PPp")}`,
+                  title: "Time Selection Error",
+                  description: `Dropoff time must be after estimated arrival (${format(eta, "HH:mm")})`,
                   variant: "destructive"
                 });
                 return;
@@ -994,8 +994,7 @@ export function BookingForm() {
                     initial={{ opacity: 0, x: -20 }}
                     animate={{ opacity: 1, x: 0 }}
                     exit={{ opacity: 0, x: 20 }}
-                    transition={{ duration: 0.5 }}
-                    className="space-y-6"
+                    transition={{ duration: 0.5 }}                    className="space-y-6"
                   >
                     <div className="space-y-2">
                       {/* Location and Map Section */}
@@ -1092,16 +1091,16 @@ export function BookingForm() {
                                   <FormDescription>
                                     {routeDuration > 0 && form.watch("pickupTime") ? (
                                       <div className="space-y-1">
-                                        <p>Pickup: {format(new Date(form.watch("pickupTime")), "PPp")}</p>
-                                        <p className="text-primary">
-                                          Estimated arrival: {format(new Date(new Date(form.watch("pickupTime")).getTime() + (routeDuration * 1000)), "PPp")}
+                                        <p>Selected pickup: {format(new Date(form.watch("pickupTime")), "HH:mm")}</p>
+                                        <p className="font-medium text-primary">
+                                          Earliest dropoff: {format(new Date(new Date(form.watch("pickupTime")).getTime() + (routeDuration * 1000)), "HH:mm")}
                                         </p>
                                         <p className="text-sm text-muted-foreground">
-                                          Please select a time after the estimated arrival
+                                          Choose any time after the earliest dropoff time
                                         </p>
                                       </div>
                                     ) : (
-                                      'First select pickup time and route to see earliest possible dropoff time'
+                                      'Select pickup location and time first'
                                     )}
                                   </FormDescription>
                                   <FormMessage />
