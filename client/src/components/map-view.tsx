@@ -89,7 +89,7 @@ export function MapView({
         setDirectionsResult(result);
         const durationInSeconds = result.routes[0].legs[0].duration?.value || 0;
 
-        // Notify parent component about route duration
+        // Always notify parent component about route duration
         onRouteCalculated?.(durationInSeconds);
 
         setRouteInfo({

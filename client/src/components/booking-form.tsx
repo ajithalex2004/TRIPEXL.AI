@@ -392,36 +392,25 @@ export function BookingForm() {
 
   // Update the handleRouteCalculated function to properly set dropoff time
   const handleRouteCalculated = (durationInSeconds: number) => {
+    console.log("Route duration calculated:", durationInSeconds);
     setRouteDuration(durationInSeconds);
 
-    // Update dropoff time whenever route duration changes and pickup time is set
-    const pickupTime = form.watch("pickupTime");
-    if (pickupTime) {
-      const pickupDate = new Date(pickupTime);
-      const estimatedDropoff = new Date(pickupDate.getTime() + (durationInSeconds * 1000));
-      form.setValue("dropoffTime", estimatedDropoff.toISOString(), {
-        shouldValidate: true,
-        shouldDirty: true,
-        shouldTouch: true
-      });
-    }
+    const currentTime = new Date();
+    const pickupTime = form.watch("pickupTime")
+      ? new Date(form.watch("pickupTime"))
+      : currentTime;
+
+    // Calculate estimated dropoff time based on pickup time and route duration
+    const estimatedDropoff = new Date(pickupTime.getTime() + (durationInSeconds * 1000));
+    console.log("Setting dropoff time to:", estimatedDropoff.toISOString());
+
+    form.setValue("dropoffTime", estimatedDropoff.toISOString(), {
+      shouldValidate: true,
+      shouldDirty: true,
+      shouldTouch: true
+    });
   };
 
-  // Update useEffect for handling route duration updates
-  React.useEffect(() => {
-    if (routeDuration > 0) {
-      const pickupTime = form.watch("pickupTime");
-      if (pickupTime) {
-        const pickupDate = new Date(pickupTime);
-        const estimatedDropoff = new Date(pickupDate.getTime() + (routeDuration * 1000));
-        form.setValue("dropoffTime", estimatedDropoff.toISOString(), {
-          shouldValidate: true,
-          shouldDirty: true,
-          shouldTouch: true
-        });
-      }
-    }
-  }, [routeDuration, form.watch("pickupTime"), form]);
 
   // Update DateTimePicker implementation
   const renderDateTimePicker = (field: any) => (
@@ -974,18 +963,7 @@ export function BookingForm() {
                             });
                           }}
                           onRouteCalculated={(duration) => {
-                            setRouteDuration(duration);
-                            // Update dropoff time whenever route is calculated
-                            const pickupTime = form.watch("pickupTime");
-                            if (pickupTime) {
-                              const pickupDate = new Date(pickupTime);
-                              const estimatedDropoff = new Date(pickupDate.getTime() + (duration * 1000));
-                              form.setValue("dropoffTime", estimatedDropoff.toISOString(), {
-                                shouldValidate: true,
-                                shouldDirty: true,
-                                shouldTouch: true
-                              });
-                            }
+                            handleRouteCalculated(duration);
                           }}
                         />
                       </div>
@@ -1031,16 +1009,16 @@ export function BookingForm() {
                           <FormItem>
                             <FormLabel>Estimated Time of Dropoff</FormLabel>
                             <FormControl>
-                              <Input
+                              <Input 
                                 value={field.value ? format(new Date(field.value), "PPP HH:mm") : "Calculating..."}
                                 disabled={true}
                                 className="bg-muted"
                               />
                             </FormControl>
                             <FormDescription>
-                              {routeDuration > 0
+                              {routeDuration > 0 
                                 ? `Route duration: ${Math.round(routeDuration / 60)} minutes`
-                                : 'Select pickup and dropoff locations to calculate route'}
+                                : 'Please select pickup and dropoff locations'}
                             </FormDescription>
                             <FormMessage />
                           </FormItem>
