@@ -171,6 +171,29 @@ export const insertBookingSchema = createInsertSchema(bookings)
         lng: z.number()
       })
     }),
+    pickupTime: z.string().refine((time) => {
+      const pickupDate = new Date(time);
+      const now = new Date();
+      // Default to normal priority if not set
+      const priority = this.priority || Priority.NORMAL;
+
+      let minOffset = 0;
+      switch (priority) {
+        case Priority.EMERGENCY:
+          minOffset = 30 * 60 * 1000; // 30 minutes
+          break;
+        case Priority.HIGH:
+          minOffset = 60 * 60 * 1000; // 1 hour
+          break;
+        case Priority.NORMAL:
+          minOffset = 3 * 60 * 60 * 1000; // 3 hours
+          break;
+      }
+
+      return pickupDate.getTime() >= now.getTime() + minOffset;
+    }, {
+      message: "Pickup time must be after the minimum required time based on priority"
+    }),
     // Optional fields
     referenceNo: z.string().optional(),
     remarks: z.string().optional(),

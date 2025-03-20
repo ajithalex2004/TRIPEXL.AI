@@ -43,6 +43,21 @@ import {
 } from "@/components/ui/alert-dialog";
 import { useLocation } from "wouter";
 
+// Add this helper function at the top of the file after imports
+function getMinimumPickupTime(priority: string): Date {
+  const now = new Date();
+  switch (priority) {
+    case Priority.EMERGENCY:
+      return new Date(now.getTime() + 30 * 60 * 1000); // 30 minutes
+    case Priority.HIGH:
+      return new Date(now.getTime() + 60 * 60 * 1000); // 1 hour
+    case Priority.NORMAL:
+      return new Date(now.getTime() + 3 * 60 * 60 * 1000); // 3 hours
+    default:
+      return now;
+  }
+}
+
 // Add interface for passenger details
 interface PassengerDetail {
   name: string;
@@ -329,6 +344,24 @@ export function BookingForm() {
       form.setValue("passengerDetails", passengerDetails);
     }
   }, [form.watch("bookingForSelf"), employee, form, form.watch("numPassengers")]);
+
+  // In the BookingForm component, add this effect
+  React.useEffect(() => {
+    const priority = form.watch("priority");
+    if (priority) {
+      const minPickupTime = getMinimumPickupTime(priority);
+      const currentPickupTime = form.watch("pickupTime");
+
+      // If current pickup time is before minimum allowed time, update it
+      if (currentPickupTime && new Date(currentPickupTime) < minPickupTime) {
+        form.setValue("pickupTime", minPickupTime.toISOString(), {
+          shouldValidate: true,
+          shouldDirty: true,
+          shouldTouch: true
+        });
+      }
+    }
+  }, [form.watch("priority"), form]);
 
   return (
     <>
@@ -839,10 +872,20 @@ export function BookingForm() {
                             <FormLabel>Pickup Time *</FormLabel>
                             <FormControl>
                               <DateTimePicker
-                                date={field.value ? new Date(field.value) : undefined}
-                                setDate={(date) => field.onChange(date?.toISOString())}
+                                {...field}
+                                minDate={getMinimumPickupTime(form.watch("priority"))}
+                                onChange={(date) => {
+                                  if (date) {
+                                    field.onChange(date.toISOString());
+                                  }
+                                }}
                               />
                             </FormControl>
+                            <FormDescription>
+                              {form.watch("priority") === Priority.EMERGENCY && "Must be at least 30 minutes from now"}
+                              {form.watch("priority") === Priority.HIGH && "Must be at least 1 hour from now"}
+                              {form.watch("priority") === Priority.NORMAL && "Must be at least 3 hours from now"}
+                            </FormDescription>
                             <FormMessage />
                           </FormItem>
                         )}
