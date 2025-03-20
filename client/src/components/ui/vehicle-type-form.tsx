@@ -176,21 +176,30 @@ export function VehicleTypeForm({ onSubmit, initialData, isEditing }: VehicleTyp
             )}
           />
 
-          {/* Other fields */}
+          {/* Moved Fuel Type before Fuel Efficiency */}
           <FormField
             control={form.control}
-            name="numberOfPassengers"
+            name="fuelType"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Number of Passengers *</FormLabel>
-                <FormControl>
-                  <Input
-                    type="number"
-                    placeholder="Enter number of passengers"
-                    {...field}
-                    onChange={e => field.onChange(Number(e.target.value))}
-                  />
-                </FormControl>
+                <FormLabel>Fuel Type *</FormLabel>
+                <Select
+                  onValueChange={field.onChange}
+                  value={field.value}
+                >
+                  <FormControl>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select fuel type" />
+                    </SelectTrigger>
+                  </FormControl>
+                  <SelectContent>
+                    {Object.values(VehicleFuelType).map((type) => (
+                      <SelectItem key={type} value={type}>
+                        {type}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
                 <FormMessage />
               </FormItem>
             )}
@@ -233,39 +242,32 @@ export function VehicleTypeForm({ onSubmit, initialData, isEditing }: VehicleTyp
           />
           <FormField
             control={form.control}
-            name="fuelType"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Fuel Type *</FormLabel>
-                <Select
-                  onValueChange={field.onChange}
-                  value={field.value}
-                >
-                  <FormControl>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select fuel type" />
-                    </SelectTrigger>
-                  </FormControl>
-                  <SelectContent>
-                    {Object.values(VehicleFuelType).map((type) => (
-                      <SelectItem key={type} value={type}>
-                        {type}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-          <FormField
-            control={form.control}
             name="servicePlan"
             render={({ field }) => (
               <FormItem>
                 <FormLabel>Service Plan *</FormLabel>
                 <FormControl>
                   <Input placeholder="Enter service plan" {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          {/* Moved Number of Passengers after Service Plan */}
+          <FormField
+            control={form.control}
+            name="numberOfPassengers"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Number of Passengers *</FormLabel>
+                <FormControl>
+                  <Input
+                    type="number"
+                    placeholder="Enter number of passengers"
+                    {...field}
+                    onChange={e => field.onChange(Number(e.target.value))}
+                  />
                 </FormControl>
                 <FormMessage />
               </FormItem>
