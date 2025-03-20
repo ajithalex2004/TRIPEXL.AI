@@ -14,60 +14,31 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import {
-  Form,
-  FormControl,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from "@/components/ui/form";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { VehicleGroup, Department, VehicleGroupType, insertVehicleGroupSchema } from "@shared/schema";
+import { VehicleGroup, InsertVehicleGroup } from "@shared/schema";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, Edit, Trash } from "lucide-react";
+import { VehicleGroupForm } from "@/components/ui/vehicle-group-form";
 
 export default function VehicleGroupManagement() {
-  const [isEditing, setIsEditing] = useState(false);
   const [selectedGroup, setSelectedGroup] = useState<VehicleGroup | null>(null);
   const { toast } = useToast();
-
-  const form = useForm({
-    resolver: zodResolver(insertVehicleGroupSchema),
-    defaultValues: {
-      groupCode: "",
-      region: "",
-      name: "",
-      type: "",
-      department: "",
-      imageUrl: "",
-      description: ""
-    }
-  });
 
   const { data: vehicleGroups, isLoading } = useQuery<VehicleGroup[]>({
     queryKey: ["/api/vehicle-groups"],
   });
 
   const createMutation = useMutation({
-    mutationFn: async (data: any) => {
+    mutationFn: async (data: InsertVehicleGroup) => {
       const response = await apiRequest("POST", "/api/vehicle-groups", data);
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message);
+      }
       return response.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/vehicle-groups"] });
-      form.reset();
+      setSelectedGroup(null);
       toast({
         title: "Success",
         description: "Vehicle group created successfully",
@@ -82,146 +53,53 @@ export default function VehicleGroupManagement() {
     },
   });
 
-  const onSubmit = async (data: any) => {
-    await createMutation.mutateAsync(data);
+  const updateMutation = useMutation({
+    mutationFn: async (data: InsertVehicleGroup & { id: number }) => {
+      const { id, ...updateData } = data;
+      const response = await apiRequest("PATCH", `/api/vehicle-groups/${id}`, updateData);
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message);
+      }
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/vehicle-groups"] });
+      setSelectedGroup(null);
+      toast({
+        title: "Success",
+        description: "Vehicle group updated successfully",
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
+  const handleSubmit = async (data: InsertVehicleGroup) => {
+    if (selectedGroup) {
+      await updateMutation.mutateAsync({ ...data, id: selectedGroup.id });
+    } else {
+      await createMutation.mutateAsync(data);
+    }
   };
 
   return (
     <div className="container mx-auto p-6 space-y-6">
       <Card>
         <CardHeader>
-          <CardTitle>Vehicle Group Management</CardTitle>
+          <CardTitle>{selectedGroup ? "Edit Vehicle Group" : "Create Vehicle Group"}</CardTitle>
         </CardHeader>
         <CardContent>
-          <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
-                <FormField
-                  control={form.control}
-                  name="groupCode"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Group Code</FormLabel>
-                      <FormControl>
-                        <Input placeholder="Enter group code" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={form.control}
-                  name="region"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Region</FormLabel>
-                      <FormControl>
-                        <Input placeholder="Enter region" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={form.control}
-                  name="name"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Group Name</FormLabel>
-                      <FormControl>
-                        <Input placeholder="Enter group name" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={form.control}
-                  name="type"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Group Type</FormLabel>
-                      <Select onValueChange={field.onChange} value={field.value}>
-                        <FormControl>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Select group type" />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          {Object.values(VehicleGroupType).map((type) => (
-                            <SelectItem key={type} value={type}>
-                              {type}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={form.control}
-                  name="department"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Department</FormLabel>
-                      <Select onValueChange={field.onChange} value={field.value}>
-                        <FormControl>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Select department" />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          {Object.values(Department).map((dept) => (
-                            <SelectItem key={dept} value={dept}>
-                              {dept}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={form.control}
-                  name="imageUrl"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Image URL</FormLabel>
-                      <FormControl>
-                        <Input placeholder="Enter image URL" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </div>
-
-              <FormField
-                control={form.control}
-                name="description"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Description</FormLabel>
-                    <FormControl>
-                      <Input placeholder="Enter description" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <Button type="submit" className="w-full">
-                {isEditing ? "Update Vehicle Group" : "Create Vehicle Group"}
-              </Button>
-            </form>
-          </Form>
+          <VehicleGroupForm
+            onSubmit={handleSubmit}
+            initialData={selectedGroup || undefined}
+            isEditing={!!selectedGroup}
+          />
         </CardContent>
       </Card>
 
@@ -255,17 +133,13 @@ export default function VehicleGroupManagement() {
                   <TableCell>{group.region}</TableCell>
                   <TableCell>{group.type}</TableCell>
                   <TableCell>{group.department}</TableCell>
-                  <TableCell className="space-x-2">
+                  <TableCell>
                     <Button
                       variant="outline"
                       size="sm"
-                      onClick={() => {
-                        setSelectedGroup(group);
-                        setIsEditing(true);
-                        form.reset(group);
-                      }}
+                      onClick={() => setSelectedGroup(group)}
                     >
-                      <Edit className="h-4 w-4" />
+                      Edit
                     </Button>
                   </TableCell>
                 </TableRow>
