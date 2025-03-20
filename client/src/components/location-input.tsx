@@ -13,6 +13,8 @@ interface LocationInputProps {
   inputId?: string;
 }
 
+const MAPS_API_KEY = "AIzaSyAtNTq_ILPC8Y5M_bJAiMORDf02sGoK84I";
+
 export function LocationInput({
   value,
   placeholder,
@@ -26,6 +28,16 @@ export function LocationInput({
 
   // Initialize Google Places Autocomplete
   useEffect(() => {
+    const loadGoogleMapsScript = () => {
+      const script = document.createElement("script");
+      script.src = `https://maps.googleapis.com/maps/api/js?key=${MAPS_API_KEY}&libraries=places`;
+      script.async = true;
+      script.defer = true;
+      document.head.appendChild(script);
+
+      script.onload = initAutocomplete;
+    };
+
     function initAutocomplete() {
       if (!inputRef.current || !window.google?.maps?.places) {
         return;
@@ -34,7 +46,12 @@ export function LocationInput({
       const autocomplete = new google.maps.places.Autocomplete(inputRef.current, {
         componentRestrictions: { country: "AE" },
         fields: ["place_id", "name", "formatted_address", "geometry"],
-        types: ["establishment", "geocode", "address", "point_of_interest"]
+        types: ["establishment", "geocode", "address", "point_of_interest"],
+        strictBounds: true,
+        bounds: new google.maps.LatLngBounds(
+          { lat: 22.6, lng: 51.5 }, // SW bound
+          { lat: 26.5, lng: 56.4 }  // NE bound
+        )
       });
 
       autocomplete.addListener("place_changed", () => {
@@ -59,8 +76,19 @@ export function LocationInput({
       });
     }
 
-    // Initialize when component mounts
-    initAutocomplete();
+    if (!window.google?.maps?.places) {
+      loadGoogleMapsScript();
+    } else {
+      initAutocomplete();
+    }
+
+    return () => {
+      // Cleanup script if needed
+      const script = document.querySelector(`script[src*="${MAPS_API_KEY}"]`);
+      if (script) {
+        script.remove();
+      }
+    };
   }, [onLocationSelect]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
