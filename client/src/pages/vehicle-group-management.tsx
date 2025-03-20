@@ -20,7 +20,8 @@ import { VehicleGroup, InsertVehicleGroup } from "@shared/schema";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { VehicleGroupForm } from "@/components/ui/vehicle-group-form";
-import { Download } from "lucide-react";
+import { Download, Upload } from "lucide-react";
+import { Input } from "@/components/ui/input";
 
 export default function VehicleGroupManagement() {
   const [selectedGroup, setSelectedGroup] = useState<VehicleGroup | null>(null);
@@ -86,6 +87,37 @@ export default function VehicleGroupManagement() {
     },
   });
 
+  const importMutation = useMutation({
+    mutationFn: async (file: File) => {
+      const formData = new FormData();
+      formData.append('file', file);
+      const response = await fetch('/api/vehicle-groups/import', {
+        method: 'POST',
+        body: formData,
+      });
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || "Failed to import vehicle groups");
+      }
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/vehicle-groups"] });
+      toast({
+        title: "Success",
+        description: "Vehicle groups imported successfully",
+      });
+    },
+    onError: (error: Error) => {
+      console.error("Import error:", error);
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
   const handleSubmit = async (data: InsertVehicleGroup) => {
     try {
       if (selectedGroup) {
@@ -130,6 +162,17 @@ export default function VehicleGroupManagement() {
     }
   };
 
+  const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    try {
+      await importMutation.mutateAsync(file);
+    } catch (error) {
+      console.error("File upload error:", error);
+    }
+  };
+
   if (error) {
     console.error("Query error:", error);
     toast({
@@ -162,15 +205,34 @@ export default function VehicleGroupManagement() {
         <Card className="mt-6 backdrop-blur-xl bg-background/60 border border-white/10 shadow-2xl">
           <CardHeader className="flex flex-row items-center justify-between">
             <CardTitle>Vehicle Groups List</CardTitle>
-            <Button
-              onClick={handleExport}
-              variant="outline"
-              className="flex items-center gap-2"
-              disabled={!vehicleGroups?.length}
-            >
-              <Download className="w-4 h-4" />
-              Export to Excel
-            </Button>
+            <div className="flex items-center gap-4">
+              <div className="relative">
+                <Input
+                  type="file"
+                  accept=".xlsx,.xls"
+                  onChange={handleFileChange}
+                  className="hidden"
+                  id="excel-upload"
+                />
+                <Button
+                  variant="outline"
+                  className="flex items-center gap-2"
+                  onClick={() => document.getElementById('excel-upload')?.click()}
+                >
+                  <Upload className="w-4 h-4" />
+                  Import Excel
+                </Button>
+              </div>
+              <Button
+                onClick={handleExport}
+                variant="outline"
+                className="flex items-center gap-2"
+                disabled={!vehicleGroups?.length}
+              >
+                <Download className="w-4 h-4" />
+                Export to Excel
+              </Button>
+            </div>
           </CardHeader>
           <CardContent>
             <motion.div

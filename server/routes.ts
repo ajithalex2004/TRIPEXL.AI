@@ -6,6 +6,25 @@ import { authService } from "./services/auth";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import XLSX from "xlsx";
+import multer from "multer";
+
+// Configure multer for handling file uploads
+const upload = multer({
+  storage: multer.memoryStorage(),
+  limits: {
+    fileSize: 5 * 1024 * 1024, // 5MB limit
+  },
+  fileFilter: (_req, file, cb) => {
+    if (
+      file.mimetype === 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' ||
+      file.mimetype === 'application/vnd.ms-excel'
+    ) {
+      cb(null, true);
+    } else {
+      cb(new Error('Only Excel files are allowed'));
+    }
+  },
+});
 
 export async function registerRoutes(app: Express): Promise<Server> {
   const httpServer = createServer(app);
@@ -260,6 +279,61 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error: any) {
       console.error("Error exporting vehicle groups:", error);
       res.status(500).json({ error: "Failed to export vehicle groups" });
+    }
+  });
+
+  // New route for importing Excel file
+  app.post("/api/vehicle-groups/import", upload.single('file'), async (req, res) => {
+    try {
+      if (!req.file) {
+        return res.status(400).json({ error: "No file uploaded" });
+      }
+
+      // Read Excel file
+      const workbook = XLSX.read(req.file.buffer, { type: 'buffer' });
+      const worksheet = workbook.Sheets[workbook.SheetNames[0]];
+      const data = XLSX.utils.sheet_to_json(worksheet);
+
+      // Validate and transform data
+      const results = {
+        success: 0,
+        failed: 0,
+        errors: [] as string[],
+      };
+
+      for (const row of data) {
+        try {
+          const vehicleGroup = {
+            groupCode: row['Group Code'],
+            name: row['Name'],
+            region: row['Region'],
+            type: row['Type'],
+            department: row['Department'],
+          };
+
+          // Validate data using schema
+          const validationResult = insertVehicleGroupSchema.safeParse(vehicleGroup);
+
+          if (validationResult.success) {
+            await storage.createVehicleGroup(validationResult.data);
+            results.success++;
+          } else {
+            results.failed++;
+            results.errors.push(`Row failed: ${JSON.stringify(row)} - ${validationResult.error.message}`);
+          }
+        } catch (error: any) {
+          results.failed++;
+          results.errors.push(`Error processing row: ${JSON.stringify(row)} - ${error.message}`);
+        }
+      }
+
+      res.json({
+        message: "Import completed",
+        results,
+      });
+    } catch (error: any) {
+      console.error("Error importing vehicle groups:", error);
+      res.status(500).json({ error: "Failed to import vehicle groups" });
     }
   });
 
