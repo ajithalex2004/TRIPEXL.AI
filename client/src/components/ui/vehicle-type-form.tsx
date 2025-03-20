@@ -2,7 +2,7 @@ import { useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { useQuery } from "@tanstack/react-query";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { InsertVehicleTypeMaster, Department, insertVehicleTypeMasterSchema, VehicleTypeMaster, VehicleGroup, VehicleType, VehicleTypeDefaults } from "@shared/schema"; // Added import
+import { InsertVehicleTypeMaster, Department, insertVehicleTypeMasterSchema, VehicleTypeMaster, VehicleGroup, VehicleType, VehicleTypeDefaults } from "@shared/schema"; 
 import {
   Form,
   FormControl,
@@ -44,7 +44,7 @@ export function VehicleTypeForm({ onSubmit, initialData, isEditing }: VehicleTyp
       numberOfPassengers: 0,
       region: "",
       section: "",
-      specialVehicleType: "",
+      fuelEfficiency: 0, 
       roadSpeedThreshold: 0,
       servicePlan: "",
       costPerKm: 0,
@@ -66,7 +66,7 @@ export function VehicleTypeForm({ onSubmit, initialData, isEditing }: VehicleTyp
         numberOfPassengers: initialData.numberOfPassengers,
         region: initialData.region,
         section: initialData.section,
-        specialVehicleType: initialData.specialVehicleType ?? "",
+        fuelEfficiency: initialData.fuelEfficiency, 
         roadSpeedThreshold: initialData.roadSpeedThreshold,
         servicePlan: initialData.servicePlan,
         costPerKm: initialData.costPerKm,
@@ -189,15 +189,16 @@ export function VehicleTypeForm({ onSubmit, initialData, isEditing }: VehicleTyp
           />
           <FormField
             control={form.control}
-            name="specialVehicleType"
+            name="fuelEfficiency"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Special Vehicle Type</FormLabel>
+                <FormLabel>Fuel Efficiency (KM/L) *</FormLabel>
                 <FormControl>
                   <Input
-                    placeholder="Enter special vehicle type"
+                    type="number"
+                    placeholder="Enter fuel efficiency"
                     {...field}
-                    value={field.value ?? ""}
+                    onChange={e => field.onChange(Number(e.target.value))}
                   />
                 </FormControl>
                 <FormMessage />
@@ -280,7 +281,6 @@ export function VehicleTypeForm({ onSubmit, initialData, isEditing }: VehicleTyp
                 <Select
                   onValueChange={(value) => {
                     field.onChange(value);
-                    // Update cost and weight based on selected vehicle type
                     const defaults = VehicleTypeDefaults[value as keyof typeof VehicleTypeDefaults];
                     if (defaults) {
                       form.setValue('costPerKm', defaults.costPerKm);

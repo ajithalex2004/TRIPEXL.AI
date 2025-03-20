@@ -175,7 +175,7 @@ export const vehicleTypeMaster = pgTable("vehicle_type_master", {
   numberOfPassengers: integer("number_of_passengers").notNull(),
   region: text("region").notNull(),
   section: text("section"),
-  specialVehicleType: text("special_vehicle_type"),
+  fuelEfficiency: integer("fuel_efficiency").notNull(), // KM/L
   roadSpeedThreshold: integer("road_speed_threshold").notNull(),
   servicePlan: text("service_plan").notNull(),
   costPerKm: integer("cost_per_km").notNull(),
@@ -426,6 +426,7 @@ export const insertVehicleTypeMasterSchema = createInsertSchema(vehicleTypeMaste
     numberOfPassengers: z.number().min(0, "Number of passengers must be positive"),
     region: z.string().min(1, "Region is required"),
     section: z.string().optional(), 
+    fuelEfficiency: z.number().min(0, "Fuel efficiency must be positive"),
     roadSpeedThreshold: z.number().min(0, "Road speed threshold must be positive"),
     servicePlan: z.string().min(1, "Service plan is required"),
     costPerKm: z.number().min(0, "Cost per KM must be positive"),

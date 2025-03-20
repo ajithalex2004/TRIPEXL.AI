@@ -1,76 +1,74 @@
 import express, { type Request, Response, NextFunction } from "express";
-import { registerRoutes } from "./routes";
-import { setupVite, serveStatic, log } from "./vite";
+import { log } from "./vite";
+import { db } from "./db";
+import { sql } from "drizzle-orm";
+import { createServer } from "http";
 
-const app = express();
-app.use(express.json());
-app.use(express.urlencoded({ extended: false }));
-
-// Add CORS middleware
-app.use((req, res, next) => {
-  res.header('Access-Control-Allow-Origin', '*');
-  res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
-  res.header('Access-Control-Allow-Headers', 'Content-Type');
-  if (req.method === 'OPTIONS') {
-    return res.sendStatus(200);
-  }
-  next();
+// Add global error handlers
+process.on("uncaughtException", (error) => {
+  log(`UNCAUGHT EXCEPTION: ${error.message}`);
+  log(error.stack || "No stack trace available");
+  process.exit(1);
 });
 
-// Logging middleware
-app.use((req, res, next) => {
-  const start = Date.now();
-  const path = req.path;
-  let capturedJsonResponse: Record<string, any> | undefined = undefined;
+process.on("unhandledRejection", (reason, promise) => {
+  log(`UNHANDLED REJECTION at ${promise}`);
+  log(`Reason: ${reason}`);
+  process.exit(1);
+});
 
-  const originalResJson = res.json;
-  res.json = function (bodyJson, ...args) {
-    capturedJsonResponse = bodyJson;
-    return originalResJson.apply(res, [bodyJson, ...args]);
-  };
+const app = express();
 
-  res.on("finish", () => {
-    const duration = Date.now() - start;
-    if (path.startsWith("/api")) {
-      let logLine = `${req.method} ${path} ${res.statusCode} in ${duration}ms`;
-      if (capturedJsonResponse) {
-        logLine += ` :: ${JSON.stringify(capturedJsonResponse)}`;
-      }
+// Basic error handling middleware
+app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
+  log(`Error handler caught: ${err.message}`);
+  const status = err.status || err.statusCode || 500;
+  const message = err.message || "Internal Server Error";
+  res.status(status).json({ message });
+});
 
-      if (logLine.length > 80) {
-        logLine = logLine.slice(0, 79) + "…";
-      }
+// Test database connection
+async function testDbConnection() {
+  try {
+    log("Testing database connection...");
+    const result = await db.execute(sql`SELECT 1`);
+    log("Database connection successful");
+    return true;
+  } catch (error: any) {
+    log(`Database connection error: ${error.message}`);
+    return false;
+  }
+}
 
-      log(logLine);
-    }
-  });
-
-  next();
+// Basic health check endpoint
+app.get("/api/health", (_req, res) => {
+  res.json({ status: "healthy" });
 });
 
 (async () => {
-  const server = await registerRoutes(app);
+  try {
+    log("Starting minimal test server...");
 
-  app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
-    const status = err.status || err.statusCode || 500;
-    const message = err.message || "Internal Server Error";
+    // Test database connection first
+    const dbConnected = await testDbConnection();
+    if (!dbConnected) {
+      throw new Error("Failed to connect to database");
+    }
 
-    res.status(status).json({ message });
-    throw err;
-  });
+    const server = createServer(app);
 
-  if (app.get("env") === "development") {
-    await setupVite(app, server);
-  } else {
-    serveStatic(app);
+    const port = 5000;
+    server.listen({
+      port,
+      host: "0.0.0.0",
+      reusePort: true,
+    }, () => {
+      log(`Server successfully started and listening on port ${port}`);
+    });
+
+  } catch (error: any) {
+    log(`Fatal error during startup: ${error.message}`);
+    log(error.stack || "No stack trace available");
+    process.exit(1);
   }
-
-  const port = 5000;
-  server.listen({
-    port,
-    host: "0.0.0.0",
-    reusePort: true,
-  }, () => {
-    log(`serving on port ${port}`);
-  });
 })();
