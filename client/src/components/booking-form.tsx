@@ -258,12 +258,19 @@ export function BookingForm() {
       return response.json();
     },
     onSuccess: (response) => {
-      queryClient.invalidateQueries({ queryKey: ["/api/bookings"] });
+      // Show success toast
+      toast({
+        title: "Success!",
+        description: `Booking created successfully. Reference: ${response.referenceNo}`,
+        variant: "default",
+      });
+
+      // Update UI state
       setCreatedReferenceNo(response.referenceNo);
       setShowSuccessDialog(true);
 
-      // Clear form data
-      form.reset();
+      // Invalidate queries to refresh booking list
+      queryClient.invalidateQueries({ queryKey: ["/api/bookings"] });
     },
     onError: (error: any) => {
       console.error("Booking creation error:", error);
@@ -277,9 +284,9 @@ export function BookingForm() {
 
   const handleSuccessDialogClose = () => {
     setShowSuccessDialog(false);
-    form.reset();
     setCurrentStep(1);
-    setLocation("/"); // Redirect to home page after closing dialog
+    form.reset();
+    setLocation("/booking-history");
   };
 
   // Update the onSubmit function to properly format the data
@@ -1294,27 +1301,25 @@ export function BookingForm() {
       <AlertDialog open={showSuccessDialog} onOpenChange={setShowSuccessDialog}>
         <AlertDialogContent className="sm:max-w-[425px]">
           <AlertDialogHeader>
-            <AlertDialogTitle className="text-center text-xl">
+            <AlertDialogTitle className="text-center text-xl font-bold text-primary">
               Booking Created Successfully!
             </AlertDialogTitle>
-            <AlertDialogDescription className="text-center space-y-2">
-              <p className="text-lg font-medium text-primary">
-                Reference Number: {createdReferenceNo}
+            <AlertDialogDescription className="text-center space-y-4 py-4">
+              <p className="text-lg">
+                Your booking reference number is:
               </p>
-              <p>
-                Your booking has been created and will be processed shortly.
+              <p className="text-2xl font-semibold text-primary">
+                {createdReferenceNo}
+              </p>
+              <p className="text-sm text-muted-foreground">
                 You can track your booking status in the booking history.
               </p>
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter className="sm:justify-center">
             <AlertDialogAction
-              onClick={() => {
-                setShowSuccessDialog(false);
-                setCurrentStep(1);
-                setLocation("/booking-history");
-              }}
-              className="w-full sm:w-auto"
+              onClick={handleSuccessDialogClose}
+              className="w-full sm:w-auto bg-primary text-white hover:bg-primary/90"
             >
               View Booking History
             </AlertDialogAction>
