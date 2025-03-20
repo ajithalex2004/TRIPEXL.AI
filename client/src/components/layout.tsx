@@ -16,7 +16,16 @@ import { History, Database } from "lucide-react";
 
 export function Layout({ children }: { children: React.ReactNode }) {
   const openVehicleGroups = () => {
-    window.open("/vehicle-groups", "_blank", "width=1200,height=800");
+    const width = 1200;
+    const height = 800;
+    const left = (window.screen.width - width) / 2;
+    const top = (window.screen.height - height) / 2;
+
+    window.open(
+      "/vehicle-groups",
+      "VehicleGroups",
+      `width=${width},height=${height},top=${top},left=${left},resizable=yes,scrollbars=yes`
+    );
   };
 
   return (

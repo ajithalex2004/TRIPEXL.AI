@@ -1,4 +1,4 @@
-import { type Vehicle, type Driver, type Booking, type InsertBooking, type Location, type TimeWindow } from "@shared/schema";
+import { type Vehicle, type Driver, type Booking, type InsertBooking, type VehicleGroup, type InsertVehicleGroup } from "@shared/schema";
 import * as z from 'zod';
 import bcrypt from 'bcryptjs';
 import { type Employee } from '@shared/schema';
@@ -73,6 +73,12 @@ export interface IStorage {
   createOtpVerification(verification: InsertOtpVerification): Promise<OtpVerification>;
   findLatestOtpVerification(userId: number): Promise<OtpVerification | null>;
   markOtpAsUsed(verificationId: number): Promise<OtpVerification>;
+
+  // Add Vehicle Group methods
+  getAllVehicleGroups(): Promise<VehicleGroup[]>;
+  getVehicleGroup(id: number): Promise<VehicleGroup | null>;
+  createVehicleGroup(group: InsertVehicleGroup): Promise<VehicleGroup>;
+  updateVehicleGroup(id: number, data: Partial<InsertVehicleGroup>): Promise<VehicleGroup>;
 }
 
 export class MemStorage implements IStorage {
@@ -83,6 +89,7 @@ export class MemStorage implements IStorage {
   private employees: Map<number, Employee>;
   private users: Map<number, User>;
   private otpVerifications: Map<number, OtpVerification>;
+  private vehicleGroups: Map<number, VehicleGroup>; // Add vehicle groups storage
 
   constructor() {
     this.vehicles = new Map();
@@ -91,7 +98,16 @@ export class MemStorage implements IStorage {
     this.employees = new Map();
     this.users = new Map();
     this.otpVerifications = new Map();
-    this.currentId = { vehicles: 1, drivers: 1, bookings: 1, users: 1, employees: 1, otpVerifications: 1 };
+    this.vehicleGroups = new Map(); // Initialize vehicle groups map
+    this.currentId = { 
+      vehicles: 1, 
+      drivers: 1, 
+      bookings: 1, 
+      users: 1, 
+      employees: 1, 
+      otpVerifications: 1,
+      vehicleGroups: 1 // Add vehicle groups counter
+    };
 
     // Initialize with mock data
     this.initializeMockData();
@@ -446,6 +462,44 @@ export class MemStorage implements IStorage {
     };
     this.otpVerifications.set(verificationId, updated);
     return updated;
+  }
+
+  // Implement Vehicle Group methods
+  async getAllVehicleGroups(): Promise<VehicleGroup[]> {
+    return Array.from(this.vehicleGroups.values());
+  }
+
+  async getVehicleGroup(id: number): Promise<VehicleGroup | null> {
+    const group = this.vehicleGroups.get(id);
+    return group || null;
+  }
+
+  async createVehicleGroup(group: InsertVehicleGroup): Promise<VehicleGroup> {
+    const id = this.currentId.vehicleGroups++;
+    const newGroup: VehicleGroup = {
+      ...group,
+      id,
+      isActive: true,
+      createdAt: new Date(),
+      updatedAt: new Date()
+    };
+    this.vehicleGroups.set(id, newGroup);
+    return newGroup;
+  }
+
+  async updateVehicleGroup(id: number, data: Partial<InsertVehicleGroup>): Promise<VehicleGroup> {
+    const existingGroup = this.vehicleGroups.get(id);
+    if (!existingGroup) {
+      throw new Error("Vehicle group not found");
+    }
+
+    const updatedGroup: VehicleGroup = {
+      ...existingGroup,
+      ...data,
+      updatedAt: new Date()
+    };
+    this.vehicleGroups.set(id, updatedGroup);
+    return updatedGroup;
   }
 }
 
