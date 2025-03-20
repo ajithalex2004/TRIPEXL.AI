@@ -928,9 +928,9 @@ export function BookingForm() {
                               {renderDateTimePicker(field)}
                             </FormControl>
                             <FormDescription>
-                              {form.watch("priority") === Priority.EMERGENCY && "Must be at least 30 minutes from now"}
-                              {form.watch("priority") === Priority.HIGH && "Must be at least 1 hour from now"}
-                              {form.watch("priority") === Priority.NORMAL && "Must be at least 3 hours from now"}
+                              {form.watch("priority") === Priority.EMERGENCY && "If selecting today, time must be at least 30 minutes from now"}
+                              {form.watch("priority") === Priority.HIGH && "If selecting today, time must be at least 1 hour from now"}
+                              {form.watch("priority") === Priority.NORMAL && "If selecting today, time must be at least 3 hours from now"}
                             </FormDescription>
                             <FormMessage />
                           </FormItem>
@@ -1003,7 +1003,7 @@ export function BookingForm() {
 
                 <motion.div
                   className="flex justify-between pt-4"
-                  initial={{ opacity:0, y: 20 }}
+                  initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ duration: 0.5 }}
                 >
