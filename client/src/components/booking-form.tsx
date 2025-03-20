@@ -189,7 +189,7 @@ export function BookingForm() {
     setShowSuccessDialog(false);
     form.reset();
     setCurrentStep(1);
-    setLocation("/"); // Redirect to home page
+    setLocation("/"); // Redirect to home page after closing dialog
   };
 
   const onSubmit = async (data: any) => {
