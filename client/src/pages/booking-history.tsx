@@ -17,6 +17,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { format } from "date-fns";
 import type { Booking } from "@shared/schema";
 import { BookingType, BookingPurpose, Priority } from "@shared/schema";
@@ -24,8 +25,11 @@ import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { VehicleLoadingIndicator } from "@/components/ui/vehicle-loading-indicator";
 import { Filter, Search } from "lucide-react";
+import { Link, useLocation } from "wouter";
+import { BookingForm } from "@/components/booking-form";
 
 function BookingHistoryPage() {
+  const [location, setLocation] = useLocation();
   const { data: bookings, isLoading } = useQuery<Booking[]>({
     queryKey: ["/api/bookings"],
   });
@@ -35,9 +39,10 @@ function BookingHistoryPage() {
   const [typeFilter, setTypeFilter] = useState<string>("all");
   const [purposeFilter, setPurposeFilter] = useState<string>("all");
   const [priorityFilter, setPriorityFilter] = useState<string>("all");
+  const [activeTab, setActiveTab] = useState("history");
 
   // Filter logic
-  const filteredBookings = bookings?.filter(booking => {
+  const filteredBookings = bookings?.filter((booking) => {
     const matchesSearch = booking.referenceNo?.toLowerCase().includes(searchQuery.toLowerCase()) || !searchQuery;
     const matchesType = typeFilter === "all" || booking.bookingType === typeFilter;
     const matchesPurpose = purposeFilter === "all" || booking.purpose === purposeFilter;
@@ -53,193 +58,228 @@ function BookingHistoryPage() {
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5 }}
       >
-        <Card className="backdrop-blur-xl bg-background/60 border border-white/10 shadow-2xl">
-          <CardHeader>
-            <h2 className="text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-primary to-primary/50">
-              Booking History
-            </h2>
-          </CardHeader>
-          <CardContent>
-            {/* Search and Filters */}
-            <div className="mb-8 space-y-6">
-              <div className="flex items-center gap-2">
-                <Filter className="h-5 w-5 text-primary" />
-                <h3 className="font-semibold text-lg">Filters</h3>
-              </div>
-              <motion.div 
-                initial={{ opacity: 0, y: -20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.2, duration: 0.5 }}
-                className="grid grid-cols-1 md:grid-cols-4 gap-6"
+        <Tabs
+          defaultValue="history"
+          value={activeTab}
+          onValueChange={setActiveTab}
+          className="w-full"
+        >
+          <div className="flex items-center justify-between mb-6">
+            <h2 className="text-2xl font-semibold text-primary">Transport Management</h2>
+            <TabsList className="grid w-[400px] grid-cols-2">
+              <TabsTrigger
+                value="new"
+                onClick={() => setLocation("/booking-form")}
+                className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
               >
-                <div className="space-y-2">
+                New Booking
+              </TabsTrigger>
+              <TabsTrigger
+                value="history"
+                onClick={() => setLocation("/booking-history")}
+                className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
+              >
+                Booking History
+              </TabsTrigger>
+            </TabsList>
+          </div>
+
+          <TabsContent value="history">
+            <Card className="backdrop-blur-xl bg-background/60 border border-white/10 shadow-2xl">
+              <CardHeader>
+                <h3 className="text-xl font-medium text-primary/90">Booking History</h3>
+              </CardHeader>
+              <CardContent>
+                {/* Search and Filters */}
+                <div className="mb-8 space-y-6">
                   <div className="flex items-center gap-2">
-                    <Search className="h-4 w-4 text-muted-foreground" />
-                    <span className="font-medium">Reference Number</span>
+                    <Filter className="h-5 w-5 text-primary" />
+                    <h3 className="font-semibold text-lg">Filters</h3>
                   </div>
-                  <Input
-                    placeholder="Search booking reference..."
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    className="w-full bg-background/50 backdrop-blur-sm border-white/10"
-                  />
+                  <motion.div
+                    initial={{ opacity: 0, y: -20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.2, duration: 0.5 }}
+                    className="grid grid-cols-1 md:grid-cols-4 gap-6"
+                  >
+                    <div className="space-y-2">
+                      <div className="flex items-center gap-2">
+                        <Search className="h-4 w-4 text-muted-foreground" />
+                        <span className="font-medium">Reference Number</span>
+                      </div>
+                      <Input
+                        placeholder="Search booking reference..."
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
+                        className="w-full bg-background/50 backdrop-blur-sm border-white/10"
+                      />
+                    </div>
+
+                    <div className="space-y-2">
+                      <span className="font-medium">Booking Type</span>
+                      <Select value={typeFilter} onValueChange={setTypeFilter}>
+                        <SelectTrigger className="bg-background/50 backdrop-blur-sm border-white/10">
+                          <SelectValue placeholder="All Types" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="all">All Types</SelectItem>
+                          {Object.values(BookingType).map((type) => (
+                            <SelectItem key={type} value={type}>{type}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    <div className="space-y-2">
+                      <span className="font-medium">Purpose</span>
+                      <Select value={purposeFilter} onValueChange={setPurposeFilter}>
+                        <SelectTrigger className="bg-background/50 backdrop-blur-sm border-white/10">
+                          <SelectValue placeholder="All Purposes" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="all">All Purposes</SelectItem>
+                          {Object.values(BookingPurpose).map((purpose) => (
+                            <SelectItem key={purpose} value={purpose}>{purpose}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    <div className="space-y-2">
+                      <span className="font-medium">Priority Level</span>
+                      <Select value={priorityFilter} onValueChange={setPriorityFilter}>
+                        <SelectTrigger className="bg-background/50 backdrop-blur-sm border-white/10">
+                          <SelectValue placeholder="All Priorities" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="all">All Priorities</SelectItem>
+                          {Object.values(Priority).map((priority) => (
+                            <SelectItem key={priority} value={priority}>{priority}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </motion.div>
                 </div>
 
-                <div className="space-y-2">
-                  <span className="font-medium">Booking Type</span>
-                  <Select value={typeFilter} onValueChange={setTypeFilter}>
-                    <SelectTrigger className="bg-background/50 backdrop-blur-sm border-white/10">
-                      <SelectValue placeholder="All Types" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">All Types</SelectItem>
-                      {Object.values(BookingType).map((type) => (
-                        <SelectItem key={type} value={type}>{type}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div className="space-y-2">
-                  <span className="font-medium">Purpose</span>
-                  <Select value={purposeFilter} onValueChange={setPurposeFilter}>
-                    <SelectTrigger className="bg-background/50 backdrop-blur-sm border-white/10">
-                      <SelectValue placeholder="All Purposes" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">All Purposes</SelectItem>
-                      {Object.values(BookingPurpose).map((purpose) => (
-                        <SelectItem key={purpose} value={purpose}>{purpose}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div className="space-y-2">
-                  <span className="font-medium">Priority Level</span>
-                  <Select value={priorityFilter} onValueChange={setPriorityFilter}>
-                    <SelectTrigger className="bg-background/50 backdrop-blur-sm border-white/10">
-                      <SelectValue placeholder="All Priorities" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">All Priorities</SelectItem>
-                      {Object.values(Priority).map((priority) => (
-                        <SelectItem key={priority} value={priority}>{priority}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              </motion.div>
-            </div>
-
-            {/* Bookings Table */}
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ delay: 0.4, duration: 0.5 }}
-            >
-              <Table>
-                <TableHeader>
-                  <TableRow className="border-white/10 hover:bg-background/40">
-                    <TableHead className="text-primary/80">Reference No.</TableHead>
-                    <TableHead className="text-primary/80">Type</TableHead>
-                    <TableHead className="text-primary/80">Purpose</TableHead>
-                    <TableHead className="text-primary/80">Pickup</TableHead>
-                    <TableHead className="text-primary/80">Dropoff</TableHead>
-                    <TableHead className="text-primary/80">Priority</TableHead>
-                    <TableHead className="text-primary/80">Status</TableHead>
-                    <TableHead className="text-primary/80">Created At</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  <AnimatePresence mode="wait">
-                    {isLoading ? (
-                      <TableRow>
-                        <TableCell colSpan={8} className="text-center py-8">
-                          <motion.div
-                            initial={{ opacity: 0, scale: 0.8 }}
-                            animate={{ opacity: 1, scale: 1 }}
-                            exit={{ opacity: 0, scale: 0.8 }}
-                            transition={{ duration: 0.5 }}
-                            className="flex justify-center"
-                          >
-                            <VehicleLoadingIndicator size="lg" />
-                          </motion.div>
-                        </TableCell>
+                {/* Bookings Table */}
+                <motion.div
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  transition={{ delay: 0.4, duration: 0.5 }}
+                >
+                  <Table>
+                    <TableHeader>
+                      <TableRow className="border-white/10 hover:bg-background/40">
+                        <TableHead className="text-primary/80">Reference No.</TableHead>
+                        <TableHead className="text-primary/80">Type</TableHead>
+                        <TableHead className="text-primary/80">Purpose</TableHead>
+                        <TableHead className="text-primary/80">Pickup</TableHead>
+                        <TableHead className="text-primary/80">Dropoff</TableHead>
+                        <TableHead className="text-primary/80">Priority</TableHead>
+                        <TableHead className="text-primary/80">Status</TableHead>
+                        <TableHead className="text-primary/80">Created At</TableHead>
                       </TableRow>
-                    ) : !filteredBookings?.length ? (
-                      <TableRow>
-                        <TableCell colSpan={8} className="text-center py-8 text-muted-foreground">
-                          No bookings found
-                        </TableCell>
-                      </TableRow>
-                    ) : (
-                      filteredBookings?.map((booking) => (
-                        <motion.tr
-                          key={booking.id}
-                          initial={{ opacity: 0, x: -20 }}
-                          animate={{ opacity: 1, x: 0 }}
-                          exit={{ opacity: 0, x: 20 }}
-                          transition={{ duration: 0.2 }}
-                          className="border-white/10 backdrop-blur-sm transition-all duration-200 hover:bg-background/40"
-                        >
-                          <TableCell className="font-medium">{booking.referenceNo}</TableCell>
-                          <TableCell className="capitalize">{booking.bookingType}</TableCell>
-                          <TableCell>{booking.purpose}</TableCell>
-                          <TableCell>
-                            <div className="flex flex-col">
-                              <span className="font-medium">{booking.pickupLocation.address}</span>
-                              <span className="text-sm text-muted-foreground">
-                                {format(new Date(booking.pickupTime), "MMM d, yyyy HH:mm")}
-                              </span>
-                            </div>
-                          </TableCell>
-                          <TableCell>
-                            <div className="flex flex-col">
-                              <span className="font-medium">{booking.dropoffLocation.address}</span>
-                              <span className="text-sm text-muted-foreground">
-                                {format(new Date(booking.dropoffTime), "MMM d, yyyy HH:mm")}
-                              </span>
-                            </div>
-                          </TableCell>
-                          <TableCell>
-                            <span className={`px-2 py-1 rounded-full text-xs ${
-                              booking.priority === Priority.CRITICAL
-                                ? "bg-red-500/20 text-red-500"
-                                : booking.priority === Priority.EMERGENCY
-                                ? "bg-orange-500/20 text-orange-500"
-                                : booking.priority === Priority.HIGH
-                                ? "bg-yellow-500/20 text-yellow-500"
-                                : "bg-green-500/20 text-green-500"
-                            }`}>
-                              {booking.priority}
-                            </span>
-                          </TableCell>
-                          <TableCell>
-                            <span className={`px-2 py-1 rounded-full text-xs ${
-                              booking.status === "PENDING"
-                                ? "bg-yellow-500/20 text-yellow-500"
-                                : booking.status === "COMPLETED"
-                                ? "bg-green-500/20 text-green-500"
-                                : booking.status === "CANCELLED"
-                                ? "bg-red-500/20 text-red-500"
-                                : "bg-blue-500/20 text-blue-500"
-                            }`}>
-                              {booking.status}
-                            </span>
-                          </TableCell>
-                          <TableCell className="text-muted-foreground">
-                            {format(new Date(booking.createdAt), "MMM d, yyyy HH:mm")}
-                          </TableCell>
-                        </motion.tr>
-                      ))
-                    )}
-                  </AnimatePresence>
-                </TableBody>
-              </Table>
-            </motion.div>
-          </CardContent>
-        </Card>
+                    </TableHeader>
+                    <TableBody>
+                      <AnimatePresence mode="wait">
+                        {isLoading ? (
+                          <TableRow>
+                            <TableCell colSpan={8} className="text-center py-8">
+                              <motion.div
+                                initial={{ opacity: 0, scale: 0.8 }}
+                                animate={{ opacity: 1, scale: 1 }}
+                                exit={{ opacity: 0, scale: 0.8 }}
+                                transition={{ duration: 0.5 }}
+                                className="flex justify-center"
+                              >
+                                <VehicleLoadingIndicator size="lg" />
+                              </motion.div>
+                            </TableCell>
+                          </TableRow>
+                        ) : !filteredBookings?.length ? (
+                          <TableRow>
+                            <TableCell colSpan={8} className="text-center py-8 text-muted-foreground">
+                              No bookings found
+                            </TableCell>
+                          </TableRow>
+                        ) : (
+                          filteredBookings?.map((booking) => (
+                            <motion.tr
+                              key={booking.id}
+                              initial={{ opacity: 0, x: -20 }}
+                              animate={{ opacity: 1, x: 0 }}
+                              exit={{ opacity: 0, x: 20 }}
+                              transition={{ duration: 0.2 }}
+                              className="border-white/10 backdrop-blur-sm transition-all duration-200 hover:bg-background/40"
+                            >
+                              <TableCell className="font-medium">{booking.referenceNo}</TableCell>
+                              <TableCell className="capitalize">{booking.bookingType}</TableCell>
+                              <TableCell>{booking.purpose}</TableCell>
+                              <TableCell>
+                                <div className="flex flex-col">
+                                  <span className="font-medium">{booking.pickupLocation.address}</span>
+                                  <span className="text-sm text-muted-foreground">
+                                    {format(new Date(booking.pickupTime), "MMM d, yyyy HH:mm")}
+                                  </span>
+                                </div>
+                              </TableCell>
+                              <TableCell>
+                                <div className="flex flex-col">
+                                  <span className="font-medium">{booking.dropoffLocation.address}</span>
+                                  <span className="text-sm text-muted-foreground">
+                                    {format(new Date(booking.dropoffTime), "MMM d, yyyy HH:mm")}
+                                  </span>
+                                </div>
+                              </TableCell>
+                              <TableCell>
+                                <span
+                                  className={`px-2 py-1 rounded-full text-xs ${
+                                    booking.priority === Priority.CRITICAL
+                                      ? "bg-red-500/20 text-red-500"
+                                      : booking.priority === Priority.EMERGENCY
+                                      ? "bg-orange-500/20 text-orange-500"
+                                      : booking.priority === Priority.HIGH
+                                      ? "bg-yellow-500/20 text-yellow-500"
+                                      : "bg-green-500/20 text-green-500"
+                                  }`}
+                                >
+                                  {booking.priority}
+                                </span>
+                              </TableCell>
+                              <TableCell>
+                                <span
+                                  className={`px-2 py-1 rounded-full text-xs ${
+                                    booking.status === "PENDING"
+                                      ? "bg-yellow-500/20 text-yellow-500"
+                                      : booking.status === "COMPLETED"
+                                      ? "bg-green-500/20 text-green-500"
+                                      : booking.status === "CANCELLED"
+                                      ? "bg-red-500/20 text-red-500"
+                                      : "bg-blue-500/20 text-blue-500"
+                                  }`}
+                                >
+                                  {booking.status}
+                                </span>
+                              </TableCell>
+                              <TableCell className="text-muted-foreground">
+                                {format(new Date(booking.createdAt), "MMM d, yyyy HH:mm")}
+                              </TableCell>
+                            </motion.tr>
+                          ))
+                        )}
+                      </AnimatePresence>
+                    </TableBody>
+                  </Table>
+                </motion.div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="new">
+            <BookingForm />
+          </TabsContent>
+        </Tabs>
       </motion.div>
     </div>
   );
