@@ -63,6 +63,7 @@ function getMinimumPickupTime(): Date {
   today.setHours(now.getHours());
   today.setMinutes(now.getMinutes());
   today.setSeconds(now.getSeconds());
+  today.setMilliseconds(now.getMilliseconds()); //Added to ensure complete time copy
   return today;
 }
 
@@ -389,7 +390,7 @@ export function BookingForm() {
   // Update DateTimePicker implementation
   const renderDateTimePicker = (field: any) => (
     <DateTimePicker
-      value={field.value ? new Date(field.value) : new Date()}
+      value={new Date()}
       onChange={(date: Date | null) => {
         if (date) {
           const selectedDate = new Date(date);
