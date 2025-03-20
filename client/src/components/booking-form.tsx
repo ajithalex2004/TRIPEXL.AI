@@ -417,43 +417,59 @@ export function BookingForm() {
     }
   };
 
-  const getPriorityForPurpose = (purpose: string) => {
+  // Update the getPriorityForPurpose function
+  const getPriorityForPurpose = (purpose: string): string => {
     if (bookingType === "freight") {
       return Priority.NORMAL;
     }
 
-    const criticalPurposes = [
+    // Critical Priority Purposes
+    if ([
       BookingPurpose.BLOOD_BANK,
-      BookingPurpose.ON_CALL,
-      BookingPurpose.EQUIPMENT
-    ];
-
-    const emergencyPurposes = [
-      BookingPurpose.BLOOD_SAMPLES,
       BookingPurpose.AMBULANCE,
-      BookingPurpose.MORTUARY
-    ];
-
-    const highPurposes = [
-      BookingPurpose.DRUG_COLLECTION
-    ];
-
-    if (criticalPurposes.includes(purpose)) {
+      BookingPurpose.MORTUARY,
+      BookingPurpose.ONCOLOGY
+    ].includes(purpose)) {
       return Priority.CRITICAL;
-    } else if (emergencyPurposes.includes(purpose)) {
+    }
+
+    // Emergency Priority Purposes
+    if ([
+      BookingPurpose.BLOOD_SAMPLES,
+      BookingPurpose.DRUG_COLLECTION,
+      BookingPurpose.MEDICINE,
+      BookingPurpose.VACCINE,
+      BookingPurpose.EQUIPMENT
+    ].includes(purpose)) {
       return Priority.EMERGENCY;
-    } else if (highPurposes.includes(purpose)) {
+    }
+
+    // High Priority Purposes
+    if ([
+      BookingPurpose.HOSPITAL_VISIT,
+      BookingPurpose.ON_CALL,
+      BookingPurpose.PATIENT,
+      BookingPurpose.MAINTENANCE,
+      BookingPurpose.VIP_TRANSFER
+    ].includes(purpose)) {
       return Priority.HIGH;
     }
+
+    // All other purposes are Normal priority
     return Priority.NORMAL;
   };
 
   const purpose = form.watch("purpose");
   React.useEffect(() => {
+    const purpose = form.watch("purpose");
     if (purpose) {
-      form.setValue("priority", getPriorityForPurpose(purpose));
+      const calculatedPriority = getPriorityForPurpose(purpose);
+      form.setValue("priority", calculatedPriority, {
+        shouldValidate: true,
+        shouldDirty: true
+      });
     }
-  }, [purpose, form]);
+  }, [form.watch("purpose"), bookingType]);
 
   // Update useEffect for handling priority changes to set immediate time for Critical
   React.useEffect(() => {
@@ -997,8 +1013,9 @@ export function BookingForm() {
                     key="step3"
                     initial={{ opacity: 0, x: -20 }}
                     animate={{ opacity: 1, x: 0 }}
-                    exit={{ opacity: 0, x: 20}}
-                    transition={{ duration: 0.5 }}                    className="space-y-4"
+                    exit={{ opacity: 0, x: 20 }}
+                    transition={{ duration: 0.5 }}
+                    className="space-y-4"
                   >
                     <FormField
                       control={form.control}
@@ -1037,11 +1054,11 @@ export function BookingForm() {
                           <Select
                             onValueChange={field.onChange}
                             value={field.value}
-                            disabled={form.watch("bookingType") === "freight"}
+                            disabled={true} // Always disabled as it's automatically set
                           >
                             <FormControl>
                               <SelectTrigger>
-                                <SelectValue placeholder="Select priority level" />
+                                <SelectValue placeholder="Priority is set automatically" />
                               </SelectTrigger>
                             </FormControl>
                             <SelectContent>
@@ -1052,6 +1069,9 @@ export function BookingForm() {
                               ))}
                             </SelectContent>
                           </Select>
+                          <FormDescription>
+                            Priority is automatically set based on the selected purpose
+                          </FormDescription>
                           <FormMessage />
                         </FormItem>
                       )}
