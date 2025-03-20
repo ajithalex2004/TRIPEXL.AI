@@ -2,7 +2,7 @@ import { useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { useQuery } from "@tanstack/react-query";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { InsertVehicleTypeMaster, Department, insertVehicleTypeMasterSchema, VehicleTypeMaster, VehicleGroup } from "@shared/schema";
+import { InsertVehicleTypeMaster, Department, insertVehicleTypeMasterSchema, VehicleTypeMaster, VehicleGroup, VehicleType, VehicleTypeDefaults } from "@shared/schema"; // Added import
 import {
   Form,
   FormControl,
@@ -104,8 +104,8 @@ export function VehicleTypeForm({ onSubmit, initialData, isEditing }: VehicleTyp
             render={({ field }) => (
               <FormItem>
                 <FormLabel>Vehicle Group *</FormLabel>
-                <Select 
-                  onValueChange={field.onChange} 
+                <Select
+                  onValueChange={field.onChange}
                   value={field.value}
                   disabled={loadingGroups}
                 >
@@ -146,9 +146,9 @@ export function VehicleTypeForm({ onSubmit, initialData, isEditing }: VehicleTyp
               <FormItem>
                 <FormLabel>Number of Passengers *</FormLabel>
                 <FormControl>
-                  <Input 
-                    type="number" 
-                    placeholder="Enter number of passengers" 
+                  <Input
+                    type="number"
+                    placeholder="Enter number of passengers"
                     {...field}
                     onChange={e => field.onChange(Number(e.target.value))}
                   />
@@ -177,8 +177,8 @@ export function VehicleTypeForm({ onSubmit, initialData, isEditing }: VehicleTyp
               <FormItem>
                 <FormLabel>Section</FormLabel>
                 <FormControl>
-                  <Input 
-                    placeholder="Enter section (optional)" 
+                  <Input
+                    placeholder="Enter section (optional)"
                     {...field}
                     value={field.value ?? ""}
                   />
@@ -194,9 +194,9 @@ export function VehicleTypeForm({ onSubmit, initialData, isEditing }: VehicleTyp
               <FormItem>
                 <FormLabel>Special Vehicle Type</FormLabel>
                 <FormControl>
-                  <Input 
-                    placeholder="Enter special vehicle type" 
-                    {...field} 
+                  <Input
+                    placeholder="Enter special vehicle type"
+                    {...field}
                     value={field.value ?? ""}
                   />
                 </FormControl>
@@ -211,9 +211,9 @@ export function VehicleTypeForm({ onSubmit, initialData, isEditing }: VehicleTyp
               <FormItem>
                 <FormLabel>Road Speed Threshold *</FormLabel>
                 <FormControl>
-                  <Input 
-                    type="number" 
-                    placeholder="Enter road speed threshold" 
+                  <Input
+                    type="number"
+                    placeholder="Enter road speed threshold"
                     {...field}
                     onChange={e => field.onChange(Number(e.target.value))}
                   />
@@ -242,9 +242,9 @@ export function VehicleTypeForm({ onSubmit, initialData, isEditing }: VehicleTyp
               <FormItem>
                 <FormLabel>Cost Per KM *</FormLabel>
                 <FormControl>
-                  <Input 
-                    type="number" 
-                    placeholder="Enter cost per km" 
+                  <Input
+                    type="number"
+                    placeholder="Enter cost per km"
                     {...field}
                     onChange={e => field.onChange(Number(e.target.value))}
                   />
@@ -260,9 +260,9 @@ export function VehicleTypeForm({ onSubmit, initialData, isEditing }: VehicleTyp
               <FormItem>
                 <FormLabel>Maximum Weight *</FormLabel>
                 <FormControl>
-                  <Input 
-                    type="number" 
-                    placeholder="Enter maximum weight" 
+                  <Input
+                    type="number"
+                    placeholder="Enter maximum weight"
                     {...field}
                     onChange={e => field.onChange(Number(e.target.value))}
                   />
@@ -277,9 +277,31 @@ export function VehicleTypeForm({ onSubmit, initialData, isEditing }: VehicleTyp
             render={({ field }) => (
               <FormItem>
                 <FormLabel>Vehicle Type *</FormLabel>
-                <FormControl>
-                  <Input placeholder="Enter vehicle type" {...field} />
-                </FormControl>
+                <Select
+                  onValueChange={(value) => {
+                    field.onChange(value);
+                    // Update cost and weight based on selected vehicle type
+                    const defaults = VehicleTypeDefaults[value as keyof typeof VehicleTypeDefaults];
+                    if (defaults) {
+                      form.setValue('costPerKm', defaults.costPerKm);
+                      form.setValue('maximumWeight', defaults.maximumWeight);
+                    }
+                  }}
+                  value={field.value}
+                >
+                  <FormControl>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select vehicle type" />
+                    </SelectTrigger>
+                  </FormControl>
+                  <SelectContent>
+                    {Object.values(VehicleType).map((type) => (
+                      <SelectItem key={type} value={type}>
+                        {type}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
                 <FormMessage />
               </FormItem>
             )}
@@ -315,8 +337,8 @@ export function VehicleTypeForm({ onSubmit, initialData, isEditing }: VehicleTyp
               <FormItem>
                 <FormLabel>Unit</FormLabel>
                 <FormControl>
-                  <Input 
-                    placeholder="Enter unit (optional)" 
+                  <Input
+                    placeholder="Enter unit (optional)"
                     {...field}
                     value={field.value ?? ""}
                   />
@@ -332,9 +354,9 @@ export function VehicleTypeForm({ onSubmit, initialData, isEditing }: VehicleTyp
               <FormItem>
                 <FormLabel>Alert Before *</FormLabel>
                 <FormControl>
-                  <Input 
-                    type="number" 
-                    placeholder="Enter alert before" 
+                  <Input
+                    type="number"
+                    placeholder="Enter alert before"
                     {...field}
                     onChange={e => field.onChange(Number(e.target.value))}
                   />
@@ -350,9 +372,9 @@ export function VehicleTypeForm({ onSubmit, initialData, isEditing }: VehicleTyp
               <FormItem>
                 <FormLabel>Idle Fuel Consumption *</FormLabel>
                 <FormControl>
-                  <Input 
-                    type="number" 
-                    placeholder="Enter idle fuel consumption" 
+                  <Input
+                    type="number"
+                    placeholder="Enter idle fuel consumption"
                     {...field}
                     onChange={e => field.onChange(Number(e.target.value))}
                   />
@@ -368,9 +390,9 @@ export function VehicleTypeForm({ onSubmit, initialData, isEditing }: VehicleTyp
               <FormItem>
                 <FormLabel>Vehicle Volume *</FormLabel>
                 <FormControl>
-                  <Input 
-                    type="number" 
-                    placeholder="Enter vehicle volume" 
+                  <Input
+                    type="number"
+                    placeholder="Enter vehicle volume"
                     {...field}
                     onChange={e => field.onChange(Number(e.target.value))}
                   />
@@ -386,8 +408,8 @@ export function VehicleTypeForm({ onSubmit, initialData, isEditing }: VehicleTyp
               <FormItem>
                 <FormLabel>Vehicle Type Image URL</FormLabel>
                 <FormControl>
-                  <Input 
-                    placeholder="Enter image URL" 
+                  <Input
+                    placeholder="Enter image URL"
                     {...field}
                     value={field.value ?? ""}
                   />

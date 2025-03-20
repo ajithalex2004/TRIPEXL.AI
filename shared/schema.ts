@@ -38,6 +38,16 @@ export const Department = {
   SECURITY: "Security"
 } as const;
 
+// Add after the Department enum
+export const VehicleTypeDefaults = {
+  [VehicleType.AMBULANCE]: { costPerKm: 2.5, maximumWeight: 3500 },
+  [VehicleType.PASSENGER_VAN]: { costPerKm: 1.8, maximumWeight: 3000 },
+  [VehicleType.CARGO_VAN]: { costPerKm: 2.0, maximumWeight: 4000 },
+  [VehicleType.BUS]: { costPerKm: 3.0, maximumWeight: 7500 },
+  [VehicleType.SUV]: { costPerKm: 1.5, maximumWeight: 2500 },
+  [VehicleType.TRUCK]: { costPerKm: 2.8, maximumWeight: 5000 }
+} as const;
+
 // Update Vehicle Group Type
 export const VehicleGroupType = {
   LIGHT_VEHICLE: "LIGHT VEHICLE",
