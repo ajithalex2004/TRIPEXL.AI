@@ -137,6 +137,7 @@ export function BookingForm() {
   const [showSuccessDialog, setShowSuccessDialog] = React.useState(false);
   const [createdReferenceNo, setCreatedReferenceNo] = React.useState<string>("");
   const [, setLocation] = useLocation();
+  const [activeTab, setActiveTab] = React.useState("booking");
 
   const { data: employee, isLoading: isEmployeeLoading } = useQuery({
     queryKey: ["/api/employee/current"],
@@ -271,6 +272,7 @@ export function BookingForm() {
   // Update the mutation and onSubmit handlers
   const createBooking = useMutation({
     mutationFn: async (data: any) => {
+      console.log("Submitting booking data:", data);
       const response = await apiRequest("POST", "/api/bookings", data);
       if (!response.ok) {
         const error = await response.json();
@@ -283,7 +285,7 @@ export function BookingForm() {
       toast({
         title: "Booking Created Successfully!",
         description: `Your booking reference number is: ${response.referenceNo}`,
-        variant: "default",
+        duration: 5000,
       });
 
       // Update UI state
@@ -299,6 +301,7 @@ export function BookingForm() {
         title: "Booking Creation Failed",
         description: error.message || "Please try again",
         variant: "destructive",
+        duration: 5000,
       });
     },
   });
@@ -307,11 +310,12 @@ export function BookingForm() {
     setShowSuccessDialog(false);
     setCurrentStep(1);
     form.reset();
+    setActiveTab("history");
     setLocation("/booking-history");
   };
 
   // Update the onSubmit function to properly format the data
-  const onSubmit = async (data: any) => {
+  const handleSubmit = async (data: any) => {
     try {
       const isValid = await form.trigger();
       if (!isValid) {
@@ -401,12 +405,13 @@ export function BookingForm() {
         })
       };
 
+      console.log("Submitting booking:", bookingData);
       await createBooking.mutateAsync(bookingData);
     } catch (error: any) {
       console.error("Form submission error:", error);
       toast({
         title: "Error",
-        description: error.message || "There was a problem with your booking data.",
+        description: error.message || "Failed to create booking",
         variant: "destructive"
       });
     }
@@ -659,14 +664,14 @@ export function BookingForm() {
             initial={{ opacity: 0, y: -20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5 }}
-            className="text-2xl font-bold"
+            className="text-lg font-medium"
           >
             New Booking
           </motion.h2>
         </CardHeader>
         <CardContent>
           <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+            <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-6">
               <AnimatePresence mode="wait">
                 {currentStep === 1 && (
                   <motion.div
@@ -993,8 +998,7 @@ export function BookingForm() {
                     initial={{ opacity: 0, x: -20 }}
                     animate={{ opacity: 1, x: 0 }}
                     exit={{ opacity: 0, x: 20 }}
-                    transition={{ duration: 0.5 }}
-                    className="space-y-4"
+                    transition={{ duration: 0.5 }}                    className="space-y-4"
                   >
                     <FormField
                       control={form.control}
@@ -1002,7 +1006,8 @@ export function BookingForm() {
                       render={({ field }) => (
                         <FormItem>
                           <FormLabel>Purpose *</FormLabel>
-                          <Select                            onValueChange={field.onChange}
+                          <Select
+                            onValueChange={field.onChange}
                             value={field.value}
                             disabled={form.watch("bookingType") === "freight"}
                           >
@@ -1333,28 +1338,28 @@ export function BookingForm() {
             <AlertDialogTitle className="text-center text-xl font-bold text-primary">
               Booking Created Successfully!
             </AlertDialogTitle>
-            <AlertDialogDescription className="text-center space-y-4 py-4">
-              <p className="text-lg">
-                Your booking reference number is:
-              </p>
-              <p className="text-2xl font-semibold text-primary">
-                {createdReferenceNo}
-              </p>
-              <p className="text-sm text-muted-foreground">
-                You can track your booking status in the booking history.
-              </p>
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter className="sm:justify-center">
-            <AlertDialogAction
-              onClick={handleSuccessDialogClose}
-              className="w-full sm:w-auto bg-primary text-white hover:bg-primary/90"
-            >
-              View Booking History
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-    </>
-  );
+          <AlertDialogDescription className="text-center space-y-4 py-4">
+            <p className="text-lg">
+              Your booking reference number is:
+            </p>
+            <p className="text-2xl font-semibold text-primary">
+              {createdReferenceNo}
+            </p>
+            <p className="text-sm text-muted-foreground">
+              You can track your booking status in the booking history.
+            </p>
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter className="sm:justify-center">
+          <AlertDialogAction
+            onClick={handleSuccessDialogClose}
+            className="w-full sm:w-auto bg-primary text-white hover:bg-primary/90"
+          >
+            View Booking History
+          </AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
+  </>
+);
 }
