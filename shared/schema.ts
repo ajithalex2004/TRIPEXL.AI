@@ -23,11 +23,11 @@ export const TripType = {
 } as const;
 
 export const Priority = {
-  CRITICAL: "critical",
-  EMERGENCY: "emergency",
-  HIGH: "high",
-  MEDIUM: "medium",
-  NORMAL: "normal",
+  CRITICAL: "Critical",
+  EMERGENCY: "Emergency",
+  HIGH: "High",
+  MEDIUM: "Medium",
+  NORMAL: "Normal",
 } as const;
 
 export const BookingPurpose = {
