@@ -496,29 +496,31 @@ export function BookingForm() {
             // Check if selected time is before pickup time
             if (pickupDate && selectedDate <= pickupDate) {
               toast({
-                title: "Invalid dropoff time",
-                description: `Dropoff time must be after pickup time (${format(pickupDate, "HH:mm")})`,
+                title: "Invalid Time Selection",
+                description: `Please select a time after ${format(pickupDate, "PPp")}`,
                 variant: "destructive"
               });
               return;
             }
 
             // Check if selected time is before ETA
-            if (pickupTime && routeDuration && selectedDate < minDropoffTime) {
-              toast({
-                title: "Invalid dropoff time",
-                description: `Dropoff time must be after estimated arrival time (${format(minDropoffTime, "HH:mm")})`,
-                variant: "destructive"
-              });
-              return;
+            if (pickupTime && routeDuration) {
+              const eta = new Date(new Date(pickupTime).getTime() + (routeDuration * 1000));
+              if (selectedDate < eta) {
+                toast({
+                  title: "Time Too Early",
+                  description: `Based on the route, earliest possible time is ${format(eta, "PPp")}`,
+                  variant: "destructive"
+                });
+                return;
+              }
             }
 
             field.onChange(date.toISOString());
           }
         }}
         onBlur={field.onBlur}
-        // Enable only if pickup time is set
-        disabled={!pickupTime}
+        disabled={!pickupTime} // Only disable if we don't have pickup time
       />
     );
   };
@@ -1090,12 +1092,16 @@ export function BookingForm() {
                                   <FormDescription>
                                     {routeDuration > 0 && form.watch("pickupTime") ? (
                                       <div className="space-y-1">
-                                        <p>Pickup: {format(new Date(form.watch("pickupTime")), "HH:mm")}</p>
-                                        <p>Estimated arrival: {format(new Date(new Date(form.watch("pickupTime")).getTime() + (routeDuration * 1000)), "HH:mm")}</p>
-                                        <p className="text-muted-foreground text-sm">Must be after estimated arrival time</p>
+                                        <p>Pickup: {format(new Date(form.watch("pickupTime")), "PPp")}</p>
+                                        <p className="text-primary">
+                                          Estimated arrival: {format(new Date(new Date(form.watch("pickupTime")).getTime() + (routeDuration * 1000)), "PPp")}
+                                        </p>
+                                        <p className="text-sm text-muted-foreground">
+                                          Please select a time after the estimated arrival
+                                        </p>
                                       </div>
                                     ) : (
-                                      'Select pickup time and route first'
+                                      'First select pickup time and route to see earliest possible dropoff time'
                                     )}
                                   </FormDescription>
                                   <FormMessage />
