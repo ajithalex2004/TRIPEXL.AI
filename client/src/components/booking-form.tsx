@@ -979,9 +979,10 @@ export function BookingForm() {
                               {renderDateTimePicker(field)}
                             </FormControl>
                             <FormDescription>
-                              {form.watch("priority") === Priority.EMERGENCY && "If selecting today, time must be at least 30 minutes from now"}
-                              {form.watch("priority") === Priority.HIGH && "If selecting today, time must be at least 1 hour from now"}
-                              {form.watch("priority") === Priority.NORMAL && "If selecting today, time must be at least 3 hours from now"}
+                              {form.watch("priority") === Priority.CRITICAL && "Time should be at least immediately from now"}
+                              {form.watch("priority") === Priority.EMERGENCY && "Time should be at least 30 minutes from now"}
+                              {form.watch("priority") === Priority.HIGH && "Time should be at least 1 hour from now"}
+                              {form.watch("priority") === Priority.NORMAL && "Time should be at least 3 hours from now"}
                             </FormDescription>
                             <FormMessage />
                           </FormItem>
