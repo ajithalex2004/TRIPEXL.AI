@@ -167,7 +167,7 @@ export const vehicleGroupsRelations = relations(vehicleGroups, ({ many }) => ({
   vehicles: many(vehicles)
 }));
 
-// Vehicle Types Master table with relations
+// Add fuelPricePerLitre to vehicle type master table
 export const vehicleTypeMaster = pgTable("vehicle_type_master", {
   id: serial("id").primaryKey(),
   groupId: integer("group_id").references(() => vehicleGroups.id).notNull(),
@@ -176,6 +176,7 @@ export const vehicleTypeMaster = pgTable("vehicle_type_master", {
   region: text("region").notNull(),
   section: text("section"),
   fuelEfficiency: integer("fuel_efficiency").notNull(), // KM/L
+  fuelPricePerLitre: integer("fuel_price_per_litre").notNull(), // Price per litre
   roadSpeedThreshold: integer("road_speed_threshold").notNull(),
   servicePlan: text("service_plan").notNull(),
   costPerKm: integer("cost_per_km").notNull(),
@@ -189,12 +190,6 @@ export const vehicleTypeMaster = pgTable("vehicle_type_master", {
   isActive: boolean("is_active").notNull().default(true),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow()
-}, (table) => {
-  return {
-    groupIdIdx: index("group_id_idx").on(table.groupId),
-    vehicleTypeCodeIdx: index("vehicle_type_code_idx").on(table.vehicleTypeCode),
-    regionIdx: index("region_idx").on(table.region)
-  };
 });
 
 // Vehicle type master relations
@@ -418,7 +413,7 @@ export const insertVehicleGroupSchema = createInsertSchema(vehicleGroups)
     description: z.string().optional()
   });
 
-// Update insert schema for Vehicle Types
+// Update the insert schema validation
 export const insertVehicleTypeMasterSchema = createInsertSchema(vehicleTypeMaster)
   .extend({
     groupId: z.number().min(1, "Vehicle group is required"),
@@ -427,6 +422,7 @@ export const insertVehicleTypeMasterSchema = createInsertSchema(vehicleTypeMaste
     region: z.string().min(1, "Region is required"),
     section: z.string().optional(), 
     fuelEfficiency: z.number().min(0, "Fuel efficiency must be positive"),
+    fuelPricePerLitre: z.number().min(0, "Fuel price per litre must be positive"),
     roadSpeedThreshold: z.number().min(0, "Road speed threshold must be positive"),
     servicePlan: z.string().min(1, "Service plan is required"),
     costPerKm: z.number().min(0, "Cost per KM must be positive"),

@@ -45,6 +45,7 @@ export function VehicleTypeForm({ onSubmit, initialData, isEditing }: VehicleTyp
       region: "",
       section: "",
       fuelEfficiency: 0, 
+      fuelPricePerLitre: 0,
       roadSpeedThreshold: 0,
       servicePlan: "",
       costPerKm: 0,
@@ -58,6 +59,22 @@ export function VehicleTypeForm({ onSubmit, initialData, isEditing }: VehicleTyp
     }
   });
 
+  // Function to calculate cost per km
+  const calculateCostPerKm = (fuelPrice: number, fuelEfficiency: number) => {
+    if (fuelEfficiency <= 0) return 0;
+    return Number((fuelPrice / fuelEfficiency).toFixed(2));
+  };
+
+  // Watch fuel efficiency and price changes
+  const fuelEfficiency = form.watch("fuelEfficiency");
+  const fuelPricePerLitre = form.watch("fuelPricePerLitre");
+
+  // Update cost per km when fuel efficiency or price changes
+  useEffect(() => {
+    const costPerKm = calculateCostPerKm(fuelPricePerLitre, fuelEfficiency);
+    form.setValue("costPerKm", costPerKm);
+  }, [fuelEfficiency, fuelPricePerLitre, form]);
+
   useEffect(() => {
     if (initialData) {
       form.reset({
@@ -67,6 +84,7 @@ export function VehicleTypeForm({ onSubmit, initialData, isEditing }: VehicleTyp
         region: initialData.region,
         section: initialData.section,
         fuelEfficiency: initialData.fuelEfficiency, 
+        fuelPricePerLitre: initialData.fuelPricePerLitre ?? 0, // Added this line to handle potential undefined
         roadSpeedThreshold: initialData.roadSpeedThreshold,
         servicePlan: initialData.servicePlan,
         costPerKm: initialData.costPerKm,
@@ -207,6 +225,24 @@ export function VehicleTypeForm({ onSubmit, initialData, isEditing }: VehicleTyp
           />
           <FormField
             control={form.control}
+            name="fuelPricePerLitre"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Fuel Price Per Litre *</FormLabel>
+                <FormControl>
+                  <Input
+                    type="number"
+                    placeholder="Enter fuel price per litre"
+                    {...field}
+                    onChange={e => field.onChange(Number(e.target.value))}
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          <FormField
+            control={form.control}
             name="roadSpeedThreshold"
             render={({ field }) => (
               <FormItem>
@@ -241,13 +277,13 @@ export function VehicleTypeForm({ onSubmit, initialData, isEditing }: VehicleTyp
             name="costPerKm"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Cost Per KM *</FormLabel>
+                <FormLabel>Cost Per KM (Calculated) *</FormLabel>
                 <FormControl>
                   <Input
                     type="number"
-                    placeholder="Enter cost per km"
                     {...field}
-                    onChange={e => field.onChange(Number(e.target.value))}
+                    disabled
+                    value={field.value}
                   />
                 </FormControl>
                 <FormMessage />
