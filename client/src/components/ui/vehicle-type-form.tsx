@@ -49,7 +49,6 @@ export function VehicleTypeForm({ onSubmit, initialData, isEditing }: VehicleTyp
       roadSpeedThreshold: 0,
       servicePlan: "",
       costPerKm: 0,
-      maximumWeight: 0,
       vehicleType: "",
       department: "",
       unit: "",
@@ -84,11 +83,10 @@ export function VehicleTypeForm({ onSubmit, initialData, isEditing }: VehicleTyp
         region: initialData.region,
         section: initialData.section,
         fuelEfficiency: initialData.fuelEfficiency, 
-        fuelPricePerLitre: initialData.fuelPricePerLitre ?? 0, // Added this line to handle potential undefined
+        fuelPricePerLitre: initialData.fuelPricePerLitre ?? 0,
         roadSpeedThreshold: initialData.roadSpeedThreshold,
         servicePlan: initialData.servicePlan,
         costPerKm: initialData.costPerKm,
-        maximumWeight: initialData.maximumWeight,
         vehicleType: initialData.vehicleType,
         department: initialData.department,
         unit: initialData.unit,
@@ -97,7 +95,7 @@ export function VehicleTypeForm({ onSubmit, initialData, isEditing }: VehicleTyp
         vehicleVolume: initialData.vehicleVolume
       });
     }
-  }, [initialData, form.reset]);
+  }, [initialData, form]);
 
   const handleSubmit = async (data: InsertVehicleTypeMaster) => {
     try {
@@ -169,36 +167,6 @@ export function VehicleTypeForm({ onSubmit, initialData, isEditing }: VehicleTyp
                     placeholder="Enter number of passengers"
                     {...field}
                     onChange={e => field.onChange(Number(e.target.value))}
-                  />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-          <FormField
-            control={form.control}
-            name="region"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Region *</FormLabel>
-                <FormControl>
-                  <Input placeholder="Enter region" {...field} />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-          <FormField
-            control={form.control}
-            name="section"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Section</FormLabel>
-                <FormControl>
-                  <Input
-                    placeholder="Enter section (optional)"
-                    {...field}
-                    value={field.value ?? ""}
                   />
                 </FormControl>
                 <FormMessage />
@@ -292,24 +260,6 @@ export function VehicleTypeForm({ onSubmit, initialData, isEditing }: VehicleTyp
           />
           <FormField
             control={form.control}
-            name="maximumWeight"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Maximum Weight *</FormLabel>
-                <FormControl>
-                  <Input
-                    type="number"
-                    placeholder="Enter maximum weight"
-                    {...field}
-                    onChange={e => field.onChange(Number(e.target.value))}
-                  />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-          <FormField
-            control={form.control}
             name="vehicleType"
             render={({ field }) => (
               <FormItem>
@@ -320,7 +270,6 @@ export function VehicleTypeForm({ onSubmit, initialData, isEditing }: VehicleTyp
                     const defaults = VehicleTypeDefaults[value as keyof typeof VehicleTypeDefaults];
                     if (defaults) {
                       form.setValue('costPerKm', defaults.costPerKm);
-                      form.setValue('maximumWeight', defaults.maximumWeight);
                     }
                   }}
                   value={field.value}
@@ -338,47 +287,6 @@ export function VehicleTypeForm({ onSubmit, initialData, isEditing }: VehicleTyp
                     ))}
                   </SelectContent>
                 </Select>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-          <FormField
-            control={form.control}
-            name="department"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Department *</FormLabel>
-                <Select onValueChange={field.onChange} value={field.value}>
-                  <FormControl>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select department" />
-                    </SelectTrigger>
-                  </FormControl>
-                  <SelectContent>
-                    {Object.values(Department).map((dept) => (
-                      <SelectItem key={dept} value={dept}>
-                        {dept}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-          <FormField
-            control={form.control}
-            name="unit"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Unit</FormLabel>
-                <FormControl>
-                  <Input
-                    placeholder="Enter unit (optional)"
-                    {...field}
-                    value={field.value ?? ""}
-                  />
-                </FormControl>
                 <FormMessage />
               </FormItem>
             )}
@@ -431,6 +339,77 @@ export function VehicleTypeForm({ onSubmit, initialData, isEditing }: VehicleTyp
                     placeholder="Enter vehicle volume"
                     {...field}
                     onChange={e => field.onChange(Number(e.target.value))}
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          <FormField
+            control={form.control}
+            name="region"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Region *</FormLabel>
+                <FormControl>
+                  <Input placeholder="Enter region" {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          <FormField
+            control={form.control}
+            name="department"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Department *</FormLabel>
+                <Select onValueChange={field.onChange} value={field.value}>
+                  <FormControl>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select department" />
+                    </SelectTrigger>
+                  </FormControl>
+                  <SelectContent>
+                    {Object.values(Department).map((dept) => (
+                      <SelectItem key={dept} value={dept}>
+                        {dept}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          <FormField
+            control={form.control}
+            name="section"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Section</FormLabel>
+                <FormControl>
+                  <Input
+                    placeholder="Enter section (optional)"
+                    {...field}
+                    value={field.value ?? ""}
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          <FormField
+            control={form.control}
+            name="unit"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Unit</FormLabel>
+                <FormControl>
+                  <Input
+                    placeholder="Enter unit (optional)"
+                    {...field}
+                    value={field.value ?? ""}
                   />
                 </FormControl>
                 <FormMessage />
