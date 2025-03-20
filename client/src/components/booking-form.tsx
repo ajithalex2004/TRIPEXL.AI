@@ -392,25 +392,37 @@ export function BookingForm() {
 
   // Update the handleRouteCalculated function to properly set dropoff time
   const handleRouteCalculated = (durationInSeconds: number) => {
-    console.log("Route duration calculated:", durationInSeconds);
+    console.log("Route duration received:", durationInSeconds);
     setRouteDuration(durationInSeconds);
 
-    const currentTime = new Date();
-    const pickupTime = form.watch("pickupTime")
-      ? new Date(form.watch("pickupTime"))
-      : currentTime;
+    const pickupTime = form.watch("pickupTime");
+    if (pickupTime) {
+      const pickupDate = new Date(pickupTime);
+      const estimatedDropoff = new Date(pickupDate.getTime() + (durationInSeconds * 1000));
+      console.log("Setting dropoff time to:", estimatedDropoff.toISOString());
 
-    // Calculate estimated dropoff time based on pickup time and route duration
-    const estimatedDropoff = new Date(pickupTime.getTime() + (durationInSeconds * 1000));
-    console.log("Setting dropoff time to:", estimatedDropoff.toISOString());
-
-    form.setValue("dropoffTime", estimatedDropoff.toISOString(), {
-      shouldValidate: true,
-      shouldDirty: true,
-      shouldTouch: true
-    });
+      form.setValue("dropoffTime", estimatedDropoff.toISOString(), {
+        shouldValidate: true,
+        shouldDirty: true,
+        shouldTouch: true
+      });
+    }
   };
 
+  // Add useEffect to update dropoff time when pickup time changes
+  React.useEffect(() => {
+    const pickupTime = form.watch("pickupTime");
+    if (pickupTime && routeDuration > 0) {
+      const pickupDate = new Date(pickupTime);
+      const estimatedDropoff = new Date(pickupDate.getTime() + (routeDuration * 1000));
+
+      form.setValue("dropoffTime", estimatedDropoff.toISOString(), {
+        shouldValidate: true,
+        shouldDirty: true,
+        shouldTouch: true
+      });
+    }
+  }, [form.watch("pickupTime"), routeDuration]);
 
   // Update DateTimePicker implementation
   const renderDateTimePicker = (field: any) => (

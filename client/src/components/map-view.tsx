@@ -61,58 +61,64 @@ export function MapView({
     duration: string;
   } | null>(null);
 
-  // Draw route when both locations are set
+  // Update the drawRoute function to properly calculate and notify of route duration
+  const drawRoute = async () => {
+    if (!pickupLocation || !dropoffLocation || !map) {
+      console.log("Missing location data:", { pickupLocation, dropoffLocation });
+      return;
+    }
+
+    try {
+      setIsLoading(true);
+      setMapError(null);
+
+      const directionsService = new google.maps.DirectionsService();
+      const result = await directionsService.route({
+        origin: pickupLocation.coordinates,
+        destination: dropoffLocation.coordinates,
+        travelMode: google.maps.TravelMode.DRIVING,
+        optimizeWaypoints: true,
+        provideRouteAlternatives: false,
+        avoidHighways: false,
+        avoidTolls: false,
+      });
+
+      if (!result.routes.length) {
+        throw new Error("No route found");
+      }
+
+      setDirectionsResult(result);
+      const durationInSeconds = result.routes[0].legs[0].duration?.value || 0;
+      console.log("Route duration calculated:", durationInSeconds);
+
+      // Always notify parent component about route duration
+      if (onRouteCalculated) {
+        onRouteCalculated(durationInSeconds);
+      }
+
+      setRouteInfo({
+        distance: result.routes[0].legs[0].distance?.text || "Unknown",
+        duration: result.routes[0].legs[0].duration?.text || "Unknown"
+      });
+
+      // Fit map to show the entire route
+      const bounds = new google.maps.LatLngBounds();
+      bounds.extend(pickupLocation.coordinates);
+      bounds.extend(dropoffLocation.coordinates);
+      map.fitBounds(bounds);
+
+    } catch (error) {
+      console.error("Error calculating route:", error);
+      setMapError("Could not calculate route between locations");
+      setDirectionsResult(null);
+      setRouteInfo(null);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Update useEffect to recalculate route when locations change
   useEffect(() => {
-    const drawRoute = async () => {
-      if (!pickupLocation || !dropoffLocation || !map) {
-        console.log("Missing location data:", { pickupLocation, dropoffLocation });
-        return;
-      }
-
-      try {
-        setIsLoading(true);
-        setMapError(null);
-
-        const directionsService = new google.maps.DirectionsService();
-        const result = await directionsService.route({
-          origin: pickupLocation.coordinates,
-          destination: dropoffLocation.coordinates,
-          travelMode: google.maps.TravelMode.DRIVING,
-        });
-
-        console.log("Route result:", result);
-
-        if (!result.routes.length) {
-          throw new Error("No route found");
-        }
-
-        setDirectionsResult(result);
-        const durationInSeconds = result.routes[0].legs[0].duration?.value || 0;
-
-        // Always notify parent component about route duration
-        onRouteCalculated?.(durationInSeconds);
-
-        setRouteInfo({
-          distance: result.routes[0].legs[0].distance?.text || "Unknown",
-          duration: result.routes[0].legs[0].duration?.text || "Unknown"
-        });
-
-        // Fit map to show the entire route
-        const bounds = new google.maps.LatLngBounds();
-        bounds.extend(pickupLocation.coordinates);
-        bounds.extend(dropoffLocation.coordinates);
-        map.fitBounds(bounds);
-
-      } catch (error) {
-        console.error("Error calculating route:", error);
-        setMapError("Could not calculate route between locations");
-        setDirectionsResult(null);
-        setRouteInfo(null);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
     drawRoute();
   }, [pickupLocation, dropoffLocation, map, onRouteCalculated]);
 
