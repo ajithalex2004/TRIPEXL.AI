@@ -280,29 +280,55 @@ export function BookingForm() {
       if (!isValid) {
         toast({
           title: "Validation Error",
-          description: "Please check all fields and try again.",
+          description: "Please check all required fields and try again.",
           variant: "destructive"
         });
         return;
       }
 
-      if (!data.employeeId) {
-        data.employeeId = employee?.employeeId;
+      // Ensure we have all required data
+      if (!data.pickupLocation || !data.dropoffLocation) {
+        toast({
+          title: "Missing Location Data",
+          description: "Please select both pickup and dropoff locations.",
+          variant: "destructive"
+        });
+        return;
       }
 
-      // Add status and createdAt fields
-      data.status = "PENDING";
-      data.createdAt = new Date().toISOString();
+      if (!data.pickupTime || !data.dropoffTime) {
+        toast({
+          title: "Missing Time Data",
+          description: "Please select both pickup and dropoff times.",
+          variant: "destructive"
+        });
+        return;
+      }
 
-      // Generate a reference number
-      data.referenceNo = `BK${Date.now().toString().slice(-6)}`;
+      // Format the data to match the schema
+      const bookingData = {
+        ...data,
+        status: "PENDING",
+        createdAt: new Date().toISOString(),
+        referenceNo: `BK${Date.now().toString().slice(-6)}`,
+        employeeId: data.employeeId || employee?.employeeId,
+        // Ensure passenger details are properly formatted
+        passengerDetails: data.bookingType === "passenger"
+          ? data.passengerDetails.slice(0, data.numPassengers)
+          : [],
+        // Ensure box sizes are properly formatted
+        boxSize: data.bookingType === "freight"
+          ? data.boxSize.slice(0, data.numBoxes)
+          : []
+      };
 
-      createBooking.mutate(data);
+      console.log("Submitting booking data:", bookingData);
+      createBooking.mutate(bookingData);
     } catch (error) {
       console.error("Form submission error:", error);
       toast({
         title: "Error",
-        description: "There was a problem submitting your booking.",
+        description: "There was a problem submitting your booking. Please try again.",
         variant: "destructive"
       });
     }
@@ -966,8 +992,7 @@ export function BookingForm() {
                               <FormMessage />
                             </FormItem>
                           )}
-                        />
-                        <FormField
+                        />                        <FormField
                           control={form.control}
                           name="dropoffLocation"
                           render={({ field }) => (
