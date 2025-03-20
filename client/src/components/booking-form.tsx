@@ -434,28 +434,30 @@ export function BookingForm() {
     const pickupTime = form.watch("pickupTime");
     const minDropoffTime = pickupTime && routeDuration
       ? new Date(new Date(pickupTime).getTime() + (routeDuration * 1000))
-      : new Date();
+      : pickupTime
+        ? new Date(pickupTime)
+        : new Date();
 
     return (
       <DateTimePicker
         value={field.value ? new Date(field.value) : null}
         onChange={(date) => {
           if (date) {
-            // Ensure selected time is not before the minimum dropoff time
             const selectedDate = new Date(date);
-            if (selectedDate < minDropoffTime) {
+            if (pickupTime && routeDuration && selectedDate < minDropoffTime) {
               toast({
-                title: "Invalid dropoff time",
-                description: "Dropoff time must be after the estimated arrival time",
+                title: "Please select a later time",
+                description: `Dropoff time must be after ${format(minDropoffTime, "HH:mm")} based on estimated travel time`,
                 variant: "destructive"
               });
               return;
             }
-            field.onChange(selectedDate.toISOString());
+            field.onChange(date.toISOString());
           }
         }}
         onBlur={field.onBlur}
-        disabled={!pickupTime || routeDuration === 0}
+        // Enable if pickup time is set
+        disabled={!pickupTime}
       />
     );
   };
@@ -525,7 +527,6 @@ export function BookingForm() {
       });
     }
   }, [form.watch("bookingForSelf"), employee, form]);
-
 
   return (
     <>
@@ -1003,7 +1004,8 @@ export function BookingForm() {
                           pickupLocation={form.watch("pickupLocation")}
                           dropoffLocation={form.watch("dropoffLocation")}
                           onLocationSelect={(location, type) => {
-                            const fieldName = type === 'pickup' ? "pickupLocation" : "dropoffLocation";                            form.setValue(fieldName, location, {
+                            const fieldName = type === 'pickup' ? "pickupLocation" : "dropoffLocation";
+                            form.setValue(fieldName, location, {
                               shouldValidate: true,
                               shouldDirty: true,
                               shouldTouch: true
@@ -1012,6 +1014,41 @@ export function BookingForm() {
                           onRouteCalculated={(duration) => {
                             handleRouteCalculated(duration);
                           }}
+                        />
+                      </div>
+                      {/* Time Selection Section */}
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <FormField
+                          control={form.control}
+                          name="pickupTime"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Pickup Time *</FormLabel>
+                              <FormControl>
+                                {renderDateTimePicker(field)}
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+
+                        <FormField
+                          control={form.control}
+                          name="dropoffTime"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Time of Dropoff *</FormLabel>
+                              <FormControl>
+                                {renderDropoffDateTimePicker(field)}
+                              </FormControl>
+                              <FormDescription>
+                                {routeDuration > 0 && form.watch("pickupTime")
+                                  ? `Minimum time: ${format(new Date(form.watch("pickupTime")).getTime() + (routeDuration * 1000), "HH:mm")}`
+                                  : 'Select pickup time and route first'}
+                              </FormDescription>
+                              <FormMessage />
+                            </FormItem>
+                          )}
                         />
                       </div>
                       <FormMessage>{form.formState.errors.pickupLocation?.message}</FormMessage>
@@ -1060,8 +1097,8 @@ export function BookingForm() {
                             </FormControl>
                             <FormDescription>
                               {routeDuration > 0
-                                ? `Minimum dropoff time must be at least ${Math.round(routeDuration / 60)} minutes after pickup (based on estimated travel time)`
-                                : 'Select pickup and dropoff locations to see minimum dropoff time'}
+                                ? `Must be after ${format(new Date(form.watch("pickupTime")).getTime() + (routeDuration * 1000), "PPP HH:mm")} (estimated arrival time)`
+                                : 'First select pickup location and destination to see minimum dropoff time'}
                             </FormDescription>
                             <FormMessage />
                           </FormItem>
