@@ -43,6 +43,18 @@ import {
 } from "@/components/ui/alert-dialog";
 import { useLocation } from "wouter";
 
+// Update the Location interface to match schema requirements
+export interface Location {
+  address: string;
+  coordinates: {
+    lat: number;
+    lng: number;
+  };
+  place_id?: string;
+  name?: string;
+  formatted_address?: string;
+}
+
 // Add this helper function at the top of the file after imports
 function getMinimumPickupTime(priority: string): Date {
   const now = new Date();
@@ -161,22 +173,19 @@ export function BookingForm() {
 
   const isStepValid = async (step: number) => {
     const fields = {
-      1: ["employeeId", "bookingType"],
+      1: ["employeeId", "bookingType"] as const,
       2: bookingType === "freight"
-        ? ["cargoType", "numBoxes", "weight"]
+        ? ["cargoType", "numBoxes", "weight"] as const
         : bookingType === "passenger"
-          ? ["tripType", "numPassengers", "withDriver", "bookingForSelf", "passengerDetails"]
+          ? ["tripType", "numPassengers", "withDriver", "bookingForSelf", "passengerDetails"] as const
           : [],
-      3: ["purpose", "priority"],
-      4: ["pickupLocation", "dropoffLocation"],
-      5: ["pickupTime", "dropoffTime"],
-      6: []
+      3: ["purpose", "priority"] as const,
+      4: ["pickupLocation", "dropoffLocation"] as const,
+      5: ["pickupTime", "dropoffTime"] as const,
+      6: [] as const
     }[step] || [];
 
-    if (fields.length === 0) return true;
-
-    const result = await form.trigger(fields);
-    return result;
+    return await form.trigger(fields);
   };
 
   const handleNextStep = async () => {
@@ -362,6 +371,19 @@ export function BookingForm() {
       }
     }
   }, [form.watch("priority"), form]);
+
+  // Update DateTimePicker implementation
+  const renderDateTimePicker = (field: any, minDate?: Date) => (
+    <DateTimePicker
+      value={field.value}
+      onChange={(date: Date | null) => {
+        field.onChange(date?.toISOString() || "");
+      }}
+      onBlur={field.onBlur}
+      disabled={field.disabled}
+      minDate={minDate}
+    />
+  );
 
   return (
     <>
@@ -871,15 +893,7 @@ export function BookingForm() {
                           <FormItem>
                             <FormLabel>Pickup Time *</FormLabel>
                             <FormControl>
-                              <DateTimePicker
-                                {...field}
-                                minDate={getMinimumPickupTime(form.watch("priority"))}
-                                onChange={(date) => {
-                                  if (date) {
-                                    field.onChange(date.toISOString());
-                                  }
-                                }}
-                              />
+                              {renderDateTimePicker(field, getMinimumPickupTime(form.watch("priority")))}
                             </FormControl>
                             <FormDescription>
                               {form.watch("priority") === Priority.EMERGENCY && "Must be at least 30 minutes from now"}
