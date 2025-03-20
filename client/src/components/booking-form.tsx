@@ -399,13 +399,18 @@ export function BookingForm() {
     if (pickupTime) {
       const pickupDate = new Date(pickupTime);
       const estimatedDropoff = new Date(pickupDate.getTime() + (durationInSeconds * 1000));
-      console.log("Setting dropoff time to:", estimatedDropoff.toISOString());
+      console.log("Setting minimum dropoff time to:", estimatedDropoff.toISOString());
 
-      form.setValue("dropoffTime", estimatedDropoff.toISOString(), {
-        shouldValidate: true,
-        shouldDirty: true,
-        shouldTouch: true
-      });
+      // Only set dropoff time automatically if it hasn't been manually set yet
+      // or if the current dropoff time is earlier than the new ETA
+      const currentDropoffTime = form.watch("dropoffTime");
+      if (!currentDropoffTime || new Date(currentDropoffTime) < estimatedDropoff) {
+        form.setValue("dropoffTime", estimatedDropoff.toISOString(), {
+          shouldValidate: true,
+          shouldDirty: true,
+          shouldTouch: true
+        });
+      }
     }
   };
 
@@ -423,6 +428,37 @@ export function BookingForm() {
       });
     }
   }, [form.watch("pickupTime"), routeDuration]);
+
+  // Update DateTimePicker implementation for dropoff time
+  const renderDropoffDateTimePicker = (field: any) => {
+    const pickupTime = form.watch("pickupTime");
+    const minDropoffTime = pickupTime && routeDuration
+      ? new Date(new Date(pickupTime).getTime() + (routeDuration * 1000))
+      : new Date();
+
+    return (
+      <DateTimePicker
+        value={field.value ? new Date(field.value) : null}
+        onChange={(date) => {
+          if (date) {
+            // Ensure selected time is not before the minimum dropoff time
+            const selectedDate = new Date(date);
+            if (selectedDate < minDropoffTime) {
+              toast({
+                title: "Invalid dropoff time",
+                description: "Dropoff time must be after the estimated arrival time",
+                variant: "destructive"
+              });
+              return;
+            }
+            field.onChange(selectedDate.toISOString());
+          }
+        }}
+        onBlur={field.onBlur}
+        disabled={!pickupTime || routeDuration === 0}
+      />
+    );
+  };
 
   // Update DateTimePicker implementation
   const renderDateTimePicker = (field: any) => (
@@ -967,8 +1003,7 @@ export function BookingForm() {
                           pickupLocation={form.watch("pickupLocation")}
                           dropoffLocation={form.watch("dropoffLocation")}
                           onLocationSelect={(location, type) => {
-                            const fieldName = type === 'pickup' ? "pickupLocation" : "dropoffLocation";
-                            form.setValue(fieldName, location, {
+                            const fieldName = type === 'pickup' ? "pickupLocation" : "dropoffLocation";                            form.setValue(fieldName, location, {
                               shouldValidate: true,
                               shouldDirty: true,
                               shouldTouch: true
@@ -1019,18 +1054,14 @@ export function BookingForm() {
                         name="dropoffTime"
                         render={({ field }) => (
                           <FormItem>
-                            <FormLabel>Estimated Time of Dropoff</FormLabel>
+                            <FormLabel>Time of Dropoff *</FormLabel>
                             <FormControl>
-                              <Input 
-                                value={field.value ? format(new Date(field.value), "PPP HH:mm") : "Calculating..."}
-                                disabled={true}
-                                className="bg-muted"
-                              />
+                              {renderDropoffDateTimePicker(field)}
                             </FormControl>
                             <FormDescription>
-                              {routeDuration > 0 
-                                ? `Route duration: ${Math.round(routeDuration / 60)} minutes`
-                                : 'Please select pickup and dropoff locations'}
+                              {routeDuration > 0
+                                ? `Minimum dropoff time must be at least ${Math.round(routeDuration / 60)} minutes after pickup (based on estimated travel time)`
+                                : 'Select pickup and dropoff locations to see minimum dropoff time'}
                             </FormDescription>
                             <FormMessage />
                           </FormItem>
