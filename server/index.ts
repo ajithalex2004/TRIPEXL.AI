@@ -1,5 +1,6 @@
 import express, { type Request, Response, NextFunction } from "express";
-import { log } from "./vite";
+import { registerRoutes } from "./routes";
+import { setupVite, serveStatic, log } from "./vite";
 import { db } from "./db";
 import { sql } from "drizzle-orm";
 import { createServer } from "http";
@@ -18,6 +19,8 @@ process.on("unhandledRejection", (reason, promise) => {
 });
 
 const app = express();
+app.use(express.json());
+app.use(express.urlencoded({ extended: false }));
 
 // Basic error handling middleware
 app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
@@ -40,14 +43,9 @@ async function testDbConnection() {
   }
 }
 
-// Basic health check endpoint
-app.get("/api/health", (_req, res) => {
-  res.json({ status: "healthy" });
-});
-
 (async () => {
   try {
-    log("Starting minimal test server...");
+    log("Starting application...");
 
     // Test database connection first
     const dbConnected = await testDbConnection();
@@ -55,7 +53,21 @@ app.get("/api/health", (_req, res) => {
       throw new Error("Failed to connect to database");
     }
 
-    const server = createServer(app);
+    // Register API routes
+    log("Registering routes...");
+    const server = await registerRoutes(app);
+    log("Routes registered successfully");
+
+    // Set up Vite or static serving
+    if (app.get("env") === "development") {
+      log("Setting up Vite for development...");
+      await setupVite(app, server);
+      log("Vite setup complete");
+    } else {
+      log("Setting up static serving for production...");
+      serveStatic(app);
+      log("Static serving setup complete");
+    }
 
     const port = 5000;
     server.listen({
