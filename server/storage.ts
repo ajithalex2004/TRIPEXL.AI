@@ -1,51 +1,15 @@
-import { type Vehicle, type Driver, type Booking, type InsertBooking, type VehicleGroup, type InsertVehicleGroup } from "@shared/schema";
+import { type Vehicle, type Driver, type Booking, type InsertBooking, type VehicleGroup, type InsertVehicleGroup, type VehicleMaster, type InsertVehicleMaster } from "@shared/schema";
 import * as z from 'zod';
 import bcrypt from 'bcryptjs';
 import { type Employee } from '@shared/schema';
 import { type User, type InsertUser } from '@shared/schema';
 import { type OtpVerification, type InsertOtpVerification } from '@shared/schema';
-import { type VehicleTypeMaster, type InsertVehicleTypeMaster } from '@shared/schema'; // Import VehicleTypeMaster
+import { type VehicleTypeMaster, type InsertVehicleTypeMaster } from '@shared/schema';
 import { db } from "./db";
 import { eq, desc } from "drizzle-orm";
 import * as schema from "@shared/schema";
 
-const locations = z.object({
-  address: z.string(),
-  coordinates: z.object({
-    lat: z.number(),
-    lng: z.number()
-  })
-});
-
-const timeWindow = z.object({
-  start: z.union([z.string(), z.date()]),
-  end: z.union([z.string(), z.date()])
-});
-
-function calculateDistance(loc1: z.infer<typeof locations>, loc2: z.infer<typeof locations>): number {
-  const R = 6371; // Earth's radius in km
-  const lat1 = loc1.coordinates.lat * Math.PI / 180;
-  const lat2 = loc2.coordinates.lat * Math.PI / 180;
-  const dLat = (loc2.coordinates.lat - loc1.coordinates.lat) * Math.PI / 180;
-  const dLon = (loc2.coordinates.lng - loc1.coordinates.lng) * Math.PI / 180;
-
-  const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
-    Math.cos(lat1) * Math.cos(lat2) *
-    Math.sin(dLon/2) * Math.sin(dLon/2);
-
-  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
-  return R * c;
-}
-
-function timeWindowsOverlap(window1: z.infer<typeof timeWindow>, window2: z.infer<typeof timeWindow>): boolean {
-  const start1 = new Date(window1.start).getTime();
-  const end1 = new Date(window1.end).getTime();
-  const start2 = new Date(window2.start).getTime();
-  const end2 = new Date(window2.end).getTime();
-
-  return start1 < end2 && end1 > start2;
-}
-
+// Add VehicleMaster operations to IStorage interface
 export interface IStorage {
   // Vehicles
   getVehicles(): Promise<Vehicle[]>;
@@ -90,6 +54,12 @@ export interface IStorage {
   getVehicleType(id: number): Promise<VehicleTypeMaster | null>;
   createVehicleType(type: InsertVehicleTypeMaster): Promise<VehicleTypeMaster>;
   updateVehicleType(id: number, data: Partial<InsertVehicleTypeMaster>): Promise<VehicleTypeMaster>;
+
+  // Vehicle Master operations
+  getAllVehicleMaster(): Promise<VehicleMaster[]>;
+  getVehicleMaster(id: number): Promise<VehicleMaster | null>;
+  createVehicleMaster(data: InsertVehicleMaster): Promise<VehicleMaster>;
+  updateVehicleMaster(id: number, data: Partial<InsertVehicleMaster>): Promise<VehicleMaster>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -169,6 +139,43 @@ export class DatabaseStorage implements IStorage {
     return updatedGroup;
   }
 
+
+  // Implement Vehicle Master operations
+  async getAllVehicleMaster(): Promise<VehicleMaster[]> {
+    return await db.select().from(schema.vehicleMaster);
+  }
+
+  async getVehicleMaster(id: number): Promise<VehicleMaster | null> {
+    const [vehicle] = await db
+      .select()
+      .from(schema.vehicleMaster)
+      .where(eq(schema.vehicleMaster.id, id));
+    return vehicle || null;
+  }
+
+  async createVehicleMaster(data: InsertVehicleMaster): Promise<VehicleMaster> {
+    const [newVehicle] = await db
+      .insert(schema.vehicleMaster)
+      .values({
+        ...data,
+        createdAt: new Date(),
+        updatedAt: new Date()
+      })
+      .returning();
+    return newVehicle;
+  }
+
+  async updateVehicleMaster(id: number, data: Partial<InsertVehicleMaster>): Promise<VehicleMaster> {
+    const [updatedVehicle] = await db
+      .update(schema.vehicleMaster)
+      .set({
+        ...data,
+        updatedAt: new Date()
+      })
+      .where(eq(schema.vehicleMaster.id, id))
+      .returning();
+    return updatedVehicle;
+  }
 
   async getVehicles(): Promise<Vehicle[]> {
     throw new Error("Method not implemented.");

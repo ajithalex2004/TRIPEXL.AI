@@ -421,6 +421,77 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json(currentPrices);
     });
 
+    // Vehicle Master routes
+    app.get("/api/vehicle-master", async (_req, res) => {
+      try {
+        console.log("Fetching all vehicle master records");
+        const vehicles = await storage.getAllVehicleMaster();
+        console.log("Retrieved vehicle master records:", vehicles);
+        res.json(vehicles);
+      } catch (error: any) {
+        console.error("Error fetching vehicle master records:", error);
+        res.status(500).json({ error: "Failed to fetch vehicle master records" });
+      }
+    });
+
+    app.get("/api/vehicle-master/:id", async (req, res) => {
+      try {
+        const id = parseInt(req.params.id);
+        console.log("Fetching vehicle master record with ID:", id);
+        const vehicle = await storage.getVehicleMaster(id);
+        if (!vehicle) {
+          console.log("Vehicle master record not found with ID:", id);
+          return res.status(404).json({ message: "Vehicle master record not found" });
+        }
+        console.log("Retrieved vehicle master record:", vehicle);
+        res.json(vehicle);
+      } catch (error: any) {
+        console.error("Error fetching vehicle master record:", error);
+        res.status(500).json({ message: error.message });
+      }
+    });
+
+    app.post("/api/vehicle-master", async (req, res) => {
+      try {
+        console.log("Creating vehicle master record with data:", req.body);
+        const result = insertVehicleMasterSchema.safeParse(req.body);
+
+        if (!result.success) {
+          console.error("Invalid vehicle master data:", result.error.issues);
+          return res.status(400).json({ 
+            error: "Invalid vehicle master data", 
+            details: result.error.issues 
+          });
+        }
+
+        const vehicle = await storage.createVehicleMaster(result.data);
+        console.log("Created vehicle master record:", vehicle);
+        res.status(201).json(vehicle);
+      } catch (error: any) {
+        console.error("Error creating vehicle master record:", error);
+        res.status(400).json({ message: error.message });
+      }
+    });
+
+    app.patch("/api/vehicle-master/:id", async (req, res) => {
+      try {
+        const id = parseInt(req.params.id);
+        const result = insertVehicleMasterSchema.partial().safeParse(req.body);
+
+        if (!result.success) {
+          return res.status(400).json({ 
+            error: "Invalid vehicle master data", 
+            details: result.error.issues 
+          });
+        }
+
+        const updatedVehicle = await storage.updateVehicleMaster(id, result.data);
+        res.json(updatedVehicle);
+      } catch (error: any) {
+        res.status(400).json({ message: error.message });
+      }
+    });
+
     // Add this new endpoint after the other vehicle-groups routes
     app.get("/api/vehicle-groups/template", async (_req, res) => {
       try {
