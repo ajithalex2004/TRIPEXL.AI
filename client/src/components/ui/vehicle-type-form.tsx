@@ -22,6 +22,12 @@ import {
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 
+const currentYear = new Date().getFullYear();
+const modelYears = Array.from(
+  { length: currentYear - 2000 + 1 },
+  (_, i) => currentYear - i
+).sort((a, b) => a - b); // Sort ascending
+
 const uaeManufacturers = [
   // Japanese Manufacturers
   "Toyota",
@@ -465,24 +471,31 @@ export function VehicleTypeForm({ onSubmit, initialData, isEditing }: VehicleTyp
             render={({ field }) => (
               <FormItem>
                 <FormLabel>Model Year *</FormLabel>
-                <FormControl>
-                  <Input 
-                    type="number"
-                    placeholder="Enter model year"
-                    min={1900}
-                    max={new Date().getFullYear() + 1}
-                    {...field}
-                    onChange={(e) => {
-                      const year = Number(e.target.value);
-                      field.onChange(year);
-                      // Update vehicle type code when both type and year are available
-                      const currentType = form.getValues("vehicleType");
-                      if (currentType && year) {
-                        form.setValue("vehicleTypeCode", `${currentType.toUpperCase()}-${year}`);
-                      }
-                    }}
-                  />
-                </FormControl>
+                <Select
+                  onValueChange={(value) => {
+                    const year = Number(value);
+                    field.onChange(year);
+                    // Update vehicle type code when both type and year are available
+                    const currentType = form.getValues("vehicleType");
+                    if (currentType && year) {
+                      form.setValue("vehicleTypeCode", `${currentType.toUpperCase()}-${year}`);
+                    }
+                  }}
+                  value={field.value?.toString()}
+                >
+                  <FormControl>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select model year" />
+                    </SelectTrigger>
+                  </FormControl>
+                  <SelectContent>
+                    {modelYears.map((year) => (
+                      <SelectItem key={year} value={year.toString()}>
+                        {year}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
                 <FormMessage />
               </FormItem>
             )}
