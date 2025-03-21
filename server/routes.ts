@@ -213,7 +213,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
     });
 
-    // Create new booking with AI assignment
+    // Update the booking creation route to include status tracking and history
     app.post("/api/bookings", async (req, res) => {
       const result = insertBookingSchema.safeParse(req.body);
       if (!result.success) {
@@ -221,7 +221,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       try {
-        const booking = await storage.createBooking(result.data);
+        // Generate a unique reference number
+        const referenceNo = `BK${Date.now()}${Math.floor(Math.random() * 1000)}`;
+
+        // Add reference number and initial status to booking data
+        const bookingData = {
+          ...result.data,
+          referenceNo,
+          status: "pending",
+          createdAt: new Date(),
+          updatedAt: new Date()
+        };
+
+        const booking = await storage.createBooking(bookingData);
 
         if (booking.status === "pending") {
           return res.status(409).json({ 
@@ -230,11 +242,59 @@ export async function registerRoutes(app: Express): Promise<Server> {
           });
         }
 
-        res.json(booking);
+        // If booking is successful, include metadata
+        const bookingWithMetadata = {
+          ...booking,
+          totalDistance: calculateTotalDistance(booking.pickupLocation, booking.dropoffLocation),
+          estimatedCost: calculateEstimatedCost(booking),
+          co2Emissions: calculateCO2Emissions(booking)
+        };
+
+        res.json(bookingWithMetadata);
       } catch (error: any) {
+        console.error("Error creating booking:", error);
         res.status(500).json({ error: "Failed to create booking" });
       }
     });
+
+    // Helper functions for calculating booking metadata
+    function calculateTotalDistance(pickup: any, dropoff: any): number {
+      // Calculate distance using coordinates
+      const R = 6371; // Earth's radius in km
+      const lat1 = pickup.coordinates.lat * Math.PI / 180;
+      const lat2 = dropoff.coordinates.lat * Math.PI / 180;
+      const dLat = (dropoff.coordinates.lat - pickup.coordinates.lat) * Math.PI / 180;
+      const dLon = (dropoff.coordinates.lng - pickup.coordinates.lng) * Math.PI / 180;
+
+      const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
+        Math.cos(lat1) * Math.cos(lat2) *
+        Math.sin(dLon/2) * Math.sin(dLon/2);
+
+      const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+      const distance = R * c; // Distance in km
+
+      return parseFloat(distance.toFixed(2));
+    }
+
+    function calculateEstimatedCost(booking: any): number {
+      // Basic cost calculation
+      const baseRate = 2.5; // Base rate per km
+      const distance = calculateTotalDistance(booking.pickupLocation, booking.dropoffLocation);
+      let estimatedCost = distance * baseRate;
+
+      // Add surcharges based on booking type and priority
+      if (booking.bookingType === "ambulance") estimatedCost *= 1.5;
+      if (booking.priority === "CRITICAL" || booking.priority === "EMERGENCY") estimatedCost *= 1.3;
+
+      return parseFloat(estimatedCost.toFixed(2));
+    }
+
+    function calculateCO2Emissions(booking: any): number {
+      // Average CO2 emissions calculation (in kg)
+      const distance = calculateTotalDistance(booking.pickupLocation, booking.dropoffLocation);
+      const avgEmissionRate = 0.12; // kg CO2 per km (average)
+      return parseFloat((distance * avgEmissionRate).toFixed(2));
+    }
 
     // Add a new route to get current employee information
     app.get("/api/employee/current", async (req, res) => {

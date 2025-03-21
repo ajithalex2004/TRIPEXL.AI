@@ -229,6 +229,18 @@ export const AssetType = {
   NON_MOVEABLE: "Non-Moveable"
 } as const;
 
+// Add after the other imports
+import { relations } from "drizzle-orm";
+
+// Update the BookingStatus enum
+export const BookingStatus = {
+  PENDING: "pending",
+  CONFIRMED: "confirmed",
+  IN_PROGRESS: "in_progress",
+  COMPLETED: "completed",
+  CANCELLED: "cancelled",
+} as const;
+
 
 export const locations = z.object({
   address: z.string(),
@@ -399,6 +411,7 @@ export const locationsMaster = pgTable("locations_master", {
   updatedAt: timestamp("updated_at").notNull().defaultNow()
 });
 
+// Update the bookings table schema
 export const bookings = pgTable("bookings", {
   id: serial("id").primaryKey(),
   employeeId: text("employee_id").references(() => employees.employeeId),
@@ -406,27 +419,50 @@ export const bookings = pgTable("bookings", {
   purpose: text("purpose").notNull(),
   priority: text("priority").notNull(),
 
+  // Cargo details
   cargoType: text("cargo_type"),
   numBoxes: integer("num_boxes"),
   weight: integer("weight"),
   boxSize: text("box_size").array(),
 
+  // Trip details
   tripType: text("trip_type"),
   numPassengers: integer("num_passengers"),
   withDriver: boolean("with_driver").default(false),
   bookingForSelf: boolean("booking_for_self").default(false),
   passengerDetails: json("passenger_details").$type<{ name: string; contact: string }[]>(),
 
+  // Location details
   pickupLocation: json("pickup_location").$type<z.infer<typeof locations>>().notNull(),
   dropoffLocation: json("dropoff_location").$type<z.infer<typeof locations>>().notNull(),
   pickupTime: text("pickup_time").notNull(),
   dropoffTime: text("dropoff_time").notNull(),
 
-  referenceNo: text("reference_no"),
+  // Reference and tracking
+  referenceNo: text("reference_no").notNull().unique(),
   remarks: text("remarks"),
-
   status: text("status").notNull().default("pending"),
-  createdAt: timestamp("created_at").notNull().defaultNow()
+
+  // Vehicle assignment
+  assignedVehicleId: integer("assigned_vehicle_id").references(() => vehicles.id),
+  assignedDriverId: integer("assigned_driver_id").references(() => drivers.id),
+
+  // Timestamps
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+  confirmedAt: timestamp("confirmed_at"),
+  completedAt: timestamp("completed_at"),
+  cancelledAt: timestamp("cancelled_at"),
+
+  // Booking metadata
+  totalDistance: decimal("total_distance", { precision: 10, scale: 2 }),
+  estimatedCost: decimal("estimated_cost", { precision: 10, scale: 2 }),
+  actualCost: decimal("actual_cost", { precision: 10, scale: 2 }),
+  co2Emissions: decimal("co2_emissions", { precision: 10, scale: 2 }),
+
+  // Feedback and rating
+  rating: integer("rating"),
+  feedback: text("feedback"),
 });
 
 export const users = pgTable("users", {
@@ -451,98 +487,22 @@ export const otpVerifications = pgTable("otp_verifications", {
   createdAt: timestamp("created_at").notNull().defaultNow()
 });
 
-export const insertBookingSchema = createInsertSchema(bookings)
-  .extend({
-    bookingType: z.enum([BookingType.FREIGHT, BookingType.PASSENGER, BookingType.AMBULANCE]),
-    purpose: z.enum(Object.values(BookingPurpose) as [string, ...string[]]),
-    priority: z.enum(Object.values(Priority) as [string, ...string[]]),
-    tripType: z.enum(Object.values(TripType) as [string, ...string[]]).optional(),
-    withDriver: z.boolean().optional(),
-    bookingForSelf: z.boolean().optional(),
-    passengerDetails: z.array(
-      z.object({
-        name: z.string().min(1, "Passenger name is required"),
-        contact: z.string().min(1, "Contact details are required")
-      })
-    ).optional(),
-    boxSize: z.array(z.enum(Object.values(BoxSize) as [string, ...string[]]))
-      .optional(),
-    pickupLocation: z.object({
-      address: z.string().min(1, "Pickup address is required"),
-      coordinates: z.object({
-        lat: z.number(),
-        lng: z.number()
-      })
-    }),
-    dropoffLocation: z.object({
-      address: z.string().min(1, "Dropoff address is required"),
-      coordinates: z.object({
-        lat: z.number(),
-        lng: z.number()
-      })
-    }),
-    pickupTime: z.string().min(1, "Pickup time is required"),
-    dropoffTime: z.string().min(1, "Dropoff time is required"),
-    referenceNo: z.string().optional(),
-    remarks: z.string().optional(),
-  });
+// Add booking relations
+export const bookingsRelations = relations(bookings, ({ one }) => ({
+  employee: one(employees, {
+    fields: [bookings.employeeId],
+    references: [employees.employeeId],
+  }),
+  vehicle: one(vehicles, {
+    fields: [bookings.assignedVehicleId],
+    references: [vehicles.id],
+  }),
+  driver: one(drivers, {
+    fields: [bookings.assignedDriverId],
+    references: [drivers.id],
+  }),
+}));
 
-export const insertEmployeeSchema = createInsertSchema(employees);
-export const insertUserSchema = createInsertSchema(users).omit({
-  passwordHash: true,
-  isVerified: true,
-  lastLogin: true,
-  createdAt: true,
-  updatedAt: true
-});
-export const insertOtpVerificationSchema = createInsertSchema(otpVerifications).omit({
-  isUsed: true,
-  createdAt: true
-});
-
-export const insertVehicleSchema = createInsertSchema(vehicles);
-export const insertDriverSchema = createInsertSchema(drivers);
-export const insertLocationMasterSchema = createInsertSchema(locationsMaster);
-
-// Update insert schema for Vehicle Groups
-export const insertVehicleGroupSchema = createInsertSchema(vehicleGroups)
-  .extend({
-    type: z.enum(Object.values(VehicleGroupType) as [string, ...string[]]),
-    department: z.enum(Object.values(Department) as [string, ...string[]]),
-    groupCode: z.string().min(1, "Vehicle group code is required")
-      .max(20, "Vehicle group code cannot exceed 20 characters"),
-    region: z.string().min(1, "Region is required"),
-    name: z.string().min(1, "Vehicle group name is required")
-      .max(100, "Vehicle group name cannot exceed 100 characters"),
-    imageUrl: z.string().optional(),
-    description: z.string().optional()
-  });
-
-// Update the insertVehicleTypeMasterSchema to make servicePlan and alertBefore optional
-export const insertVehicleTypeMasterSchema = createInsertSchema(vehicleTypeMaster)
-  .extend({
-    groupId: z.number().min(1, "Vehicle group is required"),
-    vehicleTypeCode: z.string().min(1, "Vehicle type code is required"),
-    vehicleTypeName: z.string().min(1, "Vehicle type name is required"),
-    manufacturer: z.string().min(1, "Manufacturer is required"),
-    modelYear: z.number().min(1900, "Invalid model year").max(new Date().getFullYear() + 1, "Future model year not allowed"),
-    numberOfPassengers: z.number().min(0, "Number of passengers must be positive"),
-    region: z.enum(Object.values(Region) as [string, ...string[]]),
-    fuelEfficiency: z.number().min(0, "Fuel efficiency must be positive"),
-    fuelPricePerLitre: z.number().min(0, "Fuel price per litre must be positive"),
-    fuelType: z.enum(Object.values(VehicleFuelType) as [string, ...string[]]),
-    servicePlan: z.string().optional(),
-    costPerKm: z.number().min(0, "Cost per KM must be positive"),
-    vehicleType: z.string().min(1, "Vehicle type is required"),
-    department: z.enum(Object.values(Department) as [string, ...string[]]),
-    unit: z.string().optional(),
-    alertBefore: z.number().min(0, "Alert before must be positive").optional(),
-    idleFuelConsumption: z.number().min(0, "Idle fuel consumption must be positive"),
-    vehicleCapacity: z.number().min(0, "Vehicle capacity must be positive"),
-    co2EmissionFactor: z.number().min(0, "CO2 emission factor must be positive")
-  });
-
-// Update the vehicle master table definition to use text for highlighted fields
 export const vehicleMaster = pgTable("vehicle_master", {
   id: serial("id").primaryKey(),
   vehicleId: text("vehicle_id").notNull().unique(), 
@@ -601,6 +561,104 @@ export const vehicleMasterRelations = relations(vehicleMaster, ({ one }) => ({
   }),
 }));
 
+export const insertBookingSchema = createInsertSchema(bookings)
+  .extend({
+    bookingType: z.enum([BookingType.FREIGHT, BookingType.PASSENGER, BookingType.AMBULANCE]),
+    purpose: z.enum(Object.values(BookingPurpose) as [string, ...string[]]),
+    priority: z.enum(Object.values(Priority) as [string, ...string[]]),
+    tripType: z.enum(Object.values(TripType) as [string, ...string[]]).optional(),
+    status: z.enum(Object.values(BookingStatus) as [string, ...string[]]).default("pending"),
+    withDriver: z.boolean().optional(),
+    bookingForSelf: z.boolean().optional(),
+    passengerDetails: z.array(
+      z.object({
+        name: z.string().min(1, "Passenger name is required"),
+        contact: z.string().min(1, "Contact details are required")
+      })
+    ).optional(),
+    boxSize: z.array(z.enum(Object.values(BoxSize) as [string, ...string[]]))
+      .optional(),
+    pickupLocation: z.object({
+      address: z.string().min(1, "Pickup address is required"),
+      coordinates: z.object({
+        lat: z.number(),
+        lng: z.number()
+      })
+    }),
+    dropoffLocation: z.object({
+      address: z.string().min(1, "Dropoff address is required"),
+      coordinates: z.object({
+        lat: z.number(),
+        lng: z.number()
+      })
+    }),
+    pickupTime: z.string().min(1, "Pickup time is required"),
+    dropoffTime: z.string().min(1, "Dropoff time is required"),
+    referenceNo: z.string().min(1, "Reference number is required"),
+    remarks: z.string().optional(),
+    assignedVehicleId: z.number().optional(),
+    assignedDriverId: z.number().optional(),
+    rating: z.number().min(1).max(5).optional(),
+    feedback: z.string().optional(),
+  });
+
+export const insertEmployeeSchema = createInsertSchema(employees);
+export const insertUserSchema = createInsertSchema(users).omit({
+  passwordHash: true,
+  isVerified: true,
+  lastLogin: true,
+  createdAt: true,
+  updatedAt: true
+});
+export const insertOtpVerificationSchema = createInsertSchema(otpVerifications).omit({
+  isUsed: true,
+  createdAt: true
+});
+
+export const insertVehicleSchema = createInsertSchema(vehicles);
+export const insertDriverSchema = createInsertSchema(drivers);
+export const insertLocationMasterSchema = createInsertSchema(locationsMaster);
+
+// Update insert schema for Vehicle Groups
+export const insertVehicleGroupSchema = createInsertSchema(vehicleGroups)
+  .extend({
+    type: z.enum(Object.values(VehicleGroupType) as [string, ...string[]]),
+    department: z.enum(Object.values(Department) as [string, ...string[]]),
+    groupCode: z.string().min(1, "Vehicle group code is required")
+      .max(20, "Vehicle group code cannot exceed 20 characters"),
+    region: z.string().min(1, "Region is required"),
+    name: z.string().min(1, "Vehicle group name is required")
+      .max(100, "Vehicle group name cannot exceed 100 characters"),
+    imageUrl: z.string().optional(),
+    description: z.string().optional()
+  });
+
+// Update the insertVehicleTypeMasterSchema to make servicePlan and alertBefore optional
+export const insertVehicleTypeMasterSchema = createInsertSchema(vehicleTypeMaster)
+  .extend({
+    groupId: z.number().min(1, "Vehicle group is required"),
+    vehicleTypeCode: z.string().min(1, "Vehicle type code is required"),
+    vehicleTypeName: z.string().min(1, "Vehicle type name is required"),
+    manufacturer: z.string().min(1, "Manufacturer is required"),
+    modelYear: z.number().min(1900, "Invalid model year").max(new Date().getFullYear() + 1, "Future model year not allowed"),
+    numberOfPassengers: z.number().min(0, "Number of passengers must be positive"),
+    region: z.enum(Object.values(Region) as [string, ...string[]]),
+    fuelEfficiency: z.number().min(0, "Fuel efficiency must be positive"),
+    fuelPricePerLitre: z.number().min(0, "Fuel price per litre must be positive"),
+    fuelType: z.enum(Object.values(VehicleFuelType) as [string, ...string[]]),
+    servicePlan: z.string().optional(),
+    costPerKm: z.number().min(0, "Cost per KM must be positive"),
+    vehicleType: z.string().min(1, "Vehicle type is required"),
+    department: z.enum(Object.values(Department) as [string, ...string[]]),
+    unit: z.string().optional(),
+    alertBefore: z.number().min(0, "Alert before must be positive").optional(),
+    idleFuelConsumption: z.number().min(0, "Idle fuel consumption must be positive"),
+    vehicleCapacity: z.number().min(0, "Vehicle capacity must be positive"),
+    co2EmissionFactor: z.number().min(0, "CO2 emission factor must be positive")
+  });
+
+// Update the vehicle master table definition to use text for highlighted fields
+
 // Update the insert schema to use Emirates enum and AssetType enum
 export const insertVehicleMasterSchema = createInsertSchema(vehicleMaster)
   .extend({
@@ -615,7 +673,7 @@ export const insertVehicleMasterSchema = createInsertSchema(vehicleMaster)
     isCanConnected: z.enum(Object.values(YesNo) as [string, ...string[]]),
     isWeightSensorConnected: z.enum(Object.values(YesNo) as [string, ...string[]]),
     isTemperatureSensorConnected: z.enum(Object.values(YesNo) as [string, ...string[]]),
-    isPtoConnected: z.enum(Object.values(YesNo) as [string, ...string[]]),
+    isPPtoConnected: z.enum(Object.values(YesNo) as [string, ...string[]]),
   });
 
 export type Employee = typeof employees.$inferSelect;

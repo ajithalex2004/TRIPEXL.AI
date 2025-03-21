@@ -993,7 +993,8 @@ export function BookingForm() {
                 {currentStep === 3 && (
                   <motion.div
                     key="step3"
-                    initial={{ opacity: 0, x: -20 }}animate={{ opacity: 1, x: 0 }}
+                    initial={{ opacity: 0, x: -20 }}
+                    animate={{ opacity: 1, x: 0 }}
                     exit={{ opacity: 0, x: 20 }}
                     transition={{ duration: 0.5 }}
                     className="space-y-4"
@@ -1334,23 +1335,33 @@ export function BookingForm() {
       </Card>
 
       <AlertDialog open={showSuccessDialog} onOpenChange={setShowSuccessDialog}>
-        <AlertDialogContent className="sm:max-w-md">
-          <AlertDialogHeader>
-            <AlertDialogTitle className="text-center">
-              <BookingConfirmationAnimation
-                bookingDetails={{
-                  vehicleType: form.getValues("bookingType"),
-                  date: new Date(form.getValues("pickupTime")).toLocaleDateString(),
-                  location: form.getValues("pickupLocation").address
-                }}
-              />
-            </AlertDialogTitle>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogAction onClick={handleSuccessDialogClose}>
-              View Booking History
-            </AlertDialogAction>
-          </AlertDialogFooter>
+        <AlertDialogContent className="sm:max-w-[500px] overflow-hidden bg-background/95 backdrop-blur-sm p-0">
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.95 }}
+            transition={{ duration: 0.2 }}
+          >
+            <AlertDialogHeader className="p-6">
+              <AlertDialogTitle className="text-center">
+                <BookingConfirmationAnimation
+                  bookingDetails={{
+                    vehicleType: form.getValues("bookingType"),
+                    date: new Date(form.getValues("pickupTime")).toLocaleDateString(),
+                    location: form.getValues("pickupLocation").address
+                  }}
+                />
+              </AlertDialogTitle>
+            </AlertDialogHeader>
+            <AlertDialogFooter className="px-6 pb-6">
+              <AlertDialogAction
+                onClick={handleSuccessDialogClose}
+                className="w-full bg-primary text-white hover:bg-primary/90"
+              >
+                View Booking History
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </motion.div>
         </AlertDialogContent>
       </AlertDialog>
     </>

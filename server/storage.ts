@@ -215,7 +215,16 @@ export class DatabaseStorage implements IStorage {
     throw new Error("Method not implemented.");
   }
   async updateVehicleStatus(id: number, status: string): Promise<Vehicle> {
-    throw new Error("Method not implemented.");
+    const [vehicle] = await db
+      .update(schema.vehicles)
+      .set({
+        status,
+        updatedAt: new Date()
+      })
+      .where(eq(schema.vehicles.id, id))
+      .returning();
+
+    return vehicle;
   }
   async getDrivers(): Promise<Driver[]> {
     throw new Error("Method not implemented.");
@@ -224,19 +233,90 @@ export class DatabaseStorage implements IStorage {
     throw new Error("Method not implemented.");
   }
   async updateDriverStatus(id: number, status: string): Promise<Driver> {
-    throw new Error("Method not implemented.");
+    const [driver] = await db
+      .update(schema.drivers)
+      .set({
+        status,
+        updatedAt: new Date()
+      })
+      .where(eq(schema.drivers.id, id))
+      .returning();
+
+    return driver;
   }
   async getBookings(): Promise<Booking[]> {
-    throw new Error("Method not implemented.");
+    return await db.select().from(schema.bookings);
   }
-  async createBooking(booking: InsertBooking): Promise<Booking> {
-    throw new Error("Method not implemented.");
+  async createBooking(bookingData: InsertBooking): Promise<Booking> {
+    try {
+      // Insert the booking with metadata
+      const [booking] = await db
+        .insert(schema.bookings)
+        .values({
+          ...bookingData,
+          status: "pending",
+          createdAt: new Date(),
+          updatedAt: new Date()
+        })
+        .returning();
+
+      // If we have vehicle and driver assignments, update their status
+      if (booking.assignedVehicleId) {
+        await this.updateVehicleStatus(booking.assignedVehicleId, "In Service");
+      }
+
+      if (booking.assignedDriverId) {
+        await this.updateDriverStatus(booking.assignedDriverId, "On Duty");
+      }
+
+      return booking;
+    } catch (error) {
+      console.error("Error creating booking:", error);
+      throw error;
+    }
   }
   async assignBooking(bookingId: number, vehicleId: number, driverId: number): Promise<Booking> {
-    throw new Error("Method not implemented.");
+    const [booking] = await db
+      .update(schema.bookings)
+      .set({
+        assignedVehicleId: vehicleId,
+        assignedDriverId: driverId,
+        status: "confirmed",
+        confirmedAt: new Date(),
+        updatedAt: new Date()
+      })
+      .where(eq(schema.bookings.id, bookingId))
+      .returning();
+
+    return booking;
   }
   async updateBookingStatus(id: number, status: string): Promise<Booking> {
-    throw new Error("Method not implemented.");
+    const statusTimestamp = new Date();
+    const updateData: Partial<Booking> = {
+      status,
+      updatedAt: statusTimestamp
+    };
+
+    // Add specific timestamp based on status
+    switch (status) {
+      case "confirmed":
+        updateData.confirmedAt = statusTimestamp;
+        break;
+      case "completed":
+        updateData.completedAt = statusTimestamp;
+        break;
+      case "cancelled":
+        updateData.cancelledAt = statusTimestamp;
+        break;
+    }
+
+    const [updatedBooking] = await db
+      .update(schema.bookings)
+      .set(updateData)
+      .where(eq(schema.bookings.id, id))
+      .returning();
+
+    return updatedBooking;
   }
   async findEmployeeByIdAndEmail(employeeId: string, email: string): Promise<Employee | null> {
     const [employee] = await db
