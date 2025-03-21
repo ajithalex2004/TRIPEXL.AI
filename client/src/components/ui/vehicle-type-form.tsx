@@ -333,44 +333,75 @@ const vehicleCategories: { [key: string]: string[] } = {
   "Ambulance": ["ambulance"]
 };
 
-function findVehicleEfficiency(vehicleType: string): number {
+// Add after default fuel efficiency
+function calculateAgeBasedEfficiencyAdjustment(modelYear: number): number {
+  const currentYear = new Date().getFullYear();
+  const vehicleAge = currentYear - modelYear;
+
+  // Efficiency degradation based on age:
+  // - New to 3 years: 100% efficiency
+  // - 3-5 years: 97% efficiency
+  // - 5-7 years: 95% efficiency
+  // - 7-10 years: 92% efficiency
+  // - 10+ years: 90% efficiency
+  if (vehicleAge <= 3) return 1;
+  if (vehicleAge <= 5) return 0.97;
+  if (vehicleAge <= 7) return 0.95;
+  if (vehicleAge <= 10) return 0.92;
+  return 0.90;
+}
+
+function findVehicleEfficiency(vehicleType: string, modelYear: number): number {
+  let baseEfficiency = 0;
+
   // Direct match
   if (defaultFuelEfficiency[vehicleType]) {
-    return defaultFuelEfficiency[vehicleType];
-  }
+    baseEfficiency = defaultFuelEfficiency[vehicleType];
+  } else {
+    // Case-insensitive search
+    const lowerVehicleType = vehicleType.toLowerCase();
 
-  // Case-insensitive search
-  const lowerVehicleType = vehicleType.toLowerCase();
-
-  // Check exact matches first
-  for (const [model, efficiency] of Object.entries(defaultFuelEfficiency)) {
-    if (model.toLowerCase() === lowerVehicleType) {
-      return efficiency;
-    }
-  }
-
-  // Check category matches
-  for (const [category, keywords] of Object.entries(vehicleCategories)) {
-    if (keywords.some(keyword => lowerVehicleType.includes(keyword))) {
-      // Return average efficiency for this category
-      const categoryVehicles = Object.entries(defaultFuelEfficiency)
-        .filter(([model]) => keywords.some(keyword => model.toLowerCase().includes(keyword)));
-
-      if (categoryVehicles.length > 0) {
-        const avgEfficiency = categoryVehicles.reduce((sum, [_, eff]) => sum + eff, 0) / categoryVehicles.length;
-        return Number(avgEfficiency.toFixed(1));
+    // Check exact matches first
+    for (const [model, efficiency] of Object.entries(defaultFuelEfficiency)) {
+      if (model.toLowerCase() === lowerVehicleType) {
+        baseEfficiency = efficiency;
+        break;
       }
     }
+
+    // If no exact match, check category matches
+    if (baseEfficiency === 0) {
+      for (const [category, keywords] of Object.entries(vehicleCategories)) {
+        if (keywords.some(keyword => lowerVehicleType.includes(keyword))) {
+          // Return average efficiency for this category
+          const categoryVehicles = Object.entries(defaultFuelEfficiency)
+            .filter(([model]) => keywords.some(keyword => model.toLowerCase().includes(keyword)));
+
+          if (categoryVehicles.length > 0) {
+            baseEfficiency = categoryVehicles.reduce((sum, [_, eff]) => sum + eff, 0) / categoryVehicles.length;
+          }
+          break;
+        }
+      }
+    }
+
+    // If still no match, use default values based on broad categories
+    if (baseEfficiency === 0) {
+      if (lowerVehicleType.includes("suv")) baseEfficiency = 11;
+      else if (lowerVehicleType.includes("van")) baseEfficiency = 9;
+      else if (lowerVehicleType.includes("bus")) baseEfficiency = 6;
+      else if (lowerVehicleType.includes("truck")) baseEfficiency = 7.5;
+      else if (lowerVehicleType.includes("ambulance")) baseEfficiency = 8;
+      else baseEfficiency = 12; // Default to sedan-like efficiency
+    }
   }
 
-  // Default values based on broad categories
-  if (lowerVehicleType.includes("suv")) return 11;
-  if (lowerVehicleType.includes("van")) return 9;
-  if (lowerVehicleType.includes("bus")) return 6;
-  if (lowerVehicleType.includes("truck")) return 7.5;
-  if (lowerVehicleType.includes("ambulance")) return 8;
+  // Apply age-based efficiency adjustment
+  const ageAdjustment = calculateAgeBasedEfficiencyAdjustment(modelYear);
+  const adjustedEfficiency = baseEfficiency * ageAdjustment;
 
-  return 12; // Default to sedan-like efficiency
+  // Return with 1 decimal place precision
+  return Number(adjustedEfficiency.toFixed(1));
 }
 
 interface VehicleTypeFormProps {
@@ -458,7 +489,8 @@ export function VehicleTypeForm({ onSubmit, initialData, isEditing }: VehicleTyp
   // Update vehicle details when vehicle type changes
   useEffect(() => {
     if (vehicleType) {
-      const efficiency = findVehicleEfficiency(vehicleType);
+      const modelYear = form.getValues("modelYear");
+      const efficiency = findVehicleEfficiency(vehicleType, modelYear);
       const capacity = findPassengerCapacity(vehicleType);
       const vehicleCapacity = findVehicleCapacity(vehicleType);
       form.setValue("fuelEfficiency", efficiency);
@@ -466,6 +498,17 @@ export function VehicleTypeForm({ onSubmit, initialData, isEditing }: VehicleTyp
       form.setValue("vehicleCapacity", vehicleCapacity);
     }
   }, [vehicleType, form]);
+
+  // Update fuel efficiency when model year changes
+  useEffect(() => {
+    const modelYear = form.watch("modelYear");
+    const currentType = form.getValues("vehicleType");
+    if (modelYear && currentType) {
+      const efficiency = findVehicleEfficiency(currentType, modelYear);
+      form.setValue("fuelEfficiency", efficiency);
+    }
+  }, [form.watch("modelYear")]);
+
 
   return (
     <Form {...form}>
@@ -588,7 +631,8 @@ export function VehicleTypeForm({ onSubmit, initialData, isEditing }: VehicleTyp
                 <Select
                   onValueChange={(value) => {
                     field.onChange(value);
-                    const efficiency = findVehicleEfficiency(value);
+                    const modelYear = form.getValues("modelYear");
+                    const efficiency = findVehicleEfficiency(value, modelYear);
                     const capacity = findPassengerCapacity(value);
                     const vehicleCapacity = findVehicleCapacity(value);
                     form.setValue("fuelEfficiency", efficiency);
