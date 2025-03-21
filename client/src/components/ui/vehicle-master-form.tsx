@@ -178,7 +178,7 @@ export function VehicleMasterForm({ isOpen, onClose }: VehicleMasterFormProps) {
     const selectedType = vehicleTypes?.find(type => type.vehicleTypeCode === typeCode);
     if (selectedType) {
       form.setValue("vehicleTypeCode", selectedType.vehicleTypeCode);
-      form.setValue("vehicleTypeName", selectedType.vehicleTypeName);
+      form.setValue("vehicleTypeName", `${selectedType.manufacturer} ${selectedType.vehicleType}`);
       form.setValue("fuelType", selectedType.fuelType);
       form.setValue("modelYear", selectedType.modelYear);
       form.setValue("manufacturer", selectedType.manufacturer);
@@ -367,7 +367,12 @@ export function VehicleMasterForm({ isOpen, onClose }: VehicleMasterFormProps) {
                   <FormItem>
                     <FormLabel>Vehicle Type Name</FormLabel>
                     <FormControl>
-                      <Input placeholder="Vehicle Type Name" {...field} readOnly />
+                      <Input
+                        placeholder="Vehicle Type Name"
+                        {...field}
+                        readOnly
+                        className="bg-muted"
+                      />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
