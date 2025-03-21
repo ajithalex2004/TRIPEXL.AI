@@ -600,6 +600,13 @@ export const insertBookingSchema = createInsertSchema(bookings)
     assignedDriverId: z.number().optional(),
     rating: z.number().min(1).max(5).optional(),
     feedback: z.string().optional(),
+    totalDistance: z.number().optional(),
+    estimatedCost: z.number().optional(),
+    co2Emissions: z.number().optional(),
+    numPassengers: z.number().optional(),
+    numBoxes: z.number().optional(),
+    weight: z.number().optional(),
+    cargoType: z.string().optional()
   });
 
 export const insertEmployeeSchema = createInsertSchema(employees);

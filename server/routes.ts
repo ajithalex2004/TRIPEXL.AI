@@ -227,7 +227,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           }); 
         }
 
-        // Generate a unique reference number if not provided
+        // Prepare booking data with defaults
         const bookingData = {
           ...result.data,
           referenceNo: result.data.referenceNo || `BK${Date.now()}${Math.floor(Math.random() * 1000)}`,
