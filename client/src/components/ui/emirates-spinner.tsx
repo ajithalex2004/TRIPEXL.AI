@@ -59,21 +59,22 @@ export function EmiratesSpinner({ className, size = 'md', ...props }: EmiratesSp
           className="animate-[dash_1.5s_ease-in-out_infinite]"
         />
 
-        {/* Center circle for logo background */}
+        {/* Center circle for logo background - slightly transparent dark background */}
         <circle
           cx="25"
           cy="25"
           r="8"
-          fill="#FFFFFF"
+          fill="#000B1A"
+          fillOpacity="0.8"
         />
 
         {/* EXL Logo */}
         <image
-          href="/attached_assets/image_1742546091702.png"
-          x="21"
-          y="21"
-          width="8"
-          height="8"
+          href="/attached_assets/image_1742546536561.png"
+          x="17"
+          y="17"
+          width="16"
+          height="16"
           preserveAspectRatio="xMidYMid meet"
         />
       </svg>
