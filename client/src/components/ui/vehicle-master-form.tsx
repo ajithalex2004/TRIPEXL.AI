@@ -1,7 +1,7 @@
 import * as React from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { insertVehicleMasterSchema, YesNo, PlateCategory, TransmissionType, VehicleFuelType, Region, Department } from "@shared/schema";
+import { insertVehicleMasterSchema, YesNo, PlateCategory, TransmissionType, VehicleFuelType, Region, Department, Emirates } from "@shared/schema";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
@@ -123,16 +123,27 @@ export function VehicleMasterForm({ isOpen, onClose }: VehicleMasterFormProps) {
                 )}
               />
 
-              {/* Emirate */}
+              {/* Emirate - Updated to use Select */}
               <FormField
                 control={form.control}
                 name="emirate"
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Emirate *</FormLabel>
-                    <FormControl>
-                      <Input placeholder="Enter Emirate" {...field} />
-                    </FormControl>
+                    <Select onValueChange={field.onChange} value={field.value}>
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select emirate" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {Object.values(Emirates).map((emirate) => (
+                          <SelectItem key={emirate} value={emirate}>
+                            {emirate}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                     <FormMessage />
                   </FormItem>
                 )}

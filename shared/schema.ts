@@ -3,6 +3,17 @@ import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 import { relations } from "drizzle-orm";
 
+// Add before other enums
+export const Emirates = {
+  AUH: "Abu Dhabi (AUH)",
+  DXB: "Dubai (DXB)", 
+  SHJ: "Sharjah (SHJ)",
+  AJM: "Ajman (AJM)",
+  RAK: "Ras Al Khaimah (RAK)",
+  FUJ: "Fujairah (FUJ)",
+  UAQ: "Umm Al Quwain (UAQ)"
+} as const;
+
 // Add Region enum at the top with other enums
 export const Region = {
   ABU_DHABI: "Abu Dhabi",
@@ -509,12 +520,13 @@ export const vehicleMaster = pgTable("vehicle_master", {
   updatedAt: timestamp("updated_at").notNull().defaultNow()
 });
 
-// Update the insert schema with YES/NO validation
+// Update the insert schema to use Emirates enum
 export const insertVehicleMasterSchema = createInsertSchema(vehicleMaster)
   .extend({
     plateCategory: z.enum(Object.values(PlateCategory) as [string, ...string[]]),
     transmissionType: z.enum(Object.values(TransmissionType) as [string, ...string[]]),
     fuelType: z.enum(Object.values(VehicleFuelType) as [string, ...string[]]),
+    emirate: z.enum(Object.values(Emirates) as [string, ...string[]]), // Add this line
     region: z.enum(Object.values(Region) as [string, ...string[]]),
     department: z.enum(Object.values(Department) as [string, ...string[]]),
     // Add YES/NO validation for highlighted fields
