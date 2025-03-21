@@ -255,15 +255,21 @@ export function BookingForm() {
   const createBooking = useMutation({
     mutationFn: async (data: any) => {
       console.log("Mutation sending data:", JSON.stringify(data, null, 2));
-      const response = await apiRequest("POST", "/api/bookings", data);
-      if (!response.ok) {
-        const error = await response.json();
-        console.error("Booking creation failed:", error);
-        throw new Error(error.message || "Failed to create booking");
+
+      try {
+        const response = await apiRequest("POST", "/api/bookings", data);
+        const responseData = await response.json();
+
+        if (!response.ok) {
+          throw new Error(responseData.message || responseData.error || "Failed to create booking");
+        }
+
+        console.log("Booking created successfully:", responseData);
+        return responseData;
+      } catch (error) {
+        console.error("API request failed:", error);
+        throw error;
       }
-      const result = await response.json();
-      console.log("Booking created successfully:", result);
-      return result;
     },
     onSuccess: (response) => {
       // Show success dialog with animation
@@ -276,10 +282,10 @@ export function BookingForm() {
       // Reset form
       form.reset();
     },
-    onError: (error: any) => {
+    onError: (error: Error) => {
       console.error("Booking creation error:", error);
       toast({
-        title: "Booking Creation Failed",
+        title: "Error Creating Booking",
         description: error.message || "Please try again",
         variant: "destructive",
         duration: 5000,
@@ -313,7 +319,7 @@ export function BookingForm() {
 
       // Format the booking data according to the schema
       const bookingData = {
-        employeeId: data.employeeId || employee?.employeeId,
+        employeeId: data.employeeId,
         bookingType: data.bookingType,
         purpose: data.purpose,
         priority: data.priority,
@@ -333,24 +339,23 @@ export function BookingForm() {
         },
         pickupTime: new Date(data.pickupTime).toISOString(),
         dropoffTime: new Date(data.dropoffTime).toISOString(),
+        remarks: data.remarks || "",
 
-        // Optional fields based on booking type
-        ...(data.bookingType === "freight" && {
+        // Conditional fields based on booking type
+        ...(data.bookingType === "freight" ? {
           cargoType: data.cargoType,
-          numBoxes: Number(data.numBoxes || 0),
-          weight: Number(data.weight || 0),
-          boxSize: data.boxSize || []
-        }),
+          numBoxes: Number(data.numBoxes),
+          weight: Number(data.weight),
+          boxSize: data.boxSize
+        } : {}),
 
-        ...(data.bookingType === "passenger" && {
+        ...(data.bookingType === "passenger" ? {
           tripType: data.tripType,
-          numPassengers: Number(data.numPassengers || 0),
+          numPassengers: Number(data.numPassengers),
           withDriver: Boolean(data.withDriver),
           bookingForSelf: Boolean(data.bookingForSelf),
-          passengerDetails: data.passengerDetails || []
-        }),
-
-        remarks: data.remarks || ""
+          passengerDetails: data.passengerDetails
+        } : {})
       };
 
       console.log("Submitting booking data:", JSON.stringify(bookingData, null, 2));
@@ -997,7 +1002,7 @@ export function BookingForm() {
                     />
                     <FormField
                       control={form.control}
-                      name="priority"
+                      name="`priority"
                       render={({ field }) => (
                         <FormItem>
                           <FormLabel>Priority Level *</FormLabel>

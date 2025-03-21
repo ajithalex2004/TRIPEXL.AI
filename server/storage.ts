@@ -259,20 +259,25 @@ export class DatabaseStorage implements IStorage {
     try {
       console.log("Storage: Creating booking with data:", bookingData);
 
-      // Ensure we have the required fields and defaults
-      const bookingToCreate = {
+      // Convert all number fields from string to number
+      const processedData = {
         ...bookingData,
-        status: bookingData.status || "pending",
+        numBoxes: bookingData.numBoxes ? Number(bookingData.numBoxes) : undefined,
+        weight: bookingData.weight ? Number(bookingData.weight) : undefined,
+        numPassengers: bookingData.numPassengers ? Number(bookingData.numPassengers) : undefined,
+        totalDistance: bookingData.totalDistance ? Number(bookingData.totalDistance) : undefined,
+        estimatedCost: bookingData.estimatedCost ? Number(bookingData.estimatedCost) : undefined,
+        co2Emissions: bookingData.co2Emissions ? Number(bookingData.co2Emissions) : undefined,
         createdAt: new Date(),
         updatedAt: new Date()
       };
 
-      console.log("Storage: Preparing to insert booking:", bookingToCreate);
+      console.log("Storage: Preparing to insert booking:", processedData);
 
       // Insert the booking
       const [booking] = await db
         .insert(schema.bookings)
-        .values(bookingToCreate)
+        .values(processedData)
         .returning();
 
       console.log("Storage: Successfully created booking:", booking);
@@ -289,7 +294,7 @@ export class DatabaseStorage implements IStorage {
       return booking;
     } catch (error) {
       console.error("Storage: Error creating booking:", error);
-      throw new Error(`Failed to create booking: ${error.message}`);
+      throw new Error(`Failed to create booking: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   }
   async assignBooking(bookingId: number, vehicleId: number, driverId: number): Promise<Booking> {
