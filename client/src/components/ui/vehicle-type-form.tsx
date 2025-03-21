@@ -22,6 +22,19 @@ import {
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 
+// Define default fuel efficiency values for common vehicle types
+const defaultFuelEfficiency: { [key: string]: number } = {
+  "Ambulance": 8,
+  "Passenger Van": 10,
+  "Cargo Van": 9,
+  "Bus": 6,
+  "SUV": 12,
+  "Truck": 7,
+  "Pickup": 11,
+  "Sedan": 14,
+  "Minivan": 11,
+};
+
 interface VehicleTypeFormProps {
   onSubmit: (data: InsertVehicleTypeMaster) => void;
   initialData?: VehicleTypeMaster;
@@ -74,6 +87,7 @@ export function VehicleTypeForm({ onSubmit, initialData, isEditing }: VehicleTyp
   const fuelEfficiency = form.watch("fuelEfficiency");
   const fuelPricePerLitre = form.watch("fuelPricePerLitre");
   const selectedFuelType = form.watch("fuelType");
+  const vehicleType = form.watch("vehicleType");
 
   // Update cost per km when fuel efficiency or price changes
   useEffect(() => {
@@ -100,6 +114,16 @@ export function VehicleTypeForm({ onSubmit, initialData, isEditing }: VehicleTyp
       }
     }
   }, [selectedFuelType, fuelPrices, form]);
+
+  // Update fuel efficiency when vehicle type changes
+  useEffect(() => {
+    if (vehicleType) {
+      const efficiency = defaultFuelEfficiency[vehicleType] || 0;
+      if (efficiency > 0) {
+        form.setValue("fuelEfficiency", efficiency);
+      }
+    }
+  }, [vehicleType, form]);
 
   const handleSubmit = async (data: InsertVehicleTypeMaster) => {
     try {
@@ -167,8 +191,25 @@ export function VehicleTypeForm({ onSubmit, initialData, isEditing }: VehicleTyp
               <FormItem>
                 <FormLabel>Vehicle Type *</FormLabel>
                 <FormControl>
-                  <Input placeholder="Enter vehicle type" {...field} />
+                  <Input 
+                    placeholder="Enter vehicle type" 
+                    {...field}
+                    onChange={(e) => {
+                      field.onChange(e.target.value);
+                      // Auto-set fuel efficiency based on vehicle type
+                      const efficiency = defaultFuelEfficiency[e.target.value] || 0;
+                      if (efficiency > 0) {
+                        form.setValue("fuelEfficiency", efficiency);
+                      }
+                    }}
+                    list="vehicleTypes"
+                  />
                 </FormControl>
+                <datalist id="vehicleTypes">
+                  {Object.keys(defaultFuelEfficiency).map((type) => (
+                    <option key={type} value={type} />
+                  ))}
+                </datalist>
                 <FormMessage />
               </FormItem>
             )}
@@ -231,7 +272,8 @@ export function VehicleTypeForm({ onSubmit, initialData, isEditing }: VehicleTyp
                     type="number"
                     placeholder="Current fuel price will be loaded"
                     {...field}
-                    onChange={e => field.onChange(Number(e.target.value))}
+                    disabled
+                    value={field.value}
                   />
                 </FormControl>
                 <FormMessage />
@@ -255,24 +297,6 @@ export function VehicleTypeForm({ onSubmit, initialData, isEditing }: VehicleTyp
           />
           <FormField
             control={form.control}
-            name="numberOfPassengers"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Number of Passengers *</FormLabel>
-                <FormControl>
-                  <Input
-                    type="number"
-                    placeholder="Enter number of passengers"
-                    {...field}
-                    onChange={e => field.onChange(Number(e.target.value))}
-                  />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-          <FormField
-            control={form.control}
             name="costPerKm"
             render={({ field }) => (
               <FormItem>
@@ -289,6 +313,25 @@ export function VehicleTypeForm({ onSubmit, initialData, isEditing }: VehicleTyp
               </FormItem>
             )}
           />
+          <FormField
+            control={form.control}
+            name="numberOfPassengers"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Number of Passengers *</FormLabel>
+                <FormControl>
+                  <Input
+                    type="number"
+                    placeholder="Enter number of passengers"
+                    {...field}
+                    onChange={e => field.onChange(Number(e.target.value))}
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
           <FormField
             control={form.control}
             name="alertBefore"
