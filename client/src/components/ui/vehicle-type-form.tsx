@@ -138,71 +138,107 @@ const uaeManufacturers = Object.keys(uaeVehicleModels);
 
 // Define default passenger capacities for common vehicle models
 const defaultPassengerCapacity: { [key: string]: number } = {
-  // Sedans
-  "Toyota Corolla": 5,
-  "Honda Civic": 5,
-  "Toyota Camry": 5,
-  "Honda Accord": 5,
-  "Nissan Altima": 5,
+  // Toyota models
+  "TOYOTA-COROLLA": 5,
+  "TOYOTA-CAMRY": 5,
+  "TOYOTA-LANDCRUISER": 8,
+  "TOYOTA-PRADO": 7,
+  "TOYOTA-RAV4": 5,
+  "TOYOTA-FORTUNER": 7,
+  "TOYOTA-HIACE": 12,
+  "TOYOTA-COASTER": 23,
+  "TOYOTA-INNOVA": 7,
 
-  // SUVs
-  "Toyota RAV4": 5,
-  "Honda CR-V": 5,
-  "Nissan X-Trail": 7,
-  "Ford Explorer": 7,
-  "Hyundai Tucson": 5,
+  // Nissan models
+  "NISSAN-PATROL": 8,
+  "NISSAN-XTRAIL": 7,
+  "NISSAN-URVAN": 12,
 
-  // Vans
-  "Toyota Hiace": 12,
-  "Ford Transit": 15,
-  "Mercedes Sprinter": 14,
-  "Hyundai H1": 12,
+  // Honda models
+  "HONDA-CIVIC": 5,
+  "HONDA-ACCORD": 5,
+  "HONDA-CRV": 5,
 
-  // Buses
-  "Toyota Coaster": 23,
-  "Mercedes Bus": 45,
-  "Volvo Bus": 50,
+  // Mercedes models
+  "MERCEDES-BENZ-SPRINTER": 14,
+  "MERCEDES-BENZ-GCLASS": 5,
 
-  // Trucks
-  "Toyota Tundra": 5,
-  "Ford F-150": 5,
-  "Chevrolet Silverado": 5,
-
-  // Ambulances
-  "Toyota Ambulance": 4,
-  "Mercedes Ambulance": 4,
-  "Ford Ambulance": 4
-};
-
-// Vehicle categories for passenger capacity matching
-const vehicleCategoryPassengers: { [key: string]: number } = {
-  "Sedan": 5,
+  // Default values by category
+  "SEDAN": 5,
   "SUV": 7,
-  "Van": 12,
-  "Bus": 30,
-  "Truck": 5,
-  "Ambulance": 4
+  "VAN": 12,
+  "BUS": 30,
+  "TRUCK": 3,
+  "AMBULANCE": 4
 };
 
-function findPassengerCapacity(vehicleType: string): number {
+// Define default vehicle capacities (in cubic feet)
+const defaultVehicleCapacity: { [key: string]: number } = {
+  // Toyota models
+  "TOYOTA-COROLLA": 13,
+  "TOYOTA-CAMRY": 15,
+  "TOYOTA-LANDCRUISER": 82,
+  "TOYOTA-PRADO": 64,
+  "TOYOTA-RAV4": 37,
+  "TOYOTA-FORTUNER": 54,
+  "TOYOTA-HIACE": 280,
+  "TOYOTA-COASTER": 180,
+  "TOYOTA-INNOVA": 45,
+
+  // Nissan models
+  "NISSAN-PATROL": 95,
+  "NISSAN-XTRAIL": 40,
+  "NISSAN-URVAN": 250,
+
+  // Honda models
+  "HONDA-CIVIC": 14,
+  "HONDA-ACCORD": 16,
+  "HONDA-CRV": 39,
+
+  // Mercedes models
+  "MERCEDES-BENZ-SPRINTER": 533,
+  "MERCEDES-BENZ-GCLASS": 79,
+
+  // Default values by category
+  "SEDAN": 15,
+  "SUV": 40,
+  "VAN": 300,
+  "BUS": 200,
+  "TRUCK": 150,
+  "AMBULANCE": 400
+};
+
+function getVehicleCapacityFromCode(vehicleTypeCode: string): number {
+  // Convert to uppercase for comparison
+  const code = vehicleTypeCode.toUpperCase();
+
   // Direct match
-  if (defaultPassengerCapacity[vehicleType]) {
-    return defaultPassengerCapacity[vehicleType];
+  if (defaultVehicleCapacity[code]) {
+    return defaultVehicleCapacity[code];
   }
 
-  // Case-insensitive search
-  const lowerVehicleType = vehicleType.toLowerCase();
-
-  // Check exact matches first
-  for (const [model, capacity] of Object.entries(defaultPassengerCapacity)) {
-    if (model.toLowerCase() === lowerVehicleType) {
+  // Try to match by category
+  for (const [category, capacity] of Object.entries(defaultVehicleCapacity)) {
+    if (code.includes(category)) {
       return capacity;
     }
   }
 
-  // Check category matches
-  for (const [category, capacity] of Object.entries(vehicleCategoryPassengers)) {
-    if (lowerVehicleType.includes(category.toLowerCase())) {
+  return 0; // Default capacity
+}
+
+function getPassengerCapacityFromCode(vehicleTypeCode: string): number {
+  // Convert to uppercase for comparison
+  const code = vehicleTypeCode.toUpperCase();
+
+  // Direct match
+  if (defaultPassengerCapacity[code]) {
+    return defaultPassengerCapacity[code];
+  }
+
+  // Try to match by category
+  for (const [category, capacity] of Object.entries(defaultPassengerCapacity)) {
+    if (code.includes(category)) {
       return capacity;
     }
   }
@@ -210,80 +246,6 @@ function findPassengerCapacity(vehicleType: string): number {
   return 4; // Default passenger capacity
 }
 
-
-// Add after default passenger capacities
-const defaultVehicleCapacity: { [key: string]: number } = {
-  // Sedans - trunk capacity in cubic feet
-  "Toyota Corolla": 13,
-  "Honda Civic": 14,
-  "Toyota Camry": 15,
-  "Honda Accord": 16,
-  "Nissan Altima": 15,
-
-  // SUVs - cargo capacity in cubic feet
-  "Toyota RAV4": 37,
-  "Honda CR-V": 39,
-  "Nissan X-Trail": 40,
-  "Ford Explorer": 87,
-  "Hyundai Tucson": 38,
-
-  // Vans - cargo capacity in cubic feet
-  "Toyota Hiace": 280,
-  "Ford Transit": 487,
-  "Mercedes Sprinter": 533,
-  "Hyundai H1": 275,
-
-  // Buses - cargo capacity in cubic feet
-  "Toyota Coaster": 180,
-  "Mercedes Bus": 250,
-  "Volvo Bus": 300,
-
-  // Trucks - bed capacity in cubic feet
-  "Toyota Tundra": 150,
-  "Ford F-150": 160,
-  "Chevrolet Silverado": 155,
-
-  // Ambulances - cargo area in cubic feet
-  "Toyota Ambulance": 400,
-  "Mercedes Ambulance": 450,
-  "Ford Ambulance": 425
-};
-
-// Vehicle categories for capacity matching
-const vehicleCategoryCapacity: { [key: string]: number } = {
-  "Sedan": 15,
-  "SUV": 40,
-  "Van": 300,
-  "Bus": 200,
-  "Truck": 150,
-  "Ambulance": 400
-};
-
-function findVehicleCapacity(vehicleType: string): number {
-  // Direct match
-  if (defaultVehicleCapacity[vehicleType]) {
-    return defaultVehicleCapacity[vehicleType];
-  }
-
-  // Case-insensitive search
-  const lowerVehicleType = vehicleType.toLowerCase();
-
-  // Check exact matches first
-  for (const [model, capacity] of Object.entries(defaultVehicleCapacity)) {
-    if (model.toLowerCase() === lowerVehicleType) {
-      return capacity;
-    }
-  }
-
-  // Check category matches
-  for (const [category, capacity] of Object.entries(vehicleCategoryCapacity)) {
-    if (lowerVehicleType.includes(category.toLowerCase())) {
-      return capacity;
-    }
-  }
-
-  return 0; // Default capacity
-}
 
 // Define default fuel efficiency values for common vehicle models
 const defaultFuelEfficiency: { [key: string]: number } = {
@@ -508,6 +470,18 @@ export function VehicleTypeForm({ onSubmit, initialData, isEditing }: VehicleTyp
       form.setValue("fuelEfficiency", efficiency);
     }
   }, [form.watch("modelYear")]);
+
+  // Add watchers for vehicle type code updates
+  useEffect(() => {
+    const vehicleTypeCode = form.watch("vehicleTypeCode");
+    if (vehicleTypeCode) {
+      const passengerCapacity = getPassengerCapacityFromCode(vehicleTypeCode);
+      const vehicleCapacity = getVehicleCapacityFromCode(vehicleTypeCode);
+
+      form.setValue("numberOfPassengers", passengerCapacity);
+      form.setValue("vehicleCapacity", vehicleCapacity);
+    }
+  }, [form.watch("vehicleTypeCode")]);
 
 
   return (
