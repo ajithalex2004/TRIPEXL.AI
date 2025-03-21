@@ -40,13 +40,13 @@ const VehicleStatusCard = ({ vehicle }: { vehicle: VehicleMaster }) => {
         <div className="flex justify-between items-start">
           <div>
             <CardTitle className="text-lg font-semibold">
-              {vehicle.manufacturer} {vehicle.vehicleModel}
+              {vehicle.vehicleTypeName}
             </CardTitle>
             <p className="text-sm text-muted-foreground">
-              {vehicle.plateCode} {vehicle.plateNumber}
+              {vehicle.plateNumber}
             </p>
           </div>
-          <StatusIndicator status={vehicle.isValid ? "Active" : "Inactive"} />
+          <StatusIndicator status={vehicle.isActive ? "Active" : "Inactive"} />
         </div>
       </CardHeader>
       <CardContent>
@@ -54,7 +54,7 @@ const VehicleStatusCard = ({ vehicle }: { vehicle: VehicleMaster }) => {
           <div className="flex items-center gap-2">
             <Fuel className="h-4 w-4 text-muted-foreground" />
             <span className="text-sm">
-              {vehicle.fuelType} - {vehicle.fuelEfficiency} km/L
+              {vehicle.vehicleType}
             </span>
           </div>
           <div className="flex items-center gap-2">
@@ -63,12 +63,12 @@ const VehicleStatusCard = ({ vehicle }: { vehicle: VehicleMaster }) => {
           </div>
           <div className="flex items-center gap-2">
             <Battery className="h-4 w-4 text-muted-foreground" />
-            <span className="text-sm">Status: {vehicle.isValid ? "Available" : "In Use"}</span>
+            <span className="text-sm">Status: {vehicle.isActive ? "Available" : "In Use"}</span>
           </div>
-          {vehicle.alertBefore > 0 && (
+          {vehicle.maintenance && (
             <div className="flex items-center gap-2 text-yellow-500">
               <AlertTriangle className="h-4 w-4" />
-              <span className="text-sm">Service Due: {vehicle.alertBefore} days</span>
+              <span className="text-sm">Maintenance Due</span>
             </div>
           )}
         </div>
@@ -80,7 +80,7 @@ const VehicleStatusCard = ({ vehicle }: { vehicle: VehicleMaster }) => {
 export function FleetDashboard() {
   // Fetch vehicle data
   const { data: vehicles, isLoading } = useQuery<VehicleMaster[]>({
-    queryKey: ["/api/vehicle-master"],
+    queryKey: ["/api/vehicles"],
   });
 
   if (isLoading) {
@@ -100,10 +100,10 @@ export function FleetDashboard() {
         </div>
         <div className="flex gap-4">
           <Badge variant="outline" className="bg-green-500/10">
-            Active: {vehicles?.filter(v => v.isValid).length || 0}
+            Active: {vehicles?.filter(v => v.isActive).length || 0}
           </Badge>
           <Badge variant="outline" className="bg-red-500/10">
-            Inactive: {vehicles?.filter(v => !v.isValid).length || 0}
+            Inactive: {vehicles?.filter(v => !v.isActive).length || 0}
           </Badge>
         </div>
       </div>
@@ -112,7 +112,7 @@ export function FleetDashboard() {
         <AnimatePresence>
           {vehicles?.map((vehicle) => (
             <motion.div
-              key={vehicle.vehicleId}
+              key={vehicle.id}
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -20 }}
