@@ -310,7 +310,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       return parseFloat((distance * avgEmissionRate).toFixed(2));
     }
 
-    // Add a new route to get current employee information
+    // Update the employee endpoint to include caching headers and optimize response
     app.get("/api/employee/current", async (req, res) => {
       try {
         // Get employee ID from the authenticated user's token
@@ -334,6 +334,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
           return res.status(404).json({ error: "Employee not found" });
         }
 
+        // Set caching headers
+        res.setHeader('Cache-Control', 'private, max-age=300'); // Cache for 5 minutes
         res.json(employee);
       } catch (error) {
         console.error('Error fetching employee:', error);

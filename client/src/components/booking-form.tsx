@@ -121,10 +121,29 @@ export function BookingForm() {
   const [, setLocation] = useLocation();
   const [activeTab, setActiveTab] = React.useState("booking");
 
-  const { data: employee } = useQuery({
+  const { data: employee, isLoading: isEmployeeLoading, onError } = useQuery({
     queryKey: ["/api/employee/current"],
-    retry: 3
+    retry: 2,
+    staleTime: 300000, // Cache for 5 minutes
+    cacheTime: 3600000, // Keep in cache for 1 hour
+    onError: (error: Error) => {
+      console.error("Error fetching employee data:", error);
+      toast({
+        title: "Error",
+        description: "Failed to load employee data. Please refresh the page.",
+        variant: "destructive",
+      });
+    }
   });
+
+  // Use loading state more effectively
+  if (isEmployeeLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-[200px]">
+        <VehicleLoadingIndicator size="lg" />
+      </div>
+    );
+  }
 
   const form = useForm({
     resolver: zodResolver(insertBookingSchema),
@@ -983,6 +1002,27 @@ export function BookingForm() {
                         </FormItem>
                       )}
                     />
+
+                    <div className="space-y-2">
+                      <FormField
+                        control={form.control}
+                        name="remarks"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Additional Remarks</FormLabel>
+                            <FormControl>
+                              <Textarea
+                                placeholder="Enter any additional notes or requirements"
+                                className="resize-none"
+                                {...field}
+                              />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    </div>
+
                   </motion.div>
                 )}
                 {currentStep === 4 && (
