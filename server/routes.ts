@@ -310,16 +310,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
       return parseFloat((distance * avgEmissionRate).toFixed(2));
     }
 
-    // Update the employee endpoint to include caching headers and optimize response
+    // Update the employee endpoint for better performance
     app.get("/api/employee/current", async (req, res) => {
       try {
-        // Get employee ID from the authenticated user's token
         const authHeader = req.headers.authorization;
         if (!authHeader) {
           return res.status(401).json({ error: "No authorization token provided" });
         }
 
         const token = authHeader.split(" ")[1];
+        if (!token) {
+          return res.status(401).json({ error: "Invalid authorization header" });
+        }
+
         const decoded = jwt.verify(token, process.env.JWT_SECRET || 'dev-secret-key') as { userId: number, email: string };
 
         // Get user details
@@ -334,9 +337,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
           return res.status(404).json({ error: "Employee not found" });
         }
 
-        // Set caching headers
-        res.setHeader('Cache-Control', 'private, max-age=300'); // Cache for 5 minutes
-        res.json(employee);
+        // Set strong caching headers
+        res.setHeader('Cache-Control', 'private, max-age=3600'); // Cache for 1 hour
+        res.json({
+          employeeId: employee.employeeId,
+          name: employee.name,
+          email: employee.email
+        });
       } catch (error) {
         console.error('Error fetching employee:', error);
         res.status(500).json({ error: "Failed to fetch employee information" });

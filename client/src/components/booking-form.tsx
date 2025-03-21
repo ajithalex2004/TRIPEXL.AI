@@ -2,7 +2,7 @@ import * as React from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { insertBookingSchema, BookingType, Priority, BoxSize, TripType, BookingPurpose, CargoType } from "@shared/schema";
-import { useMutation, useQueryClient, useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { LocationInput } from "@/components/location-input";
@@ -122,20 +122,15 @@ export function BookingForm() {
   const [, setLocation] = useLocation();
   const [activeTab, setActiveTab] = React.useState("booking");
 
-  // Optimize employee data fetching
-  const { data: employee, isLoading: isEmployeeLoading } = useQuery({
+  // Simplified employee data query
+  const { data: employee } = useQuery({
     queryKey: ["/api/employee/current"],
-    staleTime: 5 * 60 * 1000, // Cache for 5 minutes
-    gcTime: 10 * 60 * 1000, // Keep unused data for 10 minutes
-    retry: 1,
-    onError: (error: Error) => {
-      console.error("Failed to fetch employee data:", error);
-      toast({
-        title: "Warning",
-        description: "Unable to load employee data. You can still create a booking.",
-        variant: "default",
-      });
-    }
+    queryFn: async () => {
+      const response = await apiRequest("GET", "/api/employee/current");
+      return response.json();
+    },
+    retry: false,
+    staleTime: Infinity // Only fetch once per session
   });
 
   const form = useForm({
@@ -165,10 +160,10 @@ export function BookingForm() {
     }
   });
 
-  // Update form when employee data is loaded
+  // Set employee ID once available
   React.useEffect(() => {
     if (employee?.employeeId) {
-      form.setValue("employeeId", employee.employeeId);
+      form.setValue("employeeId", employee?.employeeId);
     }
   }, [employee, form]);
 
@@ -389,7 +384,7 @@ export function BookingForm() {
         shouldDirty: true
       });
     }
-  }, [form.watch("purpose"), bookingType]);
+  }, [form.watch("purpose"), bookingType, form]);
 
   // Update useEffect for handling priority changes to set immediate time for Critical
   React.useEffect(() => {
@@ -472,7 +467,7 @@ export function BookingForm() {
         shouldTouch: true
       });
     }
-  }, [form.watch("pickupTime"), routeDuration]);
+  }, [form.watch("pickupTime"), routeDuration, form]);
 
   // Update DateTimePicker implementation for dropoff time
   const renderDropoffDateTimePicker = (field: any) => {
@@ -619,40 +614,25 @@ export function BookingForm() {
                     className="space-y-4"
                   >
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      {isEmployeeLoading ? (
-                        <>
-                          <div className="space-y-2">
-                            <p className="text-sm font-medium">Employee ID</p>
-                            <Skeleton className="h-10 w-full" />
-                          </div>
-                          <div className="space-y-2">
-                            <p className="text-sm font-medium">Employee Name</p>
-                            <Skeleton className="h-10 w-full" />
-                          </div>
-                        </>
-                      ) : (
-                        <>
-                          <FormField
-                            control={form.control}
-                            name="employeeId"
-                            render={({ field }) => (
-                              <FormItem>
-                                <FormLabel>Employee ID *</FormLabel>
-                                <FormControl>
-                                  <Input {...field} disabled value={employee?.employeeId || ""} />
-                                </FormControl>
-                                <FormMessage />
-                              </FormItem>
-                            )}
-                          />
+                      <FormField
+                        control={form.control}
+                        name="employeeId"
+                        render={({ field }) => (
                           <FormItem>
-                            <FormLabel>Employee Name</FormLabel>
+                            <FormLabel>Employee ID</FormLabel>
                             <FormControl>
-                              <Input disabled value={employee?.name || "Not available"} />
+                              <Input {...field} readOnly value={employee?.employeeId || ""} />
                             </FormControl>
+                            <FormMessage />
                           </FormItem>
-                        </>
-                      )}
+                        )}
+                      />
+                      <FormItem>
+                        <FormLabel>Employee Name</FormLabel>
+                        <FormControl>
+                          <Input value={employee?.name || ""} disabled />
+                        </FormControl>
+                      </FormItem>
                     </div>
 
                     <FormField
@@ -1015,9 +995,7 @@ export function BookingForm() {
                           </FormItem>
                         )}
                       />
-                    </div>
-
-                  </motion.div>
+                    </div></motion.div>
                 )}
                 {currentStep === 4 && (
                   <motion.div
