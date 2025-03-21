@@ -158,7 +158,7 @@ export function VehicleTypeForm({ onSubmit, initialData, isEditing }: VehicleTyp
     return Number((fuelPrice / fuelEfficiency).toFixed(2));
   };
 
-  // Watch fuel efficiency and price changes
+  // Watch values
   const fuelEfficiency = form.watch("fuelEfficiency");
   const fuelPricePerLitre = form.watch("fuelPricePerLitre");
   const selectedFuelType = form.watch("fuelType");
@@ -198,24 +198,11 @@ export function VehicleTypeForm({ onSubmit, initialData, isEditing }: VehicleTyp
     }
   }, [vehicleType, form]);
 
-  const handleSubmit = async (data: InsertVehicleTypeMaster) => {
-    try {
-      await onSubmit(data);
-      form.reset();
-    } catch (error: any) {
-      toast({
-        title: "Error",
-        description: error.message,
-        variant: "destructive"
-      });
-    }
-  };
-
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-4">
+      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
         <div className="grid grid-cols-3 gap-4">
-          {/* Vehicle Group, Vehicle Type Code, and Vehicle Type at the top */}
+          {/* Vehicle Group at the top */}
           <FormField
             control={form.control}
             name="groupId"
@@ -244,6 +231,8 @@ export function VehicleTypeForm({ onSubmit, initialData, isEditing }: VehicleTyp
               </FormItem>
             )}
           />
+
+          {/* Vehicle Type Code field */}
           <FormField
             control={form.control}
             name="vehicleTypeCode"
@@ -257,6 +246,8 @@ export function VehicleTypeForm({ onSubmit, initialData, isEditing }: VehicleTyp
               </FormItem>
             )}
           />
+
+          {/* Vehicle Type field */}
           <FormField
             control={form.control}
             name="vehicleType"
@@ -272,14 +263,8 @@ export function VehicleTypeForm({ onSubmit, initialData, isEditing }: VehicleTyp
                       const efficiency = findVehicleEfficiency(e.target.value);
                       form.setValue("fuelEfficiency", efficiency);
                     }}
-                    list="vehicleTypes"
                   />
                 </FormControl>
-                <datalist id="vehicleTypes">
-                  {Object.keys(defaultFuelEfficiency).map((type) => (
-                    <option key={type} value={type} />
-                  ))}
-                </datalist>
                 <FormMessage />
               </FormItem>
             )}
