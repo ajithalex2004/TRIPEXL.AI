@@ -379,6 +379,79 @@ const vehicleCategories: { [key: string]: string[] } = {
 };
 
 
+// Define default idle fuel consumption values (L/H) for different vehicle types
+const defaultIdleFuelConsumption: { [key: string]: number } = {
+  // Toyota models
+  "TOYOTA-COROLLA": 0.8,
+  "TOYOTA-CAMRY": 0.9,
+  "TOYOTA-LANDCRUISER": 1.5,
+  "TOYOTA-PRADO": 1.3,
+  "TOYOTA-RAV4": 1.0,
+  "TOYOTA-FORTUNER": 1.2,
+  "TOYOTA-HIACE": 1.4,
+  "TOYOTA-COASTER": 2.0,
+  "TOYOTA-INNOVA": 1.1,
+
+  // Nissan models
+  "NISSAN-PATROL": 1.6,
+  "NISSAN-XTRAIL": 1.1,
+  "NISSAN-URVAN": 1.4,
+  "NISSAN-SUNNY": 0.7,
+  "NISSAN-ALTIMA": 0.9,
+
+  // Honda models
+  "HONDA-CIVIC": 0.8,
+  "HONDA-ACCORD": 0.9,
+  "HONDA-CRV": 1.0,
+
+  // Mercedes models
+  "MERCEDES-BENZ-SPRINTER": 1.8,
+  "MERCEDES-BENZ-GCLASS": 1.7,
+  "MERCEDES-BENZ-CCLASS": 1.0,
+  "MERCEDES-BENZ-ECLASS": 1.1,
+
+  // Default values by category
+  "SEDAN": 0.9,
+  "SUV": 1.2,
+  "VAN": 1.4,
+  "BUS": 2.0,
+  "TRUCK": 1.8,
+  "AMBULANCE": 1.5
+};
+
+// Function to calculate idle fuel consumption based on vehicle code and fuel type
+function calculateIdleFuelConsumption(vehicleTypeCode: string, fuelType: string): number {
+  const code = vehicleTypeCode.toUpperCase();
+  let baseConsumption = 0;
+
+  // Try exact match first
+  if (defaultIdleFuelConsumption[code]) {
+    baseConsumption = defaultIdleFuelConsumption[code];
+  } else {
+    // Try to match by category
+    for (const [category, consumption] of Object.entries(defaultIdleFuelConsumption)) {
+      if (code.includes(category)) {
+        baseConsumption = consumption;
+        break;
+      }
+    }
+
+    // If still no match, use sedan as default
+    if (baseConsumption === 0) {
+      baseConsumption = defaultIdleFuelConsumption.SEDAN;
+    }
+  }
+
+  // Apply fuel type adjustment factor
+  const fuelAdjustment = fuelTypeEfficiencyFactor[fuelType] || 1.0;
+
+  // Calculate final consumption (adjusted for fuel type)
+  const finalConsumption = baseConsumption / fuelAdjustment;
+
+  // Return with 1 decimal place precision
+  return Number(finalConsumption.toFixed(1));
+}
+
 interface VehicleTypeFormProps {
   onSubmit: (data: InsertVehicleTypeMaster) => void;
   initialData?: VehicleTypeMaster;
@@ -466,19 +539,33 @@ export function VehicleTypeForm({ onSubmit, initialData, isEditing }: VehicleTyp
     if (vehicleType && selectedManufacturer) {
       const modelYear = form.getValues("modelYear");
       const currentFuelType = form.getValues("fuelType");
+      const typeCode = `${selectedManufacturer}-${vehicleType}`;
+
       const efficiency = findVehicleEfficiency(
-        `${selectedManufacturer}-${vehicleType}`, 
+        typeCode, 
         modelYear,
         currentFuelType
       );
-      const vehicleCapacity = getVehicleCapacityFromCode(`${selectedManufacturer}-${vehicleType}`);
-      const passengerCapacity = getPassengerCapacityFromCode(`${selectedManufacturer}-${vehicleType}`);
+      const vehicleCapacity = getVehicleCapacityFromCode(typeCode);
+      const passengerCapacity = getPassengerCapacityFromCode(typeCode);
+      const idleConsumption = calculateIdleFuelConsumption(typeCode, currentFuelType);
 
       form.setValue("fuelEfficiency", efficiency);
       form.setValue("numberOfPassengers", passengerCapacity);
       form.setValue("vehicleCapacity", vehicleCapacity);
+      form.setValue("idleFuelConsumption", idleConsumption);
     }
   }, [vehicleType, form, selectedManufacturer]);
+
+  // Update useEffect for fuel type changes
+  useEffect(() => {
+    const selectedFuelType = form.watch("fuelType");
+    if (selectedFuelType && vehicleType && selectedManufacturer) {
+      const typeCode = `${selectedManufacturer}-${vehicleType}`;
+      const idleConsumption = calculateIdleFuelConsumption(typeCode, selectedFuelType);
+      form.setValue("idleFuelConsumption", idleConsumption);
+    }
+  }, [form.watch("fuelType"), vehicleType, selectedManufacturer]);
 
   // Update fuel efficiency when model year or fuel type changes
   useEffect(() => {
@@ -503,6 +590,7 @@ export function VehicleTypeForm({ onSubmit, initialData, isEditing }: VehicleTyp
       form.setValue("co2EmissionFactor", co2Factor);
     }
   }, [form.watch("fuelType")]);
+
 
   return (
     <Form {...form}>
@@ -841,13 +929,14 @@ export function VehicleTypeForm({ onSubmit, initialData, isEditing }: VehicleTyp
             name="idleFuelConsumption"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Idle Fuel Consumption *</FormLabel>
+                <FormLabel>Idle Fuel Consumption (L/H) *</FormLabel>
                 <FormControl>
                   <Input
                     type="number"
                     placeholder="Enter idle fuel consumption"
                     {...field}
-                    onChange={e => field.onChange(Number(e.target.value))}
+                    disabled
+                    value={field.value}
                   />
                 </FormControl>
                 <FormMessage />
@@ -924,7 +1013,7 @@ export function VehicleTypeForm({ onSubmit, initialData, isEditing }: VehicleTyp
                 <FormMessage />
               </FormItem>
             )}
-          />
+                    />
           {/* Added Vehicle Capacity Field */}
           <FormField
             control={form.control}
