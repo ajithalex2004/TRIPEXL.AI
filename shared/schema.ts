@@ -11,12 +11,13 @@ export const UserType = {
   USER: "User"
 } as const;
 
+// Update the UserOperationType enum to match the image
 export const UserOperationType = {
-  CREATE: "Create",
-  UPDATE: "Update",
-  DELETE: "Delete",
-  VIEW: "View",
-  APPROVE: "Approve"
+  ADMIN: "Admin",
+  MANAGEMENT: "Management",
+  SUPERVISOR: "Supervisor",
+  EMPLOYEE: "Employee",
+  OPERATIONS: "Operations"
 } as const;
 
 export const UserGroup = {
@@ -741,7 +742,7 @@ export const insertVehicleMasterSchema = createInsertSchema(vehicleMaster)
     assetType: z.enum(Object.values(AssetType) as [string, ...string[]]), 
     // Add YES/NO validation for highlighted fields
     isCanConnected: z.enum(Object.values(YesNo) as [string, ...string[]]),
-    isWeightSensorConnected: z.enum(Object.values(YesNo) as [string, ...string[]]),
+    isWeightSensorConnected: z.enum(Object.values(YesNo) as [string...string[]]),
     isTemperatureSensorConnected: z.enum(Object.values(YesNo) as [string, ...string[]]),
     isPPtoConnected: z.enum(Object.values(YesNo) as [string, ...string[]]),
   });
