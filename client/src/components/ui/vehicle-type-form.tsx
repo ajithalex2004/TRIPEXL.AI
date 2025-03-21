@@ -247,45 +247,113 @@ function getPassengerCapacityFromCode(vehicleTypeCode: string): number {
 }
 
 
-// Define default fuel efficiency values for common vehicle models
+const highwayEfficiencyMultiplier = 1.15; // Highway efficiency is typically 15% better
+
+// Updated fuel efficiency values with more precise data
 const defaultFuelEfficiency: { [key: string]: number } = {
-  // Sedans
-  "Toyota Corolla": 14,
-  "Honda Civic": 13.5,
-  "Toyota Camry": 12.5,
-  "Honda Accord": 12,
-  "Nissan Altima": 13,
+  // Toyota models
+  "TOYOTA-COROLLA": 14.5,
+  "TOYOTA-CAMRY": 13.2,
+  "TOYOTA-LANDCRUISER": 8.5,
+  "TOYOTA-PRADO": 9.5,
+  "TOYOTA-RAV4": 11.8,
+  "TOYOTA-FORTUNER": 10.2,
+  "TOYOTA-HIACE": 9.8,
+  "TOYOTA-COASTER": 6.5,
+  "TOYOTA-INNOVA": 11.2,
 
-  // SUVs
-  "Toyota RAV4": 11,
-  "Honda CR-V": 10.5,
-  "Nissan X-Trail": 10,
-  "Ford Explorer": 9,
-  "Hyundai Tucson": 11.5,
+  // Nissan models
+  "NISSAN-PATROL": 7.8,
+  "NISSAN-XTRAIL": 11.5,
+  "NISSAN-URVAN": 9.2,
+  "NISSAN-SUNNY": 15.2,
+  "NISSAN-ALTIMA": 13.8,
 
-  // Vans
-  "Toyota Hiace": 9,
-  "Ford Transit": 8.5,
-  "Mercedes Sprinter": 8,
-  "Hyundai H1": 9.5,
+  // Honda models
+  "HONDA-CIVIC": 14.8,
+  "HONDA-ACCORD": 13.5,
+  "HONDA-CRV": 11.2,
 
-  // Buses
-  "Toyota Coaster": 6,
-  "Mercedes Bus": 5.5,
-  "Volvo Bus": 5,
-
-  // Trucks
-  "Toyota Tundra": 7,
-  "Ford F-150": 8,
-  "Chevrolet Silverado": 7.5,
-
-  // Ambulances
-  "Toyota Ambulance": 8,
-  "Mercedes Ambulance": 7.5,
-  "Ford Ambulance": 8
+  // Mercedes models
+  "MERCEDES-BENZ-SPRINTER": 8.5,
+  "MERCEDES-BENZ-GCLASS": 7.8,
+  "MERCEDES-BENZ-CCLASS": 12.5,
+  "MERCEDES-BENZ-ECLASS": 11.8
 };
 
-// Vehicle categories for matching
+// Fuel type efficiency adjustments
+const fuelTypeEfficiencyFactor: { [key: string]: number } = {
+  "Petrol": 1.0,    // Base reference
+  "Diesel": 1.25,   // Diesel engines are typically 25% more efficient
+  "Electric": 3.5,  // Electric vehicles are significantly more efficient
+  "Hybrid": 1.4,    // Hybrid vehicles are about 40% more efficient
+  "CNG": 1.15,      // CNG is about 15% more efficient than petrol
+  "LPG": 1.1        // LPG is about 10% more efficient than petrol
+};
+
+// Vehicle category baseline efficiencies
+const categoryBaseEfficiency: { [key: string]: number } = {
+  "SEDAN": 13.5,
+  "SUV": 10.5,
+  "VAN": 9.0,
+  "BUS": 6.0,
+  "TRUCK": 7.5,
+  "AMBULANCE": 8.0
+};
+
+function calculateAgeBasedEfficiencyAdjustment(modelYear: number): number {
+  const currentYear = new Date().getFullYear();
+  const vehicleAge = currentYear - modelYear;
+
+  // More granular efficiency degradation
+  if (vehicleAge <= 1) return 1;           // New vehicles
+  if (vehicleAge <= 3) return 0.98;        // 1-3 years: 2% reduction
+  if (vehicleAge <= 5) return 0.95;        // 3-5 years: 5% reduction
+  if (vehicleAge <= 7) return 0.92;        // 5-7 years: 8% reduction
+  if (vehicleAge <= 10) return 0.88;       // 7-10 years: 12% reduction
+  if (vehicleAge <= 15) return 0.85;       // 10-15 years: 15% reduction
+  return 0.80;                             // 15+ years: 20% reduction
+}
+
+function findVehicleEfficiency(vehicleType: string, modelYear: number, fuelType: string): number {
+  let baseEfficiency = 0;
+  const vehicleCode = `${vehicleType}`.toUpperCase();
+
+  // Try exact match first
+  if (defaultFuelEfficiency[vehicleCode]) {
+    baseEfficiency = defaultFuelEfficiency[vehicleCode];
+  } else {
+    // Find matching category
+    for (const [category, efficiency] of Object.entries(categoryBaseEfficiency)) {
+      if (vehicleCode.includes(category)) {
+        baseEfficiency = efficiency;
+        break;
+      }
+    }
+
+    // If still no match, use sedan as default
+    if (baseEfficiency === 0) {
+      baseEfficiency = categoryBaseEfficiency.SEDAN;
+    }
+  }
+
+  // Apply age-based adjustment
+  const ageAdjustment = calculateAgeBasedEfficiencyAdjustment(modelYear);
+
+  // Apply fuel type efficiency factor
+  const fuelAdjustment = fuelTypeEfficiencyFactor[fuelType] || 1.0;
+
+  // Calculate highway efficiency
+  const highwayEfficiency = baseEfficiency * highwayEfficiencyMultiplier;
+
+  // Calculate final efficiency (average of normal and highway, adjusted for age and fuel type)
+  const finalEfficiency = ((baseEfficiency + highwayEfficiency) / 2) * ageAdjustment * fuelAdjustment;
+
+  // Return with 1 decimal place precision
+  return Number(finalEfficiency.toFixed(1));
+}
+
+// Vehicle categories for matching (No changes needed here)
 const vehicleCategories: { [key: string]: string[] } = {
   "Sedan": ["corolla", "civic", "camry", "accord", "altima"],
   "SUV": ["rav4", "cr-v", "x-trail", "explorer", "tucson"],
@@ -295,76 +363,6 @@ const vehicleCategories: { [key: string]: string[] } = {
   "Ambulance": ["ambulance"]
 };
 
-// Add after default fuel efficiency
-function calculateAgeBasedEfficiencyAdjustment(modelYear: number): number {
-  const currentYear = new Date().getFullYear();
-  const vehicleAge = currentYear - modelYear;
-
-  // Efficiency degradation based on age:
-  // - New to 3 years: 100% efficiency
-  // - 3-5 years: 97% efficiency
-  // - 5-7 years: 95% efficiency
-  // - 7-10 years: 92% efficiency
-  // - 10+ years: 90% efficiency
-  if (vehicleAge <= 3) return 1;
-  if (vehicleAge <= 5) return 0.97;
-  if (vehicleAge <= 7) return 0.95;
-  if (vehicleAge <= 10) return 0.92;
-  return 0.90;
-}
-
-function findVehicleEfficiency(vehicleType: string, modelYear: number): number {
-  let baseEfficiency = 0;
-
-  // Direct match
-  if (defaultFuelEfficiency[vehicleType]) {
-    baseEfficiency = defaultFuelEfficiency[vehicleType];
-  } else {
-    // Case-insensitive search
-    const lowerVehicleType = vehicleType.toLowerCase();
-
-    // Check exact matches first
-    for (const [model, efficiency] of Object.entries(defaultFuelEfficiency)) {
-      if (model.toLowerCase() === lowerVehicleType) {
-        baseEfficiency = efficiency;
-        break;
-      }
-    }
-
-    // If no exact match, check category matches
-    if (baseEfficiency === 0) {
-      for (const [category, keywords] of Object.entries(vehicleCategories)) {
-        if (keywords.some(keyword => lowerVehicleType.includes(keyword))) {
-          // Return average efficiency for this category
-          const categoryVehicles = Object.entries(defaultFuelEfficiency)
-            .filter(([model]) => keywords.some(keyword => model.toLowerCase().includes(keyword)));
-
-          if (categoryVehicles.length > 0) {
-            baseEfficiency = categoryVehicles.reduce((sum, [_, eff]) => sum + eff, 0) / categoryVehicles.length;
-          }
-          break;
-        }
-      }
-    }
-
-    // If still no match, use default values based on broad categories
-    if (baseEfficiency === 0) {
-      if (lowerVehicleType.includes("suv")) baseEfficiency = 11;
-      else if (lowerVehicleType.includes("van")) baseEfficiency = 9;
-      else if (lowerVehicleType.includes("bus")) baseEfficiency = 6;
-      else if (lowerVehicleType.includes("truck")) baseEfficiency = 7.5;
-      else if (lowerVehicleType.includes("ambulance")) baseEfficiency = 8;
-      else baseEfficiency = 12; // Default to sedan-like efficiency
-    }
-  }
-
-  // Apply age-based efficiency adjustment
-  const ageAdjustment = calculateAgeBasedEfficiencyAdjustment(modelYear);
-  const adjustedEfficiency = baseEfficiency * ageAdjustment;
-
-  // Return with 1 decimal place precision
-  return Number(adjustedEfficiency.toFixed(1));
-}
 
 interface VehicleTypeFormProps {
   onSubmit: (data: InsertVehicleTypeMaster) => void;
@@ -450,9 +448,14 @@ export function VehicleTypeForm({ onSubmit, initialData, isEditing }: VehicleTyp
 
   // Update vehicle details when vehicle type changes
   useEffect(() => {
-    if (vehicleType) {
+    if (vehicleType && selectedManufacturer) {
       const modelYear = form.getValues("modelYear");
-      const efficiency = findVehicleEfficiency(vehicleType, modelYear);
+      const currentFuelType = form.getValues("fuelType");
+      const efficiency = findVehicleEfficiency(
+        `${selectedManufacturer}-${vehicleType}`, 
+        modelYear,
+        currentFuelType
+      );
       const vehicleCapacity = getVehicleCapacityFromCode(`${selectedManufacturer}-${vehicleType}`);
       const passengerCapacity = getPassengerCapacityFromCode(`${selectedManufacturer}-${vehicleType}`);
 
@@ -462,15 +465,20 @@ export function VehicleTypeForm({ onSubmit, initialData, isEditing }: VehicleTyp
     }
   }, [vehicleType, form, selectedManufacturer]);
 
-  // Update fuel efficiency when model year changes
+  // Update fuel efficiency when model year or fuel type changes
   useEffect(() => {
     const modelYear = form.watch("modelYear");
     const currentType = form.getValues("vehicleType");
-    if (modelYear && currentType) {
-      const efficiency = findVehicleEfficiency(currentType, modelYear);
+    const currentFuelType = form.getValues("fuelType");
+    if (modelYear && currentType && selectedManufacturer && currentFuelType) {
+      const efficiency = findVehicleEfficiency(
+        `${selectedManufacturer}-${currentType}`,
+        modelYear,
+        currentFuelType
+      );
       form.setValue("fuelEfficiency", efficiency);
     }
-  }, [form.watch("modelYear")]);
+  }, [form.watch("modelYear"), form.watch("fuelType"), selectedManufacturer]);
 
   return (
     <Form {...form}>
@@ -589,7 +597,8 @@ export function VehicleTypeForm({ onSubmit, initialData, isEditing }: VehicleTyp
                   onValueChange={(value) => {
                     field.onChange(value);
                     const modelYear = form.getValues("modelYear");
-                    const efficiency = findVehicleEfficiency(value, modelYear);
+                    const fuelType = form.getValues("fuelType"); 
+                    const efficiency = findVehicleEfficiency(value, modelYear, fuelType); 
                     const currentManufacturer = form.getValues("manufacturer");
 
                     // Update vehicle type code and capacities
