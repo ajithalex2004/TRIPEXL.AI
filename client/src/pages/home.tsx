@@ -19,7 +19,7 @@ export default function Home() {
             Smart Vehicle Management
           </h1>
           <p className="text-sm text-muted-foreground max-w-2xl mx-auto">
-            Experience intelligent journey planning with our AI-powered platform
+            Experience An Intelligent Journey Management with our AI-Powered Platform
           </p>
         </motion.div>
 
