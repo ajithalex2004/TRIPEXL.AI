@@ -14,6 +14,38 @@ export const Emirates = {
   UAQ: "Umm Al Quwain (UAQ)"
 } as const;
 
+// Add after Emirates enum
+export const EmiratesPlateInfo = {
+  "Abu Dhabi (AUH)": {
+    categories: ["Private", "Commercial", "Government", "Diplomatic"],
+    plateCodes: ["1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13", "14", "15", "16", "17", "50"]
+  },
+  "Dubai (DXB)": {
+    categories: ["Private", "Commercial", "Government", "Diplomatic"],
+    plateCodes: ["A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L", "M", "N", "O", "P", "Q", "R", "S", "T", "U", "V", "W", "X", "Y", "Z"]
+  },
+  "Sharjah (SHJ)": {
+    categories: ["Private", "Commercial", "Government"],
+    plateCodes: ["1", "2", "3", "white", "green", "blue"]
+  },
+  "Ajman (AJM)": {
+    categories: ["Private", "Commercial", "Government"],
+    plateCodes: ["A", "B", "C", "D", "E", "F", "G", "H"]
+  },
+  "Ras Al Khaimah (RAK)": {
+    categories: ["Private", "Commercial", "Government"],
+    plateCodes: ["A", "B", "C", "D"]
+  },
+  "Fujairah (FUJ)": {
+    categories: ["Private", "Commercial", "Government"],
+    plateCodes: ["1", "2", "3", "4", "5"]
+  },
+  "Umm Al Quwain (UAQ)": {
+    categories: ["Private", "Commercial", "Government"],
+    plateCodes: ["A", "B", "C", "D", "white", "green"]
+  }
+} as const;
+
 // Add Region enum at the top with other enums
 export const Region = {
   ABU_DHABI: "Abu Dhabi",

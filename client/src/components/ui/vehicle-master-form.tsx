@@ -1,7 +1,17 @@
 import * as React from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { insertVehicleMasterSchema, YesNo, PlateCategory, TransmissionType, VehicleFuelType, Region, Department, Emirates } from "@shared/schema";
+import { 
+  insertVehicleMasterSchema, 
+  YesNo, 
+  PlateCategory, 
+  TransmissionType, 
+  VehicleFuelType, 
+  Region, 
+  Department, 
+  Emirates,
+  EmiratesPlateInfo
+} from "@shared/schema";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
@@ -38,6 +48,7 @@ interface VehicleMasterFormProps {
 export function VehicleMasterForm({ isOpen, onClose }: VehicleMasterFormProps) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const [selectedEmirate, setSelectedEmirate] = React.useState<string>("");
 
   const form = useForm({
     resolver: zodResolver(insertVehicleMasterSchema),
@@ -99,6 +110,14 @@ export function VehicleMasterForm({ isOpen, onClose }: VehicleMasterFormProps) {
     createVehicle.mutate(data);
   };
 
+  // Handle emirate change to reset dependent fields
+  const handleEmirateChange = (value: string) => {
+    form.setValue("emirate", value);
+    form.setValue("plateCategory", "");
+    form.setValue("plateCode", "");
+    setSelectedEmirate(value);
+  };
+
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
@@ -130,7 +149,7 @@ export function VehicleMasterForm({ isOpen, onClose }: VehicleMasterFormProps) {
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Emirate *</FormLabel>
-                    <Select onValueChange={field.onChange} value={field.value}>
+                    <Select onValueChange={handleEmirateChange} value={field.value}>
                       <FormControl>
                         <SelectTrigger>
                           <SelectValue placeholder="Select emirate" />
@@ -140,6 +159,58 @@ export function VehicleMasterForm({ isOpen, onClose }: VehicleMasterFormProps) {
                         {Object.values(Emirates).map((emirate) => (
                           <SelectItem key={emirate} value={emirate}>
                             {emirate}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              {/* Plate Category - Dynamic based on selected emirate */}
+              <FormField
+                control={form.control}
+                name="plateCategory"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Plate Category *</FormLabel>
+                    <Select onValueChange={field.onChange} value={field.value}>
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select plate category" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {selectedEmirate && EmiratesPlateInfo[selectedEmirate as keyof typeof EmiratesPlateInfo].categories.map((category) => (
+                          <SelectItem key={category} value={category}>
+                            {category}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              {/* Plate Code - Dynamic based on selected emirate */}
+              <FormField
+                control={form.control}
+                name="plateCode"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Plate Code *</FormLabel>
+                    <Select onValueChange={field.onChange} value={field.value}>
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select plate code" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {selectedEmirate && EmiratesPlateInfo[selectedEmirate as keyof typeof EmiratesPlateInfo].plateCodes.map((code) => (
+                          <SelectItem key={code} value={code}>
+                            {code}
                           </SelectItem>
                         ))}
                       </SelectContent>
@@ -159,47 +230,6 @@ export function VehicleMasterForm({ isOpen, onClose }: VehicleMasterFormProps) {
                     <FormControl>
                       <Input placeholder="Enter Registration Number" {...field} />
                     </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              {/* Plate Code */}
-              <FormField
-                control={form.control}
-                name="plateCode"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Plate Code *</FormLabel>
-                    <FormControl>
-                      <Input placeholder="Enter Plate Code" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              {/* Plate Category */}
-              <FormField
-                control={form.control}
-                name="plateCategory"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Plate Category</FormLabel>
-                    <Select onValueChange={field.onChange} value={field.value}>
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select plate category" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        {Object.values(PlateCategory).map((category) => (
-                          <SelectItem key={category} value={category}>
-                            {category}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
                     <FormMessage />
                   </FormItem>
                 )}
