@@ -3,6 +3,29 @@ import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 import { relations } from "drizzle-orm";
 
+// Add new enums for User management
+export const UserType = {
+  ADMIN: "Admin",
+  SUPERVISOR: "Supervisor",
+  OPERATOR: "Operator",
+  USER: "User"
+} as const;
+
+export const UserOperationType = {
+  CREATE: "Create",
+  UPDATE: "Update",
+  DELETE: "Delete",
+  VIEW: "View",
+  APPROVE: "Approve"
+} as const;
+
+export const UserGroup = {
+  GROUP_A: "Group A",
+  GROUP_B: "Group B",
+  GROUP_C: "Group C",
+  GROUP_D: "Group D"
+} as const;
+
 // Add before other enums
 export const Emirates = {
   AUH: "Abu Dhabi (AUH)",
@@ -272,6 +295,24 @@ export const contactInfo = z.object({
 });
 
 
+// Add the users table before other table definitions
+export const users = pgTable("users", {
+  id: serial("id").primaryKey(),
+  userName: text("user_name").notNull().unique(),
+  userCode: text("user_code").notNull().unique(),
+  userType: text("user_type").notNull(),
+  emailId: text("email_id").notNull().unique(),
+  userOperationType: text("user_operation_type").notNull(),
+  userGroup: text("user_group").notNull(),
+  fullName: text("full_name").notNull(),
+  firstName: text("first_name").notNull(),
+  lastName: text("last_name").notNull(),
+  password: text("password").notNull(),
+  isActive: boolean("is_active").notNull().default(true),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow()
+});
+
 // Vehicle Groups table
 export const vehicleGroups = pgTable("vehicle_groups", {
   id: serial("id").primaryKey(),
@@ -479,18 +520,6 @@ export const bookings = pgTable("bookings", {
   feedback: text("feedback"),
 });
 
-export const users = pgTable("users", {
-  id: serial("id").primaryKey(),
-  employeeId: text("employee_id").references(() => employees.employeeId),
-  email: text("email").notNull().unique(),
-  passwordHash: text("password_hash").notNull(),
-  phoneNumber: text("phone_number"),
-  isVerified: boolean("is_verified").notNull().default(false),
-  lastLogin: timestamp("last_login"),
-  createdAt: timestamp("created_at").notNull().defaultNow(),
-  updatedAt: timestamp("updated_at").notNull().defaultNow()
-});
-
 export const otpVerifications = pgTable("otp_verifications", {
   id: serial("id").primaryKey(),
   userId: integer("user_id").references(() => users.id),
@@ -637,13 +666,20 @@ export const insertEmployeeSchema = createInsertSchema(employees)
     password: z.string().min(6, "Password must be at least 6 characters long")
   });
 
-export const insertUserSchema = createInsertSchema(users).omit({
-  passwordHash: true,
-  isVerified: true,
-  lastLogin: true,
-  createdAt: true,
-  updatedAt: true
-});
+// Add insert schema for the users table
+export const insertUserSchema = createInsertSchema(users)
+  .extend({
+    userType: z.enum(Object.values(UserType) as [string, ...string[]]),
+    userOperationType: z.enum(Object.values(UserOperationType) as [string, ...string[]]),
+    userGroup: z.enum(Object.values(UserGroup) as [string, ...string[]]),
+    emailId: z.string().email("Invalid email address"),
+    password: z.string().min(6, "Password must be at least 6 characters long"),
+    userName: z.string().min(3, "Username must be at least 3 characters long"),
+    userCode: z.string().min(3, "User code must be at least 3 characters long"),
+    firstName: z.string().min(2, "First name must be at least 2 characters long"),
+    lastName: z.string().min(2, "Last name must be at least 2 characters long"),
+  });
+
 export const insertOtpVerificationSchema = createInsertSchema(otpVerifications).omit({
   isUsed: true,
   createdAt: true
@@ -733,3 +769,4 @@ export type VehicleTypeMaster = typeof vehicleTypeMaster.$inferSelect;
 export type InsertVehicleTypeMaster = z.infer<typeof insertVehicleTypeMasterSchema>;
 export type VehicleMaster = typeof vehicleMaster.$inferSelect;
 export type InsertVehicleMaster = typeof vehicleMaster.$inferInsert;
+export type InsertUser = z.infer<typeof insertUserSchema>;

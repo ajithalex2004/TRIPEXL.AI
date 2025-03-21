@@ -672,6 +672,60 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
     });
 
+    // Add user management routes
+    app.get("/api/users", async (_req, res) => {
+      try {
+        console.log("Fetching all users");
+        const users = await storage.getAllUsers();
+
+        // Remove sensitive information before sending
+        const sanitizedUsers = users.map(user => {
+          const { password, ...userWithoutPassword } = user;
+          return userWithoutPassword;
+        });
+
+        res.json(sanitizedUsers);
+      } catch (error: any) {
+        console.error("Error fetching users:", error);
+        res.status(500).json({ error: "Failed to fetch users" });
+      }
+    });
+
+    app.post("/api/users", async (req, res) => {
+      try {
+        console.log("Creating user with data:", req.body);
+        const result = insertUserSchema.safeParse(req.body);
+
+        if (!result.success) {
+          console.error("Invalid user data:", result.error.issues);
+          return res.status(400).json({ 
+            error: "Invalid user data", 
+            details: result.error.issues 
+          });
+        }
+
+        // Hash the password before storing
+        const hashedPassword = await bcrypt.hash(result.data.password, 10);
+
+        // Create user with hashed password
+        const userData = {
+          ...result.data,
+          password: hashedPassword,
+          fullName: `${result.data.firstName} ${result.data.lastName}`
+        };
+
+        const user = await storage.createUser(userData);
+        console.log("Created user:", user);
+
+        // Remove password from response
+        const { password, ...userResponse } = user;
+        res.status(201).json(userResponse);
+      } catch (error: any) {
+        console.error("Error creating user:", error);
+        res.status(500).json({ error: "Failed to create user" });
+      }
+    });
+
     log("All routes registered successfully");
     return httpServer;
   } catch (error: any) {

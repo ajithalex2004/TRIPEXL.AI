@@ -10,6 +10,11 @@ import { eq, desc } from "drizzle-orm";
 import * as schema from "@shared/schema";
 
 // Add VehicleMaster operations to IStorage interface
+import { type User, type InsertUser } from "@shared/schema";
+import * as schema from "@shared/schema";
+import { eq } from "drizzle-orm";
+import bcrypt from "bcryptjs";
+
 export interface IStorage {
   // Vehicles
   getVehicles(): Promise<Vehicle[]>;
@@ -39,12 +44,15 @@ export interface IStorage {
   findEmployeeByIdAndEmail(employeeId: string, email: string): Promise<Employee | null>;
 
   // User methods
-  createUser(user: InsertUser & { passwordHash: string }): Promise<User>;
+  createUser(user: InsertUser): Promise<User>;
   findUserByEmail(email: string): Promise<User | null>;
   getUserByEmail(email: string): Promise<User | null>;
   getUser(id: number): Promise<User | null>;
   markUserAsVerified(userId: number): Promise<User>;
   updateUserLastLogin(userId: number): Promise<User>;
+  getAllUsers(): Promise<User[]>;
+  getUserByUserName(userName: string): Promise<User | null>;
+
 
   // OTP methods
   createOtpVerification(verification: InsertOtpVerification): Promise<OtpVerification>;
@@ -335,17 +343,34 @@ export class DatabaseStorage implements IStorage {
       .where(eq(schema.employees.email, email));
     return employee || null;
   }
-  async createUser(userData: InsertUser & { passwordHash: string }): Promise<User> {
-    const [user] = await db
-      .insert(schema.users)
-      .values({
+  async createUser(userData: InsertUser): Promise<User> {
+    try {
+      console.log("Creating user with data:", {
         ...userData,
-        isVerified: false,
-        createdAt: new Date(),
-        updatedAt: new Date()
-      })
-      .returning();
-    return user;
+        password: "[REDACTED]"
+      });
+
+      const [user] = await db
+        .insert(schema.users)
+        .values({
+          ...userData,
+          fullName: `${userData.firstName} ${userData.lastName}`,
+          isActive: true,
+          createdAt: new Date(),
+          updatedAt: new Date()
+        })
+        .returning();
+
+      console.log("Created user:", {
+        ...user,
+        password: "[REDACTED]"
+      });
+
+      return user;
+    } catch (error) {
+      console.error("Error creating user:", error);
+      throw new Error(error instanceof Error ? error.message : "Failed to create user");
+    }
   }
   async findUserByEmail(email: string): Promise<User | null> {
     return this.getUserByEmail(email);
@@ -443,6 +468,26 @@ export class DatabaseStorage implements IStorage {
       throw new Error(`Failed to update booking metadata: ${error.message}`);
     }
   }
+    async getAllUsers(): Promise<User[]> {
+    return await db.select().from(schema.users);
+  }
+
+  async getUserByUserName(userName: string): Promise<User | null> {
+    const [user] = await db
+      .select()
+      .from(schema.users)
+      .where(eq(schema.users.userName, userName));
+    return user || null;
+  }
+
+  async getUserByEmail(emailId: string): Promise<User | null> {
+    const [user] = await db
+      .select()
+      .from(schema.users)
+      .where(eq(schema.users.emailId, emailId));
+    return user || null;
+  }
+
 }
 
 export const storage = new DatabaseStorage();
