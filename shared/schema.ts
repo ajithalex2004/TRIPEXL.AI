@@ -3,17 +3,6 @@ import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 import { relations } from "drizzle-orm";
 
-// Update Vehicle Types to be more flexible
-export const VehicleType = {
-  AMBULANCE: "Ambulance",
-  PASSENGER_VAN: "Passenger Van",
-  CARGO_VAN: "Cargo Van",
-  BUS: "Bus",
-  SUV: "SUV",
-  TRUCK: "Truck",
-  OTHER: "Other" // Add this option
-} as const;
-
 // Vehicle Status Enum
 export const VehicleStatus = {
   AVAILABLE: "Available",
@@ -38,17 +27,6 @@ export const Department = {
   ADMINISTRATION: "Administration",
   MAINTENANCE: "Maintenance",
   SECURITY: "Security"
-} as const;
-
-// Add after the Department enum
-export const VehicleTypeDefaults = {
-  [VehicleType.AMBULANCE]: { costPerKm: 2.5, maximumWeight: 3500 },
-  [VehicleType.PASSENGER_VAN]: { costPerKm: 1.8, maximumWeight: 3000 },
-  [VehicleType.CARGO_VAN]: { costPerKm: 2.0, maximumWeight: 4000 },
-  [VehicleType.BUS]: { costPerKm: 3.0, maximumWeight: 7500 },
-  [VehicleType.SUV]: { costPerKm: 1.5, maximumWeight: 2500 },
-  [VehicleType.TRUCK]: { costPerKm: 2.8, maximumWeight: 5000 },
-  [VehicleType.OTHER]: { costPerKm: 0, maximumWeight: 0 } // Default values for "Other"
 } as const;
 
 // Update Vehicle Group Type

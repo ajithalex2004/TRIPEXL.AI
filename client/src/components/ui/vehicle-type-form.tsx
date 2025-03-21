@@ -2,7 +2,7 @@ import { useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { useQuery } from "@tanstack/react-query";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { InsertVehicleTypeMaster, Department, insertVehicleTypeMasterSchema, VehicleTypeMaster, VehicleGroup, VehicleType, VehicleTypeDefaults, VehicleFuelType } from "@shared/schema"; 
+import { InsertVehicleTypeMaster, Department, insertVehicleTypeMasterSchema, VehicleTypeMaster, VehicleGroup, VehicleFuelType } from "@shared/schema"; 
 import {
   Form,
   FormControl,
@@ -36,6 +36,13 @@ export function VehicleTypeForm({ onSubmit, initialData, isEditing }: VehicleTyp
     queryKey: ["/api/vehicle-groups"],
   });
 
+  // Fetch current fuel prices
+  const { data: fuelPrices } = useQuery({
+    queryKey: ["/api/fuel-prices"],
+    // This is a placeholder - you'll need to implement this endpoint
+    enabled: false, // Disable for now until the endpoint is implemented
+  });
+
   const form = useForm<InsertVehicleTypeMaster>({
     resolver: zodResolver(insertVehicleTypeMasterSchema),
     defaultValues: {
@@ -67,6 +74,7 @@ export function VehicleTypeForm({ onSubmit, initialData, isEditing }: VehicleTyp
   // Watch fuel efficiency and price changes
   const fuelEfficiency = form.watch("fuelEfficiency");
   const fuelPricePerLitre = form.watch("fuelPricePerLitre");
+  const selectedFuelType = form.watch("fuelType");
 
   // Update cost per km when fuel efficiency or price changes
   useEffect(() => {
@@ -74,6 +82,7 @@ export function VehicleTypeForm({ onSubmit, initialData, isEditing }: VehicleTyp
     form.setValue("costPerKm", costPerKm);
   }, [fuelEfficiency, fuelPricePerLitre, form]);
 
+  // Set initial data
   useEffect(() => {
     if (initialData) {
       form.reset({
@@ -82,6 +91,16 @@ export function VehicleTypeForm({ onSubmit, initialData, isEditing }: VehicleTyp
       });
     }
   }, [initialData, form]);
+
+  // Update fuel price when fuel type changes
+  useEffect(() => {
+    if (fuelPrices && selectedFuelType) {
+      const price = fuelPrices[selectedFuelType.toLowerCase()];
+      if (price) {
+        form.setValue("fuelPricePerLitre", price);
+      }
+    }
+  }, [selectedFuelType, fuelPrices, form]);
 
   const handleSubmit = async (data: InsertVehicleTypeMaster) => {
     try {
@@ -148,48 +167,15 @@ export function VehicleTypeForm({ onSubmit, initialData, isEditing }: VehicleTyp
             render={({ field }) => (
               <FormItem>
                 <FormLabel>Vehicle Type *</FormLabel>
-                <div className="space-y-2">
-                  <Select
-                    onValueChange={(value) => {
-                      field.onChange(value);
-                      if (value === "Other") {
-                        // Clear the defaults when "Other" is selected
-                        form.setValue('costPerKm', 0);
-                      } else {
-                        const defaults = VehicleTypeDefaults[value as keyof typeof VehicleTypeDefaults];
-                        if (defaults) {
-                          form.setValue('costPerKm', defaults.costPerKm);
-                        }
-                      }
-                    }}
-                    value={field.value}
-                  >
-                    <FormControl>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select vehicle type" />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      {Object.values(VehicleType).map((type) => (
-                        <SelectItem key={type} value={type}>
-                          {type}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  {field.value === "Other" && (
-                    <Input 
-                      placeholder="Enter new vehicle type"
-                      onChange={(e) => field.onChange(e.target.value)}
-                    />
-                  )}
-                </div>
+                <FormControl>
+                  <Input placeholder="Enter vehicle type" {...field} />
+                </FormControl>
                 <FormMessage />
               </FormItem>
             )}
           />
 
-          {/* Moved Fuel Type before Fuel Efficiency */}
+          {/* Fuel-related fields */}
           <FormField
             control={form.control}
             name="fuelType"
@@ -244,7 +230,7 @@ export function VehicleTypeForm({ onSubmit, initialData, isEditing }: VehicleTyp
                 <FormControl>
                   <Input
                     type="number"
-                    placeholder="Enter fuel price per litre"
+                    placeholder="Current fuel price will be loaded"
                     {...field}
                     onChange={e => field.onChange(Number(e.target.value))}
                   />
@@ -253,6 +239,8 @@ export function VehicleTypeForm({ onSubmit, initialData, isEditing }: VehicleTyp
               </FormItem>
             )}
           />
+
+          {/* Other fields */}
           <FormField
             control={form.control}
             name="servicePlan"
@@ -266,8 +254,6 @@ export function VehicleTypeForm({ onSubmit, initialData, isEditing }: VehicleTyp
               </FormItem>
             )}
           />
-
-          {/* Moved Number of Passengers after Service Plan */}
           <FormField
             control={form.control}
             name="numberOfPassengers"
