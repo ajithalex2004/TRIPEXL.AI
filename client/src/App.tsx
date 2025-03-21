@@ -10,6 +10,7 @@ import LoginPage from "@/pages/auth/login";
 import RegisterPage from "@/pages/auth/register";
 import VehicleGroupManagement from "@/pages/vehicle-group-management";
 import VehicleTypeManagement from "@/pages/vehicle-type-management";
+import VehicleMasterManagement from "@/pages/vehicle-master-management";
 import FuelEfficiencyPage from "@/pages/fuel-efficiency-page";
 import CO2EmissionsPage from "@/pages/co2-emissions-page";
 import { Layout } from "@/components/layout";
@@ -31,7 +32,6 @@ function ProtectedRoute({ component: Component }: { component: React.ComponentTy
   );
 }
 
-// Standalone route without the main layout
 function StandaloneRoute({ component: Component }: { component: React.ComponentType }) {
   return <Component />;
 }
@@ -45,6 +45,7 @@ function Router() {
       <Route path="/bookings" component={() => <ProtectedRoute component={BookingHistory} />} />
       <Route path="/vehicle-groups" component={() => <StandaloneRoute component={VehicleGroupManagement} />} />
       <Route path="/vehicle-types" component={() => <StandaloneRoute component={VehicleTypeManagement} />} />
+      <Route path="/vehicle-master" component={() => <StandaloneRoute component={VehicleMasterManagement} />} />
       <Route path="/fuel-efficiency" component={() => <ProtectedRoute component={FuelEfficiencyPage} />} />
       <Route path="/co2-emissions" component={() => <ProtectedRoute component={CO2EmissionsPage} />} />
       <Route component={NotFound} />

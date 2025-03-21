@@ -12,7 +12,7 @@ import {
 } from "@/components/ui/sidebar";
 import { Logo } from "@/components/ui/logo";
 import { Footer } from "@/components/ui/footer";
-import { History, Database, Truck } from "lucide-react";
+import { History, Database, Truck, Car } from "lucide-react";
 
 export function Layout({ children }: { children: React.ReactNode }) {
   return (
@@ -45,6 +45,14 @@ export function Layout({ children }: { children: React.ReactNode }) {
                   <SidebarMenuButton className="w-full">
                     <Truck className="w-4 h-4" />
                     <span>Vehicle Types</span>
+                  </SidebarMenuButton>
+                </Link>
+              </SidebarMenuItem>
+              <SidebarMenuItem>
+                <Link href="/vehicle-master">
+                  <SidebarMenuButton className="w-full">
+                    <Car className="w-4 h-4" />
+                    <span>Vehicle Master</span>
                   </SidebarMenuButton>
                 </Link>
               </SidebarMenuItem>
