@@ -331,8 +331,11 @@ export function VehicleMasterForm({ isOpen, onClose }: VehicleMasterFormProps) {
                       </FormControl>
                       <SelectContent>
                         {vehicleTypes?.map((type) => (
-                          <SelectItem key={type.vehicleTypeCode} value={type.vehicleTypeCode}>
-                            {type.vehicleTypeCode} - {type.vehicleType}
+                          <SelectItem 
+                            key={type.vehicleTypeCode} 
+                            value={type.vehicleTypeCode}
+                          >
+                            {type.vehicleTypeCode}
                           </SelectItem>
                         ))}
                       </SelectContent>
@@ -567,8 +570,6 @@ export function VehicleMasterForm({ isOpen, onClose }: VehicleMasterFormProps) {
                 { name: "engineNumber", label: "Engine Number", type: "text" },
                 { name: "unit", label: "Unit", type: "text" },
                 { name: "vehicleModel", label: "Vehicle Model", type: "text" },
-                { name: "modelYear", label: "Model Year", type: "number" },
-                { name: "manufacturer", label: "Manufacturer", type: "text" },
                 { name: "vehicleUsage", label: "Vehicle Usage", type: "text" },
               ].map((field) => (
                 <FormField
