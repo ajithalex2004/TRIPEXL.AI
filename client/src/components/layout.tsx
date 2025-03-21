@@ -49,6 +49,9 @@ export function Layout({ children }: { children: React.ReactNode }) {
     return () => clearTimeout(timer);
   }, [location]);
 
+  // Only show footer on auth pages
+  const showFooter = location === "/auth" || location === "/login" || location === "/register";
+
   return (
     <SidebarProvider>
       <div className="flex min-h-screen relative">
@@ -171,8 +174,10 @@ export function Layout({ children }: { children: React.ReactNode }) {
           {children}
         </main>
       </div>
-      {/* Footer positioned outside the main layout div to ensure proper stacking */}
-      <Footer className="fixed bottom-0 left-0 right-0 z-[9999] bg-white/90 dark:bg-black/50 backdrop-blur-md border-t border-border shadow-lg" />
+      {/* Only render Footer on auth pages */}
+      {showFooter && (
+        <Footer className="fixed bottom-0 left-0 right-0 z-[9999] bg-white/90 dark:bg-black/50 backdrop-blur-md border-t border-border shadow-lg" />
+      )}
     </SidebarProvider>
   );
 }
