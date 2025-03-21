@@ -93,10 +93,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
           return res.status(401).json({ error: "Invalid credentials" });
         }
 
-        if (!user.isVerified) {
-          console.log('User not verified:', email);
-          return res.status(401).json({ error: "Please verify your account first" });
-        }
+        // Temporarily skip verification check
+        // if (!user.isVerified) {
+        //   console.log('User not verified:', email);
+        //   return res.status(401).json({ error: "Please verify your account first" });
+        // }
 
         // Get employee details
         const employee = await storage.findEmployeeByIdAndEmail(user.employeeId, user.email);
