@@ -43,6 +43,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { useLocation } from "wouter";
 import { format } from "date-fns";
+import { BookingConfirmationAnimation } from "@/components/booking-confirmation-animation";
 
 // Update the Location interface to match schema requirements
 export interface Location {
@@ -286,14 +287,7 @@ export function BookingForm() {
       return response.json();
     },
     onSuccess: (response) => {
-      // Show success toast
-      toast({
-        title: "Booking Created Successfully!",
-        description: `Your booking reference number is: ${response.referenceNo}`,
-        duration: 5000,
-      });
-
-      // Update UI state
+      // Show success dialog with animation
       setCreatedReferenceNo(response.referenceNo);
       setShowSuccessDialog(true);
 
@@ -999,8 +993,7 @@ export function BookingForm() {
                 {currentStep === 3 && (
                   <motion.div
                     key="step3"
-                    initial={{ opacity: 0, x: -20 }}
-                    animate={{ opacity: 1, x: 0 }}
+                    initial={{ opacity: 0, x: -20 }}animate={{ opacity: 1, x: 0 }}
                     exit={{ opacity: 0, x: 20 }}
                     transition={{ duration: 0.5 }}
                     className="space-y-4"
@@ -1341,28 +1334,20 @@ export function BookingForm() {
       </Card>
 
       <AlertDialog open={showSuccessDialog} onOpenChange={setShowSuccessDialog}>
-        <AlertDialogContent className="sm:max-w-[425px]">
+        <AlertDialogContent className="sm:max-w-md">
           <AlertDialogHeader>
-            <AlertDialogTitle className="text-center text-xl font-bold text-primary">
-              Booking Created Successfully!
+            <AlertDialogTitle className="text-center">
+              <BookingConfirmationAnimation
+                bookingDetails={{
+                  vehicleType: form.getValues("bookingType"),
+                  date: new Date(form.getValues("pickupTime")).toLocaleDateString(),
+                  location: form.getValues("pickupLocation").address
+                }}
+              />
             </AlertDialogTitle>
-            <AlertDialogDescription className="text-center space-y-4 py-4">
-              <p className="text-lg">
-                Your booking reference number is:
-              </p>
-              <p className="text-2xl font-semibold text-primary">
-                {createdReferenceNo}
-              </p>
-              <p className="text-sm text-muted-foreground">
-                You can track your booking status in the booking history.
-              </p>
-            </AlertDialogDescription>
           </AlertDialogHeader>
-          <AlertDialogFooter className="sm:justify-center">
-            <AlertDialogAction
-              onClick={handleSuccessDialogClose}
-              className="w-full sm:w-auto bg-primary text-white hover:bg-primary/90"
-            >
+          <AlertDialogFooter>
+            <AlertDialogAction onClick={handleSuccessDialogClose}>
               View Booking History
             </AlertDialogAction>
           </AlertDialogFooter>
