@@ -421,7 +421,12 @@ export function VehicleMasterForm({ isOpen, onClose }: VehicleMasterFormProps) {
                   name={fieldName as any}
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>{fieldName.replace(/([A-Z])/g, ' $1').trim()}</FormLabel>
+                      <FormLabel>
+                        {fieldName === "isCanConnected" ? "Is CAN Connected" :
+                         fieldName === "isWeightSensorConnected" ? "Is Weight Sensor Connected" :
+                         fieldName === "isTemperatureSensorConnected" ? "Is Temperature Sensor Connected" :
+                         "Is PTO Connected"}
+                      </FormLabel>
                       <Select onValueChange={field.onChange} value={field.value}>
                         <FormControl>
                           <SelectTrigger>
