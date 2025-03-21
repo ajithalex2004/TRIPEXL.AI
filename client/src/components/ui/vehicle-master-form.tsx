@@ -127,7 +127,7 @@ export function VehicleMasterForm({ isOpen, onClose }: VehicleMasterFormProps) {
 
   const handlePlateCategoryChange = (value: string) => {
     form.setValue("plateCategory", value);
-    form.setValue("plateCode", "");
+    form.setValue("plateCode", ""); // Reset plate code when category changes
     setSelectedCategory(value);
   };
 
@@ -141,8 +141,8 @@ export function VehicleMasterForm({ isOpen, onClose }: VehicleMasterFormProps) {
 
   const getAvailablePlateCodes = () => {
     if (!selectedEmirate || !selectedCategory) return [];
-    return EmiratesPlateInfo[selectedEmirate as keyof typeof EmiratesPlateInfo]
-      .plateCodes[selectedCategory as keyof typeof EmiratesPlateInfo[keyof typeof EmiratesPlateInfo]['plateCodes']] || [];
+    const emirateInfo = EmiratesPlateInfo[selectedEmirate as keyof typeof EmiratesPlateInfo];
+    return emirateInfo.plateCodes[selectedCategory as keyof typeof EmiratesPlateInfo[keyof typeof EmiratesPlateInfo]['plateCodes']] || [];
   };
 
   return (
@@ -437,9 +437,9 @@ export function VehicleMasterForm({ isOpen, onClose }: VehicleMasterFormProps) {
                     <FormItem>
                       <FormLabel>
                         {fieldName === "isCanConnected" ? "Is CAN Connected" :
-                         fieldName === "isWeightSensorConnected" ? "Is Weight Sensor Connected" :
-                         fieldName === "isTemperatureSensorConnected" ? "Is Temperature Sensor Connected" :
-                         "Is PTO Connected"}
+                          fieldName === "isWeightSensorConnected" ? "Is Weight Sensor Connected" :
+                            fieldName === "isTemperatureSensorConnected" ? "Is Temperature Sensor Connected" :
+                              "Is PTO Connected"}
                       </FormLabel>
                       <Select onValueChange={field.onChange} value={field.value}>
                         <FormControl>
