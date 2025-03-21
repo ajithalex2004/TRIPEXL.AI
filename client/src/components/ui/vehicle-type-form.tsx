@@ -513,7 +513,12 @@ export function VehicleTypeForm({ onSubmit, initialData, isEditing }: VehicleTyp
                     field.onChange(value);
                     // Clear vehicle type when manufacturer changes
                     form.setValue("vehicleType", "");
-                    form.setValue("vehicleTypeCode", "");
+                    // Update vehicle type code
+                    const currentType = form.getValues("vehicleType");
+                    const currentYear = form.getValues("modelYear");
+                    if (value && currentType && currentYear) {
+                      form.setValue("vehicleTypeCode", `${value.toUpperCase()}-${currentType.toUpperCase()}-${currentYear}`);
+                    }
                   }}
                   value={field.value}
                 >
@@ -546,10 +551,11 @@ export function VehicleTypeForm({ onSubmit, initialData, isEditing }: VehicleTyp
                   onValueChange={(value) => {
                     const year = Number(value);
                     field.onChange(year);
-                    // Update vehicle type code when both type and year are available
+                    // Update vehicle type code when all fields are available
+                    const currentManufacturer = form.getValues("manufacturer");
                     const currentType = form.getValues("vehicleType");
-                    if (currentType && year) {
-                      form.setValue("vehicleTypeCode", `${currentType.toUpperCase()}-${year}`);
+                    if (currentManufacturer && currentType && year) {
+                      form.setValue("vehicleTypeCode", `${currentManufacturer.toUpperCase()}-${currentType.toUpperCase()}-${year}`);
                     }
                   }}
                   value={field.value?.toString()}
@@ -589,10 +595,11 @@ export function VehicleTypeForm({ onSubmit, initialData, isEditing }: VehicleTyp
                     form.setValue("numberOfPassengers", capacity);
                     form.setValue("vehicleCapacity", vehicleCapacity);
 
-                    // Update vehicle type code when both type and year are available
+                    // Update vehicle type code when all fields are available
+                    const currentManufacturer = form.getValues("manufacturer");
                     const currentYear = form.getValues("modelYear");
-                    if (value && currentYear) {
-                      form.setValue("vehicleTypeCode", `${value.toUpperCase()}-${currentYear}`);
+                    if (currentManufacturer && value && currentYear) {
+                      form.setValue("vehicleTypeCode", `${currentManufacturer.toUpperCase()}-${value.toUpperCase()}-${currentYear}`);
                     }
                   }}
                   value={field.value}
@@ -626,7 +633,7 @@ export function VehicleTypeForm({ onSubmit, initialData, isEditing }: VehicleTyp
                 <FormLabel>Vehicle Type Code *</FormLabel>
                 <FormControl>
                   <Input 
-                    placeholder="Auto-generated from Vehicle Type and Year"
+                    placeholder="Auto-generated from Manufacturer, Vehicle Type and Year"
                     {...field}
                     disabled
                   />
