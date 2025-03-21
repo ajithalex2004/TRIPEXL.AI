@@ -156,10 +156,10 @@ export function Layout({ children }: { children: React.ReactNode }) {
             </SidebarMenu>
           </SidebarContent>
         </Sidebar>
-        <main className="flex-1 p-6 pb-16">
+        <main className="flex-1 p-6 pb-24">
           {children}
         </main>
-        <Footer />
+        <Footer className="fixed bottom-0 left-0 right-0 z-50 bg-white/90 dark:bg-black/50 backdrop-blur-sm border-t border-border shadow-lg" />
       </div>
     </SidebarProvider>
   );
