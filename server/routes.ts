@@ -216,26 +216,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
     // Update the booking creation route to include status tracking and history
     app.post("/api/bookings", async (req, res) => {
       console.log("Received booking request:", req.body);
-      const result = insertBookingSchema.safeParse(req.body);
-      if (!result.success) {
-        console.error("Invalid booking data:", result.error.issues);
-        return res.status(400).json({ 
-          error: "Invalid booking data", 
-          details: result.error.issues 
-        }); 
-      }
 
       try {
+        const result = insertBookingSchema.safeParse(req.body);
+        if (!result.success) {
+          console.error("Invalid booking data:", result.error.issues);
+          return res.status(400).json({ 
+            error: "Invalid booking data", 
+            details: result.error.issues 
+          }); 
+        }
+
         // Generate a unique reference number if not provided
         const bookingData = {
           ...result.data,
           referenceNo: result.data.referenceNo || `BK${Date.now()}${Math.floor(Math.random() * 1000)}`,
-          status: "pending",
-          createdAt: new Date(),
-          updatedAt: new Date()
+          status: "pending"
         };
 
         console.log("Creating booking with data:", bookingData);
+
+        // Create the booking
         const booking = await storage.createBooking(bookingData);
         console.log("Created booking:", booking);
 
@@ -243,6 +244,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const totalDistance = calculateTotalDistance(booking.pickupLocation, booking.dropoffLocation);
         const estimatedCost = calculateEstimatedCost(booking);
         const co2Emissions = calculateCO2Emissions(booking);
+
+        console.log("Calculated metadata:", { totalDistance, estimatedCost, co2Emissions });
 
         // Update booking with metadata
         const updatedBooking = await storage.updateBookingMetadata(booking.id, {

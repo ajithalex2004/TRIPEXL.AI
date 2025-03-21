@@ -259,17 +259,23 @@ export class DatabaseStorage implements IStorage {
     try {
       console.log("Storage: Creating booking with data:", bookingData);
 
+      // Ensure we have the required fields and defaults
+      const bookingToCreate = {
+        ...bookingData,
+        status: bookingData.status || "pending",
+        createdAt: new Date(),
+        updatedAt: new Date()
+      };
+
+      console.log("Storage: Preparing to insert booking:", bookingToCreate);
+
       // Insert the booking
       const [booking] = await db
         .insert(schema.bookings)
-        .values({
-          ...bookingData,
-          createdAt: new Date(),
-          updatedAt: new Date()
-        })
+        .values(bookingToCreate)
         .returning();
 
-      console.log("Storage: Created booking:", booking);
+      console.log("Storage: Successfully created booking:", booking);
 
       // If we have vehicle and driver assignments, update their status
       if (booking.assignedVehicleId) {
@@ -283,7 +289,7 @@ export class DatabaseStorage implements IStorage {
       return booking;
     } catch (error) {
       console.error("Storage: Error creating booking:", error);
-      throw error;
+      throw new Error(`Failed to create booking: ${error.message}`);
     }
   }
   async assignBooking(bookingId: number, vehicleId: number, driverId: number): Promise<Booking> {
@@ -426,16 +432,24 @@ export class DatabaseStorage implements IStorage {
       co2Emissions?: number;
     }
   ): Promise<Booking> {
-    const [updatedBooking] = await db
-      .update(schema.bookings)
-      .set({
-        ...metadata,
-        updatedAt: new Date()
-      })
-      .where(eq(schema.bookings.id, bookingId))
-      .returning();
+    try {
+      console.log("Storage: Updating booking metadata:", { bookingId, metadata });
 
-    return updatedBooking;
+      const [updatedBooking] = await db
+        .update(schema.bookings)
+        .set({
+          ...metadata,
+          updatedAt: new Date()
+        })
+        .where(eq(schema.bookings.id, bookingId))
+        .returning();
+
+      console.log("Storage: Successfully updated booking metadata:", updatedBooking);
+      return updatedBooking;
+    } catch (error) {
+      console.error("Storage: Error updating booking metadata:", error);
+      throw new Error(`Failed to update booking metadata: ${error.message}`);
+    }
   }
 }
 
