@@ -291,6 +291,21 @@ const fuelTypeEfficiencyFactor: { [key: string]: number } = {
   "LPG": 1.1        // LPG is about 10% more efficient than petrol
 };
 
+// Add after the fuelTypeEfficiencyFactor constant
+const co2EmissionFactors: { [key: string]: number } = {
+  "Petrol": 2.31,    // kg CO2/liter
+  "Diesel": 2.68,    // kg CO2/liter
+  "Electric": 0,     // Zero direct emissions
+  "Hybrid": 1.85,    // Assumes 20% lower than petrol
+  "CNG": 1.81,       // kg CO2/m³
+  "LPG": 1.51        // kg CO2/liter
+};
+
+// Add function to calculate CO2 emission factor
+function calculateCO2EmissionFactor(fuelType: string): number {
+  return co2EmissionFactors[fuelType] || 0;
+}
+
 // Vehicle category baseline efficiencies
 const categoryBaseEfficiency: { [key: string]: number } = {
   "SEDAN": 13.5,
@@ -393,7 +408,6 @@ export function VehicleTypeForm({ onSubmit, initialData, isEditing }: VehicleTyp
       modelYear: 0,
       numberOfPassengers: 0,
       region: "",
-      section: "",
       fuelEfficiency: 0,
       fuelPricePerLitre: 0,
       fuelType: "Petrol",
@@ -404,7 +418,8 @@ export function VehicleTypeForm({ onSubmit, initialData, isEditing }: VehicleTyp
       unit: "",
       alertBefore: 0,
       idleFuelConsumption: 0,
-      vehicleCapacity: 0
+      vehicleCapacity: 0,
+      co2EmissionFactor: 0
     }
   });
 
@@ -479,6 +494,15 @@ export function VehicleTypeForm({ onSubmit, initialData, isEditing }: VehicleTyp
       form.setValue("fuelEfficiency", efficiency);
     }
   }, [form.watch("modelYear"), form.watch("fuelType"), selectedManufacturer]);
+
+  // Add effect to update CO2 emission factor when fuel type changes
+  useEffect(() => {
+    const selectedFuelType = form.watch("fuelType");
+    if (selectedFuelType) {
+      const co2Factor = calculateCO2EmissionFactor(selectedFuelType);
+      form.setValue("co2EmissionFactor", co2Factor);
+    }
+  }, [form.watch("fuelType")]);
 
   return (
     <Form {...form}>
@@ -722,6 +746,27 @@ export function VehicleTypeForm({ onSubmit, initialData, isEditing }: VehicleTyp
             )}
           />
 
+          {/* CO2 Emission Factor field */}
+          <FormField
+            control={form.control}
+            name="co2EmissionFactor"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>CO2 Emission Factor (kg/L) *</FormLabel>
+                <FormControl>
+                  <Input
+                    type="number"
+                    placeholder="Auto-calculated from fuel type"
+                    {...field}
+                    disabled
+                    value={field.value}
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
           {/* Other fields */}
           <FormField
             control={form.control}
@@ -810,7 +855,7 @@ export function VehicleTypeForm({ onSubmit, initialData, isEditing }: VehicleTyp
             )}
           />
 
-          {/* Region, Department, Section, Unit at the bottom */}
+          {/* Region, Department, Unit at the bottom */}
           <FormField
             control={form.control}
             name="region"
@@ -862,23 +907,7 @@ export function VehicleTypeForm({ onSubmit, initialData, isEditing }: VehicleTyp
               </FormItem>
             )}
           />
-          <FormField
-            control={form.control}
-            name="section"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Section</FormLabel>
-                <FormControl>
-                  <Input
-                    placeholder="Enter section (optional)"
-                    {...field}
-                    value={field.value ?? ""}
-                  />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
+
           <FormField
             control={form.control}
             name="unit"

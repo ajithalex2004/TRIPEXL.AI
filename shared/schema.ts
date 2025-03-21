@@ -168,16 +168,15 @@ export const vehicleGroupsRelations = relations(vehicleGroups, ({ many }) => ({
   vehicles: many(vehicles)
 }));
 
-// Update vehicleTypeMaster table by removing roadSpeedThreshold
+// Update vehicleTypeMaster table schema
 export const vehicleTypeMaster = pgTable("vehicle_type_master", {
   id: serial("id").primaryKey(),
   groupId: integer("group_id").references(() => vehicleGroups.id).notNull(),
   vehicleTypeCode: text("vehicle_type_code").notNull().unique(),
-  manufacturer: text("manufacturer").notNull(), // Added manufacturer
-  modelYear: integer("model_year").notNull(), // Added model year
+  manufacturer: text("manufacturer").notNull(),
+  modelYear: integer("model_year").notNull(),
   numberOfPassengers: integer("number_of_passengers").notNull(),
   region: text("region").notNull(),
-  section: text("section"),
   fuelEfficiency: integer("fuel_efficiency").notNull(), // KM/L
   fuelPricePerLitre: integer("fuel_price_per_litre").notNull(), // Price per litre
   fuelType: text("fuel_type").notNull(),
@@ -189,6 +188,7 @@ export const vehicleTypeMaster = pgTable("vehicle_type_master", {
   alertBefore: integer("alert_before").notNull(),
   idleFuelConsumption: integer("idle_fuel_consumption").notNull(),
   vehicleCapacity: integer("vehicle_capacity").notNull(),
+  co2EmissionFactor: integer("co2_emission_factor").notNull().default(0),
   isActive: boolean("is_active").notNull().default(true),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow()
@@ -424,7 +424,6 @@ export const insertVehicleTypeMasterSchema = createInsertSchema(vehicleTypeMaste
     modelYear: z.number().min(1900, "Invalid model year").max(new Date().getFullYear() + 1, "Future model year not allowed"),
     numberOfPassengers: z.number().min(0, "Number of passengers must be positive"),
     region: z.enum(Object.values(Region) as [string, ...string[]]),
-    section: z.string().optional(),
     fuelEfficiency: z.number().min(0, "Fuel efficiency must be positive"),
     fuelPricePerLitre: z.number().min(0, "Fuel price per litre must be positive"),
     fuelType: z.enum(Object.values(VehicleFuelType) as [string, ...string[]]),
@@ -435,7 +434,8 @@ export const insertVehicleTypeMasterSchema = createInsertSchema(vehicleTypeMaste
     unit: z.string().optional(),
     alertBefore: z.number().min(0, "Alert before must be positive"),
     idleFuelConsumption: z.number().min(0, "Idle fuel consumption must be positive"),
-    vehicleCapacity: z.number().min(0, "Vehicle capacity must be positive")
+    vehicleCapacity: z.number().min(0, "Vehicle capacity must be positive"),
+    co2EmissionFactor: z.number().min(0, "CO2 emission factor must be positive")
   });
 
 export type Employee = typeof employees.$inferSelect;
