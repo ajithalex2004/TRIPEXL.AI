@@ -13,7 +13,7 @@ import {
 import { VehicleMaster } from "@shared/schema";
 import { VehicleMasterForm } from "@/components/ui/vehicle-master-form";
 
-// Define columns for the vehicle master table
+// Update the columns array to include plateNumber
 const columns = [
   {
     header: "Vehicle ID",
@@ -26,6 +26,14 @@ const columns = [
   {
     header: "Registration",
     accessorKey: "registrationNumber",
+  },
+  {
+    header: "Plate Code",
+    accessorKey: "plateCode",
+  },
+  {
+    header: "Plate Number",
+    accessorKey: "plateNumber",
   },
   {
     header: "Vehicle Type Code",

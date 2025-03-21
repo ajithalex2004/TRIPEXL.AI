@@ -63,6 +63,7 @@ export function VehicleMasterForm({ isOpen, onClose }: VehicleMasterFormProps) {
       emirate: "",
       registrationNumber: "",
       plateCode: "",
+      plateNumber: "", // Add default value for plateNumber
       currentOdometer: "0",
       plateCategory: "",
       vehicleTypeName: "",
@@ -242,6 +243,21 @@ export function VehicleMasterForm({ isOpen, onClose }: VehicleMasterFormProps) {
                         ))}
                       </SelectContent>
                     </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              {/* Plate Number - New Field */}
+              <FormField
+                control={form.control}
+                name="plateNumber"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Plate Number *</FormLabel>
+                    <FormControl>
+                      <Input placeholder="Enter Plate Number" {...field} />
+                    </FormControl>
                     <FormMessage />
                   </FormItem>
                 )}

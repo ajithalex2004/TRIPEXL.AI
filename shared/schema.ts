@@ -540,6 +540,7 @@ export const vehicleMaster = pgTable("vehicle_master", {
   emirate: text("emirate").notNull(), // Red
   registrationNumber: text("registration_number").notNull(), // Red
   plateCode: text("plate_code").notNull(), // Red
+  plateNumber: text("plate_number").notNull(), // Add this new field
   currentOdometer: decimal("current_odometer", { precision: 10, scale: 2 }).notNull(), // Red
   plateCategory: text("plate_category").notNull(),
   vehicleTypeCode: text("vehicle_type_code").references(() => vehicleTypeMaster.vehicleTypeCode).notNull(),
