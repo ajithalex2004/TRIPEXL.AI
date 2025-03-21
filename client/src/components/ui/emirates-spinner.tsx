@@ -23,7 +23,7 @@ export function EmiratesSpinner({ className, size = 'md', ...props }: EmiratesSp
         viewBox="0 0 50 50"
         xmlns="http://www.w3.org/2000/svg"
       >
-        {/* Outer circle - Red */}
+        {/* Outer circle - Emirates Red */}
         <circle
           cx="25"
           cy="25"
@@ -33,9 +33,18 @@ export function EmiratesSpinner({ className, size = 'md', ...props }: EmiratesSp
           fill="none"
           strokeDasharray="31.4 94.2"
           className="animate-[dash_1.5s_ease-in-out_infinite]"
-        />
+        >
+          <animateTransform
+            attributeName="transform"
+            type="rotate"
+            from="0 25 25"
+            to="360 25 25"
+            dur="2s"
+            repeatCount="indefinite"
+          />
+        </circle>
 
-        {/* Middle circle - Blue */}
+        {/* Middle circle - Emirates Navy Blue */}
         <circle
           cx="25"
           cy="25"
@@ -45,9 +54,18 @@ export function EmiratesSpinner({ className, size = 'md', ...props }: EmiratesSp
           fill="none"
           strokeDasharray="23.6 70.8"
           className="animate-[dash_1.5s_ease-in-out_infinite_reverse]"
-        />
+        >
+          <animateTransform
+            attributeName="transform"
+            type="rotate"
+            from="360 25 25"
+            to="0 25 25"
+            dur="1.5s"
+            repeatCount="indefinite"
+          />
+        </circle>
 
-        {/* Inner circle - Light Blue */}
+        {/* Inner circle - Emirates Light Blue */}
         <circle
           cx="25"
           cy="25"
@@ -57,26 +75,45 @@ export function EmiratesSpinner({ className, size = 'md', ...props }: EmiratesSp
           fill="none"
           strokeDasharray="15.7 47.1"
           className="animate-[dash_1.5s_ease-in-out_infinite]"
-        />
+        >
+          <animateTransform
+            attributeName="transform"
+            type="rotate"
+            from="0 25 25"
+            to="360 25 25"
+            dur="1s"
+            repeatCount="indefinite"
+          />
+        </circle>
 
-        {/* Center circle for logo background - slightly transparent dark background */}
+        {/* Center circle for Emirates premium look */}
         <circle
           cx="25"
           cy="25"
-          r="8"
-          fill="#000B1A"
-          fillOpacity="0.8"
-        />
+          r="6"
+          fill="#004990"
+          fillOpacity="0.9"
+        >
+          <animate
+            attributeName="opacity"
+            values="0.6;0.9;0.6"
+            dur="2s"
+            repeatCount="indefinite"
+          />
+        </circle>
 
-        {/* EXL Logo */}
-        <image
-          href="/attached_assets/image_1742546536561.png"
-          x="17"
-          y="17"
-          width="16"
-          height="16"
-          preserveAspectRatio="xMidYMid meet"
-        />
+        {/* Emirates wordmark - optional text */}
+        <text
+          x="25"
+          y="26.5"
+          fontSize="4"
+          fontWeight="bold"
+          textAnchor="middle"
+          fill="#FFFFFF"
+          className="font-sans"
+        >
+          EK
+        </text>
       </svg>
     </div>
   );
