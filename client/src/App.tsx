@@ -15,6 +15,7 @@ import FuelEfficiencyPage from "@/pages/fuel-efficiency-page";
 import CO2EmissionsPage from "@/pages/co2-emissions-page";
 import NewBooking from "@/pages/new-booking";
 import { Layout } from "@/components/layout";
+import AchievementsPage from "@/pages/achievements";
 
 function ProtectedRoute({ component: Component }: { component: React.ComponentType }) {
   const [, setLocation] = useLocation();
@@ -50,6 +51,7 @@ function Router() {
       <Route path="/vehicle-master" component={() => <StandaloneRoute component={VehicleMasterManagement} />} />
       <Route path="/fuel-efficiency" component={() => <ProtectedRoute component={FuelEfficiencyPage} />} />
       <Route path="/co2-emissions" component={() => <ProtectedRoute component={CO2EmissionsPage} />} />
+      <Route path="/achievements" component={() => <ProtectedRoute component={AchievementsPage} />} />
       <Route component={NotFound} />
     </Switch>
   );

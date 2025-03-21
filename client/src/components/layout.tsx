@@ -22,7 +22,8 @@ import {
   ChevronDown,
   ChevronRight,
   PlusCircle,
-  LayoutDashboard
+  LayoutDashboard,
+  Medal, // Added Medal import
 } from "lucide-react";
 import { motion } from "framer-motion";
 
@@ -91,6 +92,18 @@ export function Layout({ children }: { children: React.ReactNode }) {
                   </SidebarMenuButton>
                 </Link>
               </SidebarMenuItem>
+
+              <SidebarMenuItem> {/* Added Achievements menu item */}
+                <Link href="/achievements">
+                  <SidebarMenuButton className="w-full text-white hover:bg-white/10 text-[15px] font-bold">
+                    <AnimatedIcon className="text-yellow-400">
+                      <Medal className="w-4 h-4" />
+                    </AnimatedIcon>
+                    <span>Achievements</span>
+                  </SidebarMenuButton>
+                </Link>
+              </SidebarMenuItem>
+
 
               {/* Vehicle Menu with Animation */}
               <div className="space-y-1">
