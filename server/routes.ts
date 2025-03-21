@@ -231,7 +231,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const bookingData = {
           ...result.data,
           referenceNo: result.data.referenceNo || `BK${Date.now()}${Math.floor(Math.random() * 1000)}`,
-          status: "pending"
+          status: "new" // Set initial status to new
         };
 
         console.log("Creating booking with data:", bookingData);

@@ -234,13 +234,13 @@ import { relations } from "drizzle-orm";
 
 // Update the BookingStatus enum
 export const BookingStatus = {
+  NEW: "new",
   PENDING: "pending",
   CONFIRMED: "confirmed",
   IN_PROGRESS: "in_progress",
   COMPLETED: "completed",
   CANCELLED: "cancelled",
 } as const;
-
 
 export const locations = z.object({
   address: z.string(),
@@ -441,7 +441,7 @@ export const bookings = pgTable("bookings", {
   // Reference and tracking
   referenceNo: text("reference_no").unique(),
   remarks: text("remarks"),
-  status: text("status").notNull().default("pending"),
+  status: text("status").notNull().default("new"),
 
   // Vehicle assignment
   assignedVehicleId: integer("assigned_vehicle_id").references(() => vehicles.id),
@@ -567,7 +567,7 @@ export const insertBookingSchema = createInsertSchema(bookings)
     purpose: z.enum(Object.values(BookingPurpose) as [string, ...string[]]),
     priority: z.enum(Object.values(Priority) as [string, ...string[]]),
     tripType: z.enum(Object.values(TripType) as [string, ...string[]]).optional(),
-    status: z.enum(Object.values(BookingStatus) as [string, ...string[]]).default("pending"),
+    status: z.enum(Object.values(BookingStatus) as [string, ...string[]]).default("new"),
     withDriver: z.boolean().optional(),
     bookingForSelf: z.boolean().optional(),
     passengerDetails: z.array(
