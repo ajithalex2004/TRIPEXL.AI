@@ -388,21 +388,6 @@ export function VehicleTypeForm({ onSubmit, initialData, isEditing }: VehicleTyp
             )}
           />
 
-          {/* Vehicle Type Code field */}
-          <FormField
-            control={form.control}
-            name="vehicleTypeCode"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Vehicle Type Code *</FormLabel>
-                <FormControl>
-                  <Input placeholder="Enter vehicle type code" {...field} />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-
           {/* Manufacturer/Make field */}
           <FormField
             control={form.control}
@@ -432,7 +417,15 @@ export function VehicleTypeForm({ onSubmit, initialData, isEditing }: VehicleTyp
                     min={1900}
                     max={new Date().getFullYear() + 1}
                     {...field}
-                    onChange={e => field.onChange(Number(e.target.value))}
+                    onChange={(e) => {
+                      const year = Number(e.target.value);
+                      field.onChange(year);
+                      // Update vehicle type code when both type and year are available
+                      const currentType = form.getValues("vehicleType");
+                      if (currentType && year) {
+                        form.setValue("vehicleTypeCode", `${currentType.toUpperCase()}-${year}`);
+                      }
+                    }}
                   />
                 </FormControl>
                 <FormMessage />
@@ -449,7 +442,7 @@ export function VehicleTypeForm({ onSubmit, initialData, isEditing }: VehicleTyp
                 <FormLabel>Vehicle Type *</FormLabel>
                 <FormControl>
                   <Input 
-                    placeholder="Enter vehicle type" 
+                    placeholder="Enter vehicle type"
                     {...field}
                     onChange={(e) => {
                       field.onChange(e.target.value);
@@ -459,7 +452,32 @@ export function VehicleTypeForm({ onSubmit, initialData, isEditing }: VehicleTyp
                       form.setValue("fuelEfficiency", efficiency);
                       form.setValue("numberOfPassengers", capacity);
                       form.setValue("vehicleCapacity", vehicleCapacity);
+
+                      // Update vehicle type code when both type and year are available
+                      const currentYear = form.getValues("modelYear");
+                      if (e.target.value && currentYear) {
+                        form.setValue("vehicleTypeCode", `${e.target.value.toUpperCase()}-${currentYear}`);
+                      }
                     }}
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          {/* Vehicle Type Code field - moved after Vehicle Type */}
+          <FormField
+            control={form.control}
+            name="vehicleTypeCode"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Vehicle Type Code *</FormLabel>
+                <FormControl>
+                  <Input 
+                    placeholder="Auto-generated from Vehicle Type and Year"
+                    {...field}
+                    disabled
                   />
                 </FormControl>
                 <FormMessage />
