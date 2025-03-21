@@ -1,4 +1,3 @@
-import { BookingForm } from "@/components/booking-form";
 import { VehicleList } from "@/components/vehicle-list";
 import { MapView } from "@/components/map-view";
 import { motion } from "framer-motion";
@@ -55,39 +54,27 @@ export default function Home() {
 
         {/* Main Content */}
         <div className="grid lg:grid-cols-12 gap-6">
-          {/* Booking Form - Spans 8 columns */}
-          <motion.div
-            initial={{ opacity: 0, x: -20 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ duration: 0.6 }}
-            className="lg:col-span-8"
-          >
-            <Card className="backdrop-blur-sm bg-white/90 dark:bg-black/50 border border-white/20 p-6">
-              <BookingForm />
-            </Card>
-          </motion.div>
-
-          {/* Vehicle List - Spans 4 columns */}
+          {/* Vehicle List */}
           <motion.div
             initial={{ opacity: 0, x: 20 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ duration: 0.6 }}
-            className="lg:col-span-4 space-y-6"
+            className="lg:col-span-4"
           >
             <Card className="backdrop-blur-sm bg-white/90 dark:bg-black/50 border border-white/20 p-6">
               <h2 className="text-xl font-semibold mb-4">Available Vehicles</h2>
-              <div className="h-[300px] overflow-y-auto">
+              <div className="h-[400px] overflow-y-auto">
                 <VehicleList />
               </div>
             </Card>
           </motion.div>
 
-          {/* Map View - Full width */}
+          {/* Map View - Spans 8 columns */}
           <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6, delay: 0.2 }}
-            className="lg:col-span-12"
+            initial={{ opacity: 0, x: -20 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ duration: 0.6 }}
+            className="lg:col-span-8"
           >
             <Card className="backdrop-blur-sm bg-white/90 dark:bg-black/50 border border-white/20 p-6">
               <h2 className="text-xl font-semibold mb-4">Live Fleet Tracking</h2>
