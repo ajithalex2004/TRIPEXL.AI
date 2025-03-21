@@ -128,6 +128,22 @@ export const VehicleFuelType = {
   LPG: "LPG"
 } as const;
 
+// Add at the top with other imports
+export const TransmissionType = {
+  MANUAL: "Manual",
+  AUTOMATIC: "Automatic",
+  SEMI_AUTOMATIC: "Semi-Automatic",
+  CVT: "CVT"
+} as const;
+
+export const PlateCategory = {
+  PRIVATE: "Private",
+  COMMERCIAL: "Commercial",
+  GOVERNMENT: "Government",
+  DIPLOMATIC: "Diplomatic",
+  SPECIAL: "Special"
+} as const;
+
 export const locations = z.object({
   address: z.string(),
   coordinates: z.object({
@@ -438,6 +454,65 @@ export const insertVehicleTypeMasterSchema = createInsertSchema(vehicleTypeMaste
     co2EmissionFactor: z.number().min(0, "CO2 emission factor must be positive")
   });
 
+// Add after other table definitions
+export const vehicleMaster = pgTable("vehicle_master", {
+  id: serial("id").primaryKey(),
+  vehicleId: text("vehicle_id").notNull().unique(), // Red
+  emirate: text("emirate").notNull(), // Red
+  registrationNumber: text("registration_number").notNull(), // Red
+  plateCode: text("plate_code").notNull(), // Red
+  currentOdometer: decimal("current_odometer", { precision: 10, scale: 2 }).notNull(), // Red
+  plateCategory: text("plate_category").notNull(),
+  vehicleTypeName: text("vehicle_type_name").notNull(),
+  stopRunModeCommFreq: decimal("stop_run_mode_comm_freq", { precision: 10, scale: 2 }), // Seconds
+  maxSpeed: decimal("max_speed", { precision: 10, scale: 2 }),
+  vehicleModel: text("vehicle_model").notNull(),
+  fuelType: text("fuel_type").notNull(), // Red
+  transmissionType: text("transmission_type").notNull(), // Red
+  region: text("region").notNull(), // Red
+  department: text("department").notNull(), // Red
+  chassisNumber: text("chassis_number").notNull(), // Red
+  engineNumber: text("engine_number").notNull(), // Red
+  unit: text("unit").notNull(),
+  modelYear: integer("model_year").notNull(), // Red
+  assetType: text("asset_type").notNull(), // Red
+  tyreSize: text("tyre_size"),
+  manufacturer: text("manufacturer").notNull(), // Red
+  numberOfPassengers: integer("number_of_passengers"),
+  vehicleColor: text("vehicle_color"),
+  salikTagNumber: text("salik_tag_number"),
+  salikAccountNumber: text("salik_account_number"),
+  deviceId: text("device_id"),
+  simCardNumber: text("sim_card_number"),
+  vehicleUsage: text("vehicle_usage").notNull(), // Red
+
+  // Sensor Status Fields (Yellow/Blue highlighted)
+  isCanConnected: boolean("is_can_connected").notNull().default(false),
+  isWeightSensorConnected: boolean("is_weight_sensor_connected").notNull().default(false),
+  isTemperatureSensorConnected: boolean("is_temperature_sensor_connected").notNull().default(false),
+  isPtoConnected: boolean("is_pto_connected").notNull().default(false),
+
+  // Document tracking
+  documentNo: text("document_no"),
+  issuedOn: timestamp("issued_on"),
+  expiresOn: timestamp("expires_on"),
+  attachment: text("attachment"),
+  isValid: boolean("is_valid").default(true),
+
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow()
+});
+
+// Create insert schema
+export const insertVehicleMasterSchema = createInsertSchema(vehicleMaster)
+  .extend({
+    plateCategory: z.enum(Object.values(PlateCategory) as [string, ...string[]]),
+    transmissionType: z.enum(Object.values(TransmissionType) as [string, ...string[]]),
+    fuelType: z.enum(Object.values(VehicleFuelType) as [string, ...string[]]),
+    region: z.enum(Object.values(Region) as [string, ...string[]]),
+    department: z.enum(Object.values(Department) as [string, ...string[]]),
+  });
+
 export type Employee = typeof employees.$inferSelect;
 export type User = typeof users.$inferSelect;
 export type OtpVerification = typeof otpVerifications.$inferSelect;
@@ -459,3 +534,5 @@ export type InsertVehicleGroup = z.infer<typeof insertVehicleGroupSchema>;
 // Add after other type exports
 export type VehicleTypeMaster = typeof vehicleTypeMaster.$inferSelect;
 export type InsertVehicleTypeMaster = z.infer<typeof insertVehicleTypeMasterSchema>;
+export type VehicleMaster = typeof vehicleMaster.$inferSelect;
+export type InsertVehicleMaster = typeof vehicleMaster.$inferInsert;
