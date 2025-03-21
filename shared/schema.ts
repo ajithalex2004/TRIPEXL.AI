@@ -439,7 +439,7 @@ export const bookings = pgTable("bookings", {
   dropoffTime: text("dropoff_time").notNull(),
 
   // Reference and tracking
-  referenceNo: text("reference_no").notNull().unique(),
+  referenceNo: text("reference_no").unique(),
   remarks: text("remarks"),
   status: text("status").notNull().default("pending"),
 
@@ -594,7 +594,7 @@ export const insertBookingSchema = createInsertSchema(bookings)
     }),
     pickupTime: z.string().min(1, "Pickup time is required"),
     dropoffTime: z.string().min(1, "Dropoff time is required"),
-    referenceNo: z.string().min(1, "Reference number is required"),
+    referenceNo: z.string().optional(),
     remarks: z.string().optional(),
     assignedVehicleId: z.number().optional(),
     assignedDriverId: z.number().optional(),
