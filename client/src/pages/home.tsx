@@ -15,10 +15,10 @@ export default function Home() {
           transition={{ duration: 0.6 }}
           className="text-center space-y-4"
         >
-          <h1 className="text-4xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-[#004990] to-[#0066cc]">
+          <h1 className="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-[#004990] to-[#0066cc]">
             Smart Vehicle Management
           </h1>
-          <p className="text-muted-foreground max-w-2xl mx-auto">
+          <p className="text-sm text-muted-foreground max-w-2xl mx-auto">
             Experience intelligent journey planning with our AI-powered platform
           </p>
         </motion.div>
@@ -62,8 +62,8 @@ export default function Home() {
             className="lg:col-span-4"
           >
             <Card className="backdrop-blur-sm bg-white/90 dark:bg-black/50 border border-white/20 p-6">
-              <h2 className="text-xl font-semibold mb-4">Available Vehicles</h2>
-              <div className="h-[400px] overflow-y-auto">
+              <h2 className="text-lg font-semibold mb-2">Available Vehicles</h2>
+              <div className="h-[200px] overflow-y-auto">
                 <VehicleList />
               </div>
             </Card>
@@ -77,8 +77,8 @@ export default function Home() {
             className="lg:col-span-8"
           >
             <Card className="backdrop-blur-sm bg-white/90 dark:bg-black/50 border border-white/20 p-6">
-              <h2 className="text-xl font-semibold mb-4">Live Fleet Tracking</h2>
-              <div className="h-[400px] rounded-lg overflow-hidden">
+              <h2 className="text-lg font-semibold mb-2">Location Map</h2>
+              <div className="h-[300px]">
                 <MapView onLocationSelect={() => {}} />
               </div>
             </Card>

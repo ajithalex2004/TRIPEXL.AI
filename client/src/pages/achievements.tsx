@@ -10,8 +10,8 @@ export default function AchievementsPage() {
         transition={{ duration: 0.6 }}
         className="flex flex-col gap-4"
       >
-        <h1 className="text-3xl font-bold">Fleet Manager Achievements</h1>
-        <p className="text-muted-foreground">
+        <h1 className="text-2xl font-bold">Fleet Manager Achievements</h1>
+        <p className="text-sm text-muted-foreground">
           Track your progress and earn recognition for your fleet management excellence
         </p>
       </motion.div>
