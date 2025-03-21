@@ -22,6 +22,47 @@ import {
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 
+const uaeManufacturers = [
+  // Japanese Manufacturers
+  "Toyota",
+  "Nissan",
+  "Honda",
+  "Mitsubishi",
+  "Lexus",
+  "Infiniti",
+
+  // European Manufacturers
+  "Mercedes-Benz",
+  "BMW",
+  "Audi",
+  "Volkswagen",
+  "Porsche",
+  "Land Rover",
+  "Range Rover",
+  "Bentley",
+  "Rolls-Royce",
+
+  // American Manufacturers
+  "Ford",
+  "Chevrolet",
+  "GMC",
+  "Cadillac",
+  "Jeep",
+  "Dodge",
+
+  // Korean Manufacturers
+  "Hyundai",
+  "Kia",
+  "Genesis",
+
+  // Other Manufacturers
+  "Volvo",
+  "MG",
+  "Changan",
+  "GAC",
+  "Haval"
+];
+
 // Define default passenger capacities for common vehicle models
 const defaultPassengerCapacity: { [key: string]: number } = {
   // Sedans
@@ -395,9 +436,23 @@ export function VehicleTypeForm({ onSubmit, initialData, isEditing }: VehicleTyp
             render={({ field }) => (
               <FormItem>
                 <FormLabel>Manufacturer/Make *</FormLabel>
-                <FormControl>
-                  <Input placeholder="Enter manufacturer" {...field} />
-                </FormControl>
+                <Select
+                  onValueChange={field.onChange}
+                  value={field.value}
+                >
+                  <FormControl>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select manufacturer" />
+                    </SelectTrigger>
+                  </FormControl>
+                  <SelectContent>
+                    {uaeManufacturers.map((manufacturer) => (
+                      <SelectItem key={manufacturer} value={manufacturer}>
+                        {manufacturer}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
                 <FormMessage />
               </FormItem>
             )}
