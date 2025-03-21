@@ -28,46 +28,113 @@ const modelYears = Array.from(
   (_, i) => currentYear - i
 ).sort((a, b) => a - b); // Sort ascending
 
-const uaeManufacturers = [
-  // Japanese Manufacturers
-  "Toyota",
-  "Nissan",
-  "Honda",
-  "Mitsubishi",
-  "Lexus",
-  "Infiniti",
+// Updated UAE Vehicle Models by Manufacturer
+const uaeVehicleModels: { [key: string]: string[] } = {
+  "Toyota": [
+    "Corolla",
+    "Camry",
+    "Land Cruiser",
+    "Prado",
+    "RAV4",
+    "Fortuner",
+    "Hiace",
+    "Yaris",
+    "Hilux",
+    "Coaster",
+    "Innova"
+  ],
+  "Nissan": [
+    "Altima",
+    "Patrol",
+    "X-Trail",
+    "Sunny",
+    "Kicks",
+    "Pathfinder",
+    "Urvan",
+    "Navara"
+  ],
+  "Honda": [
+    "Civic",
+    "Accord",
+    "CR-V",
+    "Pilot",
+    "HR-V",
+    "City"
+  ],
+  "Mitsubishi": [
+    "Pajero",
+    "Montero Sport",
+    "ASX",
+    "L200",
+    "Attrage"
+  ],
+  "Lexus": [
+    "ES",
+    "LS",
+    "RX",
+    "LX",
+    "GX",
+    "IS"
+  ],
+  "Mercedes-Benz": [
+    "C-Class",
+    "E-Class",
+    "S-Class",
+    "GLE",
+    "GLS",
+    "G-Class",
+    "Sprinter"
+  ],
+  "BMW": [
+    "3 Series",
+    "5 Series",
+    "7 Series",
+    "X3",
+    "X5",
+    "X7"
+  ],
+  "Audi": [
+    "A4",
+    "A6",
+    "A8",
+    "Q5",
+    "Q7",
+    "Q8"
+  ],
+  "Ford": [
+    "Edge",
+    "Explorer",
+    "Expedition",
+    "F-150",
+    "Ranger",
+    "Transit"
+  ],
+  "Chevrolet": [
+    "Tahoe",
+    "Suburban",
+    "Silverado",
+    "Traverse",
+    "Captiva"
+  ],
+  "Hyundai": [
+    "Accent",
+    "Elantra",
+    "Sonata",
+    "Tucson",
+    "Santa Fe",
+    "H1"
+  ],
+  "Kia": [
+    "Picanto",
+    "Cerato",
+    "K5",
+    "Sportage",
+    "Sorento",
+    "Carnival"
+  ]
+};
 
-  // European Manufacturers
-  "Mercedes-Benz",
-  "BMW",
-  "Audi",
-  "Volkswagen",
-  "Porsche",
-  "Land Rover",
-  "Range Rover",
-  "Bentley",
-  "Rolls-Royce",
-
-  // American Manufacturers
-  "Ford",
-  "Chevrolet",
-  "GMC",
-  "Cadillac",
-  "Jeep",
-  "Dodge",
-
-  // Korean Manufacturers
-  "Hyundai",
-  "Kia",
-  "Genesis",
-
-  // Other Manufacturers
-  "Volvo",
-  "MG",
-  "Changan",
-  "GAC",
-  "Haval"
-];
+const uaeManufacturers = Object.keys(uaeVehicleModels);
 
 // Define default passenger capacities for common vehicle models
 const defaultPassengerCapacity: { [key: string]: number } = {
@@ -323,7 +390,7 @@ export function VehicleTypeForm({ onSubmit, initialData, isEditing }: VehicleTyp
   // Fetch current fuel prices
   const { data: fuelPrices } = useQuery({
     queryKey: ["/api/fuel-prices"],
-    enabled: true, // Enable the query to fetch prices
+    enabled: true,
   });
 
   const form = useForm<InsertVehicleTypeMaster>({
@@ -331,8 +398,8 @@ export function VehicleTypeForm({ onSubmit, initialData, isEditing }: VehicleTyp
     defaultValues: {
       groupId: 0,
       vehicleTypeCode: "",
-      manufacturer: "", // Added manufacturer field
-      modelYear: 0, // Added model year field
+      manufacturer: "",
+      modelYear: 0,
       numberOfPassengers: 0,
       region: "",
       section: "",
@@ -346,24 +413,23 @@ export function VehicleTypeForm({ onSubmit, initialData, isEditing }: VehicleTyp
       unit: "",
       alertBefore: 0,
       idleFuelConsumption: 0,
-      vehicleVolume: 0,
       vehicleCapacity: 0
     }
   });
 
-  // Function to calculate cost per km
+  // Watch form values
+  const fuelEfficiency = form.watch("fuelEfficiency");
+  const fuelPricePerLitre = form.watch("fuelPricePerLitre");
+  const selectedFuelType = form.watch("fuelType");
+  const vehicleType = form.watch("vehicleType");
+  const selectedManufacturer = form.watch("manufacturer");
+
+  // Update cost per km when fuel efficiency or price changes
   const calculateCostPerKm = (fuelPrice: number, fuelEfficiency: number) => {
     if (fuelEfficiency <= 0) return 0;
     return Number((fuelPrice / fuelEfficiency).toFixed(2));
   };
 
-  // Watch values
-  const fuelEfficiency = form.watch("fuelEfficiency");
-  const fuelPricePerLitre = form.watch("fuelPricePerLitre");
-  const selectedFuelType = form.watch("fuelType");
-  const vehicleType = form.watch("vehicleType");
-
-  // Update cost per km when fuel efficiency or price changes
   useEffect(() => {
     const costPerKm = calculateCostPerKm(fuelPricePerLitre, fuelEfficiency);
     form.setValue("costPerKm", costPerKm);
@@ -389,7 +455,7 @@ export function VehicleTypeForm({ onSubmit, initialData, isEditing }: VehicleTyp
     }
   }, [selectedFuelType, fuelPrices, form]);
 
-  // Update fuel efficiency and passenger capacity when vehicle type changes
+  // Update vehicle details when vehicle type changes
   useEffect(() => {
     if (vehicleType) {
       const efficiency = findVehicleEfficiency(vehicleType);
@@ -443,7 +509,12 @@ export function VehicleTypeForm({ onSubmit, initialData, isEditing }: VehicleTyp
               <FormItem>
                 <FormLabel>Manufacturer/Make *</FormLabel>
                 <Select
-                  onValueChange={field.onChange}
+                  onValueChange={(value) => {
+                    field.onChange(value);
+                    // Clear vehicle type when manufacturer changes
+                    form.setValue("vehicleType", "");
+                    form.setValue("vehicleTypeCode", "");
+                  }}
                   value={field.value}
                 >
                   <FormControl>
@@ -508,27 +579,39 @@ export function VehicleTypeForm({ onSubmit, initialData, isEditing }: VehicleTyp
             render={({ field }) => (
               <FormItem>
                 <FormLabel>Vehicle Type *</FormLabel>
-                <FormControl>
-                  <Input 
-                    placeholder="Enter vehicle type"
-                    {...field}
-                    onChange={(e) => {
-                      field.onChange(e.target.value);
-                      const efficiency = findVehicleEfficiency(e.target.value);
-                      const capacity = findPassengerCapacity(e.target.value);
-                      const vehicleCapacity = findVehicleCapacity(e.target.value);
-                      form.setValue("fuelEfficiency", efficiency);
-                      form.setValue("numberOfPassengers", capacity);
-                      form.setValue("vehicleCapacity", vehicleCapacity);
+                <Select
+                  onValueChange={(value) => {
+                    field.onChange(value);
+                    const efficiency = findVehicleEfficiency(value);
+                    const capacity = findPassengerCapacity(value);
+                    const vehicleCapacity = findVehicleCapacity(value);
+                    form.setValue("fuelEfficiency", efficiency);
+                    form.setValue("numberOfPassengers", capacity);
+                    form.setValue("vehicleCapacity", vehicleCapacity);
 
-                      // Update vehicle type code when both type and year are available
-                      const currentYear = form.getValues("modelYear");
-                      if (e.target.value && currentYear) {
-                        form.setValue("vehicleTypeCode", `${e.target.value.toUpperCase()}-${currentYear}`);
-                      }
-                    }}
-                  />
-                </FormControl>
+                    // Update vehicle type code when both type and year are available
+                    const currentYear = form.getValues("modelYear");
+                    if (value && currentYear) {
+                      form.setValue("vehicleTypeCode", `${value.toUpperCase()}-${currentYear}`);
+                    }
+                  }}
+                  value={field.value}
+                  disabled={!selectedManufacturer}
+                >
+                  <FormControl>
+                    <SelectTrigger>
+                      <SelectValue placeholder={selectedManufacturer ? "Select vehicle model" : "Select manufacturer first"} />
+                    </SelectTrigger>
+                  </FormControl>
+                  <SelectContent>
+                    {selectedManufacturer &&
+                      uaeVehicleModels[selectedManufacturer]?.map((model) => (
+                        <SelectItem key={model} value={model}>
+                          {model}
+                        </SelectItem>
+                      ))}
+                  </SelectContent>
+                </Select>
                 <FormMessage />
               </FormItem>
             )}
