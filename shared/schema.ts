@@ -1,4 +1,4 @@
-import { pgTable, text, serial, integer, timestamp, json, boolean, index } from "drizzle-orm/pg-core";
+import { pgTable, text, serial, integer, timestamp, json, boolean, index, decimal } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 import { relations } from "drizzle-orm";
@@ -104,6 +104,7 @@ export const BookingPurpose = {
   FREIGHT_TRANSPORT: "Freight Transport"
 } as const;
 
+// Add back the CargoType enum before VehicleFuelType
 export const CargoType = {
   GENERAL: "General Cargo",
   TEMPERATURE_CONTROLLED: "Temperature Controlled",
@@ -177,18 +178,18 @@ export const vehicleTypeMaster = pgTable("vehicle_type_master", {
   modelYear: integer("model_year").notNull(),
   numberOfPassengers: integer("number_of_passengers").notNull(),
   region: text("region").notNull(),
-  fuelEfficiency: integer("fuel_efficiency").notNull(), // KM/L
-  fuelPricePerLitre: integer("fuel_price_per_litre").notNull(), // Price per litre
+  fuelEfficiency: decimal("fuel_efficiency", { precision: 10, scale: 2 }).notNull(), // Changed to decimal
+  fuelPricePerLitre: decimal("fuel_price_per_litre", { precision: 10, scale: 2 }).notNull(), // Changed to decimal
   fuelType: text("fuel_type").notNull(),
   servicePlan: text("service_plan").notNull(),
-  costPerKm: integer("cost_per_km").notNull(),
+  costPerKm: decimal("cost_per_km", { precision: 10, scale: 2 }).notNull(), // Changed to decimal
   vehicleType: text("vehicle_type").notNull(),
   department: text("department").notNull(),
   unit: text("unit"),
   alertBefore: integer("alert_before").notNull(),
-  idleFuelConsumption: integer("idle_fuel_consumption").notNull(),
+  idleFuelConsumption: decimal("idle_fuel_consumption", { precision: 10, scale: 2 }).notNull(), // Changed to decimal
   vehicleCapacity: integer("vehicle_capacity").notNull(),
-  co2EmissionFactor: integer("co2_emission_factor").notNull().default(0),
+  co2EmissionFactor: decimal("co2_emission_factor", { precision: 10, scale: 2 }).notNull().default('0'), // Changed to decimal
   isActive: boolean("is_active").notNull().default(true),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow()
