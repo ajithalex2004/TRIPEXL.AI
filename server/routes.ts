@@ -50,6 +50,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
     app.use(vehicleTypeMasterRouter);
     log("Vehicle type master routes registered");
 
+    // Add this route with the existing vehicle master routes
+    app.get("/api/vehicle-type-master", async (_req, res) => {
+      try {
+        console.log("Fetching all vehicle type master records");
+        const vehicleTypes = await storage.getAllVehicleTypes();
+        console.log("Retrieved vehicle type master records:", vehicleTypes);
+        res.json(vehicleTypes);
+      } catch (error: any) {
+        console.error("Error fetching vehicle type master records:", error);
+        res.status(500).json({ error: "Failed to fetch vehicle type master records" });
+      }
+    });
+
+
     // Auth routes
     log("Registering auth routes...");
     app.post("/api/login", async (req, res) => {

@@ -65,15 +65,28 @@ export interface IStorage {
 export class DatabaseStorage implements IStorage {
   // Vehicle Type Master methods
   async getAllVehicleTypes(): Promise<VehicleTypeMaster[]> {
-    return await db.select().from(schema.vehicleTypeMaster);
+    try {
+      console.log("Querying vehicle type master records");
+      const vehicleTypes = await db.select().from(schema.vehicleTypeMaster);
+      console.log("Found vehicle types:", vehicleTypes);
+      return vehicleTypes;
+    } catch (error) {
+      console.error("Error in getAllVehicleTypes:", error);
+      throw error;
+    }
   }
 
   async getVehicleType(id: number): Promise<VehicleTypeMaster | null> {
-    const [type] = await db
-      .select()
-      .from(schema.vehicleTypeMaster)
-      .where(eq(schema.vehicleTypeMaster.id, id));
-    return type || null;
+    try {
+      const [type] = await db
+        .select()
+        .from(schema.vehicleTypeMaster)
+        .where(eq(schema.vehicleTypeMaster.id, id));
+      return type || null;
+    } catch (error) {
+      console.error("Error in getVehicleType:", error);
+      throw error;
+    }
   }
 
   async createVehicleType(type: InsertVehicleTypeMaster): Promise<VehicleTypeMaster> {
