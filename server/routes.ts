@@ -8,6 +8,7 @@ import jwt from "jsonwebtoken";
 import XLSX from "xlsx";
 import multer from "multer";
 import vehicleTypeMasterRouter from "./routes/vehicle-type-master";
+import { ecoRoutesRouter } from "./routes/eco-routes"; // Add this import
 import { log } from "./vite";
 
 // Configure multer for handling file uploads
@@ -160,7 +161,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
         res.status(400).json({ error: error.message }); 
       }
     });
-
 
     // Get all vehicles
     app.get("/api/vehicles", async (_req, res) => {
@@ -548,6 +548,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
         res.status(500).json({ error: "Failed to generate template" });
       }
     });
+
+    // Add eco-routes router
+    log("Registering eco-routes...");
+    app.use(ecoRoutesRouter);
+    log("Eco-routes registered");
 
     log("All routes registered successfully");
     return httpServer;
