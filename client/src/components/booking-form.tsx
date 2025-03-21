@@ -254,14 +254,16 @@ export function BookingForm() {
   // Update the mutation and onSubmit handlers
   const createBooking = useMutation({
     mutationFn: async (data: any) => {
-      console.log("Submitting booking data:", data);
+      console.log("Mutation sending data:", JSON.stringify(data, null, 2));
       const response = await apiRequest("POST", "/api/bookings", data);
       if (!response.ok) {
         const error = await response.json();
-        console.error("Booking creation error:", error);
+        console.error("Booking creation failed:", error);
         throw new Error(error.message || "Failed to create booking");
       }
-      return response.json();
+      const result = await response.json();
+      console.log("Booking created successfully:", result);
+      return result;
     },
     onSuccess: (response) => {
       // Show success dialog with animation
@@ -270,6 +272,9 @@ export function BookingForm() {
 
       // Invalidate queries to refresh booking list
       queryClient.invalidateQueries({ queryKey: ["/api/bookings"] });
+
+      // Reset form
+      form.reset();
     },
     onError: (error: any) => {
       console.error("Booking creation error:", error);
@@ -293,10 +298,11 @@ export function BookingForm() {
   // Update the onSubmit function to properly format the data
   const handleSubmit = async (data: any) => {
     try {
-      console.log("Starting form submission with data:", data);
+      console.log("Form submission started with data:", JSON.stringify(data, null, 2));
 
       const isValid = await form.trigger();
       if (!isValid) {
+        console.error("Form validation failed:", form.formState.errors);
         toast({
           title: "Validation Error",
           description: "Please check all required fields and try again.",
@@ -347,13 +353,9 @@ export function BookingForm() {
         remarks: data.remarks || ""
       };
 
-      console.log("Submitting booking data:", bookingData);
-      const response = await createBooking.mutateAsync(bookingData);
+      console.log("Submitting booking data:", JSON.stringify(bookingData, null, 2));
+      await createBooking.mutateAsync(bookingData);
 
-      if (response?.referenceNo) {
-        setCreatedReferenceNo(response.referenceNo);
-        setShowSuccessDialog(true);
-      }
     } catch (error: any) {
       console.error("Form submission error:", error);
       toast({
