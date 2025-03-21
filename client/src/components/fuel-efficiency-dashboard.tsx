@@ -24,8 +24,12 @@ export function FuelEfficiencyDashboard() {
     return <div>Loading dashboard...</div>;
   }
 
+  if (!vehicleTypes || vehicleTypes.length === 0) {
+    return <div>No vehicle data available.</div>;
+  }
+
   // Prepare data for the charts
-  const manufacturerEfficiency = vehicleTypes?.reduce((acc, vehicle) => {
+  const manufacturerEfficiency = vehicleTypes.reduce((acc, vehicle) => {
     if (!acc[vehicle.manufacturer]) {
       acc[vehicle.manufacturer] = {
         manufacturer: vehicle.manufacturer,
@@ -38,7 +42,7 @@ export function FuelEfficiencyDashboard() {
     return acc;
   }, {} as Record<string, { manufacturer: string; avgEfficiency: number; count: number }>);
 
-  const manufacturerData = Object.values(manufacturerEfficiency || {}).map(
+  const manufacturerData = Object.values(manufacturerEfficiency).map(
     (item) => ({
       manufacturer: item.manufacturer,
       avgEfficiency: Number((item.avgEfficiency / item.count).toFixed(2)),
@@ -46,7 +50,7 @@ export function FuelEfficiencyDashboard() {
   );
 
   // Prepare year-wise efficiency data
-  const yearlyEfficiency = vehicleTypes?.reduce((acc, vehicle) => {
+  const yearlyEfficiency = vehicleTypes.reduce((acc, vehicle) => {
     if (!acc[vehicle.modelYear]) {
       acc[vehicle.modelYear] = {
         year: vehicle.modelYear,
@@ -59,7 +63,7 @@ export function FuelEfficiencyDashboard() {
     return acc;
   }, {} as Record<number, { year: number; avgEfficiency: number; count: number }>);
 
-  const yearlyData = Object.values(yearlyEfficiency || {})
+  const yearlyData = Object.values(yearlyEfficiency)
     .map((item) => ({
       year: item.year,
       avgEfficiency: Number((item.avgEfficiency / item.count).toFixed(2)),
@@ -67,7 +71,7 @@ export function FuelEfficiencyDashboard() {
     .sort((a, b) => a.year - b.year);
 
   return (
-    <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-2">
+    <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-2 p-4">
       {/* Manufacturer-wise Comparison */}
       <Card>
         <CardHeader>
