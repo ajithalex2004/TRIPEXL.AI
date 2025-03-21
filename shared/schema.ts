@@ -144,6 +144,12 @@ export const PlateCategory = {
   SPECIAL: "Special"
 } as const;
 
+// Add the YesNo enum type for highlighted fields
+export const YesNo = {
+  YES: "YES",
+  NO: "NO"
+} as const;
+
 export const locations = z.object({
   address: z.string(),
   coordinates: z.object({
@@ -454,7 +460,7 @@ export const insertVehicleTypeMasterSchema = createInsertSchema(vehicleTypeMaste
     co2EmissionFactor: z.number().min(0, "CO2 emission factor must be positive")
   });
 
-// Add after other table definitions
+// Update the vehicle master table definition to use text for highlighted fields
 export const vehicleMaster = pgTable("vehicle_master", {
   id: serial("id").primaryKey(),
   vehicleId: text("vehicle_id").notNull().unique(), // Red
@@ -486,11 +492,11 @@ export const vehicleMaster = pgTable("vehicle_master", {
   simCardNumber: text("sim_card_number"),
   vehicleUsage: text("vehicle_usage").notNull(), // Red
 
-  // Sensor Status Fields (Yellow/Blue highlighted)
-  isCanConnected: boolean("is_can_connected").notNull().default(false),
-  isWeightSensorConnected: boolean("is_weight_sensor_connected").notNull().default(false),
-  isTemperatureSensorConnected: boolean("is_temperature_sensor_connected").notNull().default(false),
-  isPtoConnected: boolean("is_pto_connected").notNull().default(false),
+  // Yellow/Blue highlighted fields as YES/NO text fields
+  isCanConnected: text("is_can_connected").notNull(), // Changed to text
+  isWeightSensorConnected: text("is_weight_sensor_connected").notNull(), // Changed to text
+  isTemperatureSensorConnected: text("is_temperature_sensor_connected").notNull(), // Changed to text
+  isPtoConnected: text("is_pto_connected").notNull(), // Changed to text
 
   // Document tracking
   documentNo: text("document_no"),
@@ -503,7 +509,7 @@ export const vehicleMaster = pgTable("vehicle_master", {
   updatedAt: timestamp("updated_at").notNull().defaultNow()
 });
 
-// Create insert schema
+// Update the insert schema with YES/NO validation
 export const insertVehicleMasterSchema = createInsertSchema(vehicleMaster)
   .extend({
     plateCategory: z.enum(Object.values(PlateCategory) as [string, ...string[]]),
@@ -511,6 +517,11 @@ export const insertVehicleMasterSchema = createInsertSchema(vehicleMaster)
     fuelType: z.enum(Object.values(VehicleFuelType) as [string, ...string[]]),
     region: z.enum(Object.values(Region) as [string, ...string[]]),
     department: z.enum(Object.values(Department) as [string, ...string[]]),
+    // Add YES/NO validation for highlighted fields
+    isCanConnected: z.enum(Object.values(YesNo) as [string, ...string[]]),
+    isWeightSensorConnected: z.enum(Object.values(YesNo) as [string, ...string[]]),
+    isTemperatureSensorConnected: z.enum(Object.values(YesNo) as [string, ...string[]]),
+    isPtoConnected: z.enum(Object.values(YesNo) as [string, ...string[]]),
   });
 
 export type Employee = typeof employees.$inferSelect;

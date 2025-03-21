@@ -45,8 +45,8 @@ export function CO2EmissionsHeatmap() {
 
   // Process data for the heatmap
   const emissionsData: EmissionDataPoint[] = vehicleTypes.map(vehicle => ({
-    x: vehicle.fuelEfficiency,
-    y: vehicle.co2EmissionFactor,
+    x: Number(vehicle.fuelEfficiency),
+    y: Number(vehicle.co2EmissionFactor),
     z: 20, // This could be based on actual usage data in the future
     name: `${vehicle.manufacturer} ${vehicle.vehicleType}`,
     fuelType: vehicle.fuelType
