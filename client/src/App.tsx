@@ -41,14 +41,14 @@ function StandaloneRoute({ component: Component }: { component: React.ComponentT
 function Router() {
   return (
     <Switch>
-      <Route path="/auth/login" component={LoginPage} />
-      <Route path="/auth/register" component={RegisterPage} />
       <Route path="/" component={() => <ProtectedRoute component={Home} />} />
+      <Route path="/auth/login" component={() => <StandaloneRoute component={LoginPage} />} />
+      <Route path="/auth/register" component={() => <StandaloneRoute component={RegisterPage} />} />
       <Route path="/new-booking" component={() => <ProtectedRoute component={NewBooking} />} />
       <Route path="/bookings" component={() => <ProtectedRoute component={BookingHistory} />} />
-      <Route path="/vehicle-groups" component={() => <StandaloneRoute component={VehicleGroupManagement} />} />
-      <Route path="/vehicle-types" component={() => <StandaloneRoute component={VehicleTypeManagement} />} />
-      <Route path="/vehicle-master" component={() => <StandaloneRoute component={VehicleMasterManagement} />} />
+      <Route path="/vehicle-groups" component={() => <ProtectedRoute component={VehicleGroupManagement} />} />
+      <Route path="/vehicle-types" component={() => <ProtectedRoute component={VehicleTypeManagement} />} />
+      <Route path="/vehicle-master" component={() => <ProtectedRoute component={VehicleMasterManagement} />} />
       <Route path="/fuel-efficiency" component={() => <ProtectedRoute component={FuelEfficiencyPage} />} />
       <Route path="/co2-emissions" component={() => <ProtectedRoute component={CO2EmissionsPage} />} />
       <Route path="/employees" component={() => <ProtectedRoute component={EmployeeManagement} />} />

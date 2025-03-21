@@ -77,47 +77,34 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       try {
-        console.log('Finding user in storage');
-        const user = await storage.findUserByEmail(email);
+        console.log('Finding employee in storage');
+        const employee = await storage.findEmployeeByEmail(email);
 
-        if (!user) {
-          console.log('User not found:', email);
+        if (!employee) {
+          console.log('Employee not found:', email);
           return res.status(401).json({ error: "Invalid credentials" });
         }
 
         console.log('Comparing passwords');
-        const isValidPassword = await bcrypt.compare(password, user.passwordHash);
+        const isValidPassword = await bcrypt.compare(password, employee.password);
 
         if (!isValidPassword) {
-          console.log('Invalid password for user:', email);
+          console.log('Invalid password for employee:', email);
           return res.status(401).json({ error: "Invalid credentials" });
         }
 
-        // Temporarily skip verification check
-        // if (!user.isVerified) {
-        //   console.log('User not verified:', email);
-        //   return res.status(401).json({ error: "Please verify your account first" });
-        // }
-
-        // Get employee details
-        const employee = await storage.findEmployeeByIdAndEmail(user.employeeId, user.email);
-        if (!employee) {
-          console.log('Employee not found for user:', email);
-          return res.status(404).json({ error: "Employee not found" });
-        }
-
-        // Update last login time
-        await storage.updateUserLastLogin(user.id);
-
         // Generate JWT token
         const token = jwt.sign(
-          { userId: user.id, email: user.email },
+          { employeeId: employee.employeeId, email: employee.emailId },
           process.env.JWT_SECRET || 'dev-secret-key',
           { expiresIn: '24h' }
         );
 
-        console.log('Login successful for user:', email);
-        res.json({ token, user, employee });
+        // Remove password from response
+        const { password: _, ...employeeData } = employee;
+
+        console.log('Login successful for employee:', email);
+        res.json({ token, employee: employeeData });
       } catch (error: any) {
         console.error('Login error:', error);
         res.status(500).json({ error: "Server error during login" }); 
