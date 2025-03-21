@@ -213,38 +213,41 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
     });
 
-    // Update the booking creation route to include status tracking and history
+    // Update the booking creation route
     app.post("/api/bookings", async (req, res) => {
-      console.log("Received booking request:", req.body);
+      console.log("Received booking request:", JSON.stringify(req.body, null, 2));
 
       try {
         const result = insertBookingSchema.safeParse(req.body);
+
         if (!result.success) {
-          console.error("Invalid booking data:", result.error.issues);
-          return res.status(400).json({ 
-            error: "Invalid booking data", 
-            details: result.error.issues 
-          }); 
+          console.error("Validation errors:", result.error.issues);
+          return res.status(400).json({
+            error: "Invalid booking data",
+            details: result.error.issues
+          });
         }
 
         // Determine initial status based on priority
         const isHighPriority = ["Critical", "Emergency", "High"].includes(result.data.priority);
         const initialStatus = isHighPriority ? "approved" : "new";
 
-        // Prepare booking data with defaults
+        // Prepare booking data
         const bookingData = {
           ...result.data,
           referenceNo: result.data.referenceNo || `BK${Date.now()}${Math.floor(Math.random() * 1000)}`,
-          status: initialStatus
+          status: initialStatus,
+          createdAt: new Date(),
+          updatedAt: new Date()
         };
 
-        console.log("Creating booking with data:", bookingData);
+        console.log("Creating booking with data:", JSON.stringify(bookingData, null, 2));
 
         // Create the booking
         const booking = await storage.createBooking(bookingData);
-        console.log("Created booking:", booking);
+        console.log("Successfully created booking:", JSON.stringify(booking, null, 2));
 
-        // Calculate metadata
+        // Calculate and update metadata
         const totalDistance = calculateTotalDistance(booking.pickupLocation, booking.dropoffLocation);
         const estimatedCost = calculateEstimatedCost(booking);
         const co2Emissions = calculateCO2Emissions(booking);
@@ -261,9 +264,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         res.status(201).json(updatedBooking);
       } catch (error: any) {
         console.error("Error creating booking:", error);
-        res.status(500).json({ 
+        res.status(500).json({
           error: "Failed to create booking",
-          details: error.message 
+          details: error.message
         });
       }
     });

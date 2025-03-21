@@ -562,39 +562,42 @@ export const vehicleMasterRelations = relations(vehicleMaster, ({ one }) => ({
   }),
 }));
 
+// Update the insertBookingSchema to be more flexible
 export const insertBookingSchema = createInsertSchema(bookings)
   .extend({
     bookingType: z.enum([BookingType.FREIGHT, BookingType.PASSENGER, BookingType.AMBULANCE]),
     purpose: z.enum(Object.values(BookingPurpose) as [string, ...string[]]),
     priority: z.enum(Object.values(Priority) as [string, ...string[]]),
     tripType: z.enum(Object.values(TripType) as [string, ...string[]]).optional(),
-    status: z.enum(["new", "pending", "approved", "confirmed", "in_progress", "completed", "cancelled"] as [string, ...string[]]).default("new"), //updated to include approved
-    withDriver: z.boolean().optional(),
-    bookingForSelf: z.boolean().optional(),
-    passengerDetails: z.array(
-      z.object({
-        name: z.string().min(1, "Passenger name is required"),
-        contact: z.string().min(1, "Contact details are required")
-      })
-    ).optional(),
-    boxSize: z.array(z.enum(Object.values(BoxSize) as [string, ...string[]]))
-      .optional(),
+    status: z.enum(["new", "pending", "approved", "confirmed", "in_progress", "completed", "cancelled"] as [string, ...string[]]).optional(),
+    cargoType: z.enum(Object.values(CargoType) as [string, ...string[]]).optional(),
+    boxSize: z.array(z.enum(Object.values(BoxSize) as [string, ...string[]])).optional(),
+
+    // Make location objects more flexible
     pickupLocation: z.object({
-      address: z.string().min(1, "Pickup address is required"),
+      address: z.string(),
       coordinates: z.object({
         lat: z.number(),
         lng: z.number()
       })
     }),
     dropoffLocation: z.object({
-      address: z.string().min(1, "Dropoff address is required"),
+      address: z.string(),
       coordinates: z.object({
         lat: z.number(),
         lng: z.number()
       })
     }),
-    pickupTime: z.string().min(1, "Pickup time is required"),
-    dropoffTime: z.string().min(1, "Dropoff time is required"),
+
+    // Optional fields
+    withDriver: z.boolean().optional(),
+    bookingForSelf: z.boolean().optional(),
+    passengerDetails: z.array(
+      z.object({
+        name: z.string(),
+        contact: z.string()
+      })
+    ).optional(),
     referenceNo: z.string().optional(),
     remarks: z.string().optional(),
     assignedVehicleId: z.number().optional(),
@@ -606,8 +609,7 @@ export const insertBookingSchema = createInsertSchema(bookings)
     co2Emissions: z.number().optional(),
     numPassengers: z.number().optional(),
     numBoxes: z.number().optional(),
-    weight: z.number().optional(),
-    cargoType: z.string().optional()
+    weight: z.number().optional()
   });
 
 export const insertEmployeeSchema = createInsertSchema(employees);
