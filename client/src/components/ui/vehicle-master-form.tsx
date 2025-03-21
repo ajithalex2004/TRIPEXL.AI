@@ -41,6 +41,7 @@ import {
   DialogTitle,
   DialogFooter,
 } from "@/components/ui/dialog";
+import { EmiratesSpinner } from "@/components/ui/emirates-spinner";
 
 interface VehicleMasterFormProps {
   isOpen: boolean;
@@ -53,9 +54,22 @@ export function VehicleMasterForm({ isOpen, onClose }: VehicleMasterFormProps) {
   const [selectedEmirate, setSelectedEmirate] = React.useState<string>("");
   const [selectedCategory, setSelectedCategory] = React.useState<string>("");
 
-  const { data: vehicleTypes } = useQuery<VehicleTypeMaster[]>({
+  const { data: vehicleTypes, isLoading: isLoadingVehicleTypes } = useQuery<VehicleTypeMaster[]>({
     queryKey: ["/api/vehicle-type-master"],
   });
+
+  // Show loading spinner while vehicle types are being fetched
+  if (isLoadingVehicleTypes) {
+    return (
+      <Dialog open={isOpen} onOpenChange={onClose}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <div className="flex items-center justify-center p-8">
+            <EmiratesSpinner size="lg" />
+          </div>
+        </DialogContent>
+      </Dialog>
+    );
+  }
 
   const form = useForm({
     resolver: zodResolver(insertVehicleMasterSchema),
@@ -331,8 +345,8 @@ export function VehicleMasterForm({ isOpen, onClose }: VehicleMasterFormProps) {
                       </FormControl>
                       <SelectContent>
                         {vehicleTypes?.map((type) => (
-                          <SelectItem 
-                            key={type.vehicleTypeCode} 
+                          <SelectItem
+                            key={type.vehicleTypeCode}
                             value={type.vehicleTypeCode}
                           >
                             {type.vehicleTypeCode}
