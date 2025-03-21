@@ -215,45 +215,49 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
     // Update the booking creation route to include status tracking and history
     app.post("/api/bookings", async (req, res) => {
+      console.log("Received booking request:", req.body);
       const result = insertBookingSchema.safeParse(req.body);
       if (!result.success) {
-        return res.status(400).json({ error: "Invalid booking data", details: result.error.issues }); 
+        console.error("Invalid booking data:", result.error.issues);
+        return res.status(400).json({ 
+          error: "Invalid booking data", 
+          details: result.error.issues 
+        }); 
       }
 
       try {
-        // Generate a unique reference number
-        const referenceNo = `BK${Date.now()}${Math.floor(Math.random() * 1000)}`;
-
-        // Add reference number and initial status to booking data
+        // Generate a unique reference number if not provided
         const bookingData = {
           ...result.data,
-          referenceNo,
+          referenceNo: result.data.referenceNo || `BK${Date.now()}${Math.floor(Math.random() * 1000)}`,
           status: "pending",
           createdAt: new Date(),
           updatedAt: new Date()
         };
 
+        console.log("Creating booking with data:", bookingData);
         const booking = await storage.createBooking(bookingData);
+        console.log("Created booking:", booking);
 
-        if (booking.status === "pending") {
-          return res.status(409).json({ 
-            error: "No suitable vehicle/driver combination found",
-            booking 
-          });
-        }
+        // Calculate metadata
+        const totalDistance = calculateTotalDistance(booking.pickupLocation, booking.dropoffLocation);
+        const estimatedCost = calculateEstimatedCost(booking);
+        const co2Emissions = calculateCO2Emissions(booking);
 
-        // If booking is successful, include metadata
-        const bookingWithMetadata = {
-          ...booking,
-          totalDistance: calculateTotalDistance(booking.pickupLocation, booking.dropoffLocation),
-          estimatedCost: calculateEstimatedCost(booking),
-          co2Emissions: calculateCO2Emissions(booking)
-        };
+        // Update booking with metadata
+        const updatedBooking = await storage.updateBookingMetadata(booking.id, {
+          totalDistance,
+          estimatedCost,
+          co2Emissions
+        });
 
-        res.json(bookingWithMetadata);
+        res.status(201).json(updatedBooking);
       } catch (error: any) {
         console.error("Error creating booking:", error);
-        res.status(500).json({ error: "Failed to create booking" });
+        res.status(500).json({ 
+          error: "Failed to create booking",
+          details: error.message 
+        });
       }
     });
 

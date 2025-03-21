@@ -26,6 +26,14 @@ export interface IStorage {
   createBooking(booking: InsertBooking): Promise<Booking>;
   assignBooking(bookingId: number, vehicleId: number, driverId: number): Promise<Booking>;
   updateBookingStatus(id: number, status: string): Promise<Booking>;
+  updateBookingMetadata(
+    bookingId: number,
+    metadata: {
+      totalDistance?: number;
+      estimatedCost?: number;
+      co2Emissions?: number;
+    }
+  ): Promise<Booking>;
 
   // Employee methods
   findEmployeeByIdAndEmail(employeeId: string, email: string): Promise<Employee | null>;
@@ -249,16 +257,19 @@ export class DatabaseStorage implements IStorage {
   }
   async createBooking(bookingData: InsertBooking): Promise<Booking> {
     try {
-      // Insert the booking with metadata
+      console.log("Storage: Creating booking with data:", bookingData);
+
+      // Insert the booking
       const [booking] = await db
         .insert(schema.bookings)
         .values({
           ...bookingData,
-          status: "pending",
           createdAt: new Date(),
           updatedAt: new Date()
         })
         .returning();
+
+      console.log("Storage: Created booking:", booking);
 
       // If we have vehicle and driver assignments, update their status
       if (booking.assignedVehicleId) {
@@ -271,7 +282,7 @@ export class DatabaseStorage implements IStorage {
 
       return booking;
     } catch (error) {
-      console.error("Error creating booking:", error);
+      console.error("Storage: Error creating booking:", error);
       throw error;
     }
   }
@@ -406,6 +417,25 @@ export class DatabaseStorage implements IStorage {
       .where(eq(schema.otpVerifications.id, verificationId))
       .returning();
     return verification;
+  }
+  async updateBookingMetadata(
+    bookingId: number,
+    metadata: {
+      totalDistance?: number;
+      estimatedCost?: number;
+      co2Emissions?: number;
+    }
+  ): Promise<Booking> {
+    const [updatedBooking] = await db
+      .update(schema.bookings)
+      .set({
+        ...metadata,
+        updatedAt: new Date()
+      })
+      .where(eq(schema.bookings.id, bookingId))
+      .returning();
+
+    return updatedBooking;
   }
 }
 
