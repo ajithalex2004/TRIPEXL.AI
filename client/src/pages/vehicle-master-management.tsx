@@ -28,6 +28,14 @@ const columns = [
     accessorKey: "registrationNumber",
   },
   {
+    header: "Vehicle Type Code",
+    accessorKey: "vehicleTypeCode",
+  },
+  {
+    header: "Vehicle Type Name",
+    accessorKey: "vehicleTypeName",
+  },
+  {
     header: "Model",
     accessorKey: "vehicleModel",
   },

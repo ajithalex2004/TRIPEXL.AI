@@ -512,6 +512,7 @@ export const vehicleMaster = pgTable("vehicle_master", {
   plateCode: text("plate_code").notNull(), // Red
   currentOdometer: decimal("current_odometer", { precision: 10, scale: 2 }).notNull(), // Red
   plateCategory: text("plate_category").notNull(),
+  vehicleTypeCode: text("vehicle_type_code").references(() => vehicleTypeMaster.vehicleTypeCode).notNull(),
   vehicleTypeName: text("vehicle_type_name").notNull(),
   stopRunModeCommFreq: decimal("stop_run_mode_comm_freq", { precision: 10, scale: 2 }), // Seconds
   maxSpeed: decimal("max_speed", { precision: 10, scale: 2 }),
@@ -551,6 +552,14 @@ export const vehicleMaster = pgTable("vehicle_master", {
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow()
 });
+
+// Add the relation
+export const vehicleMasterRelations = relations(vehicleMaster, ({ one }) => ({
+  vehicleType: one(vehicleTypeMaster, {
+    fields: [vehicleMaster.vehicleTypeCode],
+    references: [vehicleTypeMaster.vehicleTypeCode],
+  }),
+}));
 
 // Update the insert schema to use Emirates enum
 export const insertVehicleMasterSchema = createInsertSchema(vehicleMaster)

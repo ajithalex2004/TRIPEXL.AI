@@ -1,16 +1,17 @@
 import * as React from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { 
-  insertVehicleMasterSchema, 
-  YesNo, 
-  PlateCategory, 
-  TransmissionType, 
-  VehicleFuelType, 
-  Region, 
-  Department, 
+import {
+  insertVehicleMasterSchema,
+  YesNo,
+  PlateCategory,
+  TransmissionType,
+  VehicleFuelType,
+  Region,
+  Department,
   Emirates,
-  EmiratesPlateInfo
+  EmiratesPlateInfo,
+  VehicleTypeMaster,
 } from "@shared/schema";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
@@ -50,6 +51,10 @@ export function VehicleMasterForm({ isOpen, onClose }: VehicleMasterFormProps) {
   const queryClient = useQueryClient();
   const [selectedEmirate, setSelectedEmirate] = React.useState<string>("");
 
+  const { data: vehicleTypes } = useQuery<VehicleTypeMaster[]>({
+    queryKey: ["/api/vehicle-type-master"],
+  });
+
   const form = useForm({
     resolver: zodResolver(insertVehicleMasterSchema),
     defaultValues: {
@@ -60,6 +65,7 @@ export function VehicleMasterForm({ isOpen, onClose }: VehicleMasterFormProps) {
       currentOdometer: "0",
       plateCategory: "",
       vehicleTypeName: "",
+      vehicleTypeCode: "", // Added default value
       vehicleModel: "",
       fuelType: "",
       transmissionType: "",
@@ -76,7 +82,7 @@ export function VehicleMasterForm({ isOpen, onClose }: VehicleMasterFormProps) {
       isWeightSensorConnected: YesNo.NO,
       isTemperatureSensorConnected: YesNo.NO,
       isPtoConnected: YesNo.NO,
-    }
+    },
   });
 
   const createVehicle = useMutation({
@@ -110,12 +116,19 @@ export function VehicleMasterForm({ isOpen, onClose }: VehicleMasterFormProps) {
     createVehicle.mutate(data);
   };
 
-  // Handle emirate change to reset dependent fields
   const handleEmirateChange = (value: string) => {
     form.setValue("emirate", value);
     form.setValue("plateCategory", "");
     form.setValue("plateCode", "");
     setSelectedEmirate(value);
+  };
+
+  const handleVehicleTypeSelect = (typeCode: string) => {
+    const selectedType = vehicleTypes?.find(type => type.vehicleTypeCode === typeCode);
+    if (selectedType) {
+      form.setValue("vehicleTypeCode", selectedType.vehicleTypeCode);
+      form.setValue("vehicleTypeName", selectedType.vehicleType);
+    }
   };
 
   return (
@@ -235,7 +248,33 @@ export function VehicleMasterForm({ isOpen, onClose }: VehicleMasterFormProps) {
                 )}
               />
 
-              {/* Vehicle Type Name */}
+              {/* Vehicle Type Code */}
+              <FormField
+                control={form.control}
+                name="vehicleTypeCode"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Vehicle Type Code *</FormLabel>
+                    <Select onValueChange={handleVehicleTypeSelect} value={field.value}>
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select vehicle type" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {vehicleTypes?.map((type) => (
+                          <SelectItem key={type.vehicleTypeCode} value={type.vehicleTypeCode}>
+                            {type.vehicleTypeCode} - {type.vehicleType}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              {/* Vehicle Type Name - Read only */}
               <FormField
                 control={form.control}
                 name="vehicleTypeName"
@@ -243,7 +282,7 @@ export function VehicleMasterForm({ isOpen, onClose }: VehicleMasterFormProps) {
                   <FormItem>
                     <FormLabel>Vehicle Type Name</FormLabel>
                     <FormControl>
-                      <Input placeholder="Enter Vehicle Type Name" {...field} />
+                      <Input placeholder="Vehicle Type Name" {...field} readOnly />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
