@@ -35,60 +35,47 @@ export function EmiratesSpinner({ className, size = 'md', ...props }: EmiratesSp
           className="animate-[dash_1.5s_ease-in-out_infinite]"
         />
 
-        {/* Middle circle - Green */}
+        {/* Middle circle - Blue */}
         <circle
           cx="25"
           cy="25"
           r="15"
-          stroke="#009739"
+          stroke="#004990"
           strokeWidth="4"
           fill="none"
           strokeDasharray="23.6 70.8"
           className="animate-[dash_1.5s_ease-in-out_infinite_reverse]"
         />
 
-        {/* Inner circle - Black */}
+        {/* Inner circle - Light Blue */}
         <circle
           cx="25"
           cy="25"
           r="10"
-          stroke="#000000"
+          stroke="#0066cc"
           strokeWidth="4"
           fill="none"
           strokeDasharray="15.7 47.1"
           className="animate-[dash_1.5s_ease-in-out_infinite]"
         />
 
-        {/* Center white background for text */}
+        {/* Center circle for logo background */}
         <circle
           cx="25"
           cy="25"
-          r="6"
+          r="8"
           fill="#FFFFFF"
-          stroke="#000000"
-          strokeWidth="1"
         />
 
-        {/* Animated EXL text */}
-        <text
-          x="25"
-          y="27"
-          fontSize="6"
-          fontWeight="bold"
-          textAnchor="middle"
-          fill="#EF3340"
-          className="font-sans"
-        >
-          EXL
-          <animateTransform
-            attributeName="transform"
-            type="rotate"
-            from="0 25 25"
-            to="360 25 25"
-            dur="3s"
-            repeatCount="indefinite"
-          />
-        </text>
+        {/* EXL Logo */}
+        <image
+          href="/attached_assets/image_1742546091702.png"
+          x="17"
+          y="17"
+          width="16"
+          height="16"
+          preserveAspectRatio="xMidYMid meet"
+        />
       </svg>
     </div>
   );
