@@ -1,4 +1,3 @@
-```tsx
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
@@ -69,10 +68,27 @@ export default function UserManagementPage() {
                   <TableCell>
                     <Badge variant="outline">{user.userType}</Badge>
                   </TableCell>
-                  <TableCell>{user.userOperationType}</TableCell>
+                  <TableCell>
+                    <Badge
+                      variant="outline"
+                      className={
+                        user.userOperationType === UserOperationType.ADMIN
+                          ? "bg-blue-100 text-blue-800"
+                          : user.userOperationType === UserOperationType.MANAGEMENT
+                          ? "bg-purple-100 text-purple-800"
+                          : user.userOperationType === UserOperationType.SUPERVISOR
+                          ? "bg-green-100 text-green-800"
+                          : user.userOperationType === UserOperationType.EMPLOYEE
+                          ? "bg-yellow-100 text-yellow-800"
+                          : "bg-gray-100 text-gray-800"
+                      }
+                    >
+                      {user.userOperationType}
+                    </Badge>
+                  </TableCell>
                   <TableCell>{user.userGroup}</TableCell>
                   <TableCell>
-                    <Badge variant={user.isActive ? "success" : "destructive"}>
+                    <Badge variant={user.isActive ? "default" : "destructive"}>
                       {user.isActive ? "Active" : "Inactive"}
                     </Badge>
                   </TableCell>
@@ -90,4 +106,3 @@ export default function UserManagementPage() {
     </div>
   );
 }
-```

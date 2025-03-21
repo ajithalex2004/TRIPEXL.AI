@@ -1,7 +1,8 @@
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
-import type { Employee, InsertUser, User } from '@shared/schema';
+import { Employee, InsertUser, User } from '@shared/schema';
 import { storage } from '../storage';
+import { UserType, UserOperationType, UserGroup } from '@shared/schema';
 
 // Mock SMS service for development
 const smsService = {
@@ -18,22 +19,22 @@ export class AuthService {
 
   private generateToken(user: User): Promise<string> {
     return Promise.resolve(jwt.sign(
-      { userId: user.id, email: user.email },
+      { userId: user.id, emailId: user.emailId },
       process.env.JWT_SECRET || 'dev-secret-key',
       { expiresIn: '24h' }
     ));
   }
 
-  async verifyEmployee(employeeId: string, email: string): Promise<Employee | null> {
-    if (!employeeId || !email) {
-      console.log('Missing employee verification data:', { employeeId, email });
+  async verifyEmployee(employeeId: string, emailId: string): Promise<Employee | null> {
+    if (!employeeId || !emailId) {
+      console.log('Missing employee verification data:', { employeeId, emailId });
       return null;
     }
 
     try {
-      const employee = await storage.findEmployeeByIdAndEmail(employeeId, email);
+      const employee = await storage.findEmployeeByIdAndEmail(employeeId, emailId);
       if (!employee || !employee.isActive) {
-        console.log('Employee verification failed:', { employeeId, email });
+        console.log('Employee verification failed:', { employeeId, emailId });
         return null;
       }
       return employee;
@@ -44,8 +45,7 @@ export class AuthService {
   }
 
   private async createHashedPassword(password: string): Promise<string> {
-    const salt = await bcrypt.genSalt(10);
-    return bcrypt.hash(password, salt);
+    return bcrypt.hash(password, 10);
   }
 
   async registerUser(userData: InsertUser, password: string): Promise<{ user: User; otp: string }> {
@@ -64,7 +64,6 @@ export class AuthService {
     try {
       // Hash password
       const passwordHash = await this.createHashedPassword(password);
-
 
       // Create user
       const user = await storage.createUser({
@@ -161,16 +160,20 @@ export class AuthService {
       const existingUser = await storage.findUserByEmail("john.smith@company.com");
       if (!existingUser) {
         // Create a new password hash
-        const salt = await bcrypt.genSalt(10);
-        const passwordHash = await bcrypt.hash("Code@4088", salt);
+        const password = await this.createHashedPassword("Code@4088");
 
         await storage.createUser({
-          employeeId: "EMP001",
-          email: "john.smith@company.com",
-          passwordHash,
-          phoneNumber: "+1234567890",
-          isVerified: true,
-          lastLogin: null,
+          userName: "john.smith",
+          userCode: "USR001",
+          userType: UserType.ADMIN,
+          emailId: "john.smith@company.com",
+          userOperationType: UserOperationType.ADMIN,
+          userGroup: UserGroup.GROUP_A,
+          firstName: "John",
+          lastName: "Smith",
+          fullName: "John Smith",
+          password,
+          isActive: true,
           createdAt: new Date(),
           updatedAt: new Date()
         });

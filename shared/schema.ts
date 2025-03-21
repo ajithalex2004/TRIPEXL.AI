@@ -3,7 +3,7 @@ import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 import { relations } from "drizzle-orm";
 
-// Add new enums for User management
+// Add actual values for UserType, UserOperationType, and UserGroup
 export const UserType = {
   ADMIN: "Admin",
   SUPERVISOR: "Supervisor",
@@ -261,9 +261,6 @@ export const AssetType = {
   NON_MOVEABLE: "Non-Moveable"
 } as const;
 
-
-// Add after the other imports
-import { relations } from "drizzle-orm";
 
 // Update the BookingStatus enum
 export const BookingStatus = {
@@ -740,12 +737,17 @@ export const insertVehicleMasterSchema = createInsertSchema(vehicleMaster)
     region: z.enum(Object.values(Region) as [string, ...string[]]),
     department: z.enum(Object.values(Department) as [string, ...string[]]),
     assetType: z.enum(Object.values(AssetType) as [string, ...string[]]), 
-    // Add YES/NO validation for highlighted fields
+    // Add YES/NO validation for highlightedfields
     isCanConnected: z.enum(Object.values(YesNo) as [string, ...string[]]),
-    isWeightSensorConnected: z.enum(Object.values(YesNo) as [string...string[]]),
+    isWeightSensorConnected: z.enum(Object.values(YesNo) as [string, ...string[]]),
     isTemperatureSensorConnected: z.enum(Object.values(YesNo) as [string, ...string[]]),
     isPPtoConnected: z.enum(Object.values(YesNo) as [string, ...string[]]),
   });
+
+// Remove duplicate InsertUser type definitions
+export type VehicleMaster = typeof vehicleMaster.$inferSelect;
+export type InsertVehicleMaster = typeof vehicleMaster.$inferInsert;
+export type InsertUser = z.infer<typeof insertUserSchema>;
 
 export type Employee = typeof employees.$inferSelect;
 export type User = typeof users.$inferSelect;
