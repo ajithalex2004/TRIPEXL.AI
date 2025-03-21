@@ -13,6 +13,7 @@ import VehicleTypeManagement from "@/pages/vehicle-type-management";
 import VehicleMasterManagement from "@/pages/vehicle-master-management";
 import FuelEfficiencyPage from "@/pages/fuel-efficiency-page";
 import CO2EmissionsPage from "@/pages/co2-emissions-page";
+import NewBooking from "@/pages/new-booking";
 import { Layout } from "@/components/layout";
 
 function ProtectedRoute({ component: Component }: { component: React.ComponentType }) {
@@ -42,6 +43,7 @@ function Router() {
       <Route path="/auth/login" component={LoginPage} />
       <Route path="/auth/register" component={RegisterPage} />
       <Route path="/" component={() => <ProtectedRoute component={Home} />} />
+      <Route path="/new-booking" component={() => <ProtectedRoute component={NewBooking} />} />
       <Route path="/bookings" component={() => <ProtectedRoute component={BookingHistory} />} />
       <Route path="/vehicle-groups" component={() => <StandaloneRoute component={VehicleGroupManagement} />} />
       <Route path="/vehicle-types" component={() => <StandaloneRoute component={VehicleTypeManagement} />} />

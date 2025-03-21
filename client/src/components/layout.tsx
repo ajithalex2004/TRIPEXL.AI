@@ -12,7 +12,17 @@ import {
 } from "@/components/ui/sidebar";
 import { Logo } from "@/components/ui/logo";
 import { Footer } from "@/components/ui/footer";
-import { History, Car, Package, Wrench, Database, ChevronDown, ChevronRight } from "lucide-react";
+import {
+  History,
+  Car,
+  Package,
+  Wrench,
+  Database,
+  ChevronDown,
+  ChevronRight,
+  PlusCircle,
+  LayoutDashboard
+} from "lucide-react";
 
 export function Layout({ children }: { children: React.ReactNode }) {
   const [isVehicleMenuOpen, setIsVehicleMenuOpen] = React.useState(false);
@@ -26,6 +36,24 @@ export function Layout({ children }: { children: React.ReactNode }) {
           </SidebarHeader>
           <SidebarContent>
             <SidebarMenu>
+              <SidebarMenuItem>
+                <Link href="/">
+                  <SidebarMenuButton className="w-full">
+                    <LayoutDashboard className="w-4 h-4" />
+                    <span>Dashboard</span>
+                  </SidebarMenuButton>
+                </Link>
+              </SidebarMenuItem>
+
+              <SidebarMenuItem>
+                <Link href="/new-booking">
+                  <SidebarMenuButton className="w-full">
+                    <PlusCircle className="w-4 h-4" />
+                    <span>New Booking</span>
+                  </SidebarMenuButton>
+                </Link>
+              </SidebarMenuItem>
+
               <SidebarMenuItem>
                 <Link href="/bookings">
                   <SidebarMenuButton className="w-full">
