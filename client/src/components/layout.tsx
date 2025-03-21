@@ -61,7 +61,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
             <SidebarMenu>
               <SidebarMenuItem>
                 <Link href="/">
-                  <SidebarMenuButton className="w-full text-white hover:bg-white/10">
+                  <SidebarMenuButton className="w-full text-white hover:bg-white/10 text-[15px] font-bold">
                     <AnimatedIcon className="text-white">
                       <LayoutDashboard className="w-4 h-4" />
                     </AnimatedIcon>
@@ -72,7 +72,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
 
               <SidebarMenuItem>
                 <Link href="/new-booking">
-                  <SidebarMenuButton className="w-full text-white hover:bg-white/10">
+                  <SidebarMenuButton className="w-full text-white hover:bg-white/10 text-[15px] font-bold">
                     <AnimatedIcon className="text-[#EF3340] animate-pulse">
                       <PlusCircle className="w-4 h-4" />
                     </AnimatedIcon>
@@ -83,7 +83,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
 
               <SidebarMenuItem>
                 <Link href="/bookings">
-                  <SidebarMenuButton className="w-full text-white hover:bg-white/10">
+                  <SidebarMenuButton className="w-full text-white hover:bg-white/10 text-[15px] font-bold">
                     <AnimatedIcon className="text-white">
                       <History className="w-4 h-4" />
                     </AnimatedIcon>
@@ -96,7 +96,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
               <div className="space-y-1">
                 <button
                   onClick={() => setIsVehicleMenuOpen(!isVehicleMenuOpen)}
-                  className="w-full flex items-center px-3 py-2 text-sm rounded-md text-white hover:bg-white/10 transition-colors"
+                  className="w-full flex items-center px-3 py-2 text-[15px] font-bold rounded-md text-white hover:bg-white/10 transition-colors"
                 >
                   <AnimatedIcon className="text-[#EF3340] mr-2">
                     <Car className="w-4 h-4 transition-transform duration-200" />
@@ -124,7 +124,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
                   className="overflow-hidden"
                 >
                   <Link href="/vehicle-groups">
-                    <SidebarMenuButton className="w-full pl-9 text-white/90 hover:bg-white/10">
+                    <SidebarMenuButton className="w-full pl-9 text-white/90 hover:bg-white/10 text-[15px] font-bold">
                       <AnimatedIcon className="text-white">
                         <Database className="w-4 h-4" />
                       </AnimatedIcon>
@@ -132,7 +132,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
                     </SidebarMenuButton>
                   </Link>
                   <Link href="/vehicle-types">
-                    <SidebarMenuButton className="w-full pl-9 text-white/90 hover:bg-white/10">
+                    <SidebarMenuButton className="w-full pl-9 text-white/90 hover:bg-white/10 text-[15px] font-bold">
                       <AnimatedIcon className="text-white">
                         <Package className="w-4 h-4" />
                       </AnimatedIcon>
@@ -140,7 +140,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
                     </SidebarMenuButton>
                   </Link>
                   <Link href="/vehicle-master">
-                    <SidebarMenuButton className="w-full pl-9 text-white/90 hover:bg-white/10">
+                    <SidebarMenuButton className="w-full pl-9 text-white/90 hover:bg-white/10 text-[15px] font-bold">
                       <AnimatedIcon className="text-white">
                         <Wrench className="w-4 h-4" />
                       </AnimatedIcon>
@@ -151,7 +151,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
               </div>
 
               <SidebarMenuItem>
-                <LogoutButton className="text-white hover:bg-white/10" />
+                <LogoutButton className="text-white hover:bg-white/10 text-[15px] font-bold" />
               </SidebarMenuItem>
             </SidebarMenu>
           </SidebarContent>
