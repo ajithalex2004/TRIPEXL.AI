@@ -227,11 +227,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
           }); 
         }
 
+        // Determine initial status based on priority
+        const isHighPriority = ["Critical", "Emergency", "High"].includes(result.data.priority);
+        const initialStatus = isHighPriority ? "approved" : "new";
+
         // Prepare booking data with defaults
         const bookingData = {
           ...result.data,
           referenceNo: result.data.referenceNo || `BK${Date.now()}${Math.floor(Math.random() * 1000)}`,
-          status: "new" // Set initial status to new
+          status: initialStatus
         };
 
         console.log("Creating booking with data:", bookingData);

@@ -236,6 +236,7 @@ import { relations } from "drizzle-orm";
 export const BookingStatus = {
   NEW: "new",
   PENDING: "pending",
+  APPROVED: "approved", // Add approved status
   CONFIRMED: "confirmed",
   IN_PROGRESS: "in_progress",
   COMPLETED: "completed",
@@ -567,7 +568,7 @@ export const insertBookingSchema = createInsertSchema(bookings)
     purpose: z.enum(Object.values(BookingPurpose) as [string, ...string[]]),
     priority: z.enum(Object.values(Priority) as [string, ...string[]]),
     tripType: z.enum(Object.values(TripType) as [string, ...string[]]).optional(),
-    status: z.enum(Object.values(BookingStatus) as [string, ...string[]]).default("new"),
+    status: z.enum(["new", "pending", "approved", "confirmed", "in_progress", "completed", "cancelled"] as [string, ...string[]]).default("new"), //updated to include approved
     withDriver: z.boolean().optional(),
     bookingForSelf: z.boolean().optional(),
     passengerDetails: z.array(
