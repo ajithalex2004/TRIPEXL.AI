@@ -22,6 +22,80 @@ import {
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 
+// Define default passenger capacities for common vehicle models
+const defaultPassengerCapacity: { [key: string]: number } = {
+  // Sedans
+  "Toyota Corolla": 5,
+  "Honda Civic": 5,
+  "Toyota Camry": 5,
+  "Honda Accord": 5,
+  "Nissan Altima": 5,
+
+  // SUVs
+  "Toyota RAV4": 5,
+  "Honda CR-V": 5,
+  "Nissan X-Trail": 7,
+  "Ford Explorer": 7,
+  "Hyundai Tucson": 5,
+
+  // Vans
+  "Toyota Hiace": 12,
+  "Ford Transit": 15,
+  "Mercedes Sprinter": 14,
+  "Hyundai H1": 12,
+
+  // Buses
+  "Toyota Coaster": 23,
+  "Mercedes Bus": 45,
+  "Volvo Bus": 50,
+
+  // Trucks
+  "Toyota Tundra": 5,
+  "Ford F-150": 5,
+  "Chevrolet Silverado": 5,
+
+  // Ambulances
+  "Toyota Ambulance": 4,
+  "Mercedes Ambulance": 4,
+  "Ford Ambulance": 4
+};
+
+// Vehicle categories for passenger capacity matching
+const vehicleCategoryPassengers: { [key: string]: number } = {
+  "Sedan": 5,
+  "SUV": 7,
+  "Van": 12,
+  "Bus": 30,
+  "Truck": 5,
+  "Ambulance": 4
+};
+
+function findPassengerCapacity(vehicleType: string): number {
+  // Direct match
+  if (defaultPassengerCapacity[vehicleType]) {
+    return defaultPassengerCapacity[vehicleType];
+  }
+
+  // Case-insensitive search
+  const lowerVehicleType = vehicleType.toLowerCase();
+
+  // Check exact matches first
+  for (const [model, capacity] of Object.entries(defaultPassengerCapacity)) {
+    if (model.toLowerCase() === lowerVehicleType) {
+      return capacity;
+    }
+  }
+
+  // Check category matches
+  for (const [category, capacity] of Object.entries(vehicleCategoryPassengers)) {
+    if (lowerVehicleType.includes(category.toLowerCase())) {
+      return capacity;
+    }
+  }
+
+  return 4; // Default passenger capacity
+}
+
 // Define default fuel efficiency values for common vehicle models
 const defaultFuelEfficiency: { [key: string]: number } = {
   // Sedans
@@ -190,11 +264,13 @@ export function VehicleTypeForm({ onSubmit, initialData, isEditing }: VehicleTyp
     }
   }, [selectedFuelType, fuelPrices, form]);
 
-  // Update fuel efficiency when vehicle type changes
+  // Update fuel efficiency and passenger capacity when vehicle type changes
   useEffect(() => {
     if (vehicleType) {
       const efficiency = findVehicleEfficiency(vehicleType);
+      const capacity = findPassengerCapacity(vehicleType);
       form.setValue("fuelEfficiency", efficiency);
+      form.setValue("numberOfPassengers", capacity);
     }
   }, [vehicleType, form]);
 
@@ -261,7 +337,9 @@ export function VehicleTypeForm({ onSubmit, initialData, isEditing }: VehicleTyp
                     onChange={(e) => {
                       field.onChange(e.target.value);
                       const efficiency = findVehicleEfficiency(e.target.value);
+                      const capacity = findPassengerCapacity(e.target.value);
                       form.setValue("fuelEfficiency", efficiency);
+                      form.setValue("numberOfPassengers", capacity);
                     }}
                   />
                 </FormControl>
