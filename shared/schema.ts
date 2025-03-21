@@ -3,14 +3,15 @@ import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 import { relations } from "drizzle-orm";
 
-// Vehicle Types Enum
+// Update Vehicle Types to be more flexible
 export const VehicleType = {
   AMBULANCE: "Ambulance",
   PASSENGER_VAN: "Passenger Van",
   CARGO_VAN: "Cargo Van",
   BUS: "Bus",
   SUV: "SUV",
-  TRUCK: "Truck"
+  TRUCK: "Truck",
+  OTHER: "Other" // Add this option
 } as const;
 
 // Vehicle Status Enum
@@ -46,7 +47,8 @@ export const VehicleTypeDefaults = {
   [VehicleType.CARGO_VAN]: { costPerKm: 2.0, maximumWeight: 4000 },
   [VehicleType.BUS]: { costPerKm: 3.0, maximumWeight: 7500 },
   [VehicleType.SUV]: { costPerKm: 1.5, maximumWeight: 2500 },
-  [VehicleType.TRUCK]: { costPerKm: 2.8, maximumWeight: 5000 }
+  [VehicleType.TRUCK]: { costPerKm: 2.8, maximumWeight: 5000 },
+  [VehicleType.OTHER]: { costPerKm: 0, maximumWeight: 0 } // Default values for "Other"
 } as const;
 
 // Update Vehicle Group Type
@@ -429,7 +431,7 @@ export const insertVehicleTypeMasterSchema = createInsertSchema(vehicleTypeMaste
     vehicleTypeCode: z.string().min(1, "Vehicle type code is required"),
     numberOfPassengers: z.number().min(0, "Number of passengers must be positive"),
     region: z.string().min(1, "Region is required"),
-    section: z.string().optional(), 
+    section: z.string().optional(),
     fuelEfficiency: z.number().min(0, "Fuel efficiency must be positive"),
     fuelPricePerLitre: z.number().min(0, "Fuel price per litre must be positive"),
     fuelType: z.enum(Object.values(VehicleFuelType) as [string, ...string[]]),

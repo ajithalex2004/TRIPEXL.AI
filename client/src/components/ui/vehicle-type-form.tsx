@@ -148,29 +148,42 @@ export function VehicleTypeForm({ onSubmit, initialData, isEditing }: VehicleTyp
             render={({ field }) => (
               <FormItem>
                 <FormLabel>Vehicle Type *</FormLabel>
-                <Select
-                  onValueChange={(value) => {
-                    field.onChange(value);
-                    const defaults = VehicleTypeDefaults[value as keyof typeof VehicleTypeDefaults];
-                    if (defaults) {
-                      form.setValue('costPerKm', defaults.costPerKm);
-                    }
-                  }}
-                  value={field.value}
-                >
-                  <FormControl>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select vehicle type" />
-                    </SelectTrigger>
-                  </FormControl>
-                  <SelectContent>
-                    {Object.values(VehicleType).map((type) => (
-                      <SelectItem key={type} value={type}>
-                        {type}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <div className="space-y-2">
+                  <Select
+                    onValueChange={(value) => {
+                      field.onChange(value);
+                      if (value === "Other") {
+                        // Clear the defaults when "Other" is selected
+                        form.setValue('costPerKm', 0);
+                      } else {
+                        const defaults = VehicleTypeDefaults[value as keyof typeof VehicleTypeDefaults];
+                        if (defaults) {
+                          form.setValue('costPerKm', defaults.costPerKm);
+                        }
+                      }
+                    }}
+                    value={field.value}
+                  >
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select vehicle type" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      {Object.values(VehicleType).map((type) => (
+                        <SelectItem key={type} value={type}>
+                          {type}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  {field.value === "Other" && (
+                    <Input 
+                      placeholder="Enter new vehicle type"
+                      onChange={(e) => field.onChange(e.target.value)}
+                    />
+                  )}
+                </div>
                 <FormMessage />
               </FormItem>
             )}
