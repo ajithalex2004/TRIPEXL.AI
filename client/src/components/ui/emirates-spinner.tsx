@@ -70,10 +70,10 @@ export function EmiratesSpinner({ className, size = 'md', ...props }: EmiratesSp
         {/* EXL Logo */}
         <image
           href="/attached_assets/image_1742546091702.png"
-          x="17"
-          y="17"
-          width="16"
-          height="16"
+          x="21"
+          y="21"
+          width="8"
+          height="8"
           preserveAspectRatio="xMidYMid meet"
         />
       </svg>

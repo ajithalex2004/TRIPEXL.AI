@@ -53,7 +53,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
     <SidebarProvider>
       <div className="flex min-h-screen relative">
         {isLoading && <LoadingPage />}
-        <Sidebar className="bg-gradient-to-b from-[#004990] to-[#003870] border-r border-white/10">
+        <Sidebar className="bg-gradient-to-b from-[#004990] via-[#0066cc] to-[#ffffff] border-r border-white/10">
           <SidebarHeader className="border-b border-white/10">
             <Logo className="text-white" />
           </SidebarHeader>
