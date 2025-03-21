@@ -348,7 +348,6 @@ export const otpVerifications = pgTable("otp_verifications", {
   createdAt: timestamp("created_at").notNull().defaultNow()
 });
 
-
 export const insertBookingSchema = createInsertSchema(bookings)
   .extend({
     bookingType: z.enum([BookingType.FREIGHT, BookingType.PASSENGER, BookingType.AMBULANCE]),
@@ -416,7 +415,7 @@ export const insertVehicleGroupSchema = createInsertSchema(vehicleGroups)
     description: z.string().optional()
   });
 
-// Update the insert schema validation
+// Update the insertVehicleTypeMasterSchema to make servicePlan and alertBefore optional
 export const insertVehicleTypeMasterSchema = createInsertSchema(vehicleTypeMaster)
   .extend({
     groupId: z.number().min(1, "Vehicle group is required"),
@@ -428,12 +427,12 @@ export const insertVehicleTypeMasterSchema = createInsertSchema(vehicleTypeMaste
     fuelEfficiency: z.number().min(0, "Fuel efficiency must be positive"),
     fuelPricePerLitre: z.number().min(0, "Fuel price per litre must be positive"),
     fuelType: z.enum(Object.values(VehicleFuelType) as [string, ...string[]]),
-    servicePlan: z.string().min(1, "Service plan is required"),
+    servicePlan: z.string().optional(), // Made optional
     costPerKm: z.number().min(0, "Cost per KM must be positive"),
     vehicleType: z.string().min(1, "Vehicle type is required"),
     department: z.enum(Object.values(Department) as [string, ...string[]]),
     unit: z.string().optional(),
-    alertBefore: z.number().min(0, "Alert before must be positive"),
+    alertBefore: z.number().min(0, "Alert before must be positive").optional(), // Made optional
     idleFuelConsumption: z.number().min(0, "Idle fuel consumption must be positive"),
     vehicleCapacity: z.number().min(0, "Vehicle capacity must be positive"),
     co2EmissionFactor: z.number().min(0, "CO2 emission factor must be positive")

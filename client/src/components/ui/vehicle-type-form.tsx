@@ -855,15 +855,15 @@ export function VehicleTypeForm({ onSubmit, initialData, isEditing }: VehicleTyp
             )}
           />
 
-          {/* Other fields */}
+          {/* Service Plan field */}
           <FormField
             control={form.control}
             name="servicePlan"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Service Plan *</FormLabel>
+                <FormLabel>Service Plan</FormLabel>
                 <FormControl>
-                  <Input placeholder="Enter service plan" {...field} />
+                  <Input placeholder="Enter service plan (optional)" {...field} />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -906,18 +906,19 @@ export function VehicleTypeForm({ onSubmit, initialData, isEditing }: VehicleTyp
             )}
           />
 
+          {/* Alert Before field */}
           <FormField
             control={form.control}
             name="alertBefore"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Alert Before *</FormLabel>
+                <FormLabel>Alert Before</FormLabel>
                 <FormControl>
                   <Input
                     type="number"
-                    placeholder="Enter alert before"
+                    placeholder="Enter alert before (optional)"
                     {...field}
-                    onChange={e => field.onChange(Number(e.target.value))}
+                    onChange={e => field.onChange(e.target.value ? Number(e.target.value) : undefined)}
                   />
                 </FormControl>
                 <FormMessage />
@@ -1013,7 +1014,7 @@ export function VehicleTypeForm({ onSubmit, initialData, isEditing }: VehicleTyp
                 <FormMessage />
               </FormItem>
             )}
-                    />
+          />
           {/* Added Vehicle Capacity Field */}
           <FormField
             control={form.control}
