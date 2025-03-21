@@ -74,17 +74,6 @@ export function Layout({ children }: { children: React.ReactNode }) {
               </SidebarMenuItem>
 
               <SidebarMenuItem>
-                <Link href="/fleet-dashboard">
-                  <SidebarMenuButton className="w-full text-white hover:bg-white/10 text-[15px] font-bold">
-                    <AnimatedIcon className="text-white">
-                      <Car className="w-4 h-4" />
-                    </AnimatedIcon>
-                    <span>Fleet Status</span>
-                  </SidebarMenuButton>
-                </Link>
-              </SidebarMenuItem>
-
-              <SidebarMenuItem>
                 <Link href="/new-booking">
                   <SidebarMenuButton className="w-full text-white hover:bg-white/10 text-[15px] font-bold">
                     <AnimatedIcon className="text-[#EF3340] animate-pulse">
