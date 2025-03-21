@@ -11,6 +11,7 @@ import RegisterPage from "@/pages/auth/register";
 import VehicleGroupManagement from "@/pages/vehicle-group-management";
 import VehicleTypeManagement from "@/pages/vehicle-type-management";
 import FuelEfficiencyPage from "@/pages/fuel-efficiency-page";
+import CO2EmissionsPage from "@/pages/co2-emissions-page";
 import { Layout } from "@/components/layout";
 
 function ProtectedRoute({ component: Component }: { component: React.ComponentType }) {
@@ -45,6 +46,7 @@ function Router() {
       <Route path="/vehicle-groups" component={() => <StandaloneRoute component={VehicleGroupManagement} />} />
       <Route path="/vehicle-types" component={() => <StandaloneRoute component={VehicleTypeManagement} />} />
       <Route path="/fuel-efficiency" component={() => <ProtectedRoute component={FuelEfficiencyPage} />} />
+      <Route path="/co2-emissions" component={() => <ProtectedRoute component={CO2EmissionsPage} />} />
       <Route component={NotFound} />
     </Switch>
   );
