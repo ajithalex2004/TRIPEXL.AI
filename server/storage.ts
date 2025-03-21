@@ -257,44 +257,31 @@ export class DatabaseStorage implements IStorage {
   }
   async createBooking(bookingData: InsertBooking): Promise<Booking> {
     try {
-      console.log("Storage: Creating booking with data:", bookingData);
+      console.log("Creating booking with data:", JSON.stringify(bookingData, null, 2));
 
-      // Convert all number fields from string to number
       const processedData = {
         ...bookingData,
-        numBoxes: bookingData.numBoxes ? Number(bookingData.numBoxes) : undefined,
-        weight: bookingData.weight ? Number(bookingData.weight) : undefined,
-        numPassengers: bookingData.numPassengers ? Number(bookingData.numPassengers) : undefined,
-        totalDistance: bookingData.totalDistance ? Number(bookingData.totalDistance) : undefined,
-        estimatedCost: bookingData.estimatedCost ? Number(bookingData.estimatedCost) : undefined,
-        co2Emissions: bookingData.co2Emissions ? Number(bookingData.co2Emissions) : undefined,
         createdAt: new Date(),
-        updatedAt: new Date()
+        updatedAt: new Date(),
+        // Ensure number fields are properly typed
+        numBoxes: bookingData.numBoxes ? Number(bookingData.numBoxes) : null,
+        weight: bookingData.weight ? Number(bookingData.weight) : null,
+        numPassengers: bookingData.numPassengers ? Number(bookingData.numPassengers) : null,
+        totalDistance: bookingData.totalDistance ? Number(bookingData.totalDistance) : null,
+        estimatedCost: bookingData.estimatedCost ? Number(bookingData.estimatedCost) : null,
+        co2Emissions: bookingData.co2Emissions ? Number(bookingData.co2Emissions) : null
       };
 
-      console.log("Storage: Preparing to insert booking:", processedData);
-
-      // Insert the booking
       const [booking] = await db
         .insert(schema.bookings)
         .values(processedData)
         .returning();
 
-      console.log("Storage: Successfully created booking:", booking);
-
-      // If we have vehicle and driver assignments, update their status
-      if (booking.assignedVehicleId) {
-        await this.updateVehicleStatus(booking.assignedVehicleId, "In Service");
-      }
-
-      if (booking.assignedDriverId) {
-        await this.updateDriverStatus(booking.assignedDriverId, "On Duty");
-      }
-
+      console.log("Successfully created booking:", booking);
       return booking;
     } catch (error) {
-      console.error("Storage: Error creating booking:", error);
-      throw new Error(`Failed to create booking: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      console.error("Error creating booking:", error);
+      throw new Error(error instanceof Error ? error.message : "Failed to create booking");
     }
   }
   async assignBooking(bookingId: number, vehicleId: number, driverId: number): Promise<Booking> {

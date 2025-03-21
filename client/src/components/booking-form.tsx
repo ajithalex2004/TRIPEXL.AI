@@ -121,24 +121,9 @@ export function BookingForm() {
   const [, setLocation] = useLocation();
   const [activeTab, setActiveTab] = React.useState("booking");
 
-  const { data: employee, isLoading: isEmployeeLoading } = useQuery({
+  const { data: employee } = useQuery({
     queryKey: ["/api/employee/current"],
-    queryFn: async () => {
-      const token = localStorage.getItem("token");
-      if (!token) throw new Error("No auth token");
-
-      const response = await fetch("/api/employee/current", {
-        headers: {
-          Authorization: `Bearer ${token}`
-        }
-      });
-
-      if (!response.ok) {
-        throw new Error("Failed to fetch employee data");
-      }
-
-      return response.json();
-    }
+    retry: 3
   });
 
   const form = useForm({
@@ -151,7 +136,7 @@ export function BookingForm() {
       priority: "",
       pickupLocation: DEFAULT_PICKUP_LOCATION,
       dropoffLocation: DEFAULT_DROPOFF_LOCATION,
-      pickupTime: getMinimumPickupTime().toISOString(), // Set default to current time
+      pickupTime: getMinimumPickupTime().toISOString(),
       dropoffTime: "",
       cargoType: "",
       numBoxes: 0,
@@ -164,7 +149,7 @@ export function BookingForm() {
       remarks: "",
       withDriver: false,
       bookingForSelf: false,
-      passengerDetails: [] as PassengerDetail[],
+      passengerDetails: [],
     }
   });
 
@@ -252,72 +237,37 @@ export function BookingForm() {
   };
 
   // Update the mutation and onSubmit handlers
-  const createBooking = useMutation({
+  const createBookingMutation = useMutation({
     mutationFn: async (data: any) => {
-      console.log("Mutation sending data:", JSON.stringify(data, null, 2));
-
-      try {
-        const response = await apiRequest("POST", "/api/bookings", data);
-        const responseData = await response.json();
-
-        if (!response.ok) {
-          throw new Error(responseData.message || responseData.error || "Failed to create booking");
-        }
-
-        console.log("Booking created successfully:", responseData);
-        return responseData;
-      } catch (error) {
-        console.error("API request failed:", error);
-        throw error;
+      console.log("Creating booking with data:", JSON.stringify(data, null, 2));
+      const response = await apiRequest("POST", "/api/bookings", data);
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || "Failed to create booking");
       }
+      return response.json();
     },
-    onSuccess: (response) => {
-      // Show success dialog with animation
-      setCreatedReferenceNo(response.referenceNo);
+    onSuccess: (data) => {
+      setCreatedReferenceNo(data.referenceNo);
       setShowSuccessDialog(true);
-
-      // Invalidate queries to refresh booking list
       queryClient.invalidateQueries({ queryKey: ["/api/bookings"] });
-
-      // Reset form
       form.reset();
+      toast({
+        title: "Success",
+        description: "Booking created successfully!",
+      });
     },
     onError: (error: Error) => {
-      console.error("Booking creation error:", error);
       toast({
-        title: "Error Creating Booking",
-        description: error.message || "Please try again",
+        title: "Error",
+        description: error.message || "Failed to create booking",
         variant: "destructive",
-        duration: 5000,
       });
     },
   });
 
-  const handleSuccessDialogClose = () => {
-    setShowSuccessDialog(false);
-    setCurrentStep(1);
-    form.reset();
-    setActiveTab("history");
-    setLocation("/booking-history");
-  };
-
-  // Update the onSubmit function to properly format the data
-  const handleSubmit = async (data: any) => {
+  const onSubmit = async (data: any) => {
     try {
-      console.log("Form submission started with data:", JSON.stringify(data, null, 2));
-
-      const isValid = await form.trigger();
-      if (!isValid) {
-        console.error("Form validation failed:", form.formState.errors);
-        toast({
-          title: "Validation Error",
-          description: "Please check all required fields and try again.",
-          variant: "destructive"
-        });
-        return;
-      }
-
-      // Format the booking data according to the schema
       const bookingData = {
         employeeId: data.employeeId,
         bookingType: data.bookingType,
@@ -340,15 +290,12 @@ export function BookingForm() {
         pickupTime: new Date(data.pickupTime).toISOString(),
         dropoffTime: new Date(data.dropoffTime).toISOString(),
         remarks: data.remarks || "",
-
-        // Conditional fields based on booking type
         ...(data.bookingType === "freight" ? {
           cargoType: data.cargoType,
           numBoxes: Number(data.numBoxes),
           weight: Number(data.weight),
           boxSize: data.boxSize
         } : {}),
-
         ...(data.bookingType === "passenger" ? {
           tripType: data.tripType,
           numPassengers: Number(data.numPassengers),
@@ -358,21 +305,26 @@ export function BookingForm() {
         } : {})
       };
 
-      console.log("Submitting booking data:", JSON.stringify(bookingData, null, 2));
-      await createBooking.mutateAsync(bookingData);
-
+      await createBookingMutation.mutateAsync(bookingData);
     } catch (error: any) {
       console.error("Form submission error:", error);
       toast({
-        title: "Error Creating Booking",
-        description: error.message || "Failed to create booking. Please try again.",
+        title: "Error",
+        description: error.message || "Failed to create booking",
         variant: "destructive",
-        duration: 5000
       });
     }
   };
 
-  // Update the getPriorityForPurpose function
+  const handleSuccessDialogClose = () => {
+    setShowSuccessDialog(false);
+    setCurrentStep(1);
+    form.reset();
+    setActiveTab("history");
+    setLocation("/booking-history");
+  };
+
+
   const getPriorityForPurpose = (purpose: string): string => {
     if (bookingType === "freight") {
       return Priority.NORMAL;
@@ -642,7 +594,7 @@ export function BookingForm() {
         </CardHeader>
         <CardContent>
           <Form {...form}>
-            <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-6">
+            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
               <AnimatePresence mode="wait">
                 {currentStep === 1 && (
                   <motion.div
@@ -654,18 +606,7 @@ export function BookingForm() {
                     className="space-y-4"
                   >
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      {isEmployeeLoading ? (
-                        <div className="col-span-2 flex justify-center">
-                          <motion.div
-                            initial={{ opacity: 0, scale: 0.8 }}
-                            animate={{ opacity: 1, scale: 1 }}
-                            exit={{ opacity: 0, scale: 0.8 }}
-                            transition={{ duration: 0.5 }}
-                          >
-                            <VehicleLoadingIndicator size="md" />
-                          </motion.div>
-                        </div>
-                      ) : (
+                      {employee ? (
                         <>
                           <FormField
                             control={form.control}
@@ -687,6 +628,17 @@ export function BookingForm() {
                             </FormControl>
                           </FormItem>
                         </>
+                      ) : (
+                        <div className="col-span-2 flex justify-center">
+                          <motion.div
+                            initial={{ opacity: 0, scale: 0.8 }}
+                            animate={{ opacity: 1, scale: 1 }}
+                            exit={{ opacity: 0, scale: 0.8 }}
+                            transition={{ duration: 0.5 }}
+                          >
+                            <VehicleLoadingIndicator size="md" />
+                          </motion.div>
+                        </div>
                       )}
                     </div>
 
@@ -1002,14 +954,14 @@ export function BookingForm() {
                     />
                     <FormField
                       control={form.control}
-                      name="`priority"
+                      name="priority"
                       render={({ field }) => (
                         <FormItem>
                           <FormLabel>Priority Level *</FormLabel>
                           <Select
                             onValueChange={field.onChange}
                             value={field.value}
-                            disabled={true} // Always disabled as it's automatically set
+                            disabled={true}
                           >
                             <FormControl>
                               <SelectTrigger>
@@ -1043,7 +995,7 @@ export function BookingForm() {
                     className="spacey-6"
                   >
                     <div className="space-y-2">
-                      {/* Location and Map Section */}
+                      {/* Location and MapSection */}
                       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                         {/* Location Inputs */}
                         <div className="space-y-4">
@@ -1287,10 +1239,10 @@ export function BookingForm() {
                   ) : (
                     <Button
                       type="submit"
-                      disabled={createBooking.isPending}
+                      disabled={createBookingMutation.isPending}
                       className="bg-primary text-white hover:bg-primary/90"
                     >
-                      {createBooking.isPending ? (
+                      {createBookingMutation.isPending ? (
                         <>
                           <LoadingIndicator className="mr-2" />
                           Creating Booking...
