@@ -1,5 +1,5 @@
 import * as React from "react";
-import { Link } from "wouter";
+import { Link, useLocation } from "wouter";
 import {
   Sidebar,
   SidebarContent,
@@ -12,6 +12,7 @@ import {
 } from "@/components/ui/sidebar";
 import { Logo } from "@/components/ui/logo";
 import { Footer } from "@/components/ui/footer";
+import { LoadingPage } from "@/components/loading-page";
 import {
   History,
   Car,
@@ -26,10 +27,20 @@ import {
 
 export function Layout({ children }: { children: React.ReactNode }) {
   const [isVehicleMenuOpen, setIsVehicleMenuOpen] = React.useState(false);
+  const [isLoading, setIsLoading] = React.useState(false);
+  const [location] = useLocation();
+
+  // Show loading state when location changes
+  React.useEffect(() => {
+    setIsLoading(true);
+    const timer = setTimeout(() => setIsLoading(false), 800); // Show spinner for at least 800ms
+    return () => clearTimeout(timer);
+  }, [location]);
 
   return (
     <SidebarProvider>
       <div className="flex min-h-screen relative">
+        {isLoading && <LoadingPage />}
         <Sidebar>
           <SidebarHeader>
             <Logo />
