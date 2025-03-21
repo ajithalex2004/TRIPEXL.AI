@@ -173,6 +173,8 @@ export const vehicleTypeMaster = pgTable("vehicle_type_master", {
   id: serial("id").primaryKey(),
   groupId: integer("group_id").references(() => vehicleGroups.id).notNull(),
   vehicleTypeCode: text("vehicle_type_code").notNull().unique(),
+  manufacturer: text("manufacturer").notNull(), // Added manufacturer
+  modelYear: integer("model_year").notNull(), // Added model year
   numberOfPassengers: integer("number_of_passengers").notNull(),
   region: text("region").notNull(),
   section: text("section"),
@@ -186,7 +188,7 @@ export const vehicleTypeMaster = pgTable("vehicle_type_master", {
   unit: text("unit"),
   alertBefore: integer("alert_before").notNull(),
   idleFuelConsumption: integer("idle_fuel_consumption").notNull(),
-  vehicleCapacity: integer("vehicle_capacity").notNull(), // Renamed from vehicleVolume
+  vehicleCapacity: integer("vehicle_capacity").notNull(),
   isActive: boolean("is_active").notNull().default(true),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow()
@@ -418,6 +420,8 @@ export const insertVehicleTypeMasterSchema = createInsertSchema(vehicleTypeMaste
   .extend({
     groupId: z.number().min(1, "Vehicle group is required"),
     vehicleTypeCode: z.string().min(1, "Vehicle type code is required"),
+    manufacturer: z.string().min(1, "Manufacturer is required"),
+    modelYear: z.number().min(1900, "Invalid model year").max(new Date().getFullYear() + 1, "Future model year not allowed"),
     numberOfPassengers: z.number().min(0, "Number of passengers must be positive"),
     region: z.enum(Object.values(Region) as [string, ...string[]]),
     section: z.string().optional(),

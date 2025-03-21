@@ -284,6 +284,8 @@ export function VehicleTypeForm({ onSubmit, initialData, isEditing }: VehicleTyp
     defaultValues: {
       groupId: 0,
       vehicleTypeCode: "",
+      manufacturer: "", // Added manufacturer field
+      modelYear: 0, // Added model year field
       numberOfPassengers: 0,
       region: "",
       section: "",
@@ -298,7 +300,7 @@ export function VehicleTypeForm({ onSubmit, initialData, isEditing }: VehicleTyp
       alertBefore: 0,
       idleFuelConsumption: 0,
       vehicleVolume: 0,
-      vehicleCapacity: 0 // Added default value
+      vehicleCapacity: 0
     }
   });
 
@@ -395,6 +397,43 @@ export function VehicleTypeForm({ onSubmit, initialData, isEditing }: VehicleTyp
                 <FormLabel>Vehicle Type Code *</FormLabel>
                 <FormControl>
                   <Input placeholder="Enter vehicle type code" {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          {/* Manufacturer/Make field */}
+          <FormField
+            control={form.control}
+            name="manufacturer"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Manufacturer/Make *</FormLabel>
+                <FormControl>
+                  <Input placeholder="Enter manufacturer" {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          {/* Model Year field */}
+          <FormField
+            control={form.control}
+            name="modelYear"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Model Year *</FormLabel>
+                <FormControl>
+                  <Input 
+                    type="number"
+                    placeholder="Enter model year"
+                    min={1900}
+                    max={new Date().getFullYear() + 1}
+                    {...field}
+                    onChange={e => field.onChange(Number(e.target.value))}
+                  />
                 </FormControl>
                 <FormMessage />
               </FormItem>
