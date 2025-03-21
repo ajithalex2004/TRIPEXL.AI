@@ -18,31 +18,61 @@ export const Emirates = {
 export const EmiratesPlateInfo = {
   "Abu Dhabi (AUH)": {
     categories: ["Private", "Commercial", "Government", "Diplomatic"],
-    plateCodes: ["1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13", "14", "15", "16", "17", "50"]
+    plateCodes: {
+      "Private": ["1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13", "14", "15", "16", "17"],
+      "Commercial": ["1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13", "14", "15", "16", "17"],
+      "Government": ["1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13", "14", "15", "16", "17", "50"],
+      "Diplomatic": ["1", "2", "3", "4", "5"]
+    }
   },
   "Dubai (DXB)": {
     categories: ["Private", "Commercial", "Government", "Diplomatic"],
-    plateCodes: ["A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L", "M", "N", "O", "P", "Q", "R", "S", "T", "U", "V", "W", "X", "Y", "Z"]
+    plateCodes: {
+      "Private": ["A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L", "M", "N", "O", "P", "Q", "R", "S", "T", "U", "V", "W", "X", "Y", "Z"],
+      "Commercial": ["A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L", "M", "N", "O", "P", "Q", "R", "S", "T", "U", "V", "W", "X", "Y", "Z"],
+      "Government": ["A", "B", "C", "D", "E"],
+      "Diplomatic": ["CD"]
+    }
   },
   "Sharjah (SHJ)": {
     categories: ["Private", "Commercial", "Government"],
-    plateCodes: ["1", "2", "3", "white", "green", "blue"]
+    plateCodes: {
+      "Private": ["1", "2", "3", "white"],
+      "Commercial": ["1", "2", "3", "green"],
+      "Government": ["1", "2", "3", "blue"]
+    }
   },
   "Ajman (AJM)": {
     categories: ["Private", "Commercial", "Government"],
-    plateCodes: ["A", "B", "C", "D", "E", "F", "G", "H"]
+    plateCodes: {
+      "Private": ["A", "B", "C", "D"],
+      "Commercial": ["E", "F"],
+      "Government": ["G", "H"]
+    }
   },
   "Ras Al Khaimah (RAK)": {
     categories: ["Private", "Commercial", "Government"],
-    plateCodes: ["A", "B", "C", "D"]
+    plateCodes: {
+      "Private": ["A", "B"],
+      "Commercial": ["C"],
+      "Government": ["D"]
+    }
   },
   "Fujairah (FUJ)": {
     categories: ["Private", "Commercial", "Government"],
-    plateCodes: ["1", "2", "3", "4", "5"]
+    plateCodes: {
+      "Private": ["1", "2"],
+      "Commercial": ["3", "4"],
+      "Government": ["5"]
+    }
   },
   "Umm Al Quwain (UAQ)": {
     categories: ["Private", "Commercial", "Government"],
-    plateCodes: ["A", "B", "C", "D", "white", "green"]
+    plateCodes: {
+      "Private": ["A", "B", "white"],
+      "Commercial": ["C", "green"],
+      "Government": ["D"]
+    }
   }
 } as const;
 

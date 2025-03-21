@@ -4,7 +4,6 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import {
   insertVehicleMasterSchema,
   YesNo,
-  PlateCategory,
   TransmissionType,
   VehicleFuelType,
   Region,
@@ -13,6 +12,7 @@ import {
   EmiratesPlateInfo,
   VehicleTypeMaster,
 } from "@shared/schema";
+import { useQuery } from "@tanstack/react-query";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
@@ -50,6 +50,7 @@ export function VehicleMasterForm({ isOpen, onClose }: VehicleMasterFormProps) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [selectedEmirate, setSelectedEmirate] = React.useState<string>("");
+  const [selectedCategory, setSelectedCategory] = React.useState<string>("");
 
   const { data: vehicleTypes } = useQuery<VehicleTypeMaster[]>({
     queryKey: ["/api/vehicle-type-master"],
@@ -65,7 +66,7 @@ export function VehicleMasterForm({ isOpen, onClose }: VehicleMasterFormProps) {
       currentOdometer: "0",
       plateCategory: "",
       vehicleTypeName: "",
-      vehicleTypeCode: "", // Added default value
+      vehicleTypeCode: "",
       vehicleModel: "",
       fuelType: "",
       transmissionType: "",
@@ -121,6 +122,13 @@ export function VehicleMasterForm({ isOpen, onClose }: VehicleMasterFormProps) {
     form.setValue("plateCategory", "");
     form.setValue("plateCode", "");
     setSelectedEmirate(value);
+    setSelectedCategory("");
+  };
+
+  const handlePlateCategoryChange = (value: string) => {
+    form.setValue("plateCategory", value);
+    form.setValue("plateCode", "");
+    setSelectedCategory(value);
   };
 
   const handleVehicleTypeSelect = (typeCode: string) => {
@@ -129,6 +137,12 @@ export function VehicleMasterForm({ isOpen, onClose }: VehicleMasterFormProps) {
       form.setValue("vehicleTypeCode", selectedType.vehicleTypeCode);
       form.setValue("vehicleTypeName", selectedType.vehicleType);
     }
+  };
+
+  const getAvailablePlateCodes = () => {
+    if (!selectedEmirate || !selectedCategory) return [];
+    return EmiratesPlateInfo[selectedEmirate as keyof typeof EmiratesPlateInfo]
+      .plateCodes[selectedCategory as keyof typeof EmiratesPlateInfo[keyof typeof EmiratesPlateInfo]['plateCodes']] || [];
   };
 
   return (
@@ -155,7 +169,7 @@ export function VehicleMasterForm({ isOpen, onClose }: VehicleMasterFormProps) {
                 )}
               />
 
-              {/* Emirate - Updated to use Select */}
+              {/* Emirate */}
               <FormField
                 control={form.control}
                 name="emirate"
@@ -181,14 +195,14 @@ export function VehicleMasterForm({ isOpen, onClose }: VehicleMasterFormProps) {
                 )}
               />
 
-              {/* Plate Category - Dynamic based on selected emirate */}
+              {/* Plate Category */}
               <FormField
                 control={form.control}
                 name="plateCategory"
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Plate Category *</FormLabel>
-                    <Select onValueChange={field.onChange} value={field.value}>
+                    <Select onValueChange={handlePlateCategoryChange} value={field.value}>
                       <FormControl>
                         <SelectTrigger>
                           <SelectValue placeholder="Select plate category" />
@@ -207,7 +221,7 @@ export function VehicleMasterForm({ isOpen, onClose }: VehicleMasterFormProps) {
                 )}
               />
 
-              {/* Plate Code - Dynamic based on selected emirate */}
+              {/* Plate Code */}
               <FormField
                 control={form.control}
                 name="plateCode"
@@ -221,7 +235,7 @@ export function VehicleMasterForm({ isOpen, onClose }: VehicleMasterFormProps) {
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        {selectedEmirate && EmiratesPlateInfo[selectedEmirate as keyof typeof EmiratesPlateInfo].plateCodes.map((code) => (
+                        {getAvailablePlateCodes().map((code) => (
                           <SelectItem key={code} value={code}>
                             {code}
                           </SelectItem>
@@ -471,7 +485,7 @@ export function VehicleMasterForm({ isOpen, onClose }: VehicleMasterFormProps) {
                           {...formField}
                           onChange={(e) => {
                             if (field.type === "number") {
-                              formField.onChange(parseInt(e.target.value));
+                              formField.onChange(parseInt(e.target.value, 10));
                             } else {
                               formField.onChange(e.target.value);
                             }
