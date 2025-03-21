@@ -53,16 +53,16 @@ export function Layout({ children }: { children: React.ReactNode }) {
     <SidebarProvider>
       <div className="flex min-h-screen relative">
         {isLoading && <LoadingPage />}
-        <Sidebar>
-          <SidebarHeader>
-            <Logo />
+        <Sidebar className="bg-gradient-to-b from-[#004990] to-[#003870] border-r border-white/10">
+          <SidebarHeader className="border-b border-white/10">
+            <Logo className="text-white" />
           </SidebarHeader>
           <SidebarContent>
             <SidebarMenu>
               <SidebarMenuItem>
                 <Link href="/">
-                  <SidebarMenuButton className="w-full">
-                    <AnimatedIcon className="text-blue-500">
+                  <SidebarMenuButton className="w-full text-white hover:bg-white/10">
+                    <AnimatedIcon className="text-white">
                       <LayoutDashboard className="w-4 h-4" />
                     </AnimatedIcon>
                     <span>Dashboard</span>
@@ -72,8 +72,8 @@ export function Layout({ children }: { children: React.ReactNode }) {
 
               <SidebarMenuItem>
                 <Link href="/new-booking">
-                  <SidebarMenuButton className="w-full">
-                    <AnimatedIcon className="text-green-500 animate-pulse">
+                  <SidebarMenuButton className="w-full text-white hover:bg-white/10">
+                    <AnimatedIcon className="text-[#EF3340] animate-pulse">
                       <PlusCircle className="w-4 h-4" />
                     </AnimatedIcon>
                     <span>New Booking</span>
@@ -83,8 +83,8 @@ export function Layout({ children }: { children: React.ReactNode }) {
 
               <SidebarMenuItem>
                 <Link href="/bookings">
-                  <SidebarMenuButton className="w-full">
-                    <AnimatedIcon className="text-purple-500">
+                  <SidebarMenuButton className="w-full text-white hover:bg-white/10">
+                    <AnimatedIcon className="text-white">
                       <History className="w-4 h-4" />
                     </AnimatedIcon>
                     <span>Booking History</span>
@@ -96,9 +96,9 @@ export function Layout({ children }: { children: React.ReactNode }) {
               <div className="space-y-1">
                 <button
                   onClick={() => setIsVehicleMenuOpen(!isVehicleMenuOpen)}
-                  className="w-full flex items-center px-3 py-2 text-sm rounded-md hover:bg-accent hover:text-accent-foreground transition-colors"
+                  className="w-full flex items-center px-3 py-2 text-sm rounded-md text-white hover:bg-white/10 transition-colors"
                 >
-                  <AnimatedIcon className="text-orange-500 mr-2">
+                  <AnimatedIcon className="text-[#EF3340] mr-2">
                     <Car className="w-4 h-4 transition-transform duration-200" />
                   </AnimatedIcon>
                   <span className="flex-1 text-left">Vehicles</span>
@@ -124,24 +124,24 @@ export function Layout({ children }: { children: React.ReactNode }) {
                   className="overflow-hidden"
                 >
                   <Link href="/vehicle-groups">
-                    <SidebarMenuButton className="w-full pl-9">
-                      <AnimatedIcon className="text-cyan-500">
+                    <SidebarMenuButton className="w-full pl-9 text-white/90 hover:bg-white/10">
+                      <AnimatedIcon className="text-white">
                         <Database className="w-4 h-4" />
                       </AnimatedIcon>
                       <span>Vehicle Groups</span>
                     </SidebarMenuButton>
                   </Link>
                   <Link href="/vehicle-types">
-                    <SidebarMenuButton className="w-full pl-9">
-                      <AnimatedIcon className="text-yellow-500">
+                    <SidebarMenuButton className="w-full pl-9 text-white/90 hover:bg-white/10">
+                      <AnimatedIcon className="text-white">
                         <Package className="w-4 h-4" />
                       </AnimatedIcon>
                       <span>Vehicle Types</span>
                     </SidebarMenuButton>
                   </Link>
                   <Link href="/vehicle-master">
-                    <SidebarMenuButton className="w-full pl-9">
-                      <AnimatedIcon className="text-red-500">
+                    <SidebarMenuButton className="w-full pl-9 text-white/90 hover:bg-white/10">
+                      <AnimatedIcon className="text-white">
                         <Wrench className="w-4 h-4" />
                       </AnimatedIcon>
                       <span>Vehicle Master</span>
@@ -151,7 +151,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
               </div>
 
               <SidebarMenuItem>
-                <LogoutButton />
+                <LogoutButton className="text-white hover:bg-white/10" />
               </SidebarMenuItem>
             </SidebarMenu>
           </SidebarContent>
