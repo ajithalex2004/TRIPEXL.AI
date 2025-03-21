@@ -63,7 +63,7 @@ export function VehicleMasterForm({ isOpen, onClose }: VehicleMasterFormProps) {
       emirate: "",
       registrationNumber: "",
       plateCode: "",
-      plateNumber: "", // Add default value for plateNumber
+      plateNumber: "",
       currentOdometer: "0",
       plateCategory: "",
       vehicleTypeName: "",
@@ -118,18 +118,45 @@ export function VehicleMasterForm({ isOpen, onClose }: VehicleMasterFormProps) {
     createVehicle.mutate(data);
   };
 
+  // Extract emirate code from the full emirate name (e.g., "AUH" from "Abu Dhabi (AUH)")
+  const getEmirateCode = (emirate: string): string => {
+    const match = emirate.match(/\(([^)]+)\)/);
+    return match ? match[1] : "";
+  };
+
+  // Update registration number whenever emirate, plate code, or plate number changes
+  const updateRegistrationNumber = (emirate: string, plateCode: string, plateNumber: string) => {
+    if (emirate && plateCode && plateNumber) {
+      const emirateCode = getEmirateCode(emirate);
+      const registrationNumber = `${emirateCode}-${plateCode}-${plateNumber}`;
+      form.setValue("registrationNumber", registrationNumber);
+    }
+  };
+
   const handleEmirateChange = (value: string) => {
     form.setValue("emirate", value);
     form.setValue("plateCategory", "");
     form.setValue("plateCode", "");
     setSelectedEmirate(value);
     setSelectedCategory("");
+    updateRegistrationNumber(value, form.getValues("plateCode"), form.getValues("plateNumber"));
   };
 
   const handlePlateCategoryChange = (value: string) => {
     form.setValue("plateCategory", value);
-    form.setValue("plateCode", ""); // Reset plate code when category changes
+    form.setValue("plateCode", "");
     setSelectedCategory(value);
+  };
+
+  const handlePlateCodeChange = (value: string) => {
+    form.setValue("plateCode", value);
+    updateRegistrationNumber(form.getValues("emirate"), value, form.getValues("plateNumber"));
+  };
+
+  const handlePlateNumberChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    form.setValue("plateNumber", value);
+    updateRegistrationNumber(form.getValues("emirate"), form.getValues("plateCode"), value);
   };
 
   const handleVehicleTypeSelect = (typeCode: string) => {
@@ -229,7 +256,7 @@ export function VehicleMasterForm({ isOpen, onClose }: VehicleMasterFormProps) {
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Plate Code *</FormLabel>
-                    <Select onValueChange={field.onChange} value={field.value}>
+                    <Select onValueChange={handlePlateCodeChange} value={field.value}>
                       <FormControl>
                         <SelectTrigger>
                           <SelectValue placeholder="Select plate code" />
@@ -248,7 +275,7 @@ export function VehicleMasterForm({ isOpen, onClose }: VehicleMasterFormProps) {
                 )}
               />
 
-              {/* Plate Number - New Field */}
+              {/* Plate Number */}
               <FormField
                 control={form.control}
                 name="plateNumber"
@@ -256,22 +283,29 @@ export function VehicleMasterForm({ isOpen, onClose }: VehicleMasterFormProps) {
                   <FormItem>
                     <FormLabel>Plate Number *</FormLabel>
                     <FormControl>
-                      <Input placeholder="Enter Plate Number" {...field} />
+                      <Input
+                        placeholder="Enter Plate Number"
+                        {...field}
+                        onChange={(e) => {
+                          field.onChange(e);
+                          handlePlateNumberChange(e);
+                        }}
+                      />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
                 )}
               />
 
-              {/* Registration Number */}
+              {/* Registration Number - Read only */}
               <FormField
                 control={form.control}
                 name="registrationNumber"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Registration Number *</FormLabel>
+                    <FormLabel>Registration Number</FormLabel>
                     <FormControl>
-                      <Input placeholder="Enter Registration Number" {...field} />
+                      <Input placeholder="Registration Number" {...field} readOnly />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
