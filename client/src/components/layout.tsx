@@ -24,6 +24,18 @@ import {
   PlusCircle,
   LayoutDashboard
 } from "lucide-react";
+import { motion } from "framer-motion";
+
+// Animated icon wrapper component
+const AnimatedIcon = ({ children, className = "" }: { children: React.ReactNode; className?: string }) => (
+  <motion.div
+    className={`transition-all duration-300 ${className}`}
+    whileHover={{ scale: 1.2, rotate: 360 }}
+    whileTap={{ scale: 0.9 }}
+  >
+    {children}
+  </motion.div>
+);
 
 export function Layout({ children }: { children: React.ReactNode }) {
   const [isVehicleMenuOpen, setIsVehicleMenuOpen] = React.useState(false);
@@ -50,7 +62,9 @@ export function Layout({ children }: { children: React.ReactNode }) {
               <SidebarMenuItem>
                 <Link href="/">
                   <SidebarMenuButton className="w-full">
-                    <LayoutDashboard className="w-4 h-4" />
+                    <AnimatedIcon className="text-blue-500">
+                      <LayoutDashboard className="w-4 h-4" />
+                    </AnimatedIcon>
                     <span>Dashboard</span>
                   </SidebarMenuButton>
                 </Link>
@@ -59,7 +73,9 @@ export function Layout({ children }: { children: React.ReactNode }) {
               <SidebarMenuItem>
                 <Link href="/new-booking">
                   <SidebarMenuButton className="w-full">
-                    <PlusCircle className="w-4 h-4" />
+                    <AnimatedIcon className="text-green-500 animate-pulse">
+                      <PlusCircle className="w-4 h-4" />
+                    </AnimatedIcon>
                     <span>New Booking</span>
                   </SidebarMenuButton>
                 </Link>
@@ -68,7 +84,9 @@ export function Layout({ children }: { children: React.ReactNode }) {
               <SidebarMenuItem>
                 <Link href="/bookings">
                   <SidebarMenuButton className="w-full">
-                    <History className="w-4 h-4" />
+                    <AnimatedIcon className="text-purple-500">
+                      <History className="w-4 h-4" />
+                    </AnimatedIcon>
                     <span>Booking History</span>
                   </SidebarMenuButton>
                 </Link>
@@ -80,40 +98,56 @@ export function Layout({ children }: { children: React.ReactNode }) {
                   onClick={() => setIsVehicleMenuOpen(!isVehicleMenuOpen)}
                   className="w-full flex items-center px-3 py-2 text-sm rounded-md hover:bg-accent hover:text-accent-foreground transition-colors"
                 >
-                  <Car className="w-4 h-4 mr-2 transition-transform duration-200 animate-pulse" />
+                  <AnimatedIcon className="text-orange-500 mr-2">
+                    <Car className="w-4 h-4 transition-transform duration-200" />
+                  </AnimatedIcon>
                   <span className="flex-1 text-left">Vehicles</span>
-                  {isVehicleMenuOpen ? (
-                    <ChevronDown className="w-4 h-4 transition-transform duration-200" />
-                  ) : (
-                    <ChevronRight className="w-4 h-4 transition-transform duration-200" />
-                  )}
+                  <motion.div
+                    animate={{ rotate: isVehicleMenuOpen ? 180 : 0 }}
+                    transition={{ duration: 0.2 }}
+                  >
+                    {isVehicleMenuOpen ? (
+                      <ChevronDown className="w-4 h-4" />
+                    ) : (
+                      <ChevronRight className="w-4 h-4" />
+                    )}
+                  </motion.div>
                 </button>
 
                 {/* Sub-menu with slide animation */}
-                <div
-                  className={`overflow-hidden transition-all duration-200 ease-in-out ${
-                    isVehicleMenuOpen ? "max-h-48" : "max-h-0"
-                  }`}
+                <motion.div
+                  animate={{
+                    height: isVehicleMenuOpen ? "auto" : 0,
+                    opacity: isVehicleMenuOpen ? 1 : 0,
+                  }}
+                  transition={{ duration: 0.2 }}
+                  className="overflow-hidden"
                 >
                   <Link href="/vehicle-groups">
                     <SidebarMenuButton className="w-full pl-9">
-                      <Database className="w-4 h-4" />
+                      <AnimatedIcon className="text-cyan-500">
+                        <Database className="w-4 h-4" />
+                      </AnimatedIcon>
                       <span>Vehicle Groups</span>
                     </SidebarMenuButton>
                   </Link>
                   <Link href="/vehicle-types">
                     <SidebarMenuButton className="w-full pl-9">
-                      <Package className="w-4 h-4" />
+                      <AnimatedIcon className="text-yellow-500">
+                        <Package className="w-4 h-4" />
+                      </AnimatedIcon>
                       <span>Vehicle Types</span>
                     </SidebarMenuButton>
                   </Link>
                   <Link href="/vehicle-master">
                     <SidebarMenuButton className="w-full pl-9">
-                      <Wrench className="w-4 h-4" />
+                      <AnimatedIcon className="text-red-500">
+                        <Wrench className="w-4 h-4" />
+                      </AnimatedIcon>
                       <span>Vehicle Master</span>
                     </SidebarMenuButton>
                   </Link>
-                </div>
+                </motion.div>
               </div>
 
               <SidebarMenuItem>
