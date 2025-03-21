@@ -90,10 +90,14 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createVehicleType(type: InsertVehicleTypeMaster): Promise<VehicleTypeMaster> {
+    // Generate the vehicle type name by combining manufacturer and vehicle type
+    const vehicleTypeName = `${type.manufacturer} ${type.vehicleType}`;
+
     const [newType] = await db
       .insert(schema.vehicleTypeMaster)
       .values({
         ...type,
+        vehicleTypeName,
         isActive: true,
         createdAt: new Date(),
         updatedAt: new Date()
@@ -103,10 +107,24 @@ export class DatabaseStorage implements IStorage {
   }
 
   async updateVehicleType(id: number, data: Partial<InsertVehicleTypeMaster>): Promise<VehicleTypeMaster> {
+    let updateData = { ...data };
+
+    // If either manufacturer or vehicleType is updated, update the vehicleTypeName
+    if (data.manufacturer || data.vehicleType) {
+      const [currentType] = await db
+        .select()
+        .from(schema.vehicleTypeMaster)
+        .where(eq(schema.vehicleTypeMaster.id, id));
+
+      const manufacturer = data.manufacturer || currentType.manufacturer;
+      const vehicleType = data.vehicleType || currentType.vehicleType;
+      updateData.vehicleTypeName = `${manufacturer} ${vehicleType}`;
+    }
+
     const [updatedType] = await db
       .update(schema.vehicleTypeMaster)
       .set({
-        ...data,
+        ...updateData,
         updatedAt: new Date()
       })
       .where(eq(schema.vehicleTypeMaster.id, id))

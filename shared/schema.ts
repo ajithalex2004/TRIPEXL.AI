@@ -276,22 +276,23 @@ export const vehicleTypeMaster = pgTable("vehicle_type_master", {
   id: serial("id").primaryKey(),
   groupId: integer("group_id").references(() => vehicleGroups.id).notNull(),
   vehicleTypeCode: text("vehicle_type_code").notNull().unique(),
+  vehicleTypeName: text("vehicle_type_name").notNull(), // Added this field
   manufacturer: text("manufacturer").notNull(),
   modelYear: integer("model_year").notNull(),
   numberOfPassengers: integer("number_of_passengers").notNull(),
   region: text("region").notNull(),
-  fuelEfficiency: decimal("fuel_efficiency", { precision: 10, scale: 2 }).notNull(), // Changed to decimal
-  fuelPricePerLitre: decimal("fuel_price_per_litre", { precision: 10, scale: 2 }).notNull(), // Changed to decimal
+  fuelEfficiency: decimal("fuel_efficiency", { precision: 10, scale: 2 }).notNull(),
+  fuelPricePerLitre: decimal("fuel_price_per_litre", { precision: 10, scale: 2 }).notNull(),
   fuelType: text("fuel_type").notNull(),
   servicePlan: text("service_plan").notNull(),
-  costPerKm: decimal("cost_per_km", { precision: 10, scale: 2 }).notNull(), // Changed to decimal
+  costPerKm: decimal("cost_per_km", { precision: 10, scale: 2 }).notNull(),
   vehicleType: text("vehicle_type").notNull(),
   department: text("department").notNull(),
   unit: text("unit"),
   alertBefore: integer("alert_before").notNull(),
-  idleFuelConsumption: decimal("idle_fuel_consumption", { precision: 10, scale: 2 }).notNull(), // Changed to decimal
+  idleFuelConsumption: decimal("idle_fuel_consumption", { precision: 10, scale: 2 }).notNull(),
   vehicleCapacity: integer("vehicle_capacity").notNull(),
-  co2EmissionFactor: decimal("co2_emission_factor", { precision: 10, scale: 2 }).notNull().default('0'), // Changed to decimal
+  co2EmissionFactor: decimal("co2_emission_factor", { precision: 10, scale: 2 }).notNull().default('0'),
   isActive: boolean("is_active").notNull().default(true),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow()
@@ -522,6 +523,7 @@ export const insertVehicleTypeMasterSchema = createInsertSchema(vehicleTypeMaste
   .extend({
     groupId: z.number().min(1, "Vehicle group is required"),
     vehicleTypeCode: z.string().min(1, "Vehicle type code is required"),
+    vehicleTypeName: z.string().min(1, "Vehicle type name is required"),
     manufacturer: z.string().min(1, "Manufacturer is required"),
     modelYear: z.number().min(1900, "Invalid model year").max(new Date().getFullYear() + 1, "Future model year not allowed"),
     numberOfPassengers: z.number().min(0, "Number of passengers must be positive"),
@@ -529,12 +531,12 @@ export const insertVehicleTypeMasterSchema = createInsertSchema(vehicleTypeMaste
     fuelEfficiency: z.number().min(0, "Fuel efficiency must be positive"),
     fuelPricePerLitre: z.number().min(0, "Fuel price per litre must be positive"),
     fuelType: z.enum(Object.values(VehicleFuelType) as [string, ...string[]]),
-    servicePlan: z.string().optional(), // Made optional
+    servicePlan: z.string().optional(),
     costPerKm: z.number().min(0, "Cost per KM must be positive"),
     vehicleType: z.string().min(1, "Vehicle type is required"),
     department: z.enum(Object.values(Department) as [string, ...string[]]),
     unit: z.string().optional(),
-    alertBefore: z.number().min(0, "Alert before must be positive").optional(), // Made optional
+    alertBefore: z.number().min(0, "Alert before must be positive").optional(),
     idleFuelConsumption: z.number().min(0, "Idle fuel consumption must be positive"),
     vehicleCapacity: z.number().min(0, "Vehicle capacity must be positive"),
     co2EmissionFactor: z.number().min(0, "CO2 emission factor must be positive")
@@ -608,7 +610,7 @@ export const insertVehicleMasterSchema = createInsertSchema(vehicleMaster)
     emirate: z.enum(Object.values(Emirates) as [string, ...string[]]), 
     region: z.enum(Object.values(Region) as [string, ...string[]]),
     department: z.enum(Object.values(Department) as [string, ...string[]]),
-    assetType: z.enum(Object.values(AssetType) as [string, ...string[]]), // Add this line
+    assetType: z.enum(Object.values(AssetType) as [string, ...string[]]), 
     // Add YES/NO validation for highlighted fields
     isCanConnected: z.enum(Object.values(YesNo) as [string, ...string[]]),
     isWeightSensorConnected: z.enum(Object.values(YesNo) as [string, ...string[]]),
