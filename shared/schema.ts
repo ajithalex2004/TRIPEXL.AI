@@ -186,7 +186,7 @@ export const vehicleTypeMaster = pgTable("vehicle_type_master", {
   unit: text("unit"),
   alertBefore: integer("alert_before").notNull(),
   idleFuelConsumption: integer("idle_fuel_consumption").notNull(),
-  vehicleVolume: integer("vehicle_volume").notNull(),
+  vehicleCapacity: integer("vehicle_capacity").notNull(), // Renamed from vehicleVolume
   isActive: boolean("is_active").notNull().default(true),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow()
@@ -431,7 +431,7 @@ export const insertVehicleTypeMasterSchema = createInsertSchema(vehicleTypeMaste
     unit: z.string().optional(),
     alertBefore: z.number().min(0, "Alert before must be positive"),
     idleFuelConsumption: z.number().min(0, "Idle fuel consumption must be positive"),
-    vehicleVolume: z.number().min(0, "Vehicle volume must be positive")
+    vehicleCapacity: z.number().min(0, "Vehicle capacity must be positive")
   });
 
 export type Employee = typeof employees.$inferSelect;

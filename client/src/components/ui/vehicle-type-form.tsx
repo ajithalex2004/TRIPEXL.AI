@@ -96,6 +96,81 @@ function findPassengerCapacity(vehicleType: string): number {
   return 4; // Default passenger capacity
 }
 
+
+// Add after default passenger capacities
+const defaultVehicleCapacity: { [key: string]: number } = {
+  // Sedans - trunk capacity in cubic feet
+  "Toyota Corolla": 13,
+  "Honda Civic": 14,
+  "Toyota Camry": 15,
+  "Honda Accord": 16,
+  "Nissan Altima": 15,
+
+  // SUVs - cargo capacity in cubic feet
+  "Toyota RAV4": 37,
+  "Honda CR-V": 39,
+  "Nissan X-Trail": 40,
+  "Ford Explorer": 87,
+  "Hyundai Tucson": 38,
+
+  // Vans - cargo capacity in cubic feet
+  "Toyota Hiace": 280,
+  "Ford Transit": 487,
+  "Mercedes Sprinter": 533,
+  "Hyundai H1": 275,
+
+  // Buses - cargo capacity in cubic feet
+  "Toyota Coaster": 180,
+  "Mercedes Bus": 250,
+  "Volvo Bus": 300,
+
+  // Trucks - bed capacity in cubic feet
+  "Toyota Tundra": 150,
+  "Ford F-150": 160,
+  "Chevrolet Silverado": 155,
+
+  // Ambulances - cargo area in cubic feet
+  "Toyota Ambulance": 400,
+  "Mercedes Ambulance": 450,
+  "Ford Ambulance": 425
+};
+
+// Vehicle categories for capacity matching
+const vehicleCategoryCapacity: { [key: string]: number } = {
+  "Sedan": 15,
+  "SUV": 40,
+  "Van": 300,
+  "Bus": 200,
+  "Truck": 150,
+  "Ambulance": 400
+};
+
+function findVehicleCapacity(vehicleType: string): number {
+  // Direct match
+  if (defaultVehicleCapacity[vehicleType]) {
+    return defaultVehicleCapacity[vehicleType];
+  }
+
+  // Case-insensitive search
+  const lowerVehicleType = vehicleType.toLowerCase();
+
+  // Check exact matches first
+  for (const [model, capacity] of Object.entries(defaultVehicleCapacity)) {
+    if (model.toLowerCase() === lowerVehicleType) {
+      return capacity;
+    }
+  }
+
+  // Check category matches
+  for (const [category, capacity] of Object.entries(vehicleCategoryCapacity)) {
+    if (lowerVehicleType.includes(category.toLowerCase())) {
+      return capacity;
+    }
+  }
+
+  return 0; // Default capacity
+}
+
 // Define default fuel efficiency values for common vehicle models
 const defaultFuelEfficiency: { [key: string]: number } = {
   // Sedans
@@ -222,7 +297,8 @@ export function VehicleTypeForm({ onSubmit, initialData, isEditing }: VehicleTyp
       unit: "",
       alertBefore: 0,
       idleFuelConsumption: 0,
-      vehicleVolume: 0
+      vehicleVolume: 0,
+      vehicleCapacity: 0 // Added default value
     }
   });
 
@@ -269,8 +345,10 @@ export function VehicleTypeForm({ onSubmit, initialData, isEditing }: VehicleTyp
     if (vehicleType) {
       const efficiency = findVehicleEfficiency(vehicleType);
       const capacity = findPassengerCapacity(vehicleType);
+      const vehicleCapacity = findVehicleCapacity(vehicleType);
       form.setValue("fuelEfficiency", efficiency);
       form.setValue("numberOfPassengers", capacity);
+      form.setValue("vehicleCapacity", vehicleCapacity);
     }
   }, [vehicleType, form]);
 
@@ -338,8 +416,10 @@ export function VehicleTypeForm({ onSubmit, initialData, isEditing }: VehicleTyp
                       field.onChange(e.target.value);
                       const efficiency = findVehicleEfficiency(e.target.value);
                       const capacity = findPassengerCapacity(e.target.value);
+                      const vehicleCapacity = findVehicleCapacity(e.target.value);
                       form.setValue("fuelEfficiency", efficiency);
                       form.setValue("numberOfPassengers", capacity);
+                      form.setValue("vehicleCapacity", vehicleCapacity);
                     }}
                   />
                 </FormControl>
@@ -600,6 +680,25 @@ export function VehicleTypeForm({ onSubmit, initialData, isEditing }: VehicleTyp
                     placeholder="Enter unit (optional)"
                     {...field}
                     value={field.value ?? ""}
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          {/* Added Vehicle Capacity Field */}
+          <FormField
+            control={form.control}
+            name="vehicleCapacity"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Vehicle Capacity (cubic feet) *</FormLabel>
+                <FormControl>
+                  <Input
+                    type="number"
+                    placeholder="Enter vehicle capacity"
+                    {...field}
+                    onChange={e => field.onChange(Number(e.target.value))}
                   />
                 </FormControl>
                 <FormMessage />
