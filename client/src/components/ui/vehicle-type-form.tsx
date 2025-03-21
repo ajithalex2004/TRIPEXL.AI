@@ -39,8 +39,7 @@ export function VehicleTypeForm({ onSubmit, initialData, isEditing }: VehicleTyp
   // Fetch current fuel prices
   const { data: fuelPrices } = useQuery({
     queryKey: ["/api/fuel-prices"],
-    // This is a placeholder - you'll need to implement this endpoint
-    enabled: false, // Disable for now until the endpoint is implemented
+    enabled: true, // Enable the query to fetch prices
   });
 
   const form = useForm<InsertVehicleTypeMaster>({

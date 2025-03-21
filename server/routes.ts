@@ -405,6 +405,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
     });
 
+    // Add this endpoint after other routes
+    app.get("/api/fuel-prices", (_req, res) => {
+      // These would typically come from a database or external API
+      // Using static values for demonstration
+      const currentPrices = {
+        petrol: 3.15,
+        diesel: 2.95,
+        electric: 0.50, // Cost per kWh
+        hybrid: 3.00,
+        cng: 2.25,
+        lpg: 2.45
+      };
+
+      res.json(currentPrices);
+    });
+
     // Add this new endpoint after the other vehicle-groups routes
     app.get("/api/vehicle-groups/template", async (_req, res) => {
       try {
