@@ -3,6 +3,17 @@ import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 import { relations } from "drizzle-orm";
 
+// Add Region enum at the top with other enums
+export const Region = {
+  ABU_DHABI: "Abu Dhabi",
+  DUBAI: "Dubai",
+  SHARJAH: "Sharjah",
+  FUJAIRAH: "Fujairah",
+  AJMAN: "Ajman",
+  RAS_AL_KHAIMAH: "Ras Al Khaimah",
+  UMM_AL_QUWAIN: "Umm Al Quwain"
+} as const;
+
 // Vehicle Status Enum
 export const VehicleStatus = {
   AVAILABLE: "Available",
@@ -408,7 +419,7 @@ export const insertVehicleTypeMasterSchema = createInsertSchema(vehicleTypeMaste
     groupId: z.number().min(1, "Vehicle group is required"),
     vehicleTypeCode: z.string().min(1, "Vehicle type code is required"),
     numberOfPassengers: z.number().min(0, "Number of passengers must be positive"),
-    region: z.string().min(1, "Region is required"),
+    region: z.enum(Object.values(Region) as [string, ...string[]]),
     section: z.string().optional(),
     fuelEfficiency: z.number().min(0, "Fuel efficiency must be positive"),
     fuelPricePerLitre: z.number().min(0, "Fuel price per litre must be positive"),
