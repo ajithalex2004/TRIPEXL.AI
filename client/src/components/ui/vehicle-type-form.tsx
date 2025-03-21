@@ -22,18 +22,93 @@ import {
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 
-// Define default fuel efficiency values for common vehicle types
+// Define default fuel efficiency values for common vehicle models
 const defaultFuelEfficiency: { [key: string]: number } = {
-  "Ambulance": 8,
-  "Passenger Van": 10,
-  "Cargo Van": 9,
-  "Bus": 6,
-  "SUV": 12,
-  "Truck": 7,
-  "Pickup": 11,
-  "Sedan": 14,
-  "Minivan": 11,
+  // Sedans
+  "Toyota Corolla": 14,
+  "Honda Civic": 13.5,
+  "Toyota Camry": 12.5,
+  "Honda Accord": 12,
+  "Nissan Altima": 13,
+
+  // SUVs
+  "Toyota RAV4": 11,
+  "Honda CR-V": 10.5,
+  "Nissan X-Trail": 10,
+  "Ford Explorer": 9,
+  "Hyundai Tucson": 11.5,
+
+  // Vans
+  "Toyota Hiace": 9,
+  "Ford Transit": 8.5,
+  "Mercedes Sprinter": 8,
+  "Hyundai H1": 9.5,
+
+  // Buses
+  "Toyota Coaster": 6,
+  "Mercedes Bus": 5.5,
+  "Volvo Bus": 5,
+
+  // Trucks
+  "Toyota Tundra": 7,
+  "Ford F-150": 8,
+  "Chevrolet Silverado": 7.5,
+
+  // Ambulances
+  "Toyota Ambulance": 8,
+  "Mercedes Ambulance": 7.5,
+  "Ford Ambulance": 8
 };
+
+// Vehicle categories for matching
+const vehicleCategories: { [key: string]: string[] } = {
+  "Sedan": ["corolla", "civic", "camry", "accord", "altima"],
+  "SUV": ["rav4", "cr-v", "x-trail", "explorer", "tucson"],
+  "Van": ["hiace", "transit", "sprinter", "h1"],
+  "Bus": ["coaster", "bus"],
+  "Truck": ["tundra", "f-150", "silverado"],
+  "Ambulance": ["ambulance"]
+};
+
+function findVehicleEfficiency(vehicleType: string): number {
+  // Direct match
+  if (defaultFuelEfficiency[vehicleType]) {
+    return defaultFuelEfficiency[vehicleType];
+  }
+
+  // Case-insensitive search
+  const lowerVehicleType = vehicleType.toLowerCase();
+
+  // Check exact matches first
+  for (const [model, efficiency] of Object.entries(defaultFuelEfficiency)) {
+    if (model.toLowerCase() === lowerVehicleType) {
+      return efficiency;
+    }
+  }
+
+  // Check category matches
+  for (const [category, keywords] of Object.entries(vehicleCategories)) {
+    if (keywords.some(keyword => lowerVehicleType.includes(keyword))) {
+      // Return average efficiency for this category
+      const categoryVehicles = Object.entries(defaultFuelEfficiency)
+        .filter(([model]) => keywords.some(keyword => model.toLowerCase().includes(keyword)));
+
+      if (categoryVehicles.length > 0) {
+        const avgEfficiency = categoryVehicles.reduce((sum, [_, eff]) => sum + eff, 0) / categoryVehicles.length;
+        return Number(avgEfficiency.toFixed(1));
+      }
+    }
+  }
+
+  // Default values based on broad categories
+  if (lowerVehicleType.includes("suv")) return 11;
+  if (lowerVehicleType.includes("van")) return 9;
+  if (lowerVehicleType.includes("bus")) return 6;
+  if (lowerVehicleType.includes("truck")) return 7.5;
+  if (lowerVehicleType.includes("ambulance")) return 8;
+
+  return 12; // Default to sedan-like efficiency
+}
 
 interface VehicleTypeFormProps {
   onSubmit: (data: InsertVehicleTypeMaster) => void;
@@ -63,7 +138,7 @@ export function VehicleTypeForm({ onSubmit, initialData, isEditing }: VehicleTyp
       numberOfPassengers: 0,
       region: "",
       section: "",
-      fuelEfficiency: 0, 
+      fuelEfficiency: 0,
       fuelPricePerLitre: 0,
       fuelType: "Petrol",
       servicePlan: "",
@@ -118,10 +193,8 @@ export function VehicleTypeForm({ onSubmit, initialData, isEditing }: VehicleTyp
   // Update fuel efficiency when vehicle type changes
   useEffect(() => {
     if (vehicleType) {
-      const efficiency = defaultFuelEfficiency[vehicleType] || 0;
-      if (efficiency > 0) {
-        form.setValue("fuelEfficiency", efficiency);
-      }
+      const efficiency = findVehicleEfficiency(vehicleType);
+      form.setValue("fuelEfficiency", efficiency);
     }
   }, [vehicleType, form]);
 
@@ -196,11 +269,8 @@ export function VehicleTypeForm({ onSubmit, initialData, isEditing }: VehicleTyp
                     {...field}
                     onChange={(e) => {
                       field.onChange(e.target.value);
-                      // Auto-set fuel efficiency based on vehicle type
-                      const efficiency = defaultFuelEfficiency[e.target.value] || 0;
-                      if (efficiency > 0) {
-                        form.setValue("fuelEfficiency", efficiency);
-                      }
+                      const efficiency = findVehicleEfficiency(e.target.value);
+                      form.setValue("fuelEfficiency", efficiency);
                     }}
                     list="vehicleTypes"
                   />
