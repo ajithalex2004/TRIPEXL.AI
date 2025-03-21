@@ -44,6 +44,7 @@ import {
 import { useLocation } from "wouter";
 import { format } from "date-fns";
 import { BookingConfirmationAnimation } from "@/components/booking-confirmation-animation";
+import { Skeleton } from "@/components/ui/skeleton";
 
 // Update the Location interface to match schema requirements
 export interface Location {
@@ -121,35 +122,27 @@ export function BookingForm() {
   const [, setLocation] = useLocation();
   const [activeTab, setActiveTab] = React.useState("booking");
 
-  const { data: employee, isLoading: isEmployeeLoading, onError } = useQuery({
+  // Optimize employee data fetching
+  const { data: employee, isLoading: isEmployeeLoading } = useQuery({
     queryKey: ["/api/employee/current"],
-    retry: 2,
-    staleTime: 300000, // Cache for 5 minutes
-    cacheTime: 3600000, // Keep in cache for 1 hour
+    staleTime: 5 * 60 * 1000, // Cache for 5 minutes
+    gcTime: 10 * 60 * 1000, // Keep unused data for 10 minutes
+    retry: 1,
     onError: (error: Error) => {
-      console.error("Error fetching employee data:", error);
+      console.error("Failed to fetch employee data:", error);
       toast({
-        title: "Error",
-        description: "Failed to load employee data. Please refresh the page.",
-        variant: "destructive",
+        title: "Warning",
+        description: "Unable to load employee data. You can still create a booking.",
+        variant: "default",
       });
     }
   });
-
-  // Use loading state more effectively
-  if (isEmployeeLoading) {
-    return (
-      <div className="flex items-center justify-center min-h-[200px]">
-        <VehicleLoadingIndicator size="lg" />
-      </div>
-    );
-  }
 
   const form = useForm({
     resolver: zodResolver(insertBookingSchema),
     mode: "onChange",
     defaultValues: {
-      employeeId: "",
+      employeeId: employee?.employeeId || "",
       bookingType: "",
       purpose: "",
       priority: "",
@@ -172,6 +165,7 @@ export function BookingForm() {
     }
   });
 
+  // Update form when employee data is loaded
   React.useEffect(() => {
     if (employee?.employeeId) {
       form.setValue("employeeId", employee.employeeId);
@@ -625,7 +619,18 @@ export function BookingForm() {
                     className="space-y-4"
                   >
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      {employee ? (
+                      {isEmployeeLoading ? (
+                        <>
+                          <div className="space-y-2">
+                            <p className="text-sm font-medium">Employee ID</p>
+                            <Skeleton className="h-10 w-full" />
+                          </div>
+                          <div className="space-y-2">
+                            <p className="text-sm font-medium">Employee Name</p>
+                            <Skeleton className="h-10 w-full" />
+                          </div>
+                        </>
+                      ) : (
                         <>
                           <FormField
                             control={form.control}
@@ -643,21 +648,10 @@ export function BookingForm() {
                           <FormItem>
                             <FormLabel>Employee Name</FormLabel>
                             <FormControl>
-                              <Input disabled value={employee?.name || ""} />
+                              <Input disabled value={employee?.name || "Not available"} />
                             </FormControl>
                           </FormItem>
                         </>
-                      ) : (
-                        <div className="col-span-2 flex justify-center">
-                          <motion.div
-                            initial={{ opacity: 0, scale: 0.8 }}
-                            animate={{ opacity: 1, scale: 1 }}
-                            exit={{ opacity: 0, scale: 0.8 }}
-                            transition={{ duration: 0.5 }}
-                          >
-                            <VehicleLoadingIndicator size="md" />
-                          </motion.div>
-                        </div>
                       )}
                     </div>
 
