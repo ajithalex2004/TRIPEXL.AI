@@ -10,6 +10,7 @@ import LoginPage from "@/pages/auth/login";
 import RegisterPage from "@/pages/auth/register";
 import VehicleGroupManagement from "@/pages/vehicle-group-management";
 import VehicleTypeManagement from "@/pages/vehicle-type-management";
+import FuelEfficiencyPage from "@/pages/fuel-efficiency-page";
 import { Layout } from "@/components/layout";
 
 function ProtectedRoute({ component: Component }: { component: React.ComponentType }) {
@@ -43,6 +44,7 @@ function Router() {
       <Route path="/bookings" component={() => <ProtectedRoute component={BookingHistory} />} />
       <Route path="/vehicle-groups" component={() => <StandaloneRoute component={VehicleGroupManagement} />} />
       <Route path="/vehicle-types" component={() => <StandaloneRoute component={VehicleTypeManagement} />} />
+      <Route path="/fuel-efficiency" component={() => <ProtectedRoute component={FuelEfficiencyPage} />} />
       <Route component={NotFound} />
     </Switch>
   );
