@@ -102,7 +102,7 @@ export function EmiratesSpinner({ className, size = 'md', ...props }: EmiratesSp
           />
         </circle>
 
-        {/* Emirates wordmark - optional text */}
+        {/* EXL text */}
         <text
           x="25"
           y="26.5"
@@ -112,7 +112,7 @@ export function EmiratesSpinner({ className, size = 'md', ...props }: EmiratesSp
           fill="#FFFFFF"
           className="font-sans"
         >
-          EK
+          EXL
         </text>
       </svg>
     </div>
