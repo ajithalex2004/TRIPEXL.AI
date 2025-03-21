@@ -11,10 +11,10 @@ export default function NewBooking() {
         transition={{ duration: 0.6 }}
         className="text-center mb-8"
       >
-        <h1 className="text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-[#004990] to-[#0066cc]">
+        <h1 className="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-[#004990] to-[#0066cc]">
           New Booking Request
         </h1>
-        <p className="text-muted-foreground mt-2">
+        <p className="text-sm text-muted-foreground mt-2">
           Create a new vehicle booking request with our intelligent system
         </p>
       </motion.div>
