@@ -14,6 +14,7 @@ import VehicleMasterManagement from "@/pages/vehicle-master-management";
 import FuelEfficiencyPage from "@/pages/fuel-efficiency-page";
 import CO2EmissionsPage from "@/pages/co2-emissions-page";
 import NewBooking from "@/pages/new-booking";
+import EmployeeManagement from "@/pages/employee-management";
 import { Layout } from "@/components/layout";
 
 function ProtectedRoute({ component: Component }: { component: React.ComponentType }) {
@@ -50,6 +51,7 @@ function Router() {
       <Route path="/vehicle-master" component={() => <StandaloneRoute component={VehicleMasterManagement} />} />
       <Route path="/fuel-efficiency" component={() => <ProtectedRoute component={FuelEfficiencyPage} />} />
       <Route path="/co2-emissions" component={() => <ProtectedRoute component={CO2EmissionsPage} />} />
+      <Route path="/employees" component={() => <ProtectedRoute component={EmployeeManagement} />} />
       <Route component={NotFound} />
     </Switch>
   );

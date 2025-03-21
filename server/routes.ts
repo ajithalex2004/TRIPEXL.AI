@@ -1,7 +1,7 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import { insertBookingSchema, insertUserSchema, insertVehicleGroupSchema, insertVehicleMasterSchema } from "@shared/schema";
+import { insertBookingSchema, insertUserSchema, insertVehicleGroupSchema, insertVehicleMasterSchema, insertEmployeeSchema } from "@shared/schema";
 import { authService } from "./services/auth";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
@@ -637,6 +637,41 @@ export async function registerRoutes(app: Express): Promise<Server> {
     log("Registering eco-routes...");
     app.use(ecoRoutesRouter);
     log("Eco-routes registered");
+
+    // Add this new endpoint to handle employee data
+    app.get("/api/employees", async (_req, res) => {
+      try {
+        console.log("Fetching all employees");
+        const employees = await storage.getAllEmployees();
+        console.log("Retrieved employees:", employees);
+        res.json(employees);
+      } catch (error: any) {
+        console.error("Error fetching employees:", error);
+        res.status(500).json({ error: "Failed to fetch employees" });
+      }
+    });
+
+    app.post("/api/employees", async (req, res) => {
+      try {
+        console.log("Creating employee with data:", req.body);
+        const result = insertEmployeeSchema.safeParse(req.body);
+
+        if (!result.success) {
+          console.error("Invalid employee data:", result.error.issues);
+          return res.status(400).json({ 
+            error: "Invalid employee data", 
+            details: result.error.issues 
+          });
+        }
+
+        const employee = await storage.createEmployee(result.data);
+        console.log("Created employee:", employee);
+        res.status(201).json(employee);
+      } catch (error: any) {
+        console.error("Error creating employee:", error);
+        res.status(500).json({ error: "Failed to create employee" });
+      }
+    });
 
     log("All routes registered successfully");
     return httpServer;

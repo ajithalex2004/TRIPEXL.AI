@@ -87,6 +87,14 @@ export const Region = {
   UMM_AL_QUWAIN: "Umm Al Quwain"
 } as const;
 
+// Add after existing enums, before table definitions
+export const EmployeeType = {
+  PERMANENT: "Permanent",
+  CONTRACT: "Contract",
+  TEMPORARY: "Temporary",
+  INTERN: "Intern"
+} as const;
+
 // Vehicle Status Enum
 export const VehicleStatus = {
   AVAILABLE: "Available",
@@ -228,6 +236,7 @@ export const AssetType = {
   MOVEABLE: "Moveable",
   NON_MOVEABLE: "Non-Moveable"
 } as const;
+
 
 // Add after the other imports
 import { relations } from "drizzle-orm";
@@ -381,18 +390,21 @@ export const drivers = pgTable("drivers", {
   updatedAt: timestamp("updated_at").notNull().defaultNow()
 });
 
+// Update employees table schema
 export const employees = pgTable("employees", {
   id: serial("id").primaryKey(),
   employeeId: text("employee_id").notNull().unique(),
-  name: text("name").notNull(),
-  email: text("email").notNull().unique(),
-  phone: text("phone").notNull(),
-  department: text("department").notNull(),
+  employeeName: text("employee_name").notNull(),
+  employeeType: text("employee_type").notNull(),
   designation: text("designation").notNull(),
-  location: json("location").$type<z.infer<typeof locations>>(),
-  supervisor: text("supervisor").references(() => employees.employeeId),
-  emergencyContact: text("emergency_contact"),
-  joiningDate: timestamp("joining_date").notNull(),
+  mobileNumber: text("mobile_number").notNull(),
+  emailId: text("email_id").notNull().unique(),
+  dateOfBirth: timestamp("date_of_birth").notNull(),
+  nationality: text("nationality").notNull(),
+  region: text("region").notNull(),
+  department: text("department").notNull(),
+  communicationLanguage: text("communication_language").notNull(),
+  unit: text("unit").notNull(),
   isActive: boolean("is_active").notNull().default(true),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow()
@@ -612,7 +624,16 @@ export const insertBookingSchema = createInsertSchema(bookings)
     weight: z.number().optional()
   });
 
-export const insertEmployeeSchema = createInsertSchema(employees);
+export const insertEmployeeSchema = createInsertSchema(employees)
+  .extend({
+    employeeType: z.enum(Object.values(EmployeeType) as [string, ...string[]]),
+    region: z.enum(Object.values(Region) as [string, ...string[]]),
+    department: z.enum(Object.values(Department) as [string, ...string[]]),
+    mobileNumber: z.string().regex(/^\+?[1-9]\d{1,14}$/, "Invalid mobile number"),
+    emailId: z.string().email("Invalid email address"),
+    dateOfBirth: z.string().transform(str => new Date(str)),
+  });
+
 export const insertUserSchema = createInsertSchema(users).omit({
   passwordHash: true,
   isVerified: true,
