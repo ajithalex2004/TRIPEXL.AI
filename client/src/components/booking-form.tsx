@@ -57,31 +57,7 @@ export interface Location {
   formatted_address?: string;
 }
 
-// Add helper function at the top after imports
-function generateBookingReference(bookingType: string): string {
-  const prefix = (() => {
-    switch (bookingType) {
-      case "freight":
-        return "VRF";
-      case "passenger":
-        return "VRP";
-      case "ambulance":
-        return "VRA";
-      default:
-        return "VRB"; // Default fallback
-    }
-  })();
-
-  const year = new Date().getFullYear().toString().slice(-2); // Get YY format
-  const baseNumber = 2510001; // Starting sequence number
-
-  // In a production environment, this would be fetched from the database
-  // For now, we'll use the starting number
-  const sequenceNumber = baseNumber;
-
-  return `${prefix}${year}${sequenceNumber}`;
-}
-
+// Helper function to get minimum pickup time
 function getMinimumPickupTime(): Date {
   const now = new Date();
   const today = new Date();
@@ -92,6 +68,7 @@ function getMinimumPickupTime(): Date {
   return today;
 }
 
+// Helper function to get minimum offset based on priority
 function getMinimumOffset(priority: string): number {
   switch (priority) {
     case Priority.EMERGENCY:
@@ -316,6 +293,8 @@ export function BookingForm() {
   // Update the onSubmit function to properly format the data
   const handleSubmit = async (data: any) => {
     try {
+      console.log("Starting form submission with data:", data);
+
       const isValid = await form.trigger();
       if (!isValid) {
         toast({
@@ -326,59 +305,46 @@ export function BookingForm() {
         return;
       }
 
-      // Generate booking reference number based on type
-      const referenceNo = generateBookingReference(data.bookingType);
-
-      // Format location data strictly according to schema
-      const formatLocation = (location: any) => ({
-        address: location.address || "",
-        coordinates: {
-          lat: Number(location.coordinates.lat),
-          lng: Number(location.coordinates.lng)
-        }
-      });
-
-      // Format the booking data with all required fields
+      // Format the booking data according to the schema
       const bookingData = {
-        // Basic booking information
-        referenceNo,
         employeeId: data.employeeId || employee?.employeeId,
         bookingType: data.bookingType,
-        purpose: data.purpose || BookingPurpose.FREIGHT_TRANSPORT,
+        purpose: data.purpose,
         priority: data.priority,
-        status: "Pending for Approval", // Updated status
-
-        // Location information
-        pickupLocation: formatLocation(data.pickupLocation),
-        dropoffLocation: formatLocation(data.dropoffLocation),
-
-        // Timing information
+        pickupLocation: {
+          address: data.pickupLocation.address,
+          coordinates: {
+            lat: Number(data.pickupLocation.coordinates.lat),
+            lng: Number(data.pickupLocation.coordinates.lng)
+          }
+        },
+        dropoffLocation: {
+          address: data.dropoffLocation.address,
+          coordinates: {
+            lat: Number(data.dropoffLocation.coordinates.lat),
+            lng: Number(data.dropoffLocation.coordinates.lng)
+          }
+        },
         pickupTime: new Date(data.pickupTime).toISOString(),
         dropoffTime: new Date(data.dropoffTime).toISOString(),
 
-        // Additional notes
-        remarks: data.remarks || "",
-
-        // Freight-specific fields
+        // Optional fields based on booking type
         ...(data.bookingType === "freight" && {
           cargoType: data.cargoType,
           numBoxes: Number(data.numBoxes || 0),
           weight: Number(data.weight || 0),
-          boxSize: Array.isArray(data.boxSize) ? data.boxSize : []
+          boxSize: data.boxSize || []
         }),
 
-        // Passenger-specific fields
         ...(data.bookingType === "passenger" && {
           tripType: data.tripType,
-          numPassengers: Number(data.numPassengers || 1),
+          numPassengers: Number(data.numPassengers || 0),
           withDriver: Boolean(data.withDriver),
           bookingForSelf: Boolean(data.bookingForSelf),
-          passengerDetails: Array.isArray(data.passengerDetails) ?
-            data.passengerDetails.map((p: any) => ({
-              name: p.name || "",
-              contact: p.contact || ""
-            })) : []
-        })
+          passengerDetails: data.passengerDetails || []
+        }),
+
+        remarks: data.remarks || ""
       };
 
       console.log("Submitting booking data:", bookingData);
@@ -1040,7 +1006,7 @@ export function BookingForm() {
                           >
                             <FormControl>
                               <SelectTrigger>
-                                <SelectValue placeholder="Priority is set automatically" />
+                                <SelectValue placeholder="Priority is automatically set" />
                               </SelectTrigger>
                             </FormControl>
                             <SelectContent>
@@ -1052,7 +1018,7 @@ export function BookingForm() {
                             </SelectContent>
                           </Select>
                           <FormDescription>
-                            Priority is automatically set based on the selected purpose
+                            Priority is automatically determined based on booking purpose
                           </FormDescription>
                           <FormMessage />
                         </FormItem>
