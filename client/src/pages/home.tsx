@@ -16,7 +16,7 @@ export default function Home() {
           className="text-center space-y-4"
         >
           <h1 className="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-[#004990] to-[#0066cc]">
-            Smart Vehicle Management
+            Smart Journey Management
           </h1>
           <p className="text-sm text-muted-foreground max-w-2xl mx-auto">
             Experience An Intelligent Journey Management with our AI-Powered Platform
