@@ -1,7 +1,7 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import { insertBookingSchema, insertUserSchema, insertVehicleGroupSchema } from "@shared/schema";
+import { insertBookingSchema, insertUserSchema, insertVehicleGroupSchema, insertVehicleMasterSchema } from "@shared/schema";
 import { authService } from "./services/auth";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
@@ -10,7 +10,6 @@ import multer from "multer";
 import vehicleTypeMasterRouter from "./routes/vehicle-type-master";
 import { ecoRoutesRouter } from "./routes/eco-routes"; // Add this import
 import { log } from "./vite";
-import { achievementsRouter } from "./routes/achievements"; // Added import for achievements router
 
 // Configure multer for handling file uploads
 const upload = multer({
@@ -554,7 +553,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
     log("Registering eco-routes...");
     app.use(ecoRoutesRouter);
     log("Eco-routes registered");
-    app.use(achievementsRouter); // Added achievements router registration
 
     log("All routes registered successfully");
     return httpServer;
