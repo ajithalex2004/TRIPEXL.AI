@@ -11,6 +11,7 @@ import {
   CardTitle
 } from "@/components/ui/card";
 import { VehicleMaster } from "@shared/schema";
+import { VehicleMasterForm } from "@/components/ui/vehicle-master-form";
 
 // Define columns for the vehicle master table
 const columns = [
@@ -99,7 +100,11 @@ export default function VehicleMasterManagement() {
         </CardContent>
       </Card>
 
-      {/* TODO: Add VehicleMasterForm component for adding/editing vehicles */}
+      {/* Add Vehicle Form Modal */}
+      <VehicleMasterForm 
+        isOpen={isAddModalOpen}
+        onClose={() => setIsAddModalOpen(false)}
+      />
     </div>
   );
 }
