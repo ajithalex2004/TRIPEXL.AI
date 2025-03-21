@@ -664,9 +664,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
           });
         }
 
-        const employee = await storage.createEmployee(result.data);
+        // Hash the password before storing
+        const hashedPassword = await bcrypt.hash(result.data.password, 10);
+
+        // Create employee with hashed password
+        const employeeData = {
+          ...result.data,
+          password: hashedPassword
+        };
+
+        const employee = await storage.createEmployee(employeeData);
         console.log("Created employee:", employee);
-        res.status(201).json(employee);
+
+        // Remove password from response
+        const { password, ...employeeResponse } = employee;
+        res.status(201).json(employeeResponse);
       } catch (error: any) {
         console.error("Error creating employee:", error);
         res.status(500).json({ error: "Failed to create employee" });

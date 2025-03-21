@@ -405,6 +405,7 @@ export const employees = pgTable("employees", {
   department: text("department").notNull(),
   communicationLanguage: text("communication_language").notNull(),
   unit: text("unit").notNull(),
+  password: text("password").notNull(), // Added password field
   isActive: boolean("is_active").notNull().default(true),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow()
@@ -624,6 +625,7 @@ export const insertBookingSchema = createInsertSchema(bookings)
     weight: z.number().optional()
   });
 
+// Update the insert schema to include password validation
 export const insertEmployeeSchema = createInsertSchema(employees)
   .extend({
     employeeType: z.enum(Object.values(EmployeeType) as [string, ...string[]]),
@@ -632,6 +634,7 @@ export const insertEmployeeSchema = createInsertSchema(employees)
     mobileNumber: z.string().regex(/^\+?[1-9]\d{1,14}$/, "Invalid mobile number"),
     emailId: z.string().email("Invalid email address"),
     dateOfBirth: z.string().transform(str => new Date(str)),
+    password: z.string().min(6, "Password must be at least 6 characters long")
   });
 
 export const insertUserSchema = createInsertSchema(users).omit({
