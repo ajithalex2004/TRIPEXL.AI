@@ -164,6 +164,9 @@ export function VehicleMasterForm({ isOpen, onClose }: VehicleMasterFormProps) {
     if (selectedType) {
       form.setValue("vehicleTypeCode", selectedType.vehicleTypeCode);
       form.setValue("vehicleTypeName", selectedType.vehicleType);
+      form.setValue("fuelType", selectedType.fuelType);
+      form.setValue("modelYear", selectedType.modelYear);
+      form.setValue("manufacturer", selectedType.manufacturer);
     }
   };
 
@@ -353,6 +356,51 @@ export function VehicleMasterForm({ isOpen, onClose }: VehicleMasterFormProps) {
                 )}
               />
 
+              {/* Fuel Type - Read only */}
+              <FormField
+                control={form.control}
+                name="fuelType"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Fuel Type</FormLabel>
+                    <FormControl>
+                      <Input placeholder="Fuel Type" {...field} readOnly />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              {/* Model Year - Read only */}
+              <FormField
+                control={form.control}
+                name="modelYear"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Model Year</FormLabel>
+                    <FormControl>
+                      <Input placeholder="Model Year" {...field} readOnly />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              {/* Manufacturer - Read only */}
+              <FormField
+                control={form.control}
+                name="manufacturer"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Manufacturer</FormLabel>
+                    <FormControl>
+                      <Input placeholder="Manufacturer" {...field} readOnly />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
               {/* Current Odometer */}
               <FormField
                 control={form.control}
@@ -373,31 +421,6 @@ export function VehicleMasterForm({ isOpen, onClose }: VehicleMasterFormProps) {
                 )}
               />
 
-              {/* Fuel Type */}
-              <FormField
-                control={form.control}
-                name="fuelType"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Fuel Type *</FormLabel>
-                    <Select onValueChange={field.onChange} value={field.value}>
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select fuel type" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        {Object.values(VehicleFuelType).map((type) => (
-                          <SelectItem key={type} value={type}>
-                            {type}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
 
               {/* Transmission Type */}
               <FormField
@@ -516,6 +539,7 @@ export function VehicleMasterForm({ isOpen, onClose }: VehicleMasterFormProps) {
                 { name: "chassisNumber", label: "Chassis Number", type: "text" },
                 { name: "engineNumber", label: "Engine Number", type: "text" },
                 { name: "unit", label: "Unit", type: "text" },
+                { name: "vehicleModel", label: "Vehicle Model", type: "text" }, // Added Vehicle Model field
                 { name: "modelYear", label: "Model Year", type: "number" },
                 { name: "assetType", label: "Asset Type", type: "text" },
                 { name: "manufacturer", label: "Manufacturer", type: "text" },
