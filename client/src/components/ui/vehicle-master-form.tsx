@@ -11,6 +11,7 @@ import {
   Emirates,
   EmiratesPlateInfo,
   VehicleTypeMaster,
+  AssetType,
 } from "@shared/schema";
 import { useQuery } from "@tanstack/react-query";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
@@ -534,14 +535,39 @@ export function VehicleMasterForm({ isOpen, onClose }: VehicleMasterFormProps) {
                 />
               ))}
 
+              {/* Asset Type */}
+              <FormField
+                control={form.control}
+                name="assetType"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Asset Type *</FormLabel>
+                    <Select onValueChange={field.onChange} value={field.value}>
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select asset type" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {Object.values(AssetType).map((type) => (
+                          <SelectItem key={type} value={type}>
+                            {type}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
               {/* Other required fields */}
               {[
                 { name: "chassisNumber", label: "Chassis Number", type: "text" },
                 { name: "engineNumber", label: "Engine Number", type: "text" },
                 { name: "unit", label: "Unit", type: "text" },
-                { name: "vehicleModel", label: "Vehicle Model", type: "text" }, // Added Vehicle Model field
+                { name: "vehicleModel", label: "Vehicle Model", type: "text" },
                 { name: "modelYear", label: "Model Year", type: "number" },
-                { name: "assetType", label: "Asset Type", type: "text" },
                 { name: "manufacturer", label: "Manufacturer", type: "text" },
                 { name: "vehicleUsage", label: "Vehicle Usage", type: "text" },
               ].map((field) => (

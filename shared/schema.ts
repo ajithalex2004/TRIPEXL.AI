@@ -223,6 +223,13 @@ export const YesNo = {
   NO: "NO"
 } as const;
 
+// Add after other enums
+export const AssetType = {
+  MOVEABLE: "Moveable",
+  NON_MOVEABLE: "Non-Moveable"
+} as const;
+
+
 export const locations = z.object({
   address: z.string(),
   coordinates: z.object({
@@ -536,42 +543,42 @@ export const insertVehicleTypeMasterSchema = createInsertSchema(vehicleTypeMaste
 // Update the vehicle master table definition to use text for highlighted fields
 export const vehicleMaster = pgTable("vehicle_master", {
   id: serial("id").primaryKey(),
-  vehicleId: text("vehicle_id").notNull().unique(), // Red
-  emirate: text("emirate").notNull(), // Red
-  registrationNumber: text("registration_number").notNull(), // Red
-  plateCode: text("plate_code").notNull(), // Red
-  plateNumber: text("plate_number").notNull(), // Add this new field
-  currentOdometer: decimal("current_odometer", { precision: 10, scale: 2 }).notNull(), // Red
+  vehicleId: text("vehicle_id").notNull().unique(), 
+  emirate: text("emirate").notNull(), 
+  registrationNumber: text("registration_number").notNull(), 
+  plateCode: text("plate_code").notNull(), 
+  plateNumber: text("plate_number").notNull(), 
+  currentOdometer: decimal("current_odometer", { precision: 10, scale: 2 }).notNull(), 
   plateCategory: text("plate_category").notNull(),
   vehicleTypeCode: text("vehicle_type_code").references(() => vehicleTypeMaster.vehicleTypeCode).notNull(),
   vehicleTypeName: text("vehicle_type_name").notNull(),
-  stopRunModeCommFreq: decimal("stop_run_mode_comm_freq", { precision: 10, scale: 2 }), // Seconds
+  stopRunModeCommFreq: decimal("stop_run_mode_comm_freq", { precision: 10, scale: 2 }), 
   maxSpeed: decimal("max_speed", { precision: 10, scale: 2 }),
   vehicleModel: text("vehicle_model").notNull(),
-  fuelType: text("fuel_type").notNull(), // Red
-  transmissionType: text("transmission_type").notNull(), // Red
-  region: text("region").notNull(), // Red
-  department: text("department").notNull(), // Red
-  chassisNumber: text("chassis_number").notNull(), // Red
-  engineNumber: text("engine_number").notNull(), // Red
+  fuelType: text("fuel_type").notNull(), 
+  transmissionType: text("transmission_type").notNull(), 
+  region: text("region").notNull(), 
+  department: text("department").notNull(), 
+  chassisNumber: text("chassis_number").notNull(), 
+  engineNumber: text("engine_number").notNull(), 
   unit: text("unit").notNull(),
-  modelYear: integer("model_year").notNull(), // Red
-  assetType: text("asset_type").notNull(), // Red
+  modelYear: integer("model_year").notNull(), 
+  assetType: text("asset_type").notNull(), 
   tyreSize: text("tyre_size"),
-  manufacturer: text("manufacturer").notNull(), // Red
+  manufacturer: text("manufacturer").notNull(), 
   numberOfPassengers: integer("number_of_passengers"),
   vehicleColor: text("vehicle_color"),
   salikTagNumber: text("salik_tag_number"),
   salikAccountNumber: text("salik_account_number"),
   deviceId: text("device_id"),
   simCardNumber: text("sim_card_number"),
-  vehicleUsage: text("vehicle_usage").notNull(), // Red
+  vehicleUsage: text("vehicle_usage").notNull(), 
 
   // Yellow/Blue highlighted fields as YES/NO text fields
-  isCanConnected: text("is_can_connected").notNull(), // Changed to text
-  isWeightSensorConnected: text("is_weight_sensor_connected").notNull(), // Changed to text
-  isTemperatureSensorConnected: text("is_temperature_sensor_connected").notNull(), // Changed to text
-  isPtoConnected: text("is_pto_connected").notNull(), // Changed to text
+  isCanConnected: text("is_can_connected").notNull(), 
+  isWeightSensorConnected: text("is_weight_sensor_connected").notNull(), 
+  isTemperatureSensorConnected: text("is_temperature_sensor_connected").notNull(), 
+  isPtoConnected: text("is_pto_connected").notNull(), 
 
   // Document tracking
   documentNo: text("document_no"),
@@ -592,15 +599,16 @@ export const vehicleMasterRelations = relations(vehicleMaster, ({ one }) => ({
   }),
 }));
 
-// Update the insert schema to use Emirates enum
+// Update the insert schema to use Emirates enum and AssetType enum
 export const insertVehicleMasterSchema = createInsertSchema(vehicleMaster)
   .extend({
     plateCategory: z.enum(Object.values(PlateCategory) as [string, ...string[]]),
     transmissionType: z.enum(Object.values(TransmissionType) as [string, ...string[]]),
     fuelType: z.enum(Object.values(VehicleFuelType) as [string, ...string[]]),
-    emirate: z.enum(Object.values(Emirates) as [string, ...string[]]), // Add this line
+    emirate: z.enum(Object.values(Emirates) as [string, ...string[]]), 
     region: z.enum(Object.values(Region) as [string, ...string[]]),
     department: z.enum(Object.values(Department) as [string, ...string[]]),
+    assetType: z.enum(Object.values(AssetType) as [string, ...string[]]), // Add this line
     // Add YES/NO validation for highlighted fields
     isCanConnected: z.enum(Object.values(YesNo) as [string, ...string[]]),
     isWeightSensorConnected: z.enum(Object.values(YesNo) as [string, ...string[]]),
