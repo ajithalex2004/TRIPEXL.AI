@@ -32,15 +32,15 @@ export default function LoginPage() {
 
   // Animation variants
   const logoVariants = {
-    initial: { 
-      opacity: 0, 
-      scale: 0.3, 
+    initial: {
+      opacity: 0,
+      scale: 0.3,
       y: 50,
-      rotate: -10
+      rotate: -10,
     },
-    animate: { 
-      opacity: 1, 
-      scale: 1, 
+    animate: {
+      opacity: 1,
+      scale: 1,
       y: 0,
       rotate: 0,
       transition: {
@@ -48,8 +48,8 @@ export default function LoginPage() {
         stiffness: 200,
         damping: 20,
         duration: 1.2,
-        bounce: 0.5
-      }
+        bounce: 0.5,
+      },
     },
     hover: {
       scale: 1.05,
@@ -58,16 +58,16 @@ export default function LoginPage() {
         duration: 1,
         repeat: Infinity,
         repeatType: "reverse",
-        ease: "easeInOut"
-      }
-    }
+        ease: "easeInOut",
+      },
+    },
   };
 
   const textVariants = {
-    initial: { 
-      opacity: 0, 
+    initial: {
+      opacity: 0,
       x: -30,
-      filter: "blur(10px)"
+      filter: "blur(10px)",
     },
     animate: {
       opacity: 1,
@@ -77,9 +77,9 @@ export default function LoginPage() {
         type: "spring",
         stiffness: 100,
         damping: 10,
-        delay: 0.8
-      }
-    }
+        delay: 0.8,
+      },
+    },
   };
 
   // Form handling
@@ -94,7 +94,7 @@ export default function LoginPage() {
     mutationFn: async (data: any) => {
       const res = await apiRequest("POST", "/api/login", {
         email: data.emailId,
-        password: data.password
+        password: data.password,
       });
       if (!res.ok) {
         const error = await res.json();
@@ -125,15 +125,21 @@ export default function LoginPage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-[#004990] via-[#0066cc] to-[#ffffff] relative overflow-hidden">
+      {/* Powered by text with animation */}
       <AnimatePresence>
         {isLoaded && (
           <motion.div
-            className="absolute right-4 bottom-4 cursor-pointer"
-            variants={logoVariants}
-            initial="initial"
-            animate="animate"
-            whileHover="hover"
+            className="absolute right-4 bottom-4 flex items-center gap-3"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.5 }}
           >
+            <motion.p
+              className="text-sm font-medium text-white"
+              whileHover={{ scale: 1.05 }}
+            >
+              Powered by EXL AI Solutions
+            </motion.p>
             <motion.img
               src="/images/exl-logo.png"
               alt="EXL Logo"
@@ -155,7 +161,7 @@ export default function LoginPage() {
             animate={{ opacity: 1, x: 0 }}
             transition={{ delay: 0.3 }}
           >
-            <motion.h1 
+            <motion.h1
               className="text-2xl font-bold text-white tracking-wider"
               initial={{ opacity: 0, y: -20 }}
               animate={{ opacity: 1, y: 0 }}
@@ -163,7 +169,7 @@ export default function LoginPage() {
             >
               TRIPXL
             </motion.h1>
-            <motion.p 
+            <motion.p
               className="mt-2 text-sm text-white/90 max-w-md leading-relaxed"
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
@@ -174,7 +180,7 @@ export default function LoginPage() {
           </motion.div>
 
           {/* Sign In Form */}
-          <motion.div 
+          <motion.div
             className="w-full max-w-md"
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -197,7 +203,11 @@ export default function LoginPage() {
                         <FormItem className="space-y-1">
                           <FormLabel>Email</FormLabel>
                           <FormControl>
-                            <Input {...field} type="email" placeholder="Enter your email" />
+                            <Input
+                              {...field}
+                              type="email"
+                              placeholder="Enter your email"
+                            />
                           </FormControl>
                           <FormMessage />
                         </FormItem>
