@@ -732,21 +732,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
           });
         }
 
-        // Return employee details matching the frontend expectations
+        // Return employee details exactly matching the table structure
         const response = {
           employeeId: employee.employeeId,
-          employeeName: employee.name,
-          emailId: employee.email,
-          mobileNumber: employee.phone,
+          employeeName: employee.employeeName,
+          emailId: employee.emailId,
+          mobileNumber: employee.mobileNumber,
           employeeType: employee.employeeType,
           designation: employee.designation,
           department: employee.department,
           nationality: employee.nationality,
           region: employee.region,
-          communicationLanguage: employee.communicationLanguage
+          communicationLanguage: employee.communicationLanguage,
+          unit: employee.unit
         };
 
-        console.log("Sending response:", { ...response, mobileNumber: '****' + response.mobileNumber.slice(-4) });
+        console.log("Sending response:", {
+          ...response,
+          mobileNumber: '****' + response.mobileNumber.slice(-4)
+        });
+
         res.json(response);
       } catch (error: any) {
         console.error("Error validating employee:", error);

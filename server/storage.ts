@@ -566,19 +566,19 @@ export class DatabaseStorage implements IStorage {
     try {
       console.log('Finding employee by ID:', employeeId);
 
-      // Execute the database query with proper field selection
+      // Execute the database query with all required fields
       const [employee] = await db
         .select({
           id: schema.employees.id,
           employeeId: schema.employees.employeeId,
-          name: schema.employees.name,
-          email: schema.employees.email,
-          phone: schema.employees.phone,
+          employeeName: schema.employees.name,
+          emailId: schema.employees.email,
+          mobileNumber: schema.employees.phone,
           employeeType: schema.employees.employeeType,
           designation: schema.employees.designation,
+          department: schema.employees.department,
           nationality: schema.employees.nationality,
           region: schema.employees.region,
-          department: schema.employees.department,
           communicationLanguage: schema.employees.communicationLanguage,
           unit: schema.employees.unit
         })
@@ -589,8 +589,7 @@ export class DatabaseStorage implements IStorage {
       if (employee) {
         console.log('Found employee:', {
           ...employee,
-          // Mask sensitive information in logs
-          phone: '****' + employee.phone.slice(-4)
+          mobileNumber: '****' + employee.mobileNumber.slice(-4)
         });
       } else {
         console.log('No employee found with ID:', employeeId);
