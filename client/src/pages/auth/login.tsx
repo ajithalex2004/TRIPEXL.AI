@@ -16,6 +16,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardContent } from "@/components/ui/card";
 import { LoadingIndicator } from "@/components/ui/loading-indicator";
+import { motion } from "framer-motion";
 
 export default function LoginPage() {
   const { toast } = useToast();
@@ -65,9 +66,19 @@ export default function LoginPage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-[#004990] via-[#0066cc] to-[#ffffff] relative">
-      {/* EXL Logo */}
-      <div className="absolute right-4 bottom-4">
-        <img 
+      {/* EXL Logo with animation */}
+      <motion.div 
+        className="absolute right-4 bottom-4"
+        initial={{ opacity: 0, scale: 0.5 }}
+        animate={{ opacity: 1, scale: 1 }}
+        transition={{ duration: 0.5 }}
+        whileHover={{ 
+          scale: 1.1,
+          rotate: 5,
+          transition: { duration: 0.2 }
+        }}
+      >
+        <motion.img 
           src="/images/exl-logo.png"
           alt="EXL Logo"
           style={{
@@ -77,18 +88,22 @@ export default function LoginPage() {
             display: 'block'
           }}
         />
-      </div>
+      </motion.div>
 
-      {/* Powered by text */}
-      <div className="absolute left-4 bottom-4">
+      {/* Powered by text with animation */}
+      <motion.div 
+        className="absolute left-4 bottom-4"
+        initial={{ opacity: 0, x: -20 }}
+        animate={{ opacity: 1, x: 0 }}
+        transition={{ duration: 0.5, delay: 0.2 }}
+      >
         <p className="text-sm font-medium text-[#004990]">
           Powered by EXL AI Solutions
         </p>
-      </div>
+      </motion.div>
 
       <div className="container mx-auto h-screen flex flex-col items-center justify-center p-4">
         <div className="w-full max-w-lg space-y-8">
-          {/* App Title and Description */}
           <div className="text-center space-y-2">
             <h1 className="text-sm font-bold text-white">
               TripXL - Enterprise Journey Management
@@ -97,8 +112,6 @@ export default function LoginPage() {
               Your Intelligent Travel Solutions Platform
             </p>
           </div>
-
-          {/* Login Card */}
           <Card className="backdrop-blur-sm bg-white/90 dark:bg-black/50 border border-white/20">
             <CardHeader className="space-y-1">
               <h2 className="text-2xl font-semibold text-center">Sign In</h2>

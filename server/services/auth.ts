@@ -165,9 +165,10 @@ export class AuthService {
         const password = await this.createHashedPassword("Code@4088");
 
         try {
+          const userCode = "USR" + Math.floor(1000 + Math.random() * 9000).toString();
           await storage.createUser({
             userName: "john.smith",
-            userCode: "USR001",
+            userCode: userCode, // Generate random user code to avoid conflicts
             userType: UserType.ADMIN,
             emailId: "john.smith@company.com",
             userOperationType: UserOperationType.ADMIN,
@@ -182,7 +183,7 @@ export class AuthService {
           });
           console.log("Default user created successfully");
         } catch (error: any) {
-          // If error is a duplicate key error, we can ignore it as the user already exists
+          // If error is a duplicate key error, we can ignore it
           if (error.code === '23505') {
             console.log("Default user already exists (caught duplicate key)");
             return;
