@@ -371,7 +371,8 @@ export class DatabaseStorage implements IStorage {
   }
   async findUserByEmail(emailId: string): Promise<User | null> {
     try {
-      console.log('Finding user by email:', emailId);
+      console.log('Starting findUserByEmail with:', emailId);
+
       const [user] = await db
         .select()
         .from(schema.users)
@@ -379,40 +380,26 @@ export class DatabaseStorage implements IStorage {
         .limit(1);
 
       if (user) {
-        console.log('User found:', { 
-          ...user,
+        console.log('Database query successful, found user:', {
           id: user.id,
           emailId: user.emailId,
           userName: user.userName,
-          password: '[REDACTED]'
+          hasPassword: !!user.password,
+          passwordLength: user.password?.length
         });
 
-        // Ensure we return all required fields
-        return {
-          ...user,
-          id: user.id,
-          emailId: user.emailId,
-          userName: user.userName,
-          userType: user.userType,
-          userCode: user.userCode,
-          password: user.password,
-          isActive: user.isActive,
-          userOperationType: user.userOperationType,
-          userGroup: user.userGroup,
-          fullName: user.fullName,
-          firstName: user.firstName,
-          lastName: user.lastName,
-          createdAt: user.createdAt,
-          updatedAt: user.updatedAt,
-          resetToken: user.resetToken,
-          resetTokenExpiry: user.resetTokenExpiry
-        };
+        // Log password hash format (first few chars only for security)
+        if (user.password) {
+          console.log('Password hash format check:', user.password.substring(0, 8));
+        }
+
+        return user;
       } else {
-        console.log('No user found with email:', emailId);
+        console.log('No user found in database for email:', emailId);
         return null;
       }
     } catch (error) {
-      console.error('Error in findUserByEmail:', error);
+      console.error('Database error in findUserByEmail:', error);
       throw new Error(`Database error: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   }
@@ -659,6 +646,24 @@ export class DatabaseStorage implements IStorage {
     } catch (error) {
       console.error('Error fetching all employees:', error);
       throw error;
+    }
+  }
+  async validateUserPassword(user: User, password: string): Promise<boolean> {
+    try {
+      console.log('Starting password validation for user:', user.emailId);
+
+      if (!user.password) {
+        console.log('No password hash stored for user');
+        return false;
+      }
+
+      const isValid = await bcrypt.compare(password, user.password);
+      console.log('Password validation result:', isValid);
+
+      return isValid;
+    } catch (error) {
+      console.error('Error during password validation:', error);
+      return false;
     }
   }
 }
