@@ -82,6 +82,7 @@ export interface IStorage {
 
   updateUserResetToken(userId: number, resetToken: string, resetTokenExpiry: Date): Promise<User>;
   findUserByResetToken(resetToken: string): Promise<User | null>;
+  getAllEmployees(): Promise<Employee[]>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -616,6 +617,35 @@ export class DatabaseStorage implements IStorage {
     } catch (error) {
       console.error('Error checking user registration:', error);
       throw new Error(`Database error: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
+  }
+
+  async getAllEmployees(): Promise<Employee[]> {
+    try {
+      console.log('Fetching all employees');
+      const employees = await db
+        .select({
+          employeeId: schema.employees.employee_id,
+          employeeName: schema.employees.employee_name,
+          email: schema.employees.email,
+          mobileNumber: schema.employees.mobile_number,
+          employeeType: schema.employees.employee_type,
+          designation: schema.employees.designation,
+          department: schema.employees.department,
+          nationality: schema.employees.nationality,
+          region: schema.employees.region,
+          communicationLanguage: schema.employees.communication_language,
+          unit: schema.employees.unit,
+          isActive: schema.employees.is_active
+        })
+        .from(schema.employees)
+        .where(eq(schema.employees.is_active, true));
+
+      console.log(`Found ${employees.length} employees`);
+      return employees;
+    } catch (error) {
+      console.error('Error fetching all employees:', error);
+      throw error;
     }
   }
 }
