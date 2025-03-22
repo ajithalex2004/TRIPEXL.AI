@@ -176,13 +176,13 @@ export default function LoginPage() {
 
           {/* Sign In Form */}
           <motion.div
-            className="w-full max-w-[450px]"
+            className="w-full max-w-[600px]"
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.5, duration: 0.5 }}
           >
             <motion.h2
-              className="text-lg font-semibold text-white mb-3 text-center"
+              className="text-xl font-semibold text-white mb-4 text-center"
               initial={{ opacity: 0, y: -10 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.6 }}
@@ -190,31 +190,31 @@ export default function LoginPage() {
               Welcome to TRIPXL
             </motion.h2>
 
-            <Card className="backdrop-blur-sm bg-white/90 dark:bg-black/50 border border-white/20 px-2">
-              <CardHeader className="space-y-1 pb-3">
-                <h2 className="text-lg font-semibold text-center">Sign In</h2>
-                <p className="text-xs text-muted-foreground text-center">
+            <Card className="backdrop-blur-sm bg-white/90 dark:bg-black/50 border border-white/20 px-6 py-4">
+              <CardHeader className="space-y-2 pb-4">
+                <h2 className="text-2xl font-semibold text-center">Sign In</h2>
+                <p className="text-sm text-muted-foreground text-center">
                   Enter your credentials to continue
                 </p>
               </CardHeader>
               <CardContent>
                 <Form {...form}>
-                  <form onSubmit={onSubmit} className="space-y-4">
+                  <form onSubmit={onSubmit} className="space-y-6">
                     <FormField
                       control={form.control}
                       name="emailId"
                       render={({ field }) => (
-                        <FormItem className="space-y-1.5">
-                          <FormLabel className="text-sm">Email</FormLabel>
+                        <FormItem className="space-y-2">
+                          <FormLabel className="text-base">Email</FormLabel>
                           <FormControl>
                             <Input
                               {...field}
                               type="email"
                               placeholder="Enter your email"
-                              className="text-sm px-3 py-2"
+                              className="text-base px-4 py-2.5"
                             />
                           </FormControl>
-                          <FormMessage className="text-xs"/>
+                          <FormMessage className="text-sm"/>
                         </FormItem>
                       )}
                     />
@@ -222,29 +222,29 @@ export default function LoginPage() {
                       control={form.control}
                       name="password"
                       render={({ field }) => (
-                        <FormItem className="space-y-1.5">
-                          <FormLabel className="text-sm">Password</FormLabel>
+                        <FormItem className="space-y-2">
+                          <FormLabel className="text-base">Password</FormLabel>
                           <div className="relative">
                             <FormControl>
                               <Input
                                 {...field}
                                 type={showPassword ? "text" : "password"}
                                 placeholder="Enter your password"
-                                className="text-sm px-3 py-2"
+                                className="text-base px-4 py-2.5"
                               />
                             </FormControl>
                             <Button
                               type="button"
                               variant="ghost"
                               size="sm"
-                              className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
+                              className="absolute right-0 top-0 h-full px-4 py-2 hover:bg-transparent"
                               onClick={() => setShowPassword(!showPassword)}
                             >
                               {showPassword ? (
                                 <svg
                                   xmlns="http://www.w3.org/2000/svg"
-                                  width="16"
-                                  height="16"
+                                  width="20"
+                                  height="20"
                                   viewBox="0 0 24 24"
                                   fill="none"
                                   stroke="currentColor"
@@ -258,8 +258,8 @@ export default function LoginPage() {
                               ) : (
                                 <svg
                                   xmlns="http://www.w3.org/2000/svg"
-                                  width="16"
-                                  height="16"
+                                  width="20"
+                                  height="20"
                                   viewBox="0 0 24 24"
                                   fill="none"
                                   stroke="currentColor"
@@ -273,13 +273,13 @@ export default function LoginPage() {
                               )}
                             </Button>
                           </div>
-                          <FormMessage className="text-xs"/>
+                          <FormMessage className="text-sm"/>
                         </FormItem>
                       )}
                     />
                     <Button
                       type="submit"
-                      className="w-full bg-gradient-to-r from-[#004990] to-[#0066cc] hover:from-[#003870] hover:to-[#004990] text-white"
+                      className="w-full bg-gradient-to-r from-[#004990] to-[#0066cc] hover:from-[#003870] hover:to-[#004990] text-white py-3 text-lg"
                       disabled={login.isPending}
                     >
                       {login.isPending ? (
@@ -287,18 +287,18 @@ export default function LoginPage() {
                       ) : null}
                       {login.isPending ? "Signing in..." : "Sign In"}
                     </Button>
-                    <div className="text-center mt-3">
-                      <div className="flex flex-col space-y-2">
+                    <div className="text-center mt-4">
+                      <div className="flex flex-col space-y-3">
                         <Button
                           variant="link"
-                          className="text-sm text-[#004990] hover:text-[#003870]"
+                          className="text-base text-[#004990] hover:text-[#003870]"
                           onClick={() => setLocation("/auth/register")}
                         >
                           Don't have an account? Register here
                         </Button>
                         <Button
                           variant="link"
-                          className="text-sm text-[#004990] hover:text-[#003870]"
+                          className="text-base text-[#004990] hover:text-[#003870]"
                           onClick={() => setLocation("/auth/forgot-password")}
                         >
                           Forgot Password?
