@@ -48,13 +48,11 @@ export function Layout({ children }: { children: React.ReactNode }) {
     return () => clearTimeout(timer);
   }, [location]);
 
-  // Show footer only on login page
-  const showFooter = location === "/auth/login";
   const isLoginPage = location === "/auth/login";
 
   return (
     <SidebarProvider>
-      <div className="flex min-h-screen">
+      <div className="min-h-screen flex flex-col"> {/* Added flex-col for vertical layout */}
         {isLoading && <LoadingPage />}
         {!isLoginPage && (
           <Sidebar className="bg-gradient-to-b from-[#004990] via-[#0066cc] to-[#ffffff] border-r border-white/10">
@@ -173,10 +171,12 @@ export function Layout({ children }: { children: React.ReactNode }) {
             </SidebarContent>
           </Sidebar>
         )}
-        <main className={`flex-1 ${!isLoginPage ? "p-6 pb-24" : ""}`}>
-          {children}
-        </main>
-        {showFooter && <Footer />}
+        <div className="flex-1 flex flex-col">
+          <main className="flex-1">
+            {children}
+          </main>
+          <Footer /> {/* Footer always visible */}
+        </div>
       </div>
     </SidebarProvider>
   );

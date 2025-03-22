@@ -64,7 +64,7 @@ export default function LoginPage() {
   });
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-[#004990] via-[#0066cc] to-[#ffffff]">
+    <div className="min-h-screen bg-gradient-to-b from-[#004990] via-[#0066cc] to-[#ffffff] pb-16">
       <div className="container mx-auto h-screen flex flex-col items-center justify-center p-4">
         <div className="w-full max-w-lg space-y-8">
           {/* App Title and Description */}
