@@ -115,7 +115,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const token = jwt.sign(
           {
             userId: user.id,
-            email_id: user.email_id
+            email_id: user.email
           },
           process.env.JWT_SECRET || 'dev-secret-key',
           { expiresIn: '24h' }
@@ -729,12 +729,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
           });
         }
 
-        // Return only necessary employee details
+        // Return employee details matching the frontend expectations
         res.json({
           employeeId: employee.employeeId,
-          employeeName: employee.employeeName,
-          emailId: employee.emailId,
-          mobileNumber: employee.mobileNumber
+          employeeName: employee.name,
+          emailId: employee.email,
+          mobileNumber: employee.phone
         });
       } catch (error: any) {
         console.error("Error validating employee:", error);
@@ -886,8 +886,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         // Find user by reset token
         const user = await storage.findUserByResetToken(token);
         if (!user) {
-          return res.status(404).json({
-            error: "Invalid or expired reset token",
+          return res.status(404).json({            error: "Invalid or expired reset token",
             details: "Please request a new password reset link"
           });
         }
