@@ -48,14 +48,15 @@ export function Layout({ children }: { children: React.ReactNode }) {
     return () => clearTimeout(timer);
   }, [location]);
 
-  // Only show footer on the login page
+  // Show footer only on login page
   const showFooter = location === "/auth/login";
+  const isLoginPage = location === "/auth/login";
 
   return (
     <SidebarProvider>
       <div className="flex min-h-screen">
         {isLoading && <LoadingPage />}
-        {location !== "/auth/login" && (
+        {!isLoginPage && (
           <Sidebar className="bg-gradient-to-b from-[#004990] via-[#0066cc] to-[#ffffff] border-r border-white/10">
             <SidebarHeader className="border-b border-white/10">
               <Logo className="text-white" />
@@ -172,10 +173,10 @@ export function Layout({ children }: { children: React.ReactNode }) {
             </SidebarContent>
           </Sidebar>
         )}
-        <main className={`flex-1 ${location === "/auth/login" ? "" : "p-6 pb-24"}`}>
+        <main className={`flex-1 ${!isLoginPage ? "p-6 pb-24" : ""}`}>
           {children}
-          {showFooter && <Footer />}
         </main>
+        {showFooter && <Footer />}
       </div>
     </SidebarProvider>
   );

@@ -65,15 +65,15 @@ export default function LoginPage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-[#004990] via-[#0066cc] to-[#ffffff]">
-      <div className="container mx-auto min-h-screen flex flex-col items-center justify-center p-4">
-        <div className="w-full max-w-md space-y-8">
-          {/* Logo and Welcome Text */}
+      <div className="container mx-auto h-screen flex flex-col items-center justify-center p-4">
+        <div className="w-full max-w-lg space-y-8">
+          {/* App Title and Description */}
           <div className="text-center space-y-2">
-            <h1 className="text-2xl md:text-3xl lg:text-4xl font-bold text-white">
-              Welcome to TripXL
+            <h1 className="text-4xl font-bold text-white">
+              TripXL - Enterprise Journey Management
             </h1>
-            <p className="text-white/80">
-              Your Intelligent Journey Management Solution
+            <p className="text-xl text-white/80">
+              Your Intelligent Travel Solutions Platform
             </p>
           </div>
 
