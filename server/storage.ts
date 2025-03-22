@@ -565,6 +565,8 @@ export class DatabaseStorage implements IStorage {
   async findEmployeeByEmployeeId(employeeId: string): Promise<Employee | null> {
     try {
       console.log('Finding employee by ID:', employeeId);
+
+      // Execute the database query
       const [employee] = await db
         .select()
         .from(schema.employees)
@@ -573,16 +575,18 @@ export class DatabaseStorage implements IStorage {
 
       if (employee) {
         console.log('Found employee:', {
+          id: employee.id,
           employeeId: employee.employeeId,
           name: employee.name,
           email: employee.email,
-          phone: employee.phone
+          phone: employee.phone,
+          department: employee.department
         });
       } else {
         console.log('No employee found with ID:', employeeId);
       }
 
-      return employee || null;
+      return employee;
     } catch (error) {
       console.error('Error finding employee:', error);
       throw new Error(`Database error: ${error instanceof Error ? error.message : 'Unknown error'}`);
@@ -592,6 +596,7 @@ export class DatabaseStorage implements IStorage {
   async findUserByEmployeeId(employeeId: string): Promise<User | null> {
     try {
       console.log('Checking if employee is already registered:', employeeId);
+
       const [user] = await db
         .select()
         .from(schema.users)

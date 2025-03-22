@@ -713,6 +713,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         console.log("Validating employee ID:", employeeId);
 
         const employee = await storage.findEmployeeByEmployeeId(employeeId);
+        console.log("Database response:", employee);
+
         if (!employee) {
           return res.status(404).json({
             error: "Employee not found",
@@ -729,18 +731,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
           });
         }
 
-        // Return employee details matching the frontend expectations
-        res.json({
+        // Transform employee data to match frontend expectations
+        const response = {
           employeeId: employee.employeeId,
           employeeName: employee.name,
           emailId: employee.email,
           mobileNumber: employee.phone
-        });
+        };
+
+        console.log("Sending response:", response);
+        res.json(response);
       } catch (error: any) {
         console.error("Error validating employee:", error);
         res.status(500).json({
           error: "Server error",
-          message: "Failed to validate employee"
+          message: error.message || "Failed to validate employee"
         });
       }
     });
@@ -886,7 +891,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         // Find user by reset token
         const user = await storage.findUserByResetToken(token);
         if (!user) {
-          return res.status(404).json({            error: "Invalid or expired reset token",
+          return res.status(404).json({
+            error: "Invalid or expired reset token",
             details: "Please request a new password reset link"
           });
         }
