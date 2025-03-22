@@ -145,27 +145,79 @@ export async function registerRoutes(app: Express): Promise<Server> {
     });
     log("Auth routes registered");
 
+    // Update the registration route to handle employee-based registration
     app.post("/api/auth/register", async (req, res) => {
-      const result = insertUserSchema.safeParse(req.body);
-      if (!result.success) {
-        return res.status(400).json({ error: "Invalid registration data", details: result.error.issues });
-      }
-
-      const { password } = req.body;
-      if (!password || typeof password !== 'string' || password.length < 6) {
-        return res.status(400).json({ error: "Password must be at least 6 characters long" });
-      }
-
       try {
-        const { user, otp } = await authService.registerUser(result.data, password);
-        res.json({
-          message: "Registration successful. Please verify your account.",
-          userId: user.id,
-          otp // Include OTP in the response
+        console.log("Registration attempt with data:", {
+          ...req.body,
+          password: '[REDACTED]'
         });
+
+        const { employeeId, email, password, name, department, designation, region } = req.body;
+
+        if (!employeeId || !email || !password) {
+          return res.status(400).json({
+            error: "Missing required fields",
+            details: "Employee ID, email and password are required"
+          });
+        }
+
+        // Check if employee exists and is not already registered
+        const employee = await storage.findEmployeeByEmployeeId(employeeId);
+        if (!employee) {
+          return res.status(404).json({
+            error: "Employee not found",
+            details: "No employee found with the provided ID"
+          });
+        }
+
+        // Check if user already exists
+        const existingUser = await storage.findUserByEmail(email);
+        if (existingUser) {
+          return res.status(400).json({
+            error: "User already exists",
+            details: "An account with this email already exists"
+          });
+        }
+
+        // Hash password
+        const hashedPassword = await bcrypt.hash(password, 10);
+
+        // Create user with employee details
+        const user = await storage.createUser({
+          employeeId,
+          email,
+          password: hashedPassword,
+          name,
+          department,
+          designation,
+          region,
+          isActive: true,
+          userType: 'EMPLOYEE',
+          createdAt: new Date(),
+          updatedAt: new Date()
+        });
+
+        console.log("User created successfully:", {
+          ...user,
+          password: '[REDACTED]'
+        });
+
+        res.status(201).json({
+          message: "Registration successful",
+          user: {
+            id: user.id,
+            email: user.email,
+            name: user.name
+          }
+        });
+
       } catch (error: any) {
-        console.error('Registration error:', error);
-        res.status(500).json({ error: "Server error during registration" });
+        console.error("Registration error:", error);
+        res.status(500).json({
+          error: "Server error during registration",
+          details: error.message
+        });
       }
     });
 
@@ -855,7 +907,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           message: "Password reset instructions sent to your email"
         });
 
-      } catch (error: any) {
+            } catch (error: any) {
         console.error('Error in forgot password:', error);
         res.status(500).json({
           error: "Failed to process password reset request",

@@ -8,9 +8,18 @@ import { LoadingAnimation } from "./loading-animation";
 import { motion, AnimatePresence } from "framer-motion";
 import * as z from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { useLocation } from "wouter";
 
 const formSchema = z.object({
   employeeId: z.string().min(1, "Employee ID is required")
+});
+
+const registrationSchema = z.object({
+  password: z.string().min(6, "Password must be at least 6 characters"),
+  confirmPassword: z.string()
+}).refine((data) => data.password === data.confirmPassword, {
+  message: "Passwords don't match",
+  path: ["confirmPassword"],
 });
 
 interface EmployeeDetails {
@@ -29,7 +38,9 @@ interface EmployeeDetails {
 
 export function EmployeeValidationForm() {
   const { toast } = useToast();
+  const [, setLocation] = useLocation();
   const [isValidating, setIsValidating] = useState(false);
+  const [isRegistering, setIsRegistering] = useState(false);
   const [employeeDetails, setEmployeeDetails] = useState<EmployeeDetails | null>(null);
   const [lastValidatedId, setLastValidatedId] = useState<string>("");
 
@@ -37,6 +48,14 @@ export function EmployeeValidationForm() {
     resolver: zodResolver(formSchema),
     defaultValues: {
       employeeId: "",
+    },
+  });
+
+  const registrationForm = useForm<z.infer<typeof registrationSchema>>({
+    resolver: zodResolver(registrationSchema),
+    defaultValues: {
+      password: "",
+      confirmPassword: "",
     },
   });
 
@@ -60,7 +79,7 @@ export function EmployeeValidationForm() {
       setLastValidatedId(employeeId);
       toast({
         title: "Employee Found",
-        description: "Employee details retrieved successfully.",
+        description: "Employee details retrieved successfully. You can now register.",
       });
     } catch (error) {
       console.error('Error validating employee:', error);
@@ -73,6 +92,51 @@ export function EmployeeValidationForm() {
       setLastValidatedId("");
     } finally {
       setIsValidating(false);
+    }
+  };
+
+  const handleRegistration = async (values: z.infer<typeof registrationSchema>) => {
+    if (!employeeDetails) return;
+
+    setIsRegistering(true);
+    try {
+      const response = await fetch('/api/auth/register', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          employeeId: employeeDetails.employeeId,
+          email: employeeDetails.emailId,
+          password: values.password,
+          name: employeeDetails.employeeName,
+          department: employeeDetails.department,
+          designation: employeeDetails.designation,
+          region: employeeDetails.region,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.message || data.error || 'Registration failed');
+      }
+
+      toast({
+        title: "Registration Successful",
+        description: "You can now login with your email and password",
+      });
+
+      setLocation("/auth/login");
+    } catch (error) {
+      console.error('Registration error:', error);
+      toast({
+        title: "Registration Failed",
+        description: error instanceof Error ? error.message : "Failed to register",
+        variant: "destructive",
+      });
+    } finally {
+      setIsRegistering(false);
     }
   };
 
@@ -156,6 +220,50 @@ export function EmployeeValidationForm() {
                     </motion.div>
                   ))}
                 </div>
+
+                <Form {...registrationForm}>
+                  <form onSubmit={registrationForm.handleSubmit(handleRegistration)} className="space-y-4 mt-6">
+                    <FormField
+                      control={registrationForm.control}
+                      name="password"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Password</FormLabel>
+                          <FormControl>
+                            <Input type="password" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    <FormField
+                      control={registrationForm.control}
+                      name="confirmPassword"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Confirm Password</FormLabel>
+                          <FormControl>
+                            <Input type="password" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    <Button 
+                      type="submit" 
+                      className="w-full"
+                      disabled={isRegistering}
+                    >
+                      {isRegistering ? (
+                        <LoadingAnimation size="sm" />
+                      ) : (
+                        "Register with Employee Details"
+                      )}
+                    </Button>
+                  </form>
+                </Form>
               </motion.div>
             )}
           </AnimatePresence>
