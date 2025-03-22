@@ -23,11 +23,53 @@ export default function LoginPage() {
   const [, setLocation] = useLocation();
   const [showPassword, setShowPassword] = React.useState(false);
   const [isLoaded, setIsLoaded] = React.useState(false);
+  const [imageLoaded, setImageLoaded] = React.useState(false);
 
   React.useEffect(() => {
-    // Trigger animation after component mount
-    setIsLoaded(true);
+    const timer = setTimeout(() => setIsLoaded(true), 100);
+    return () => clearTimeout(timer);
   }, []);
+
+  const logoVariants = {
+    hidden: { opacity: 0, scale: 0.3, y: 50 },
+    visible: { 
+      opacity: 1, 
+      scale: 1, 
+      y: 0,
+      transition: {
+        type: "spring",
+        stiffness: 200,
+        damping: 20,
+        duration: 1
+      }
+    },
+    hover: {
+      scale: 1.1,
+      rotate: [0, -2, 2, -2, 0],
+      transition: {
+        duration: 0.3,
+        ease: "easeInOut"
+      }
+    }
+  };
+
+  const textVariants = {
+    hidden: { opacity: 0, x: -30 },
+    visible: {
+      opacity: 1,
+      x: 0,
+      transition: {
+        type: "spring",
+        stiffness: 100,
+        damping: 10,
+        delay: 0.5
+      }
+    },
+    hover: {
+      scale: 1.05,
+      transition: { duration: 0.2 }
+    }
+  };
 
   const form = useForm({
     defaultValues: {
@@ -74,44 +116,32 @@ export default function LoginPage() {
       <AnimatePresence>
         {isLoaded && (
           <>
-            <motion.div 
+            <motion.div
               className="absolute right-4 bottom-4"
-              initial={{ opacity: 0, scale: 0.5, y: 50 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              transition={{ 
-                duration: 0.8,
-                type: "spring",
-                stiffness: 100,
-                damping: 10
-              }}
-              whileHover={{ 
-                scale: 1.1,
-                rotate: [0, -5, 5, -5, 0],
-                transition: { duration: 0.5 }
-              }}
+              variants={logoVariants}
+              initial="hidden"
+              animate={imageLoaded ? "visible" : "hidden"}
+              whileHover="hover"
             >
-              <motion.img 
+              <motion.img
                 src="/images/exl-logo.png"
                 alt="EXL Logo"
                 className="w-[180px] h-auto object-contain"
-                onLoad={() => setIsLoaded(true)}
+                onLoad={() => setImageLoaded(true)}
+                layoutId="logo"
               />
             </motion.div>
 
-            <motion.div 
+            <motion.div
               className="absolute left-4 bottom-4"
-              initial={{ opacity: 0, x: -50 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ 
-                duration: 0.8,
-                delay: 0.3,
-                type: "spring",
-                stiffness: 100
-              }}
+              variants={textVariants}
+              initial="hidden"
+              animate="visible"
+              whileHover="hover"
             >
-              <motion.p 
+              <motion.p
                 className="text-sm font-medium text-[#004990]"
-                whileHover={{ scale: 1.05 }}
+                layoutId="powered-by"
               >
                 Powered by EXL AI Solutions
               </motion.p>
@@ -130,6 +160,7 @@ export default function LoginPage() {
               Your Intelligent Travel Solutions Platform
             </p>
           </div>
+
           <Card className="backdrop-blur-sm bg-white/90 dark:bg-black/50 border border-white/20">
             <CardHeader className="space-y-1">
               <h2 className="text-2xl font-semibold text-center">Sign In</h2>
