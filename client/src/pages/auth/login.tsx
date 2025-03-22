@@ -78,6 +78,13 @@ export default function LoginPage() {
         />
       </div>
 
+      {/* Powered by text */}
+      <div className="absolute left-4 bottom-4">
+        <p className="text-sm text-white font-medium">
+          Powered by EXL AI Solutions
+        </p>
+      </div>
+
       <div className="container mx-auto h-screen flex flex-col items-center justify-center p-4">
         <div className="w-full max-w-lg space-y-8">
           {/* App Title and Description */}
