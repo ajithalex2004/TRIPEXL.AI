@@ -4,7 +4,8 @@ import { Input } from "@/components/ui/input";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { useState, KeyboardEvent, FocusEvent } from "react";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2 } from "lucide-react";
+import { LoadingAnimation } from "./loading-animation";
+import { motion, AnimatePresence } from "framer-motion";
 import * as z from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 
@@ -112,11 +113,18 @@ export function EmployeeValidationForm() {
                       disabled={isValidating}
                       className="pr-10"
                     />
-                    {isValidating && (
-                      <div className="absolute right-2 top-1/2 -translate-y-1/2">
-                        <Loader2 className="h-4 w-4 animate-spin" />
-                      </div>
-                    )}
+                    <AnimatePresence>
+                      {isValidating && (
+                        <motion.div
+                          initial={{ opacity: 0, scale: 0.8 }}
+                          animate={{ opacity: 1, scale: 1 }}
+                          exit={{ opacity: 0, scale: 0.8 }}
+                          className="absolute right-2 top-1/2 -translate-y-1/2"
+                        >
+                          <LoadingAnimation size="sm" />
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
                   </div>
                 </FormControl>
                 <FormMessage />
@@ -124,53 +132,33 @@ export function EmployeeValidationForm() {
             )}
           />
 
-          {employeeDetails && (
-            <div className="space-y-4 border rounded-lg p-6 bg-background/50 backdrop-blur-sm">
-              <h3 className="text-xl font-semibold mb-4">Employee Details</h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div>
-                  <label className="text-sm font-medium">Name</label>
-                  <p className="text-sm mt-1">{employeeDetails.employeeName}</p>
+          <AnimatePresence mode="wait">
+            {employeeDetails && (
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -20 }}
+                className="space-y-4 border rounded-lg p-6 bg-background/50 backdrop-blur-sm"
+              >
+                <h3 className="text-xl font-semibold mb-4">Employee Details</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  {Object.entries(employeeDetails).map(([key, value]) => (
+                    <motion.div
+                      key={key}
+                      initial={{ opacity: 0, x: -20 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ delay: 0.1 }}
+                    >
+                      <label className="text-sm font-medium">
+                        {key.replace(/([A-Z])/g, ' $1').trim()}
+                      </label>
+                      <p className="text-sm mt-1">{value}</p>
+                    </motion.div>
+                  ))}
                 </div>
-                <div>
-                  <label className="text-sm font-medium">Email</label>
-                  <p className="text-sm mt-1">{employeeDetails.emailId}</p>
-                </div>
-                <div>
-                  <label className="text-sm font-medium">Mobile Number</label>
-                  <p className="text-sm mt-1">{employeeDetails.mobileNumber}</p>
-                </div>
-                <div>
-                  <label className="text-sm font-medium">Employee Type</label>
-                  <p className="text-sm mt-1">{employeeDetails.employeeType}</p>
-                </div>
-                <div>
-                  <label className="text-sm font-medium">Designation</label>
-                  <p className="text-sm mt-1">{employeeDetails.designation}</p>
-                </div>
-                <div>
-                  <label className="text-sm font-medium">Department</label>
-                  <p className="text-sm mt-1">{employeeDetails.department}</p>
-                </div>
-                <div>
-                  <label className="text-sm font-medium">Nationality</label>
-                  <p className="text-sm mt-1">{employeeDetails.nationality}</p>
-                </div>
-                <div>
-                  <label className="text-sm font-medium">Region</label>
-                  <p className="text-sm mt-1">{employeeDetails.region}</p>
-                </div>
-                <div>
-                  <label className="text-sm font-medium">Communication Language</label>
-                  <p className="text-sm mt-1">{employeeDetails.communicationLanguage}</p>
-                </div>
-                <div>
-                  <label className="text-sm font-medium">Unit</label>
-                  <p className="text-sm mt-1">{employeeDetails.unit}</p>
-                </div>
-              </div>
-            </div>
-          )}
+              </motion.div>
+            )}
+          </AnimatePresence>
         </form>
       </Form>
     </div>
