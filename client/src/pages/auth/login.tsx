@@ -80,7 +80,7 @@ export default function LoginPage() {
 
       {/* Powered by text */}
       <div className="absolute left-4 bottom-4">
-        <p className="text-sm text-white font-medium">
+        <p className="text-sm font-medium text-[#004990]">
           Powered by EXL AI Solutions
         </p>
       </div>
