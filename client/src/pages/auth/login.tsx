@@ -91,7 +91,7 @@ export default function LoginPage() {
               }}
             >
               <motion.img 
-                src="attached_assets/EXL_Logo-removebg-preview_1742623507146.png"
+                src="/images/exl-logo.png"
                 alt="EXL Logo"
                 className="w-[180px] h-auto object-contain"
                 onLoad={() => setIsLoaded(true)}
