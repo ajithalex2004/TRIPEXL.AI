@@ -19,16 +19,45 @@ import { Layout } from "@/components/layout";
 import { EmployeeValidationForm } from "@/components/employee-validation-form";
 import { PageTransition } from "@/components/page-transition";
 import { AnimatePresence } from "framer-motion";
+import { useToast } from "@/hooks/use-toast";
+import { apiRequest } from "@/lib/queryClient";
 
 function ProtectedRoute({ component: Component }: { component: React.ComponentType }) {
   const [, setLocation] = useLocation();
+  const { toast } = useToast();
 
   React.useEffect(() => {
-    const token = localStorage.getItem("token");
-    if (!token) {
-      setLocation("/auth/login");
-    }
-  }, [setLocation]);
+    const autoLogin = async () => {
+      const token = localStorage.getItem("token");
+
+      if (!token) {
+        // Try auto-login with admin credentials
+        try {
+          const res = await apiRequest("POST", "/api/login", {
+            emailId: "admin@tripxl.com",
+            password: "Admin@123"
+          });
+
+          if (!res.ok) {
+            throw new Error("Auto-login failed");
+          }
+
+          const data = await res.json();
+          localStorage.setItem("token", data.token);
+          toast({
+            title: "Auto-login successful",
+            description: "Logged in as admin"
+          });
+        } catch (error) {
+          console.error("Auto-login failed:", error);
+          setLocation("/auth/login");
+          return;
+        }
+      }
+    };
+
+    autoLogin();
+  }, [setLocation, toast]);
 
   return (
     <Layout>
