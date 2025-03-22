@@ -108,27 +108,40 @@ export default function LoginPage() {
       {/* Powered by text with animation */}
       <AnimatePresence>
         {isLoaded && (
-          <motion.div
-            className="absolute left-4 bottom-4 flex items-center gap-3"
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.5 }}
-          >
-            <motion.p
-              className="text-sm font-medium text-black"
-              whileHover={{ scale: 1.05 }}
+          <>
+            {/* Text on the left */}
+            <motion.div
+              className="absolute left-4 bottom-4"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.5 }}
             >
-              Powered by EXL AI Solutions
-            </motion.p>
-            <motion.img
-              src="/images/exl-logo.png"
-              alt="EXL Logo"
-              className="w-[120px] h-auto object-contain"
-              onLoad={() => setImageLoaded(true)}
-              layoutId="logo"
-              style={{ filter: "drop-shadow(0px 4px 8px rgba(0, 0, 0, 0.2))" }}
-            />
-          </motion.div>
+              <motion.p
+                className="text-sm font-medium text-black"
+                whileHover={{ scale: 1.05 }}
+              >
+                Powered by EXL AI Solutions
+              </motion.p>
+            </motion.div>
+
+            {/* Logo on the right */}
+            <motion.div
+              className="absolute right-4 bottom-4"
+              variants={logoVariants}
+              initial="initial"
+              animate="animate"
+              whileHover="hover"
+            >
+              <motion.img
+                src="/images/exl-logo.png"
+                alt="EXL Logo"
+                className="w-[120px] h-auto object-contain"
+                onLoad={() => setImageLoaded(true)}
+                layoutId="logo"
+                style={{ filter: "drop-shadow(0px 4px 8px rgba(0, 0, 0, 0.2))" }}
+              />
+            </motion.div>
+          </>
         )}
       </AnimatePresence>
 
