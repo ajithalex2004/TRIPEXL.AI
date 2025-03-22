@@ -1,4 +1,4 @@
-import { pgTable, text, serial, integer, timestamp, json, boolean, index, decimal } from "drizzle-orm/pg-core";
+import { pgTable, text, serial, integer, timestamp, json, boolean, index, decimal, varchar, date } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 import { relations } from "drizzle-orm";
@@ -684,7 +684,47 @@ export const insertVehicleMasterSchema = createInsertSchema(vehicleMaster)
     isPPtoConnected: z.enum(Object.values(YesNo) as [string, ...string[]]),
   });
 
-export type VehicleMaster = typeof vehicleMaster.$inferSelect;
+// Add after the existing enums
+export const employees = pgTable("employees", {
+  id: serial("id").primaryKey(),
+  employeeId: integer("employee_id").notNull(),
+  employeeName: varchar("employee_name", { length: 100 }).notNull(),
+  emailId: varchar("email_id", { length: 50 }).notNull(),
+  mobileNumber: varchar("mobile_number", { length: 15 }).notNull(),
+  designation: text("designation").notNull(),
+  employeeType: varchar("employee_type", { length: 50 }),
+  region: varchar("region", { length: 50 }).notNull(),
+  department: varchar("department", { length: 50 }).notNull(),
+  unit: varchar("unit", { length: 50 }).notNull(),
+  dateOfBirth: date("date_of_birth"),
+  nationality: text("nationality"),
+  password: varchar("password", { length: 50 }),
+  communicationLanguage: varchar("communication_language", { length: 50 }),
+  isActive: boolean("is_active").notNull().default(true),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow()
+});
+
+// Add after the other schema definitions
+export const insertEmployeeSchema = createInsertSchema(employees)
+  .extend({
+    employeeId: z.number().positive("Employee ID must be a positive number"),
+    employeeName: z.string().min(1, "Employee name is required").max(100),
+    emailId: z.string().email("Invalid email format").max(50),
+    mobileNumber: z.string().min(8, "Invalid mobile number").max(15),
+    designation: z.string().min(1, "Designation is required"),
+    employeeType: z.string().max(50).optional(),
+    region: z.string().min(1, "Region is required").max(50),
+    department: z.string().min(1, "Department is required").max(50),
+    unit: z.string().min(1, "Unit is required").max(50),
+    dateOfBirth: z.date().optional(),
+    nationality: z.string().optional(),
+    password: z.string().max(50).optional(),
+    communicationLanguage: z.string().max(50).optional()
+  });
+
+// Add to the type exports
+export type VehicleMaster = typeofvehicleMaster.$inferSelect;
 export type InsertVehicleMaster = typeof vehicleMaster.$inferInsert;
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type User = typeof users.$inferSelect;
@@ -702,3 +742,5 @@ export type InsertLocationMaster = z.infer<typeof insertLocationMasterSchema>;
 export type InsertVehicleGroup = z.infer<typeof insertVehicleGroupSchema>;
 export type VehicleTypeMaster = typeof vehicleTypeMaster.$inferSelect;
 export type InsertVehicleTypeMaster = z.infer<typeof insertVehicleTypeMasterSchema>;
+export type Employee = typeof employees.$inferSelect;
+export type InsertEmployee = z.infer<typeof insertEmployeeSchema>;
