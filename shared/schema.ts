@@ -446,7 +446,6 @@ export const employees = pgTable("employees", {
   department: text("department").notNull(),
   communicationLanguage: text("communication_language").notNull(),
   unit: text("unit").notNull(),
-  password: text("password").notNull(), // Added password field
   isActive: boolean("is_active").notNull().default(true),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow()

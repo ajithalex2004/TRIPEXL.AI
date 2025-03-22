@@ -567,10 +567,21 @@ export class DatabaseStorage implements IStorage {
       console.log('Finding employee by ID:', employeeId);
       const [employee] = await db
         .select()
-        .from(schema.employeeMaster)
-        .where(eq(schema.employeeMaster.employeeId, employeeId));
+        .from(schema.employees)
+        .where(eq(schema.employees.employeeId, employeeId))
+        .limit(1);
 
-      console.log('Found employee:', employee || 'Not found');
+      if (employee) {
+        console.log('Found employee:', {
+          employeeId: employee.employeeId,
+          employeeName: employee.employeeName,
+          emailId: employee.emailId,
+          mobileNumber: employee.mobileNumber
+        });
+      } else {
+        console.log('No employee found with ID:', employeeId);
+      }
+
       return employee || null;
     } catch (error) {
       console.error('Error finding employee:', error);
@@ -584,7 +595,8 @@ export class DatabaseStorage implements IStorage {
       const [user] = await db
         .select()
         .from(schema.users)
-        .where(eq(schema.users.employeeId, employeeId));
+        .where(eq(schema.users.employeeId, employeeId))
+        .limit(1);
 
       console.log('Existing user found:', user ? 'Yes' : 'No');
       return user || null;
