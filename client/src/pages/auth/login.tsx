@@ -155,12 +155,12 @@ export default function LoginPage() {
             transition={{ delay: 0.3 }}
           >
             <motion.h1
-              className="text-2xl font-bold text-white tracking-wider"
+              className="text-xl font-bold text-white tracking-wider"
               initial={{ opacity: 0, y: -20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.3 }}
             >
-              TRIPXL
+              TRIPXL - Enterprise Journey Management
             </motion.h1>
             <motion.p
               className="mt-2 text-sm text-white/90 max-w-md leading-relaxed"
@@ -174,13 +174,13 @@ export default function LoginPage() {
 
           {/* Sign In Form */}
           <motion.div
-            className="w-full max-w-md"
+            className="w-full max-w-sm"
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.5, duration: 0.5 }}
           >
             <motion.h2
-              className="text-xl font-semibold text-white mb-4 text-center"
+              className="text-lg font-semibold text-white mb-3 text-center"
               initial={{ opacity: 0, y: -10 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.6 }}
@@ -189,9 +189,9 @@ export default function LoginPage() {
             </motion.h2>
 
             <Card className="backdrop-blur-sm bg-white/90 dark:bg-black/50 border border-white/20">
-              <CardHeader className="space-y-1 pb-4">
-                <h2 className="text-xl font-semibold text-center">Sign In</h2>
-                <p className="text-sm text-muted-foreground text-center">
+              <CardHeader className="space-y-1 pb-3">
+                <h2 className="text-lg font-semibold text-center">Sign In</h2>
+                <p className="text-xs text-muted-foreground text-center">
                   Enter your credentials to continue
                 </p>
               </CardHeader>
@@ -203,15 +203,16 @@ export default function LoginPage() {
                       name="emailId"
                       render={({ field }) => (
                         <FormItem className="space-y-1">
-                          <FormLabel>Email</FormLabel>
+                          <FormLabel className="text-sm">Email</FormLabel>
                           <FormControl>
                             <Input
                               {...field}
                               type="email"
                               placeholder="Enter your email"
+                              className="text-sm"
                             />
                           </FormControl>
-                          <FormMessage />
+                          <FormMessage className="text-xs"/>
                         </FormItem>
                       )}
                     />
@@ -220,13 +221,14 @@ export default function LoginPage() {
                       name="password"
                       render={({ field }) => (
                         <FormItem className="space-y-1">
-                          <FormLabel>Password</FormLabel>
+                          <FormLabel className="text-sm">Password</FormLabel>
                           <div className="relative">
                             <FormControl>
                               <Input
                                 {...field}
                                 type={showPassword ? "text" : "password"}
                                 placeholder="Enter your password"
+                                className="text-sm"
                               />
                             </FormControl>
                             <Button
@@ -269,7 +271,7 @@ export default function LoginPage() {
                               )}
                             </Button>
                           </div>
-                          <FormMessage />
+                          <FormMessage className="text-xs"/>
                         </FormItem>
                       )}
                     />
