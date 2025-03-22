@@ -30,7 +30,7 @@ export default function LoginPage() {
     return () => clearTimeout(timer);
   }, []);
 
-  // Enhanced animation variants
+  // Animation variants
   const logoVariants = {
     initial: { 
       opacity: 0, 
@@ -60,10 +60,6 @@ export default function LoginPage() {
         repeatType: "reverse",
         ease: "easeInOut"
       }
-    },
-    tap: {
-      scale: 0.95,
-      rotate: 0
     }
   };
 
@@ -83,27 +79,10 @@ export default function LoginPage() {
         damping: 10,
         delay: 0.8
       }
-    },
-    hover: {
-      scale: 1.05,
-      x: 10,
-      transition: { 
-        duration: 0.3,
-        ease: "easeOut"
-      }
     }
   };
 
-  const containerVariants = {
-    initial: { opacity: 0 },
-    animate: { 
-      opacity: 1,
-      transition: {
-        staggerChildren: 0.2
-      }
-    }
-  };
-
+  // Form handling
   const form = useForm({
     defaultValues: {
       emailId: "",
@@ -149,89 +128,74 @@ export default function LoginPage() {
       <AnimatePresence>
         {isLoaded && (
           <motion.div
-            variants={containerVariants}
+            variants={textVariants}
             initial="initial"
             animate="animate"
+            className="absolute left-8 top-8"
           >
-            {/* Animated Logo */}
-            <motion.div 
-              className="absolute right-4 bottom-4 cursor-pointer"
-              variants={logoVariants}
-              initial="initial"
-              animate="animate"
-              whileHover="hover"
-              whileTap="tap"
+            <motion.h1 
+              className="text-4xl font-bold text-white tracking-wider"
+              initial={{ opacity: 0, y: -20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.3 }}
             >
-              <motion.img
-                src="/images/exl-logo.png"
-                alt="EXL Logo"
-                className="w-[180px] h-auto object-contain"
-                onLoad={() => setImageLoaded(true)}
-                layoutId="logo"
-                style={{ filter: "drop-shadow(0px 4px 8px rgba(0, 0, 0, 0.2))" }}
-              />
-            </motion.div>
+              TRIPXL
+            </motion.h1>
+            <motion.p 
+              className="mt-2 text-lg text-white/90 max-w-md"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.5 }}
+            >
+              An Intelligent AI Platform for Seamless Journey Management
+            </motion.p>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
-            {/* Animated Text */}
-            <motion.div
-              className="absolute left-4 bottom-4"
-              variants={textVariants}
-              initial="initial"
-              animate="animate"
-              whileHover="hover"
-            >
-              <motion.p 
-                className="text-sm font-medium text-[#004990]"
-                layoutId="powered-by"
-              >
-                Powered by EXL AI Solutions
-              </motion.p>
-            </motion.div>
+      <AnimatePresence>
+        {isLoaded && (
+          <motion.div
+            className="absolute right-4 bottom-4 cursor-pointer"
+            variants={logoVariants}
+            initial="initial"
+            animate="animate"
+            whileHover="hover"
+          >
+            <motion.img
+              src="/images/exl-logo.png"
+              alt="EXL Logo"
+              className="w-[150px] h-auto object-contain"
+              onLoad={() => setImageLoaded(true)}
+              layoutId="logo"
+              style={{ filter: "drop-shadow(0px 4px 8px rgba(0, 0, 0, 0.2))" }}
+            />
           </motion.div>
         )}
       </AnimatePresence>
 
       <div className="container mx-auto h-screen flex flex-col items-center justify-center p-4">
         <motion.div 
-          className="w-full max-w-md space-y-6" 
+          className="w-full max-w-md space-y-6"
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.5, duration: 0.5 }}
         >
-          <div className="text-center space-y-1"> 
-            <motion.h1 
-              className="text-xl font-bold text-white" 
-              initial={{ opacity: 0, y: -20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.7, duration: 0.5 }}
-            >
-              TripXL - Enterprise Journey Management
-            </motion.h1>
-            <motion.p 
-              className="text-base text-white/80" 
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ delay: 0.9, duration: 0.5 }}
-            >
-              Your Intelligent Travel Solutions Platform
-            </motion.p>
-          </div>
-
           <Card className="backdrop-blur-sm bg-white/90 dark:bg-black/50 border border-white/20">
-            <CardHeader className="space-y-1 pb-4"> 
-              <h2 className="text-xl font-semibold text-center">Sign In</h2> 
+            <CardHeader className="space-y-1 pb-4">
+              <h2 className="text-xl font-semibold text-center">Sign In</h2>
               <p className="text-sm text-muted-foreground text-center">
                 Enter your credentials to continue
               </p>
             </CardHeader>
             <CardContent>
               <Form {...form}>
-                <form onSubmit={onSubmit} className="space-y-3"> 
+                <form onSubmit={onSubmit} className="space-y-3">
                   <FormField
                     control={form.control}
                     name="emailId"
                     render={({ field }) => (
-                      <FormItem className="space-y-1"> 
+                      <FormItem className="space-y-1">
                         <FormLabel>Email</FormLabel>
                         <FormControl>
                           <Input {...field} type="email" placeholder="Enter your email" />
@@ -244,7 +208,7 @@ export default function LoginPage() {
                     control={form.control}
                     name="password"
                     render={({ field }) => (
-                      <FormItem className="space-y-1"> 
+                      <FormItem className="space-y-1">
                         <FormLabel>Password</FormLabel>
                         <div className="relative">
                           <FormControl>
@@ -308,7 +272,7 @@ export default function LoginPage() {
                     ) : null}
                     {login.isPending ? "Signing in..." : "Sign In"}
                   </Button>
-                  <div className="text-center mt-3"> 
+                  <div className="text-center mt-3">
                     <Button
                       variant="link"
                       className="text-sm text-[#004990] hover:text-[#003870]"
