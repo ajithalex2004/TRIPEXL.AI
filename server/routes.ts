@@ -713,12 +713,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
         if (!employeeId) {
           return res.status(400).json({
-            error: "Employee ID is required",
-            message: "Please provide a valid employee ID"
+            error: "Employee ID is required"
           });
         }
 
-        // Find the employee
         const employee = await storage.findEmployeeByEmployeeId(employeeId);
         console.log("Database response:", employee);
 
@@ -729,36 +727,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
           });
         }
 
-        // Check if employee is already registered as a user
-        const existingUser = await storage.findUserByEmployeeId(employeeId);
-        if (existingUser) {
-          return res.status(400).json({
-            error: "Already registered",
-            message: "This employee is already registered as a user"
-          });
-        }
+        res.json(employee);
 
-        // Send response with all required fields
-        const response = {
-          employeeId: employee.employeeId,
-          employeeName: employee.employeeName,
-          emailId: employee.emailId,
-          mobileNumber: employee.mobileNumber,
-          employeeType: employee.employeeType,
-          designation: employee.designation,
-          department: employee.department,
-          nationality: employee.nationality,
-          region: employee.region,
-          communicationLanguage: employee.communicationLanguage,
-          unit: employee.unit
-        };
-
-        console.log("Sending response:", {
-          ...response,
-          mobileNumber: '****' + response.mobileNumber?.slice(-4)
-        });
-
-        res.json(response);
       } catch (error: any) {
         console.error("Error validating employee:", error);
         res.status(500).json({
@@ -912,7 +882,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         if (!user) {
           return res.status(404).json({
             error: "Invalid or expired reset token",
-            details: "Please request a new password reset link"
+            details:"Please request a new password reset link"
           });
         }
 

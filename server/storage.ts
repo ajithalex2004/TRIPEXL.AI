@@ -566,47 +566,42 @@ export class DatabaseStorage implements IStorage {
     try {
       console.log('Finding employee by ID:', employeeId);
 
-      // Execute the database query
-      const query = db
+      // Simple query to get employee by ID
+      const result = await db
         .select()
         .from(schema.employees)
-        .where(eq(schema.employees.employee_id, employeeId))
-        .limit(1);
+        .where(eq(schema.employees.employee_id, employeeId));
 
-      console.log('Executing query:', query.toSQL());
+      console.log('Query result:', result);
 
-      const [employee] = await query;
-
-      if (employee) {
-        // Transform database fields to match the expected interface
-        const transformedEmployee = {
-          id: employee.id,
-          employeeId: employee.employee_id,
-          employeeName: employee.employee_name || '',
-          emailId: employee.email,
-          mobileNumber: employee.mobile_number || employee.phone, // Handle both fields
-          employeeType: employee.employee_type,
-          designation: employee.designation,
-          department: employee.department,
-          nationality: employee.nationality,
-          region: employee.region,
-          communicationLanguage: employee.communication_language,
-          unit: employee.unit,
-          isActive: employee.is_active,
-          createdAt: employee.created_at,
-          updatedAt: employee.updated_at,
-        };
-
-        console.log('Found employee:', {
-          ...transformedEmployee,
-          mobileNumber: '****' + (transformedEmployee.mobileNumber?.slice(-4) || '')
-        });
-
-        return transformedEmployee;
+      if (!result.length) {
+        console.log('No employee found with ID:', employeeId);
+        return null;
       }
 
-      console.log('No employee found with ID:', employeeId);
-      return null;
+      const employee = result[0];
+
+      // Map the database fields to our Employee interface
+      const mappedEmployee = {
+        employeeId: employee.employee_id,
+        employeeName: employee.employee_name || employee.name || '',
+        emailId: employee.email || '',
+        mobileNumber: employee.mobile_number || employee.phone || '',
+        employeeType: employee.employee_type || '',
+        designation: employee.designation || '',
+        department: employee.department || '',
+        nationality: employee.nationality || '',
+        region: employee.region || '',
+        communicationLanguage: employee.communication_language || '',
+        unit: employee.unit || ''
+      };
+
+      console.log('Mapped employee:', {
+        ...mappedEmployee,
+        mobileNumber: '****' + mappedEmployee.mobileNumber.slice(-4)
+      });
+
+      return mappedEmployee;
     } catch (error) {
       console.error('Error finding employee:', error);
       throw new Error(`Database error: ${error instanceof Error ? error.message : 'Unknown error'}`);
