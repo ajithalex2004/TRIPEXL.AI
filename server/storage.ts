@@ -43,6 +43,8 @@ export interface IStorage {
 
   // Employee methods
   findEmployeeByIdAndEmail(employeeId: string, email: string): Promise<Employee | null>;
+  findEmployeeByEmployeeId(employeeId: string): Promise<Employee | null>; // Added method
+  findUserByEmployeeId(employeeId: string): Promise<User | null>; // Added method
 
   // User methods
   createUser(user: InsertUser): Promise<User>;
@@ -78,7 +80,6 @@ export interface IStorage {
   createVehicleMaster(data: InsertVehicleMaster): Promise<VehicleMaster>;
   updateVehicleMaster(id: number, data: Partial<InsertVehicleMaster>): Promise<VehicleMaster>;
 
-  // Add these methods to the IStorage interface
   updateUserResetToken(userId: number, resetToken: string, resetTokenExpiry: Date): Promise<User>;
   findUserByResetToken(resetToken: string): Promise<User | null>;
 }
@@ -557,6 +558,38 @@ export class DatabaseStorage implements IStorage {
       return user || null;
     } catch (error) {
       console.error('Error finding user by reset token:', error);
+      throw new Error(`Database error: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
+  }
+
+  async findEmployeeByEmployeeId(employeeId: string): Promise<Employee | null> {
+    try {
+      console.log('Finding employee by ID:', employeeId);
+      const [employee] = await db
+        .select()
+        .from(schema.employeeMaster)
+        .where(eq(schema.employeeMaster.employeeId, employeeId));
+
+      console.log('Found employee:', employee || 'Not found');
+      return employee || null;
+    } catch (error) {
+      console.error('Error finding employee:', error);
+      throw new Error(`Database error: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
+  }
+
+  async findUserByEmployeeId(employeeId: string): Promise<User | null> {
+    try {
+      console.log('Checking if employee is already registered:', employeeId);
+      const [user] = await db
+        .select()
+        .from(schema.users)
+        .where(eq(schema.users.employeeId, employeeId));
+
+      console.log('Existing user found:', user ? 'Yes' : 'No');
+      return user || null;
+    } catch (error) {
+      console.error('Error checking user registration:', error);
       throw new Error(`Database error: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   }
