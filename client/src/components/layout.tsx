@@ -50,8 +50,8 @@ export function Layout({ children }: { children: React.ReactNode }) {
     return () => clearTimeout(timer);
   }, [location]);
 
-  // Only show footer on auth pages
-  const showFooter = location === "/auth" || location === "/login" || location === "/register";
+  // Only show footer on auth pages and set the correct path
+  const showFooter = location === "/auth" || location === "/login" || location === "/register" || location === "/users";
 
   return (
     <SidebarProvider>
