@@ -176,7 +176,7 @@ export default function LoginPage() {
 
           {/* Sign In Form */}
           <motion.div
-            className="w-full max-w-[600px]"
+            className="w-full max-w-[500px]"
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.5, duration: 0.5 }}
@@ -190,7 +190,7 @@ export default function LoginPage() {
               Welcome to TRIPXL
             </motion.h2>
 
-            <Card className="backdrop-blur-sm bg-white/90 dark:bg-black/50 border border-white/20 px-8 py-6">
+            <Card className="backdrop-blur-sm bg-white/90 dark:bg-black/50 border border-white/20 px-6 py-4">
               <CardHeader className="space-y-2 pb-4">
                 <h2 className="text-2xl font-semibold text-center">Sign In</h2>
                 <p className="text-sm text-muted-foreground text-center">
@@ -199,7 +199,7 @@ export default function LoginPage() {
               </CardHeader>
               <CardContent>
                 <Form {...form}>
-                  <form onSubmit={onSubmit} className="space-y-6">
+                  <form onSubmit={onSubmit} className="space-y-4">
                     <FormField
                       control={form.control}
                       name="emailId"
@@ -211,7 +211,7 @@ export default function LoginPage() {
                               {...field}
                               type="email"
                               placeholder="Enter your email"
-                              className="text-base px-4 py-2.5"
+                              className="text-base px-3 py-2"
                             />
                           </FormControl>
                           <FormMessage className="text-sm"/>
@@ -230,7 +230,7 @@ export default function LoginPage() {
                                 {...field}
                                 type={showPassword ? "text" : "password"}
                                 placeholder="Enter your password"
-                                className="text-base px-4 py-2.5"
+                                className="text-base px-3 py-2"
                               />
                             </FormControl>
                             <Button
