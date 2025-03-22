@@ -624,25 +624,23 @@ export class DatabaseStorage implements IStorage {
     try {
       console.log('Fetching all employees');
       const employees = await db
-        .select({
-          employeeId: schema.employees.employee_id,
-          employeeName: schema.employees.employee_name,
-          email: schema.employees.email,
-          mobileNumber: schema.employees.mobile_number,
-          employeeType: schema.employees.employee_type,
-          designation: schema.employees.designation,
-          department: schema.employees.department,
-          nationality: schema.employees.nationality,
-          region: schema.employees.region,
-          communicationLanguage: schema.employees.communication_language,
-          unit: schema.employees.unit,
-          isActive: schema.employees.is_active
-        })
-        .from(schema.employees)
-        .where(eq(schema.employees.is_active, true));
+        .select()
+        .from(schema.employees);
 
       console.log(`Found ${employees.length} employees`);
-      return employees;
+      return employees.map(emp => ({
+        employeeId: emp.employee_id,
+        employeeName: emp.employee_name || emp.name || '',
+        emailId: emp.email || '',
+        mobileNumber: emp.mobile_number || emp.phone || '',
+        employeeType: emp.employee_type || '',
+        designation: emp.designation || '',
+        department: emp.department || '',
+        nationality: emp.nationality || '',
+        region: emp.region || '',
+        communicationLanguage: emp.communication_language || '',
+        unit: emp.unit || ''
+      }));
     } catch (error) {
       console.error('Error fetching all employees:', error);
       throw error;
