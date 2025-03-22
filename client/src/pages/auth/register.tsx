@@ -3,7 +3,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { insertUserSchema } from "@shared/schema";
 import { z } from "zod";
-import { useMutation, useQuery } from "@tanstack/react-query";
+import { useMutation } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { useLocation } from "wouter";
@@ -20,9 +20,8 @@ import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardContent } from "@/components/ui/card";
 import { LoadingIndicator } from "@/components/ui/loading-indicator";
 
-// Enhanced registration schema
+// Enhanced registration schema without employee validation
 const registrationSchema = insertUserSchema.extend({
-  employeeName: z.string().min(1, "Employee name is required"),
   confirmPassword: z.string().min(6, "Password must be at least 6 characters"),
 }).refine((data) => data.password === data.confirmPassword, {
   message: "Passwords don't match",
@@ -42,51 +41,13 @@ export default function RegisterPage() {
     defaultValues: verificationStep ? {
       otp: "",
     } : {
-      employeeId: "",
-      employeeName: "",
+      firstName: "",
+      lastName: "",
       email: "",
-      phoneNumber: "",
       password: "",
       confirmPassword: "",
     },
   });
-
-  // Employee validation query
-  const validateEmployee = useMutation({
-    mutationFn: async (employeeId: string) => {
-      const res = await apiRequest("GET", `/api/employees/validate/${employeeId}`);
-      return res.json();
-    },
-    onSuccess: (data) => {
-      form.setValue("employeeName", data.employeeName);
-      form.setValue("email", data.emailId);
-      form.setValue("phoneNumber", data.mobileNumber);
-      toast({
-        title: "Employee Found",
-        description: "Employee details have been auto-filled.",
-      });
-    },
-    onError: (error: any) => {
-      toast({
-        title: "Error",
-        description: error.message || "Failed to validate employee",
-        variant: "destructive",
-      });
-      form.setValue("employeeName", "");
-      form.setValue("email", "");
-      form.setValue("phoneNumber", "");
-    },
-  });
-
-  // Watch employeeId field for changes
-  React.useEffect(() => {
-    const subscription = form.watch((value, { name }) => {
-      if (name === "employeeId" && value.employeeId?.length >= 5) {
-        validateEmployee.mutate(value.employeeId);
-      }
-    });
-    return () => subscription.unsubscribe();
-  }, [form.watch]);
 
   const register = useMutation({
     mutationFn: async (data: any) => {
@@ -188,7 +149,7 @@ export default function RegisterPage() {
       <CardHeader>
         <h2 className="text-2xl font-bold">Register</h2>
         <p className="text-sm text-gray-500">
-          Create your account using your employee ID
+          Create your account
         </p>
       </CardHeader>
       <CardContent>
@@ -196,12 +157,12 @@ export default function RegisterPage() {
           <form onSubmit={onSubmit} className="space-y-4">
             <FormField
               control={form.control}
-              name="employeeId"
+              name="firstName"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Employee ID</FormLabel>
+                  <FormLabel>First Name</FormLabel>
                   <FormControl>
-                    <Input {...field} placeholder="Enter your employee ID" />
+                    <Input {...field} placeholder="Enter your first name" />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -209,12 +170,12 @@ export default function RegisterPage() {
             />
             <FormField
               control={form.control}
-              name="employeeName"
+              name="lastName"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Employee Name</FormLabel>
+                  <FormLabel>Last Name</FormLabel>
                   <FormControl>
-                    <Input {...field} disabled placeholder="Auto-filled from employee records" />
+                    <Input {...field} placeholder="Enter your last name" />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -227,20 +188,7 @@ export default function RegisterPage() {
                 <FormItem>
                   <FormLabel>Email</FormLabel>
                   <FormControl>
-                    <Input {...field} type="email" disabled placeholder="Auto-filled from employee records" />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <FormField
-              control={form.control}
-              name="phoneNumber"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Phone Number</FormLabel>
-                  <FormControl>
-                    <Input {...field} disabled placeholder="Auto-filled from employee records" />
+                    <Input {...field} type="email" placeholder="Enter your email" />
                   </FormControl>
                   <FormMessage />
                 </FormItem>

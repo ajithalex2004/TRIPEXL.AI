@@ -100,7 +100,7 @@ export const EmiratesPlateInfo = {
   }
 } as const;
 
-// Add Region enum at the top with other enums
+// Add after Emirates enum
 export const Region = {
   ABU_DHABI: "Abu Dhabi",
   DUBAI: "Dubai",
@@ -111,7 +111,6 @@ export const Region = {
   UMM_AL_QUWAIN: "Umm Al Quwain"
 } as const;
 
-// Add after existing enums, before table definitions
 export const EmployeeType = {
   PERMANENT: "Permanent",
   CONTRACT: "Contract",
@@ -119,7 +118,6 @@ export const EmployeeType = {
   INTERN: "Intern"
 } as const;
 
-// Vehicle Status Enum
 export const VehicleStatus = {
   AVAILABLE: "Available",
   IN_SERVICE: "In Service",
@@ -127,7 +125,6 @@ export const VehicleStatus = {
   OUT_OF_SERVICE: "Out of Service"
 } as const;
 
-// Driver Status Enum
 export const DriverStatus = {
   AVAILABLE: "Available",
   ON_DUTY: "On Duty",
@@ -135,7 +132,6 @@ export const DriverStatus = {
   ON_LEAVE: "On Leave"
 } as const;
 
-// Department Enum
 export const Department = {
   OPERATIONS: "Operations",
   LOGISTICS: "Logistics",
@@ -145,13 +141,11 @@ export const Department = {
   SECURITY: "Security"
 } as const;
 
-// Update Vehicle Group Type
 export const VehicleGroupType = {
   LIGHT_VEHICLE: "LIGHT VEHICLE",
   HEAVY_VEHICLE: "HEAVY VEHICLE"
 } as const;
 
-// Keep existing enums
 export const BookingType = {
   FREIGHT: "freight",
   PASSENGER: "passenger",
@@ -209,7 +203,6 @@ export const BookingPurpose = {
   FREIGHT_TRANSPORT: "Freight Transport"
 } as const;
 
-// Add back the CargoType enum before VehicleFuelType
 export const CargoType = {
   GENERAL: "General Cargo",
   TEMPERATURE_CONTROLLED: "Temperature Controlled",
@@ -223,7 +216,6 @@ export const CargoType = {
   LIVESTOCK: "Livestock"
 } as const;
 
-// Add after other enums
 export const VehicleFuelType = {
   PETROL: "Petrol",
   DIESEL: "Diesel",
@@ -233,7 +225,6 @@ export const VehicleFuelType = {
   LPG: "LPG"
 } as const;
 
-// Add at the top with other imports
 export const TransmissionType = {
   MANUAL: "Manual",
   AUTOMATIC: "Automatic",
@@ -249,24 +240,20 @@ export const PlateCategory = {
   SPECIAL: "Special"
 } as const;
 
-// Add the YesNo enum type for highlighted fields
 export const YesNo = {
   YES: "YES",
   NO: "NO"
 } as const;
 
-// Add after other enums
 export const AssetType = {
   MOVEABLE: "Moveable",
   NON_MOVEABLE: "Non-Moveable"
 } as const;
 
-
-// Update the BookingStatus enum
 export const BookingStatus = {
   NEW: "new",
   PENDING: "pending",
-  APPROVED: "approved", // Add approved status
+  APPROVED: "approved", 
   CONFIRMED: "confirmed",
   IN_PROGRESS: "in_progress",
   COMPLETED: "completed",
@@ -293,7 +280,6 @@ export const contactInfo = z.object({
 });
 
 
-// Update the users table definition to include reset token fields
 export const users = pgTable("users", {
   id: serial("id").primaryKey(),
   userName: text("user_name").notNull().unique(),
@@ -313,7 +299,6 @@ export const users = pgTable("users", {
   updatedAt: timestamp("updated_at").notNull().defaultNow()
 });
 
-// Vehicle Groups table
 export const vehicleGroups = pgTable("vehicle_groups", {
   id: serial("id").primaryKey(),
   groupCode: text("group_code").notNull().unique(),
@@ -328,18 +313,16 @@ export const vehicleGroups = pgTable("vehicle_groups", {
   updatedAt: timestamp("updated_at").notNull().defaultNow()
 });
 
-// Vehicle group relations
 export const vehicleGroupsRelations = relations(vehicleGroups, ({ many }) => ({
   vehicleTypes: many(vehicleTypeMaster),
   vehicles: many(vehicles)
 }));
 
-// Update vehicleTypeMaster table schema
 export const vehicleTypeMaster = pgTable("vehicle_type_master", {
   id: serial("id").primaryKey(),
   groupId: integer("group_id").references(() => vehicleGroups.id).notNull(),
   vehicleTypeCode: text("vehicle_type_code").notNull().unique(),
-  vehicleTypeName: text("vehicle_type_name").notNull(), // Added this field
+  vehicleTypeName: text("vehicle_type_name").notNull(), 
   manufacturer: text("manufacturer").notNull(),
   modelYear: integer("model_year").notNull(),
   numberOfPassengers: integer("number_of_passengers").notNull(),
@@ -361,7 +344,6 @@ export const vehicleTypeMaster = pgTable("vehicle_type_master", {
   updatedAt: timestamp("updated_at").notNull().defaultNow()
 });
 
-// Vehicle type master relations
 export const vehicleTypeMasterRelations = relations(vehicleTypeMaster, ({ one }) => ({
   group: one(vehicleGroups, {
     fields: [vehicleTypeMaster.groupId],
@@ -369,7 +351,6 @@ export const vehicleTypeMasterRelations = relations(vehicleTypeMaster, ({ one })
   })
 }));
 
-// Vehicles table with relations
 export const vehicles = pgTable("vehicles", {
   id: serial("id").primaryKey(),
   groupId: integer("group_id").references(() => vehicleGroups.id),
@@ -399,7 +380,6 @@ export const vehicles = pgTable("vehicles", {
   };
 });
 
-// Vehicle relations
 export const vehiclesRelations = relations(vehicles, ({ one }) => ({
   group: one(vehicleGroups, {
     fields: [vehicles.groupId],
@@ -431,26 +411,6 @@ export const drivers = pgTable("drivers", {
   updatedAt: timestamp("updated_at").notNull().defaultNow()
 });
 
-// Update employees table schema
-export const employees = pgTable("employees", {
-  id: serial("id").primaryKey(),
-  employeeId: text("employee_id").notNull().unique(),
-  employeeName: text("employee_name").notNull(),
-  employeeType: text("employee_type").notNull(),
-  designation: text("designation").notNull(),
-  mobileNumber: text("mobile_number").notNull(),
-  emailId: text("email_id").notNull().unique(),
-  dateOfBirth: timestamp("date_of_birth").notNull(),
-  nationality: text("nationality").notNull(),
-  region: text("region").notNull(),
-  department: text("department").notNull(),
-  communicationLanguage: text("communication_language").notNull(),
-  unit: text("unit").notNull(),
-  isActive: boolean("is_active").notNull().default(true),
-  createdAt: timestamp("created_at").notNull().defaultNow(),
-  updatedAt: timestamp("updated_at").notNull().defaultNow()
-});
-
 export const locationsMaster = pgTable("locations_master", {
   id: serial("id").primaryKey(),
   name: text("name").notNull(),
@@ -465,10 +425,9 @@ export const locationsMaster = pgTable("locations_master", {
   updatedAt: timestamp("updated_at").notNull().defaultNow()
 });
 
-// Update the bookings table schema
 export const bookings = pgTable("bookings", {
   id: serial("id").primaryKey(),
-  employeeId: text("employee_id").references(() => employees.employeeId),
+  userId: integer("user_id").references(() => users.id), 
   bookingType: text("booking_type").notNull(),
   purpose: text("purpose").notNull(),
   priority: text("priority").notNull(),
@@ -529,11 +488,10 @@ export const otpVerifications = pgTable("otp_verifications", {
   createdAt: timestamp("created_at").notNull().defaultNow()
 });
 
-// Add booking relations
 export const bookingsRelations = relations(bookings, ({ one }) => ({
-  employee: one(employees, {
-    fields: [bookings.employeeId],
-    references: [employees.employeeId],
+  user: one(users, {
+    fields: [bookings.userId],
+    references: [users.id],
   }),
   vehicle: one(vehicles, {
     fields: [bookings.assignedVehicleId],
@@ -595,7 +553,6 @@ export const vehicleMaster = pgTable("vehicle_master", {
   updatedAt: timestamp("updated_at").notNull().defaultNow()
 });
 
-// Add the relation
 export const vehicleMasterRelations = relations(vehicleMaster, ({ one }) => ({
   vehicleType: one(vehicleTypeMaster, {
     fields: [vehicleMaster.vehicleTypeCode],
@@ -603,7 +560,6 @@ export const vehicleMasterRelations = relations(vehicleMaster, ({ one }) => ({
   }),
 }));
 
-// Update the insertBookingSchema to be more flexible
 export const insertBookingSchema = createInsertSchema(bookings)
   .extend({
     bookingType: z.enum([BookingType.FREIGHT, BookingType.PASSENGER, BookingType.AMBULANCE]),
@@ -653,19 +609,6 @@ export const insertBookingSchema = createInsertSchema(bookings)
     weight: z.number().optional()
   });
 
-// Update the insert schema to include password validation
-export const insertEmployeeSchema = createInsertSchema(employees)
-  .extend({
-    employeeType: z.enum(Object.values(EmployeeType) as [string, ...string[]]),
-    region: z.enum(Object.values(Region) as [string, ...string[]]),
-    department: z.enum(Object.values(Department) as [string, ...string[]]),
-    mobileNumber: z.string().regex(/^\+?[1-9]\d{1,14}$/, "Invalid mobile number"),
-    emailId: z.string().email("Invalid email address"),
-    dateOfBirth: z.string().transform(str => new Date(str)),
-    password: z.string().min(6, "Password must be at least 6 characters long")
-  });
-
-// Update the insert schema for users to include the new fields
 export const insertUserSchema = createInsertSchema(users)
   .extend({
     userType: z.enum(Object.values(UserType) as [string, ...string[]]),
@@ -690,7 +633,6 @@ export const insertVehicleSchema = createInsertSchema(vehicles);
 export const insertDriverSchema = createInsertSchema(drivers);
 export const insertLocationMasterSchema = createInsertSchema(locationsMaster);
 
-// Update insert schema for Vehicle Groups
 export const insertVehicleGroupSchema = createInsertSchema(vehicleGroups)
   .extend({
     type: z.enum(Object.values(VehicleGroupType) as [string, ...string[]]),
@@ -704,7 +646,6 @@ export const insertVehicleGroupSchema = createInsertSchema(vehicleGroups)
     description: z.string().optional()
   });
 
-// Update the insertVehicleTypeMasterSchema to make servicePlan and alertBefore optional
 export const insertVehicleTypeMasterSchema = createInsertSchema(vehicleTypeMaster)
   .extend({
     groupId: z.number().min(1, "Vehicle group is required"),
@@ -728,9 +669,6 @@ export const insertVehicleTypeMasterSchema = createInsertSchema(vehicleTypeMaste
     co2EmissionFactor: z.number().min(0, "CO2 emission factor must be positive")
   });
 
-// Update the vehicle master table definition to use text for highlighted fields
-
-// Update the insert schema to use Emirates enum and AssetType enum
 export const insertVehicleMasterSchema = createInsertSchema(vehicleMaster)
   .extend({
     plateCategory: z.enum(Object.values(PlateCategory) as [string, ...string[]]),
@@ -740,19 +678,15 @@ export const insertVehicleMasterSchema = createInsertSchema(vehicleMaster)
     region: z.enum(Object.values(Region) as [string, ...string[]]),
     department: z.enum(Object.values(Department) as [string, ...string[]]),
     assetType: z.enum(Object.values(AssetType) as [string, ...string[]]), 
-    // Add YES/NO validation for highlightedfields
     isCanConnected: z.enum(Object.values(YesNo) as [string, ...string[]]),
-isWeightSensorConnected: z.enum(Object.values(YesNo) as [string, ...string[]]),
+    isWeightSensorConnected: z.enum(Object.values(YesNo) as [string, ...string[]]),
     isTemperatureSensorConnected: z.enum(Object.values(YesNo) as [string, ...string[]]),
     isPPtoConnected: z.enum(Object.values(YesNo) as [string, ...string[]]),
   });
 
-// Remove duplicate InsertUser type definitions
 export type VehicleMaster = typeof vehicleMaster.$inferSelect;
 export type InsertVehicleMaster = typeof vehicleMaster.$inferInsert;
 export type InsertUser = z.infer<typeof insertUserSchema>;
-
-export type Employee = typeof employees.$inferSelect;
 export type User = typeof users.$inferSelect;
 export type OtpVerification = typeof otpVerifications.$inferSelect;
 export type Vehicle = typeof vehicles.$inferSelect;
@@ -760,19 +694,11 @@ export type Driver = typeof drivers.$inferSelect;
 export type Booking = typeof bookings.$inferSelect;
 export type LocationMaster = typeof locationsMaster.$inferSelect;
 export type VehicleGroup = typeof vehicleGroups.$inferSelect;
-
-export type InsertEmployee = z.infer<typeof insertEmployeeSchema>;
-export type InsertUser = z.infer<typeof insertUserSchema>;
 export type InsertOtpVerification = z.infer<typeof insertOtpVerificationSchema>;
 export type InsertVehicle = z.infer<typeof insertVehicleSchema>;
 export type InsertDriver = z.infer<typeof insertDriverSchema>;
 export type InsertBooking = z.infer<typeof insertBookingSchema>;
 export type InsertLocationMaster = z.infer<typeof insertLocationMasterSchema>;
 export type InsertVehicleGroup = z.infer<typeof insertVehicleGroupSchema>;
-
-// Add after other type exports
 export type VehicleTypeMaster = typeof vehicleTypeMaster.$inferSelect;
 export type InsertVehicleTypeMaster = z.infer<typeof insertVehicleTypeMasterSchema>;
-export type VehicleMaster = typeof vehicleMaster.$inferSelect;
-export type InsertVehicleMaster = typeof vehicleMaster.$inferInsert;
-export type InsertUser = z.infer<typeof insertUserSchema>;
