@@ -574,9 +574,9 @@ export class DatabaseStorage implements IStorage {
       if (employee) {
         console.log('Found employee:', {
           employeeId: employee.employeeId,
-          employeeName: employee.employeeName,
-          emailId: employee.emailId,
-          mobileNumber: employee.mobileNumber
+          employeeName: employee.name, // Use name instead of employeeName
+          emailId: employee.email, // Use email instead of emailId
+          mobileNumber: employee.phone // Use phone instead of mobileNumber
         });
       } else {
         console.log('No employee found with ID:', employeeId);

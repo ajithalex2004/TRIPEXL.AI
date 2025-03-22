@@ -742,7 +742,7 @@ export const insertVehicleMasterSchema = createInsertSchema(vehicleMaster)
     assetType: z.enum(Object.values(AssetType) as [string, ...string[]]), 
     // Add YES/NO validation for highlightedfields
     isCanConnected: z.enum(Object.values(YesNo) as [string, ...string[]]),
-    isWeightSensorConnected: z.enum(Object.values(YesNo) as [string, ...string[]]),
+isWeightSensorConnected: z.enum(Object.values(YesNo) as [string, ...string[]]),
     isTemperatureSensorConnected: z.enum(Object.values(YesNo) as [string, ...string[]]),
     isPPtoConnected: z.enum(Object.values(YesNo) as [string, ...string[]]),
   });
