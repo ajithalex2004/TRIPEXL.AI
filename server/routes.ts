@@ -78,10 +78,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       try {
         // Input validation
         if (!emailId || !password) {
-          console.log('Missing credentials');
+          console.log('Missing credentials:', { emailId: !!emailId, password: !!password });
           return res.status(400).json({
-            error: "Email and password are required",
-            details: !emailId ? "Email is required" : "Password is required"
+            error: "Email and password are required"
           });
         }
 
@@ -92,42 +91,40 @@ export async function registerRoutes(app: Express): Promise<Server> {
         if (!user) {
           console.log('No user found with email:', emailId);
           return res.status(401).json({
-            error: "Invalid credentials",
-            details: "User not found"
+            error: "Invalid credentials"
           });
         }
 
         // Verify password
-        console.log('Verifying password...');
+        console.log('Verifying password for user:', user.emailId);
         const isValidPassword = await bcrypt.compare(password, user.password);
 
         if (!isValidPassword) {
           console.log('Invalid password for user:', emailId);
           return res.status(401).json({
-            error: "Invalid credentials",
-            details: "Invalid password"
+            error: "Invalid credentials"
           });
         }
 
         // Generate token
-        console.log('Generating JWT token...');
+        console.log('Password valid, generating token...');
         const token = jwt.sign(
-          {
+          { 
             userId: user.id,
-            email_id: user.email
+            email: user.emailId,
+            userType: user.userType
           },
           process.env.JWT_SECRET || 'dev-secret-key',
           { expiresIn: '24h' }
         );
 
         // Update last login
-        console.log('Updating last login...');
+        console.log('Updating last login timestamp...');
         await storage.updateUserLastLogin(user.id);
 
-        // Prepare response
-        const { password: _, ...userData } = user;
-
+        // Send response
         console.log('Login successful for:', emailId);
+        const { password: _, ...userData } = user;
         res.json({
           token,
           user: userData,
@@ -136,7 +133,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       } catch (error: any) {
         console.error('Login error:', error);
-        console.error('Stack trace:', error.stack);
         res.status(500).json({
           error: "Server error during login",
           details: error.message
@@ -920,7 +916,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
         if (!result.success) {
           console.error("Invalid vehicle master data:", result.error.issues);
-          return res.status(400).json({
+          return res.status(40).json({
             error: "Invalid vehicle master data",
             details: result.error.issues
           });
