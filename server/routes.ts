@@ -8,12 +8,14 @@ import jwt from "jsonwebtoken";
 import XLSX from "xlsx";
 import multer from "multer";
 import vehicleTypeMasterRouter from "./routes/vehicle-type-master";
-import { ecoRoutesRouter } from "./routes/eco-routes"; // Add this import
+import { ecoRoutesRouter } from "./routes/eco-routes";
 import { log } from "./vite";
 import nodemailer from "nodemailer";
 import crypto from "crypto";
-import { eq } from 'drizzle-orm'; // Add import for drizzle-orm
-import { db, schema } from './db'; // Add imports for your database connection and schema
+import { eq, sql } from 'drizzle-orm';
+import { db, schema } from './db';
+import { employees, bookings } from './schema'; // Add imports for employee and booking tables
+
 
 // Configure multer for handling file uploads
 const upload = multer({
@@ -108,7 +110,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
         // Generate token
         const token = jwt.sign(
-          { 
+          {
             userId: user.id,
             email: user.emailId,
             userType: user.userType
@@ -196,7 +198,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
         // Generate token for immediate login
         const token = jwt.sign(
-          { 
+          {
             userId: user.id,
             email: user.email_id,
             userType: user.user_type
@@ -674,7 +676,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
     });
 
-        // Add after other employee routes
+    // Add after other employee routes
     app.get("/api/employees/validate/:employeeId", async (req, res) => {
       try {
         const { employeeId } = req.params;
@@ -707,6 +709,123 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
     });
 
+
+    // Add these new endpoints after existing employee routes
+    app.get("/api/employees/:id/details", async (req, res) => {
+      try {
+        const employeeId = parseInt(req.params.id);
+
+        // Get employee with their supervisor details
+        const [employee] = await db
+          .select({
+            id: employees.id,
+            employeeId: employees.employeeId,
+            name: employees.employeeName,
+            designation: employees.designation,
+            supervisor: {
+              id: sql<number>`supervisor.id`,
+              name: sql<string>`supervisor.employee_name`,
+              designation: sql<string>`supervisor.designation`
+            }
+          })
+          .from(employees)
+          .leftJoin(
+            employees as unknown as typeof employees,
+            sql`supervisor`,
+            eq(employees.supervisorId, sql`supervisor.id`)
+          )
+          .where(eq(employees.id, employeeId));
+
+        if (!employee) {
+          return res.status(404).json({ error: "Employee not found" });
+        }
+
+        res.json(employee);
+      } catch (error: any) {
+        console.error("Error fetching employee details:", error);
+        res.status(500).json({ error: "Failed to fetch employee details" });
+      }
+    });
+
+    app.get("/api/employees/:id/subordinates", async (req, res) => {
+      try {
+        const employeeId = parseInt(req.params.id);
+
+        // Get all subordinates of the employee
+        const subordinates = await db
+          .select({
+            id: employees.id,
+            employeeId: employees.employeeId,
+            name: employees.employeeName,
+            designation: employees.designation,
+            department: employees.department
+          })
+          .from(employees)
+          .where(eq(employees.supervisorId, employeeId));
+
+        res.json(subordinates);
+      } catch (error: any) {
+        console.error("Error fetching subordinates:", error);
+        res.status(500).json({ error: "Failed to fetch subordinates" });
+      }
+    });
+
+    app.get("/api/employees/:id/bookings", async (req, res) => {
+      try {
+        const employeeId = parseInt(req.params.id);
+
+        // Get all bookings for the employee
+        const bookings = await db
+          .select({
+            id: bookings.id,
+            referenceNo: bookings.referenceNo,
+            purpose: bookings.purpose,
+            status: bookings.status,
+            pickupTime: bookings.pickupTime,
+            dropoffTime: bookings.dropoffTime,
+            employee: {
+              id: employees.id,
+              name: employees.employeeName
+            }
+          })
+          .from(bookings)
+          .leftJoin(employees, eq(bookings.employeeId, employees.id))
+          .where(eq(bookings.employeeId, employeeId));
+
+        res.json(bookings);
+      } catch (error: any) {
+        console.error("Error fetching employee bookings:", error);
+        res.status(500).json({ error: "Failed to fetch employee bookings" });
+      }
+    });
+
+    app.get("/api/employees/:id/team-bookings", async (req, res) => {
+      try {
+        const supervisorId = parseInt(req.params.id);
+
+        // Get all bookings for the supervisor's team
+        const teamBookings = await db
+          .select({
+            id: bookings.id,
+            referenceNo: bookings.referenceNo,
+            purpose: bookings.purpose,
+            status: bookings.status,
+            employee: {
+              id: employees.id,
+              name: employees.employeeName,
+              designation: employees.designation
+            }
+          })
+          .from(bookings)
+          .leftJoin(employees, eq(bookings.employeeId, employees.id))
+          .where(eq(employees.supervisorId, supervisorId));
+
+        res.json(teamBookings);
+      } catch (error: any) {
+        console.error("Error fetching team bookings:", error);
+        res.status(500).json({ error: "Failed to fetch team bookings" });
+      }
+    });
 
     // Add user management routes
     app.get("/api/users", async (_req, res) => {
@@ -787,7 +906,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
         // Generate reset token
         const resetToken = crypto.randomBytes(32).toString('hex');
-        const resetTokenExpiry = new Date(Date.now() + 3600000); // 1 hour from now
+        const resetTokenExpiry = new Date(Date.now() + 360000); // 1 hour from now
 
         // Update user with reset token
         await storage.updateUserResetToken(user.id, resetToken, resetTokenExpiry);
@@ -851,7 +970,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         if (!user) {
           return res.status(404).json({
             error: "Invalid or expired reset token",
-            details:"Please request a new password reset link"
+            details: "Please request a new password reset link"
           });
         }
 
