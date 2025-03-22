@@ -146,10 +146,10 @@ export default function LoginPage() {
       </AnimatePresence>
 
       <div className="container mx-auto h-screen flex flex-col items-center justify-center p-4">
-        <div className="flex items-start space-x-16 max-w-5xl">
+        <div className="flex items-center space-x-16 max-w-5xl">
           {/* Title and Description */}
           <motion.div
-            className="flex-1 pl-12"
+            className="flex-1 pl-12 flex flex-col justify-center"
             initial={{ opacity: 0, x: -30 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ delay: 0.3 }}
