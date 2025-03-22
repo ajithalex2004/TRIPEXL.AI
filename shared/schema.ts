@@ -293,7 +293,7 @@ export const contactInfo = z.object({
 });
 
 
-// Add the users table before other table definitions
+// Update the users table definition to include reset token fields
 export const users = pgTable("users", {
   id: serial("id").primaryKey(),
   userName: text("user_name").notNull().unique(),
@@ -306,6 +306,8 @@ export const users = pgTable("users", {
   firstName: text("first_name").notNull(),
   lastName: text("last_name").notNull(),
   password: text("password").notNull(),
+  resetToken: text("reset_token"),
+  resetTokenExpiry: timestamp("reset_token_expiry"),
   isActive: boolean("is_active").notNull().default(true),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow()
@@ -664,7 +666,7 @@ export const insertEmployeeSchema = createInsertSchema(employees)
     password: z.string().min(6, "Password must be at least 6 characters long")
   });
 
-// Add insert schema for the users table
+// Update the insert schema for users to include the new fields
 export const insertUserSchema = createInsertSchema(users)
   .extend({
     userType: z.enum(Object.values(UserType) as [string, ...string[]]),
@@ -676,6 +678,8 @@ export const insertUserSchema = createInsertSchema(users)
     userCode: z.string().min(3, "User code must be at least 3 characters long"),
     firstName: z.string().min(2, "First name must be at least 2 characters long"),
     lastName: z.string().min(2, "Last name must be at least 2 characters long"),
+    resetToken: z.string().optional(),
+    resetTokenExpiry: z.date().optional()
   });
 
 export const insertOtpVerificationSchema = createInsertSchema(otpVerifications).omit({

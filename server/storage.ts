@@ -8,6 +8,7 @@ import { type VehicleTypeMaster, type InsertVehicleTypeMaster } from '@shared/sc
 import { db } from "./db";
 import { eq, desc } from "drizzle-orm";
 import * as schema from "@shared/schema";
+import { sql } from 'drizzle-orm';
 
 // Add VehicleMaster operations to IStorage interface
 import { type User, type InsertUser } from "@shared/schema";
@@ -76,6 +77,10 @@ export interface IStorage {
   getVehicleMaster(id: number): Promise<VehicleMaster | null>;
   createVehicleMaster(data: InsertVehicleMaster): Promise<VehicleMaster>;
   updateVehicleMaster(id: number, data: Partial<InsertVehicleMaster>): Promise<VehicleMaster>;
+
+  // Add these methods to the IStorage interface
+  updateUserResetToken(userId: number, resetToken: string, resetTokenExpiry: Date): Promise<User>;
+  findUserByResetToken(resetToken: string): Promise<User | null>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -515,6 +520,46 @@ export class DatabaseStorage implements IStorage {
     return user || null;
   }
 
+  async updateUserResetToken(userId: number, resetToken: string, resetTokenExpiry: Date): Promise<User> {
+    try {
+      console.log('Updating reset token for user:', userId);
+      const [user] = await db
+        .update(schema.users)
+        .set({
+          resetToken,
+          resetTokenExpiry,
+          updatedAt: new Date()
+        })
+        .where(eq(schema.users.id, userId))
+        .returning();
+
+      if (!user) {
+        throw new Error(`User not found with ID: ${userId}`);
+      }
+
+      console.log('Reset token updated successfully');
+      return user;
+    } catch (error) {
+      console.error('Error updating reset token:', error);
+      throw new Error(`Failed to update reset token: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
+  }
+
+  async findUserByResetToken(resetToken: string): Promise<User | null> {
+    try {
+      const [user] = await db
+        .select()
+        .from(schema.users)
+        .where(eq(schema.users.resetToken, resetToken))
+        .where(sql`${schema.users.resetTokenExpiry} > NOW()`)
+        .limit(1);
+
+      return user || null;
+    } catch (error) {
+      console.error('Error finding user by reset token:', error);
+      throw new Error(`Database error: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
+  }
 }
 
 export const storage = new DatabaseStorage();

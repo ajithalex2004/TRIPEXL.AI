@@ -10,6 +10,11 @@ import multer from "multer";
 import vehicleTypeMasterRouter from "./routes/vehicle-type-master";
 import { ecoRoutesRouter } from "./routes/eco-routes"; // Add this import
 import { log } from "./vite";
+import nodemailer from "nodemailer";
+import crypto from "crypto";
+import { eq } from 'drizzle-orm'; // Add import for drizzle-orm
+import { db, schema } from './db'; // Add imports for your database connection and schema
+
 
 // Configure multer for handling file uploads
 const upload = multer({
@@ -75,7 +80,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         // Input validation
         if (!emailId || !password) {
           console.log('Missing credentials');
-          return res.status(400).json({ 
+          return res.status(400).json({
             error: "Email and password are required",
             details: !emailId ? "Email is required" : "Password is required"
           });
@@ -87,7 +92,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
         if (!user) {
           console.log('No user found with email:', emailId);
-          return res.status(401).json({ 
+          return res.status(401).json({
             error: "Invalid credentials",
             details: "User not found"
           });
@@ -99,7 +104,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
         if (!isValidPassword) {
           console.log('Invalid password for user:', emailId);
-          return res.status(401).json({ 
+          return res.status(401).json({
             error: "Invalid credentials",
             details: "Invalid password"
           });
@@ -108,9 +113,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         // Generate token
         console.log('Generating JWT token...');
         const token = jwt.sign(
-          { 
-            userId: user.id, 
-            email_id: user.email_id 
+          {
+            userId: user.id,
+            email_id: user.email_id
           },
           process.env.JWT_SECRET || 'dev-secret-key',
           { expiresIn: '24h' }
@@ -752,6 +757,131 @@ export async function registerRoutes(app: Express): Promise<Server> {
       } catch (error: any) {
         console.error("Error creating user:", error);
         res.status(500).json({ error: "Failed to create user" });
+      }
+    });
+
+    // Add this inside registerRoutes function, after the auth routes
+    app.post("/api/auth/forgot-password", async (req, res) => {
+      const { userName, emailId } = req.body;
+      console.log('Password reset requested for:', { userName, emailId });
+
+      try {
+        // Validate input
+        if (!userName || !emailId) {
+          return res.status(400).json({
+            error: "Missing required fields",
+            details: "Both username and email are required"
+          });
+        }
+
+        // Find user
+        const user = await storage.findUserByEmail(emailId);
+        if (!user || user.userName !== userName) {
+          return res.status(404).json({
+            error: "User not found",
+            details: "No matching user found with provided username and email"
+          });
+        }
+
+        // Generate reset token
+        const resetToken = crypto.randomBytes(32).toString('hex');
+        const resetTokenExpiry = new Date(Date.now() + 3600000); // 1 hour from now
+
+        // Update user with reset token
+        await storage.updateUserResetToken(user.id, resetToken, resetTokenExpiry);
+
+        // Create reset URL
+        const resetUrl = `${process.env.APP_URL || 'http://localhost:3000'}/auth/reset-password?token=${resetToken}`;
+
+        // Setup email transporter
+        const transporter = nodemailer.createTransport({
+          host: process.env.SMTP_HOST,
+          port: parseInt(process.env.SMTP_PORT || '587'),
+          secure: process.env.SMTP_SECURE === 'true',
+          auth: {
+            user: process.env.SMTP_USER,
+            pass: process.env.SMTP_PASS
+          }
+        });
+
+        // Send email
+        await transporter.sendMail({
+          from: process.env.SMTP_FROM || '"TripXL Support" <support@tripxl.com>',
+          to: emailId,
+          subject: 'Password Reset Request',
+          html: `
+            <h1>Password Reset Request</h1>
+            <p>You requested to reset your password. Click the link below to reset it:</p>
+            <a href="${resetUrl}">Reset Password</a>
+            <p>This link will expire in 1 hour.</p>
+            <p>If you didn't request this, please ignore this email.</p>
+          `
+        });
+
+        res.json({
+          message: "Password reset instructions sent to your email"
+        });
+
+      } catch (error: any) {
+        console.error('Error in forgot password:', error);
+        res.status(500).json({
+          error: "Failed to process password reset request",
+          details: error.message
+        });
+      }
+    });
+
+    // Add reset password endpoint
+    app.post("/api/auth/reset-password", async (req, res) => {
+      const { token, newPassword } = req.body;
+      console.log('Processing password reset with token');
+
+      try {
+        if (!token || !newPassword) {
+          return res.status(400).json({
+            error: "Missing required fields",
+            details: "Token and new password are required"
+          });
+        }
+
+        // Find user by reset token
+        const user = await storage.findUserByResetToken(token);
+        if (!user) {
+          return res.status(404).json({
+            error: "Invalid or expired reset token",
+            details: "Please request a new password reset link"
+          });
+        }
+
+        // Hash new password
+        const hashedPassword = await bcrypt.hash(newPassword, 10);
+
+        // Update password and clear reset token
+        const [updatedUser] = await db
+          .update(schema.users)
+          .set({
+            password: hashedPassword,
+            resetToken: null,
+            resetTokenExpiry: null,
+            updatedAt: new Date()
+          })
+          .where(eq(schema.users.id, user.id))
+          .returning();
+
+        if (!updatedUser) {
+          throw new Error("Failed to update password");
+        }
+
+        res.json({
+          message: "Password reset successful"
+        });
+
+      } catch (error: any) {
+        console.error('Error in reset password:', error);
+        res.status(500).json({
+          error: "Failed to reset password",
+          details: error.message
+        });
       }
     });
 
