@@ -157,30 +157,44 @@ export class AuthService {
 
   async initializeDefaultUser(): Promise<void> {
     try {
-      const existingUser = await storage.findUserByEmail("john.smith@company.com");
+      console.log("Checking for default user existence...");
+      const existingUser = await storage.getUserByUserName("john.smith");
+
       if (!existingUser) {
-        // Create a new password hash
+        console.log("Default user not found, creating...");
         const password = await this.createHashedPassword("Code@4088");
 
-        await storage.createUser({
-          userName: "john.smith",
-          userCode: "USR001",
-          userType: UserType.ADMIN,
-          emailId: "john.smith@company.com",
-          userOperationType: UserOperationType.ADMIN,
-          userGroup: UserGroup.GROUP_A,
-          firstName: "John",
-          lastName: "Smith",
-          fullName: "John Smith",
-          password,
-          isActive: true,
-          createdAt: new Date(),
-          updatedAt: new Date()
-        });
-        console.log("Default user created successfully");
+        try {
+          await storage.createUser({
+            userName: "john.smith",
+            userCode: "USR001",
+            userType: UserType.ADMIN,
+            emailId: "john.smith@company.com",
+            userOperationType: UserOperationType.ADMIN,
+            userGroup: UserGroup.GROUP_A,
+            firstName: "John",
+            lastName: "Smith",
+            fullName: "John Smith",
+            password,
+            isActive: true,
+            createdAt: new Date(),
+            updatedAt: new Date()
+          });
+          console.log("Default user created successfully");
+        } catch (error: any) {
+          // If error is a duplicate key error, we can ignore it as the user already exists
+          if (error.code === '23505') {
+            console.log("Default user already exists (caught duplicate key)");
+            return;
+          }
+          throw error;
+        }
+      } else {
+        console.log("Default user already exists");
       }
     } catch (error) {
-      console.error("Error creating default user:", error);
+      console.error("Error in initializeDefaultUser:", error);
+      // Don't throw the error further as this is initialization code
     }
   }
 }
