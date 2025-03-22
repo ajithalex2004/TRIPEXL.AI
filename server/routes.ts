@@ -139,7 +139,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     });
     log("Auth routes registered");
 
-    // Update the registration route to handle employee-based registration
+    // Update the registration route to handle basic registration
     app.post("/api/auth/register", async (req, res) => {
       try {
         console.log("Registration attempt with data:", {
@@ -147,21 +147,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
           password: '[REDACTED]'
         });
 
-        const { employeeId, email, password, name, department, designation, region } = req.body;
+        const { email, password, firstName, lastName, userType = 'USER' } = req.body;
 
-        if (!employeeId || !email || !password) {
+        // Basic validation
+        if (!email || !password || !firstName || !lastName) {
           return res.status(400).json({
             error: "Missing required fields",
-            details: "Employee ID, email and password are required"
-          });
-        }
-
-        // Check if employee exists and is not already registered
-        const employee = await storage.findEmployeeByEmployeeId(employeeId);
-        if (!employee) {
-          return res.status(404).json({
-            error: "Employee not found",
-            details: "No employee found with the provided ID"
+            details: "Email, password, first name and last name are required"
           });
         }
 
@@ -177,32 +169,50 @@ export async function registerRoutes(app: Express): Promise<Server> {
         // Hash password
         const hashedPassword = await bcrypt.hash(password, 10);
 
-        // Create user with employee details
-        const user = await storage.createUser({
-          employeeId,
-          email,
+        // Create user data object
+        const userData = {
+          email_id: email,
           password: hashedPassword,
-          name,
-          department,
-          designation,
-          region,
-          isActive: true,
-          userType: 'EMPLOYEE',
-          createdAt: new Date(),
-          updatedAt: new Date()
+          first_name: firstName,
+          last_name: lastName,
+          full_name: `${firstName} ${lastName}`,
+          user_name: email.split('@')[0],
+          user_code: `USR${Math.floor(Math.random() * 10000)}`,
+          user_type: userType,
+          user_operation_type: userType,
+          user_group: 'DEFAULT',
+          is_active: true,
+          created_at: new Date(),
+          updated_at: new Date()
+        };
+
+        // Create user
+        const user = await storage.createUser(userData);
+        console.log("User created successfully:", {
+          id: user.id,
+          email: user.email_id,
+          name: user.full_name
         });
 
-        console.log("User created successfully:", {
-          ...user,
-          password: '[REDACTED]'
-        });
+        // Generate token for immediate login
+        const token = jwt.sign(
+          { 
+            userId: user.id,
+            email: user.email_id,
+            userType: user.user_type
+          },
+          process.env.JWT_SECRET || 'dev-secret-key',
+          { expiresIn: '24h' }
+        );
 
         res.status(201).json({
           message: "Registration successful",
+          token,
           user: {
             id: user.id,
-            email: user.email,
-            name: user.name
+            email: user.email_id,
+            name: user.full_name,
+            userType: user.user_type
           }
         });
 
