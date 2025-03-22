@@ -30,7 +30,7 @@ app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
   res.status(status).json({ message });
 });
 
-// Test database connection
+// Test database connection with better error handling
 async function testDbConnection() {
   try {
     log("Testing database connection...");
@@ -39,11 +39,15 @@ async function testDbConnection() {
     return true;
   } catch (error: any) {
     log(`Database connection error: ${error.message}`);
+    if (error.stack) {
+      log(`Stack trace: ${error.stack}`);
+    }
     return false;
   }
 }
 
-(async () => {
+// Initialize server with proper error handling
+async function initializeServer() {
   try {
     log("Starting application...");
 
@@ -53,9 +57,12 @@ async function testDbConnection() {
       throw new Error("Failed to connect to database");
     }
 
+    // Create HTTP server first
+    const server = createServer(app);
+
     // Register API routes
     log("Registering routes...");
-    const server = await registerRoutes(app);
+    await registerRoutes(app, server);
     log("Routes registered successfully");
 
     // Set up Vite or static serving
@@ -69,7 +76,7 @@ async function testDbConnection() {
       log("Static serving setup complete");
     }
 
-    const port = 5000;
+    const port = process.env.PORT || 5000;
     server.listen({
       port,
       host: "0.0.0.0",
@@ -78,9 +85,18 @@ async function testDbConnection() {
       log(`Server successfully started and listening on port ${port}`);
     });
 
+    return server;
   } catch (error: any) {
     log(`Fatal error during startup: ${error.message}`);
-    log(error.stack || "No stack trace available");
+    if (error.stack) {
+      log(`Stack trace: ${error.stack}`);
+    }
     process.exit(1);
   }
-})();
+}
+
+// Start the server
+initializeServer().catch((error) => {
+  log(`Failed to initialize server: ${error.message}`);
+  process.exit(1);
+});

@@ -1,7 +1,7 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import { insertBookingSchema, insertUserSchema, insertVehicleGroupSchema, insertVehicleMasterSchema, insertEmployeeSchema } from "@shared/schema";
+import { insertBookingSchema, insertUserSchema, employees, bookings } from "@shared/schema";
 import { authService } from "./services/auth";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
@@ -13,9 +13,7 @@ import { log } from "./vite";
 import nodemailer from "nodemailer";
 import crypto from "crypto";
 import { eq, sql } from 'drizzle-orm';
-import { db, schema } from './db';
-import { employees, bookings } from './schema'; // Add imports for employee and booking tables
-
+import { db } from './db';
 
 // Configure multer for handling file uploads
 const upload = multer({
@@ -714,6 +712,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     app.get("/api/employees/:id/details", async (req, res) => {
       try {
         const employeeId = parseInt(req.params.id);
+        console.log("Fetching employee details for ID:", employeeId);
 
         // Get employee with their supervisor details
         const [employee] = await db
@@ -730,8 +729,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
           })
           .from(employees)
           .leftJoin(
-            employees as unknown as typeof employees,
-            sql`supervisor`,
+            employees,
+            'supervisor',
             eq(employees.supervisorId, sql`supervisor.id`)
           )
           .where(eq(employees.id, employeeId));
@@ -740,6 +739,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           return res.status(404).json({ error: "Employee not found" });
         }
 
+        console.log("Found employee details:", employee);
         res.json(employee);
       } catch (error: any) {
         console.error("Error fetching employee details:", error);
@@ -750,6 +750,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     app.get("/api/employees/:id/subordinates", async (req, res) => {
       try {
         const employeeId = parseInt(req.params.id);
+        console.log("Fetching subordinates for employee ID:", employeeId);
 
         // Get all subordinates of the employee
         const subordinates = await db
@@ -763,6 +764,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           .from(employees)
           .where(eq(employees.supervisorId, employeeId));
 
+        console.log("Found subordinates:", subordinates);
         res.json(subordinates);
       } catch (error: any) {
         console.error("Error fetching subordinates:", error);
@@ -773,9 +775,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
     app.get("/api/employees/:id/bookings", async (req, res) => {
       try {
         const employeeId = parseInt(req.params.id);
+        console.log("Fetching bookings for employee ID:", employeeId);
 
         // Get all bookings for the employee
-        const bookings = await db
+        const employeeBookings = await db
           .select({
             id: bookings.id,
             referenceNo: bookings.referenceNo,
@@ -792,7 +795,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
           .leftJoin(employees, eq(bookings.employeeId, employees.id))
           .where(eq(bookings.employeeId, employeeId));
 
-        res.json(bookings);
+        console.log("Found bookings:", employeeBookings);
+        res.json(employeeBookings);
       } catch (error: any) {
         console.error("Error fetching employee bookings:", error);
         res.status(500).json({ error: "Failed to fetch employee bookings" });
@@ -802,6 +806,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     app.get("/api/employees/:id/team-bookings", async (req, res) => {
       try {
         const supervisorId = parseInt(req.params.id);
+        console.log("Fetching team bookings for supervisor ID:", supervisorId);
 
         // Get all bookings for the supervisor's team
         const teamBookings = await db
@@ -820,6 +825,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           .leftJoin(employees, eq(bookings.employeeId, employees.id))
           .where(eq(employees.supervisorId, supervisorId));
 
+        console.log("Found team bookings:", teamBookings);
         res.json(teamBookings);
       } catch (error: any) {
         console.error("Error fetching team bookings:", error);
