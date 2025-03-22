@@ -26,48 +26,81 @@ export default function LoginPage() {
   const [imageLoaded, setImageLoaded] = React.useState(false);
 
   React.useEffect(() => {
-    const timer = setTimeout(() => setIsLoaded(true), 100);
+    const timer = setTimeout(() => setIsLoaded(true), 500);
     return () => clearTimeout(timer);
   }, []);
 
+  // Enhanced animation variants
   const logoVariants = {
-    hidden: { opacity: 0, scale: 0.3, y: 50 },
-    visible: { 
+    initial: { 
+      opacity: 0, 
+      scale: 0.3, 
+      y: 50,
+      rotate: -10
+    },
+    animate: { 
       opacity: 1, 
       scale: 1, 
       y: 0,
+      rotate: 0,
       transition: {
         type: "spring",
         stiffness: 200,
         damping: 20,
-        duration: 1
-      }
-    },
-    hover: {
-      scale: 1.1,
-      rotate: [0, -2, 2, -2, 0],
-      transition: {
-        duration: 0.3,
-        ease: "easeInOut"
-      }
-    }
-  };
-
-  const textVariants = {
-    hidden: { opacity: 0, x: -30 },
-    visible: {
-      opacity: 1,
-      x: 0,
-      transition: {
-        type: "spring",
-        stiffness: 100,
-        damping: 10,
-        delay: 0.5
+        duration: 1.2,
+        bounce: 0.5
       }
     },
     hover: {
       scale: 1.05,
-      transition: { duration: 0.2 }
+      rotate: [0, -5, 5, -5, 0],
+      transition: {
+        duration: 1,
+        repeat: Infinity,
+        repeatType: "reverse",
+        ease: "easeInOut"
+      }
+    },
+    tap: {
+      scale: 0.95,
+      rotate: 0
+    }
+  };
+
+  const textVariants = {
+    initial: { 
+      opacity: 0, 
+      x: -30,
+      filter: "blur(10px)"
+    },
+    animate: {
+      opacity: 1,
+      x: 0,
+      filter: "blur(0px)",
+      transition: {
+        type: "spring",
+        stiffness: 100,
+        damping: 10,
+        delay: 0.8
+      }
+    },
+    hover: {
+      scale: 1.05,
+      x: 10,
+      transition: { 
+        duration: 0.3,
+        ease: "easeOut"
+      }
+    }
+  };
+
+  const containerVariants = {
+    initial: { opacity: 0 },
+    animate: { 
+      opacity: 1,
+      transition: {
+        staggerChildren: 0.2
+      }
     }
   };
 
@@ -112,53 +145,76 @@ export default function LoginPage() {
   });
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-[#004990] via-[#0066cc] to-[#ffffff] relative">
+    <div className="min-h-screen bg-gradient-to-b from-[#004990] via-[#0066cc] to-[#ffffff] relative overflow-hidden">
       <AnimatePresence>
         {isLoaded && (
-          <>
-            <motion.div
-              className="absolute right-4 bottom-4"
+          <motion.div
+            variants={containerVariants}
+            initial="initial"
+            animate="animate"
+          >
+            {/* Animated Logo */}
+            <motion.div 
+              className="absolute right-4 bottom-4 cursor-pointer"
               variants={logoVariants}
-              initial="hidden"
-              animate={imageLoaded ? "visible" : "hidden"}
+              initial="initial"
+              animate="animate"
               whileHover="hover"
+              whileTap="tap"
             >
               <motion.img
                 src="/images/exl-logo.png"
                 alt="EXL Logo"
-                className="w-[180px] h-auto object-contain"
+                className="w-[200px] h-auto object-contain"
                 onLoad={() => setImageLoaded(true)}
                 layoutId="logo"
+                style={{ filter: "drop-shadow(0px 4px 8px rgba(0, 0, 0, 0.2))" }}
               />
             </motion.div>
 
+            {/* Animated Text */}
             <motion.div
               className="absolute left-4 bottom-4"
               variants={textVariants}
-              initial="hidden"
-              animate="visible"
+              initial="initial"
+              animate="animate"
               whileHover="hover"
             >
-              <motion.p
+              <motion.p 
                 className="text-sm font-medium text-[#004990]"
                 layoutId="powered-by"
               >
                 Powered by EXL AI Solutions
               </motion.p>
             </motion.div>
-          </>
+          </motion.div>
         )}
       </AnimatePresence>
 
       <div className="container mx-auto h-screen flex flex-col items-center justify-center p-4">
-        <div className="w-full max-w-lg space-y-8">
+        <motion.div 
+          className="w-full max-w-lg space-y-8"
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.5, duration: 0.5 }}
+        >
           <div className="text-center space-y-2">
-            <h1 className="text-sm font-bold text-white">
+            <motion.h1 
+              className="text-2xl font-bold text-white"
+              initial={{ opacity: 0, y: -20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.7, duration: 0.5 }}
+            >
               TripXL - Enterprise Journey Management
-            </h1>
-            <p className="text-xs text-white/80">
+            </motion.h1>
+            <motion.p 
+              className="text-lg text-white/80"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 0.9, duration: 0.5 }}
+            >
               Your Intelligent Travel Solutions Platform
-            </p>
+            </motion.p>
           </div>
 
           <Card className="backdrop-blur-sm bg-white/90 dark:bg-black/50 border border-white/20">
@@ -265,7 +321,7 @@ export default function LoginPage() {
               </Form>
             </CardContent>
           </Card>
-        </div>
+        </motion.div>
       </div>
     </div>
   );
