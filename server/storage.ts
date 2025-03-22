@@ -370,26 +370,52 @@ export class DatabaseStorage implements IStorage {
     }
   }
   async findUserByEmail(emailId: string): Promise<User | null> {
-    console.log('Finding user by email:', emailId);
     try {
+      console.log('Finding user by email:', emailId);
       const [user] = await db
         .select()
         .from(schema.users)
         .where(eq(schema.users.emailId, emailId))
         .limit(1);
 
-    if (user) {
-      console.log('User found:', { ...user, password: '[REDACTED]' });
-    } else {
-      console.log('No user found with email:', emailId);
-    }
+      if (user) {
+        console.log('User found:', { 
+          ...user,
+          id: user.id,
+          emailId: user.emailId,
+          userName: user.userName,
+          password: '[REDACTED]'
+        });
 
-    return user || null;
-  } catch (error) {
-    console.error('Error in findUserByEmail:', error);
-    throw new Error(`Database error: ${error instanceof Error ? error.message : 'Unknown error'}`);
+        // Ensure we return all required fields
+        return {
+          ...user,
+          id: user.id,
+          emailId: user.emailId,
+          userName: user.userName,
+          userType: user.userType,
+          userCode: user.userCode,
+          password: user.password,
+          isActive: user.isActive,
+          userOperationType: user.userOperationType,
+          userGroup: user.userGroup,
+          fullName: user.fullName,
+          firstName: user.firstName,
+          lastName: user.lastName,
+          createdAt: user.createdAt,
+          updatedAt: user.updatedAt,
+          resetToken: user.resetToken,
+          resetTokenExpiry: user.resetTokenExpiry
+        };
+      } else {
+        console.log('No user found with email:', emailId);
+        return null;
+      }
+    } catch (error) {
+      console.error('Error in findUserByEmail:', error);
+      throw new Error(`Database error: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
   }
-}
   async getUserByEmail(email: string): Promise<User | null> {
     const [user] = await db
       .select()
