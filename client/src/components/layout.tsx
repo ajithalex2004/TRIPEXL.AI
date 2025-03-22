@@ -11,8 +11,9 @@ import {
   SidebarMenuButton,
 } from "@/components/ui/sidebar";
 import { Logo } from "@/components/ui/logo";
-//import { Footer } from "@/components/ui/footer"; // Removed as per intention
 import { LoadingPage } from "@/components/loading-page";
+import { PageTransition } from "@/components/page-transition";
+import { AnimatePresence } from "framer-motion";
 import {
   History,
   Car,
@@ -174,7 +175,11 @@ export function Layout({ children }: { children: React.ReactNode }) {
           )}
           <div className="flex-1 flex flex-col">
             <main className="flex-1 pb-16">
-              {children}
+              <AnimatePresence mode="wait">
+                <PageTransition key={location}>
+                  {children}
+                </PageTransition>
+              </AnimatePresence>
             </main>
           </div>
         </div>
