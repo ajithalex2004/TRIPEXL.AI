@@ -68,7 +68,7 @@ export default function LoginPage() {
       {/* EXL Logo */}
       <div className="absolute right-4 bottom-4">
         <img 
-          src="/attached_assets/EXL_Logo-removebg-preview_1742623507146.png"
+          src="/images/exl-logo.png"
           alt="EXL Logo"
           style={{
             width: '180px',
