@@ -425,6 +425,34 @@ export const locationsMaster = pgTable("locations_master", {
   updatedAt: timestamp("updated_at").notNull().defaultNow()
 });
 
+// Add these enums after the existing ones, before the table definitions
+export const EmployeeDesignation = {
+  // Regional Level
+  REGIONAL_DIRECTOR: "Regional Director",
+  REGIONAL_MANAGER: "Regional Manager",
+
+  // Department Level
+  DEPARTMENT_HEAD: "Department Head",
+  DEPARTMENT_MANAGER: "Department Manager",
+
+  // Unit Level
+  UNIT_HEAD: "Unit Head",
+  UNIT_SUPERVISOR: "Unit Supervisor",
+
+  // Staff Level
+  SENIOR_STAFF: "Senior Staff",
+  STAFF: "Staff",
+  JUNIOR_STAFF: "Junior Staff"
+} as const;
+
+export const HierarchyLevel = {
+  REGIONAL: "Regional",
+  DEPARTMENT: "Department",
+  UNIT: "Unit",
+  STAFF: "Staff"
+} as const;
+
+// Update the employees table definition
 export const employees = pgTable("employees", {
   id: serial("id").primaryKey(),
   employeeId: integer("employee_id").notNull().unique(),
@@ -432,6 +460,7 @@ export const employees = pgTable("employees", {
   emailId: varchar("email_id", { length: 50 }).notNull(),
   mobileNumber: varchar("mobile_number", { length: 15 }).notNull(),
   designation: text("designation").notNull(),
+  hierarchyLevel: text("hierarchy_level").notNull(),
   employeeType: varchar("employee_type", { length: 50 }),
   region: varchar("region", { length: 50 }).notNull(),
   department: varchar("department", { length: 50 }).notNull(),
@@ -720,16 +749,17 @@ export const insertVehicleMasterSchema = createInsertSchema(vehicleMaster)
     isPPtoConnected: z.enum(Object.values(YesNo) as [string, ...string[]]),
   });
 
+// Update the insert schema
 export const insertEmployeeSchema = createInsertSchema(employees)
   .extend({
     employeeId: z.number().positive("Employee ID must be a positive number"),
     employeeName: z.string().min(1, "Employee name is required").max(100),
     emailId: z.string().email("Invalid email format").max(50),
     mobileNumber: z.string().min(8, "Invalid mobile number").max(15),
-    designation: z.string().min(1, "Designation is required"),
-    employeeType: z.string().max(50).optional(),
-    region: z.string().min(1,"Region is required").max(50),
-    department: z.string().min(1, "Department is required").max(50),
+    designation: z.enum(Object.values(EmployeeDesignation) as [string, ...string[]]),
+    hierarchyLevel: z.enum(Object.values(HierarchyLevel) as [string, ...string[]]),
+    region: z.enum(Object.values(Region) as [string, ...string[]]),
+    department: z.enum(Object.values(Department) as [string, ...string[]]),
     unit: z.string().min(1, "Unit is required").max(50),
     dateOfBirth: z.date().optional(),
     nationality: z.string().optional(),
