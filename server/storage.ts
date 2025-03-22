@@ -566,8 +566,8 @@ export class DatabaseStorage implements IStorage {
     try {
       console.log('Finding employee by ID:', employeeId);
 
-      // Execute the database query with explicit field selection
-      const [employee] = await db
+      // Execute the database query with explicit field mapping
+      const query = db
         .select({
           id: schema.employees.id,
           employeeId: schema.employees.employee_id,
@@ -580,13 +580,16 @@ export class DatabaseStorage implements IStorage {
           nationality: schema.employees.nationality,
           region: schema.employees.region,
           communicationLanguage: schema.employees.communication_language,
-          unit: schema.employees.unit,
-          isActive: schema.employees.is_active
+          unit: schema.employees.unit
         })
         .from(schema.employees)
         .where(eq(schema.employees.employee_id, employeeId))
         .where(eq(schema.employees.is_active, true))
         .limit(1);
+
+      console.log('Executing query:', query.toSQL());
+
+      const [employee] = await query;
 
       if (employee) {
         console.log('Found employee:', {
