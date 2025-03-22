@@ -40,18 +40,19 @@ export function EmployeeValidationForm() {
   });
 
   const validateEmployee = async (employeeId: string) => {
-    // Skip validation if the ID hasn't changed
+    if (!employeeId.trim()) return;
     if (employeeId === lastValidatedId) return;
 
     setIsValidating(true);
-    setEmployeeDetails(null); // Clear previous details while validating
+    setEmployeeDetails(null);
 
     try {
+      console.log("Validating employee ID:", employeeId);
       const response = await fetch(`/api/employees/validate/${employeeId}`);
       const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(data.message || 'Failed to validate employee');
+        throw new Error(data.message || data.error || 'Failed to validate employee');
       }
 
       setEmployeeDetails(data);

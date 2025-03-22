@@ -570,26 +570,25 @@ export class DatabaseStorage implements IStorage {
       const [employee] = await db
         .select({
           id: schema.employees.id,
-          employeeId: schema.employees.employeeId,
-          employeeName: schema.employees.name,
+          employeeId: schema.employees.employee_id,
+          employeeName: schema.employees.employee_name,
           emailId: schema.employees.email,
-          mobileNumber: schema.employees.phone,
-          employeeType: schema.employees.employeeType,
+          mobileNumber: schema.employees.mobile_number,
+          employeeType: schema.employees.employee_type,
           designation: schema.employees.designation,
           department: schema.employees.department,
           nationality: schema.employees.nationality,
           region: schema.employees.region,
-          communicationLanguage: schema.employees.communicationLanguage,
+          communicationLanguage: schema.employees.communication_language,
           unit: schema.employees.unit,
-          isActive: schema.employees.isActive
+          isActive: schema.employees.is_active
         })
         .from(schema.employees)
-        .where(eq(schema.employees.employeeId, employeeId))
-        .where(eq(schema.employees.isActive, true))
+        .where(eq(schema.employees.employee_id, employeeId))
+        .where(eq(schema.employees.is_active, true))
         .limit(1);
 
       if (employee) {
-        // Log employee details with masked sensitive information
         console.log('Found employee:', {
           ...employee,
           mobileNumber: '****' + employee.mobileNumber.slice(-4)
