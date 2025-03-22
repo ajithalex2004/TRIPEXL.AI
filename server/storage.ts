@@ -375,7 +375,7 @@ export class DatabaseStorage implements IStorage {
       const [user] = await db
         .select()
         .from(schema.users)
-        .where(eq(schema.users.email_id, emailId))
+        .where(eq(schema.users.emailId, emailId))
         .limit(1);
 
       if (user) {
@@ -628,19 +628,7 @@ export class DatabaseStorage implements IStorage {
         .from(schema.employees);
 
       console.log(`Found ${employees.length} employees`);
-      return employees.map(emp => ({
-        employeeId: emp.employee_id,
-        employeeName: emp.employee_name || emp.name || '',
-        emailId: emp.email || '',
-        mobileNumber: emp.mobile_number || emp.phone || '',
-        employeeType: emp.employee_type || '',
-        designation: emp.designation || '',
-        department: emp.department || '',
-        nationality: emp.nationality || '',
-        region: emp.region || '',
-        communicationLanguage: emp.communication_language || '',
-        unit: emp.unit || ''
-      }));
+      return employees;
     } catch (error) {
       console.error('Error fetching all employees:', error);
       throw error;
