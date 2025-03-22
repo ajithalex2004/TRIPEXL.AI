@@ -16,6 +16,7 @@ import CO2EmissionsPage from "@/pages/co2-emissions-page";
 import NewBooking from "@/pages/new-booking";
 import EmployeeManagement from "@/pages/employee-management";
 import { Layout } from "@/components/layout";
+import { EmployeeValidationForm } from "@/components/employee-validation-form";
 
 function ProtectedRoute({ component: Component }: { component: React.ComponentType }) {
   const [, setLocation] = useLocation();
@@ -52,6 +53,7 @@ function Router() {
       <Route path="/fuel-efficiency" component={() => <ProtectedRoute component={FuelEfficiencyPage} />} />
       <Route path="/co2-emissions" component={() => <ProtectedRoute component={CO2EmissionsPage} />} />
       <Route path="/employees" component={() => <ProtectedRoute component={EmployeeManagement} />} />
+      <Route path="/employee-validation" component={() => <ProtectedRoute component={EmployeeValidationForm} />} />
       <Route component={NotFound} />
     </Switch>
   );
