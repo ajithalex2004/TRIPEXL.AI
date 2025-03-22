@@ -566,22 +566,9 @@ export class DatabaseStorage implements IStorage {
     try {
       console.log('Finding employee by ID:', employeeId);
 
-      // Execute the database query with explicit field mapping
+      // Execute the database query with exact column names
       const query = db
-        .select({
-          id: schema.employees.id,
-          employeeId: schema.employees.employee_id,
-          employeeName: schema.employees.employee_name,
-          emailId: schema.employees.email,
-          mobileNumber: schema.employees.mobile_number,
-          employeeType: schema.employees.employee_type,
-          designation: schema.employees.designation,
-          department: schema.employees.department,
-          nationality: schema.employees.nationality,
-          region: schema.employees.region,
-          communicationLanguage: schema.employees.communication_language,
-          unit: schema.employees.unit
-        })
+        .select()
         .from(schema.employees)
         .where(eq(schema.employees.employee_id, employeeId))
         .where(eq(schema.employees.is_active, true))
@@ -592,15 +579,31 @@ export class DatabaseStorage implements IStorage {
       const [employee] = await query;
 
       if (employee) {
+        // Transform database fields to match the expected interface
+        const transformedEmployee = {
+          employeeId: employee.employee_id,
+          employeeName: employee.employee_name || '',
+          emailId: employee.email,
+          mobileNumber: employee.mobile_number,
+          employeeType: employee.employee_type,
+          designation: employee.designation,
+          department: employee.department,
+          nationality: employee.nationality,
+          region: employee.region,
+          communicationLanguage: employee.communication_language,
+          unit: employee.unit
+        };
+
         console.log('Found employee:', {
-          ...employee,
-          mobileNumber: '****' + employee.mobileNumber.slice(-4)
+          ...transformedEmployee,
+          mobileNumber: '****' + (transformedEmployee.mobileNumber?.slice(-4) || '')
         });
-      } else {
-        console.log('No employee found with ID:', employeeId);
+
+        return transformedEmployee;
       }
 
-      return employee;
+      console.log('No employee found with ID:', employeeId);
+      return null;
     } catch (error) {
       console.error('Error finding employee:', error);
       throw new Error(`Database error: ${error instanceof Error ? error.message : 'Unknown error'}`);

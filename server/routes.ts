@@ -15,7 +15,6 @@ import crypto from "crypto";
 import { eq } from 'drizzle-orm'; // Add import for drizzle-orm
 import { db, schema } from './db'; // Add imports for your database connection and schema
 
-
 // Configure multer for handling file uploads
 const upload = multer({
   storage: multer.memoryStorage(),
@@ -712,6 +711,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const { employeeId } = req.params;
         console.log("Validating employee ID:", employeeId);
 
+        if (!employeeId) {
+          return res.status(400).json({
+            error: "Employee ID is required",
+            message: "Please provide a valid employee ID"
+          });
+        }
+
         // Find the employee
         const employee = await storage.findEmployeeByEmployeeId(employeeId);
         console.log("Database response:", employee);
@@ -732,7 +738,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           });
         }
 
-        // Return employee details exactly matching the table structure
+        // Send response with all required fields
         const response = {
           employeeId: employee.employeeId,
           employeeName: employee.employeeName,
@@ -749,7 +755,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
         console.log("Sending response:", {
           ...response,
-          mobileNumber: '****' + response.mobileNumber.slice(-4)
+          mobileNumber: '****' + response.mobileNumber?.slice(-4)
         });
 
         res.json(response);
@@ -761,6 +767,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
     });
+
 
     // Add user management routes
     app.get("/api/users", async (_req, res) => {
