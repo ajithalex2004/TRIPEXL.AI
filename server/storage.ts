@@ -368,7 +368,7 @@ export class DatabaseStorage implements IStorage {
       const [user] = await db
         .select()
         .from(schema.users)
-        .where(eq(schema.users.emailId, emailId));
+        .where(eq(schema.users.email_id, emailId));
       console.log('Found user:', user ? 'yes' : 'no');
       return user || null;
     } catch (error) {
@@ -407,7 +407,7 @@ export class DatabaseStorage implements IStorage {
       const [user] = await db
         .update(schema.users)
         .set({
-          updatedAt: new Date()
+          updated_at: new Date()
         })
         .where(eq(schema.users.id, userId))
         .returning();
