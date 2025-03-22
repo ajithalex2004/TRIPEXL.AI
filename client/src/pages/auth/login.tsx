@@ -157,7 +157,7 @@ export default function LoginPage() {
             transition={{ delay: 0.3 }}
           >
             <motion.h1
-              className="text-lg font-bold text-white tracking-wider whitespace-nowrap"
+              className="text-base font-bold text-white tracking-wider whitespace-nowrap"
               initial={{ opacity: 0, y: -20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.3 }}
