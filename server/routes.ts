@@ -69,15 +69,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
     log("Registering auth routes...");
     app.post("/api/login", async (req, res) => {
       const { emailId, password } = req.body;
-      console.log('Login attempt for email:', emailId);
-
-      if (!emailId || !password) {
-        console.log('Missing credentials');
-        return res.status(400).json({ error: "Email and password are required" });
-      }
+      console.log('Login attempt for:', emailId);
 
       try {
-        console.log('Finding user in storage');
+        if (!emailId || !password) {
+          console.log('Missing credentials');
+          return res.status(400).json({ error: "Email and password are required" });
+        }
+
+        // Find user by email
+        console.log('Finding user in database...');
         const user = await storage.findUserByEmail(emailId);
 
         if (!user) {
@@ -85,7 +86,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           return res.status(401).json({ error: "Invalid credentials" });
         }
 
-        console.log('Comparing passwords');
+        console.log('User found, comparing passwords...');
         const isValidPassword = await bcrypt.compare(password, user.password);
 
         if (!isValidPassword) {
@@ -93,7 +94,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           return res.status(401).json({ error: "Invalid credentials" });
         }
 
-        // Generate JWT token
+        console.log('Password valid, generating token...');
         const token = jwt.sign(
           { userId: user.id, email_id: user.email_id },
           process.env.JWT_SECRET || 'dev-secret-key',
@@ -101,20 +102,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
         );
 
         // Update last login
+        console.log('Updating last login timestamp...');
         await storage.updateUserLastLogin(user.id);
 
-        // Remove sensitive data from response
+        // Remove sensitive data
         const { password: _, ...userData } = user;
 
         console.log('Login successful for user:', emailId);
-        res.json({ 
-          token, 
+        res.json({
+          token,
           user: userData,
           message: "Login successful"
         });
+
       } catch (error: any) {
         console.error('Login error:', error);
-        res.status(500).json({ error: "Server error during login" }); 
+        console.error('Error details:', error.stack);
+        res.status(500).json({
+          error: "Server error during login",
+          details: error.message
+        });
       }
     });
     log("Auth routes registered");
@@ -132,8 +139,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       try {
         const { user, otp } = await authService.registerUser(result.data, password);
-        res.json({ 
-          message: "Registration successful. Please verify your account.", 
+        res.json({
+          message: "Registration successful. Please verify your account.",
           userId: user.id,
           otp // Include OTP in the response
         });
@@ -153,7 +160,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const { user, token } = await authService.verifyOTP(userId, otp);
         res.json({ message: "Account verified successfully", token, user });
       } catch (error: any) {
-        res.status(400).json({ error: error.message }); 
+        res.status(400).json({ error: error.message });
       }
     });
 
@@ -163,7 +170,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const vehicles = await storage.getVehicles();
         res.json(vehicles);
       } catch (error: any) {
-        res.status(500).json({ error: "Failed to retrieve vehicles" }); 
+        res.status(500).json({ error: "Failed to retrieve vehicles" });
       }
     });
 
@@ -173,7 +180,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const vehicles = await storage.getAvailableVehicles();
         res.json(vehicles);
       } catch (error: any) {
-        res.status(500).json({ error: "Failed to retrieve available vehicles" }); 
+        res.status(500).json({ error: "Failed to retrieve available vehicles" });
       }
     });
 
@@ -183,7 +190,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const drivers = await storage.getDrivers();
         res.json(drivers);
       } catch (error: any) {
-        res.status(500).json({ error: "Failed to retrieve drivers" }); 
+        res.status(500).json({ error: "Failed to retrieve drivers" });
       }
     });
 
@@ -193,7 +200,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const drivers = await storage.getAvailableDrivers();
         res.json(drivers);
       } catch (error: any) {
-        res.status(500).json({ error: "Failed to retrieve available drivers" }); 
+        res.status(500).json({ error: "Failed to retrieve available drivers" });
       }
     });
 
@@ -203,7 +210,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const bookings = await storage.getBookings();
         res.json(bookings);
       } catch (error: any) {
-        res.status(500).json({ error: "Failed to retrieve bookings" }); 
+        res.status(500).json({ error: "Failed to retrieve bookings" });
       }
     });
 
@@ -274,11 +281,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const dLat = (dropoff.coordinates.lat - pickup.coordinates.lat) * Math.PI / 180;
       const dLon = (dropoff.coordinates.lng - pickup.coordinates.lng) * Math.PI / 180;
 
-      const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
+      const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
         Math.cos(lat1) * Math.cos(lat2) *
-        Math.sin(dLon/2) * Math.sin(dLon/2);
+        Math.sin(dLon / 2) * Math.sin(dLon / 2);
 
-      const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+      const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
       const distance = R * c; // Distance in km
 
       return parseFloat(distance.toFixed(2));
@@ -453,9 +460,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const result = insertVehicleGroupSchema.safeParse(req.body);
       if (!result.success) {
         console.error("Invalid vehicle group data:", result.error.issues);
-        return res.status(400).json({ 
-          error: "Invalid vehicle group data", 
-          details: result.error.issues 
+        return res.status(400).json({
+          error: "Invalid vehicle group data",
+          details: result.error.issues
         });
       }
 
@@ -483,9 +490,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
         const result = insertVehicleGroupSchema.partial().safeParse(req.body);
         if (!result.success) {
-          return res.status(400).json({ 
-            error: "Invalid update data", 
-            details: result.error.issues 
+          return res.status(400).json({
+            error: "Invalid update data",
+            details: result.error.issues
           });
         }
 
@@ -550,9 +557,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
         if (!result.success) {
           console.error("Invalid vehicle master data:", result.error.issues);
-          return res.status(400).json({ 
-            error: "Invalid vehicle master data", 
-            details: result.error.issues 
+          return res.status(400).json({
+            error: "Invalid vehicle master data",
+            details: result.error.issues
           });
         }
 
@@ -571,9 +578,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const result = insertVehicleMasterSchema.partial().safeParse(req.body);
 
         if (!result.success) {
-          return res.status(400).json({ 
-            error: "Invalid vehicle master data", 
-            details: result.error.issues 
+          return res.status(400).json({
+            error: "Invalid vehicle master data",
+            details: result.error.issues
           });
         }
 
@@ -652,9 +659,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
         if (!result.success) {
           console.error("Invalid employee data:", result.error.issues);
-          return res.status(400).json({ 
-            error: "Invalid employee data", 
-            details: result.error.issues 
+          return res.status(400).json({
+            error: "Invalid employee data",
+            details: result.error.issues
           });
         }
 
@@ -705,9 +712,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
         if (!result.success) {
           console.error("Invalid user data:", result.error.issues);
-          return res.status(400).json({ 
-            error: "Invalid user data", 
-            details: result.error.issues 
+          return res.status(400).json({
+            error: "Invalid user data",
+            details: result.error.issues
           });
         }
 

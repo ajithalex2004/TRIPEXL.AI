@@ -368,11 +368,19 @@ export class DatabaseStorage implements IStorage {
       const [user] = await db
         .select()
         .from(schema.users)
-        .where(eq(schema.users.email_id, emailId));
-      console.log('Found user:', user ? 'yes' : 'no');
+        .where(eq(schema.users.email_id, emailId))
+        .limit(1);
+
+      console.log('Database query completed');
+      console.log('Found user:', user ? { ...user, password: '[REDACTED]' } : 'null');
+
       return user || null;
     } catch (error) {
       console.error('Error finding user by email:', error);
+      console.error('Query details:', {
+        emailId,
+        error: error instanceof Error ? error.message : 'Unknown error'
+      });
       throw error;
     }
   }
@@ -411,6 +419,8 @@ export class DatabaseStorage implements IStorage {
         })
         .where(eq(schema.users.id, userId))
         .returning();
+
+      console.log('Last login updated successfully');
       return user;
     } catch (error) {
       console.error('Error updating user last login:', error);
