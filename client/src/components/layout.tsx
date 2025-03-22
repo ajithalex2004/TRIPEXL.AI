@@ -53,7 +53,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
 
   return (
     <SidebarProvider>
-      <div className="flex min-h-screen relative">
+      <div className="flex min-h-screen">
         {isLoading && <LoadingPage />}
         {location !== "/auth/login" && (
           <Sidebar className="bg-gradient-to-b from-[#004990] via-[#0066cc] to-[#ffffff] border-r border-white/10">
@@ -172,11 +172,11 @@ export function Layout({ children }: { children: React.ReactNode }) {
             </SidebarContent>
           </Sidebar>
         )}
-        <main className={`flex-1 ${location === "/auth/login" ? "" : "p-6 pb-24"} relative`}>
+        <main className={`flex-1 ${location === "/auth/login" ? "" : "p-6 pb-24"}`}>
           {children}
+          {showFooter && <Footer />}
         </main>
       </div>
-      {showFooter && <Footer />}
     </SidebarProvider>
   );
 }
