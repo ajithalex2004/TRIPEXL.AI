@@ -95,9 +95,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
           });
         }
 
+        // Log the received password and stored hash for debugging
+        console.log('Attempting password verification for:', emailId);
+        console.log('Password hash in DB:', user.password?.substring(0, 20) + '...');
+
         // Verify password
-        console.log('Verifying password for user:', user.emailId);
         const isValidPassword = await bcrypt.compare(password, user.password);
+        console.log('Password validation result:', isValidPassword);
 
         if (!isValidPassword) {
           console.log('Invalid password for user:', emailId);
@@ -119,7 +123,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
         );
 
         // Update last login
-        console.log('Updating last login timestamp...');
         await storage.updateUserLastLogin(user.id);
 
         // Send response
