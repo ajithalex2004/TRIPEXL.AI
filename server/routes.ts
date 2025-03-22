@@ -68,43 +68,46 @@ export async function registerRoutes(app: Express): Promise<Server> {
     // Auth routes
     log("Registering auth routes...");
     app.post("/api/login", async (req, res) => {
-      const { email, password } = req.body;
-      console.log('Login attempt for email:', email);
+      const { emailId, password } = req.body;
+      console.log('Login attempt for email:', emailId);
 
-      if (!email || !password) {
+      if (!emailId || !password) {
         console.log('Missing credentials');
         return res.status(400).json({ error: "Email and password are required" });
       }
 
       try {
-        console.log('Finding employee in storage');
-        const employee = await storage.findEmployeeByEmail(email);
+        console.log('Finding user in storage');
+        const user = await storage.findUserByEmail(emailId);
 
-        if (!employee) {
-          console.log('Employee not found:', email);
+        if (!user) {
+          console.log('User not found:', emailId);
           return res.status(401).json({ error: "Invalid credentials" });
         }
 
         console.log('Comparing passwords');
-        const isValidPassword = await bcrypt.compare(password, employee.password);
+        const isValidPassword = await bcrypt.compare(password, user.password);
 
         if (!isValidPassword) {
-          console.log('Invalid password for employee:', email);
+          console.log('Invalid password for user:', emailId);
           return res.status(401).json({ error: "Invalid credentials" });
         }
 
         // Generate JWT token
         const token = jwt.sign(
-          { employeeId: employee.employeeId, email: employee.emailId },
+          { userId: user.id, emailId: user.emailId },
           process.env.JWT_SECRET || 'dev-secret-key',
           { expiresIn: '24h' }
         );
 
-        // Remove password from response
-        const { password: _, ...employeeData } = employee;
+        // Update last login
+        await storage.updateUserLastLogin(user.id);
 
-        console.log('Login successful for employee:', email);
-        res.json({ token, employee: employeeData });
+        // Remove password from response
+        const { password: _, ...userData } = user;
+
+        console.log('Login successful for user:', emailId);
+        res.json({ token, user: userData });
       } catch (error: any) {
         console.error('Login error:', error);
         res.status(500).json({ error: "Server error during login" }); 

@@ -343,37 +343,38 @@ export class DatabaseStorage implements IStorage {
       .where(eq(schema.employees.email, email));
     return employee || null;
   }
-  async createUser(userData: InsertUser): Promise<User> {
+  async createUser(user: InsertUser): Promise<User> {
+    console.log('Creating new user:', { ...user, password: '[REDACTED]' });
     try {
-      console.log("Creating user with data:", {
-        ...userData,
-        password: "[REDACTED]"
-      });
-
-      const [user] = await db
+      const [newUser] = await db
         .insert(schema.users)
         .values({
-          ...userData,
-          fullName: `${userData.firstName} ${userData.lastName}`,
+          ...user,
           isActive: true,
           createdAt: new Date(),
           updatedAt: new Date()
         })
         .returning();
-
-      console.log("Created user:", {
-        ...user,
-        password: "[REDACTED]"
-      });
-
-      return user;
+      console.log('Created user successfully');
+      return newUser;
     } catch (error) {
-      console.error("Error creating user:", error);
-      throw new Error(error instanceof Error ? error.message : "Failed to create user");
+      console.error('Error creating user:', error);
+      throw error;
     }
   }
-  async findUserByEmail(email: string): Promise<User | null> {
-    return this.getUserByEmail(email);
+  async findUserByEmail(emailId: string): Promise<User | null> {
+    console.log('Finding user by email:', emailId);
+    try {
+      const [user] = await db
+        .select()
+        .from(schema.users)
+        .where(eq(schema.users.emailId, emailId));
+      console.log('Found user:', user ? 'yes' : 'no');
+      return user || null;
+    } catch (error) {
+      console.error('Error finding user by email:', error);
+      throw error;
+    }
   }
   async getUserByEmail(email: string): Promise<User | null> {
     const [user] = await db
@@ -401,15 +402,20 @@ export class DatabaseStorage implements IStorage {
     return user;
   }
   async updateUserLastLogin(userId: number): Promise<User> {
-    const [user] = await db
-      .update(schema.users)
-      .set({
-        lastLogin: new Date(),
-        updatedAt: new Date()
-      })
-      .where(eq(schema.users.id, userId))
-      .returning();
-    return user;
+    console.log('Updating last login for user:', userId);
+    try {
+      const [user] = await db
+        .update(schema.users)
+        .set({
+          updatedAt: new Date()
+        })
+        .where(eq(schema.users.id, userId))
+        .returning();
+      return user;
+    } catch (error) {
+      console.error('Error updating user last login:', error);
+      throw error;
+    }
   }
   async createOtpVerification(verification: InsertOtpVerification): Promise<OtpVerification> {
     const [newVerification] = await db
@@ -468,8 +474,16 @@ export class DatabaseStorage implements IStorage {
       throw new Error(`Failed to update booking metadata: ${error.message}`);
     }
   }
-    async getAllUsers(): Promise<User[]> {
-    return await db.select().from(schema.users);
+  async getAllUsers(): Promise<User[]> {
+    console.log('Fetching all users');
+    try {
+      const users = await db.select().from(schema.users);
+      console.log(`Found ${users.length} users`);
+      return users;
+    } catch (error) {
+      console.error('Error fetching all users:', error);
+      throw error;
+    }
   }
 
   async getUserByUserName(userName: string): Promise<User | null> {
