@@ -4,19 +4,17 @@ import { useMutation } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { useLocation } from "wouter";
-import {
-  Form,
-  FormControl,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from "@/components/ui/form";
+import { FormField, FormItem, FormLabel, FormControl, FormMessage, Form } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardContent } from "@/components/ui/card";
 import { LoadingIndicator } from "@/components/ui/loading-indicator";
 import { motion, AnimatePresence } from "framer-motion";
+
+interface LoginFormData {
+  emailId: string;
+  password: string;
+}
 
 export default function LoginPage() {
   const { toast } = useToast();
@@ -29,6 +27,51 @@ export default function LoginPage() {
     const timer = setTimeout(() => setIsLoaded(true), 500);
     return () => clearTimeout(timer);
   }, []);
+
+  const form = useForm<LoginFormData>({
+    defaultValues: {
+      emailId: "",
+      password: "",
+    },
+  });
+
+  const login = useMutation({
+    mutationFn: async (data: LoginFormData) => {
+      console.log('Login attempt with email:', data.emailId);
+      const res = await apiRequest("POST", "/api/login", data);
+
+      if (!res.ok) {
+        const error = await res.json();
+        console.error('Login failed:', error);
+        throw new Error(error.error || "Invalid credentials");
+      }
+
+      const responseData = await res.json();
+      console.log('Login successful:', { ...responseData, token: '[REDACTED]' });
+      return responseData;
+    },
+    onSuccess: (data) => {
+      localStorage.setItem("token", data.token);
+      toast({
+        title: "Success",
+        description: "Logged in successfully",
+      });
+      setLocation("/");
+    },
+    onError: (error: Error) => {
+      console.error('Login error:', error.message);
+      toast({
+        title: "Error",
+        description: error.message || "Failed to login",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const onSubmit = form.handleSubmit((data) => {
+    console.log('Form submitted:', { emailId: data.emailId, password: '[REDACTED]' });
+    login.mutate(data);
+  });
 
   // Animation variants
   const logoVariants = {
@@ -62,48 +105,6 @@ export default function LoginPage() {
       },
     },
   };
-
-  const form = useForm({
-    defaultValues: {
-      emailId: "",
-      password: "",
-    },
-  });
-
-  const login = useMutation({
-    mutationFn: async (data: any) => {
-      console.log('Attempting login with:', { emailId: data.emailId });
-      const res = await apiRequest("POST", "/api/login", {
-        emailId: data.emailId,
-        password: data.password,
-      });
-      if (!res.ok) {
-        const error = await res.json();
-        throw new Error(error.error || "Login failed");
-      }
-      return res.json();
-    },
-    onSuccess: (data) => {
-      localStorage.setItem("token", data.token);
-      toast({
-        title: "Success",
-        description: data.message || "Logged in successfully",
-      });
-      setLocation("/");
-    },
-    onError: (error: any) => {
-      toast({
-        title: "Error",
-        description: error.message || "Login failed",
-        variant: "destructive",
-      });
-    },
-  });
-
-  const onSubmit = form.handleSubmit((data) => {
-    console.log('Form submitted with:', data);
-    login.mutate(data);
-  });
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-[#004990] via-[#0066cc] to-[#ffffff] relative overflow-hidden">
