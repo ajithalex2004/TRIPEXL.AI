@@ -567,41 +567,34 @@ export class DatabaseStorage implements IStorage {
       console.log('Finding employee by ID:', employeeId);
 
       // Simple query to get employee by ID
-      const result = await db
-        .select()
+      const [employee] = await db
+        .select({
+          employeeId: schema.employees.employee_id,
+          employeeName: schema.employees.employee_name,
+          emailId: schema.employees.email,
+          mobileNumber: schema.employees.mobile_number,
+          employeeType: schema.employees.employee_type,
+          designation: schema.employees.designation,
+          department: schema.employees.department,
+          nationality: schema.employees.nationality,
+          region: schema.employees.region,
+          communicationLanguage: schema.employees.communication_language,
+          unit: schema.employees.unit
+        })
         .from(schema.employees)
         .where(eq(schema.employees.employee_id, employeeId));
 
-      console.log('Query result:', result);
-
-      if (!result.length) {
+      if (!employee) {
         console.log('No employee found with ID:', employeeId);
         return null;
       }
 
-      const employee = result[0];
-
-      // Map the database fields to our Employee interface
-      const mappedEmployee = {
-        employeeId: employee.employee_id,
-        employeeName: employee.employee_name || employee.name || '',
-        emailId: employee.email || '',
-        mobileNumber: employee.mobile_number || employee.phone || '',
-        employeeType: employee.employee_type || '',
-        designation: employee.designation || '',
-        department: employee.department || '',
-        nationality: employee.nationality || '',
-        region: employee.region || '',
-        communicationLanguage: employee.communication_language || '',
-        unit: employee.unit || ''
-      };
-
-      console.log('Mapped employee:', {
-        ...mappedEmployee,
-        mobileNumber: '****' + mappedEmployee.mobileNumber.slice(-4)
+      console.log('Found employee:', {
+        ...employee,
+        mobileNumber: '****' + (employee.mobileNumber?.slice(-4) || '')
       });
 
-      return mappedEmployee;
+      return employee;
     } catch (error) {
       console.error('Error finding employee:', error);
       throw new Error(`Database error: ${error instanceof Error ? error.message : 'Unknown error'}`);
