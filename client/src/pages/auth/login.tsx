@@ -65,12 +65,18 @@ export default function LoginPage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-[#004990] via-[#0066cc] to-[#ffffff] relative">
-      {/* EXL Logo at bottom right */}
-      <img 
-        src="attached_assets/image_1742621428346.png" 
-        alt="EXL Logo" 
-        className="absolute right-4 bottom-4 h-8 w-auto z-50"
-      />
+      {/* EXL Logo */}
+      <div className="absolute right-8 bottom-8">
+        <img 
+          src="/assets/exl-logo.png"
+          alt="EXL Logo"
+          style={{
+            width: '120px',
+            height: 'auto',
+            objectFit: 'contain'
+          }}
+        />
+      </div>
 
       <div className="container mx-auto h-screen flex flex-col items-center justify-center p-4">
         <div className="w-full max-w-lg space-y-8">
