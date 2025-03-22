@@ -1,14 +1,25 @@
 import * as React from "react";
 import { Logo } from "@/components/ui/logo";
 
-export function Footer() {
+export function Footer({ className }: { className?: string }) {
   return (
-    <div className="absolute bottom-0 left-0 right-0 bg-[#004990]/90 p-2 flex justify-between items-center">
-      <p className="text-sm text-white font-medium pl-4">
-        Powered by EXL AI Solutions
-      </p>
-      <div className="pr-4">
-        <Logo size="default" />
+    <div className={`${className} py-6`}>
+      <div className="container flex flex-col items-center justify-between gap-4 md:h-20 md:flex-row md:py-0">
+        <div className="flex flex-col items-center gap-4 px-8 md:flex-row md:gap-2 md:px-0">
+          <p className="text-center text-sm leading-loose text-muted-foreground md:text-left">
+            Built by{" "}
+            <a
+              href="#"
+              target="_blank"
+              rel="noreferrer"
+              className="font-medium underline underline-offset-4"
+            >
+              EXL AI Solutions
+            </a>
+            . All rights reserved.
+          </p>
+        </div>
+        <Logo />
       </div>
     </div>
   );
