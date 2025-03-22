@@ -371,17 +371,16 @@ export class DatabaseStorage implements IStorage {
         .where(eq(schema.users.email_id, emailId))
         .limit(1);
 
-      console.log('Database query completed');
-      console.log('Found user:', user ? { ...user, password: '[REDACTED]' } : 'null');
+      if (user) {
+        console.log('User found:', { ...user, password: '[REDACTED]' });
+      } else {
+        console.log('No user found with email:', emailId);
+      }
 
       return user || null;
     } catch (error) {
-      console.error('Error finding user by email:', error);
-      console.error('Query details:', {
-        emailId,
-        error: error instanceof Error ? error.message : 'Unknown error'
-      });
-      throw error;
+      console.error('Error in findUserByEmail:', error);
+      throw new Error(`Database error: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   }
   async getUserByEmail(email: string): Promise<User | null> {
@@ -420,11 +419,15 @@ export class DatabaseStorage implements IStorage {
         .where(eq(schema.users.id, userId))
         .returning();
 
+      if (!user) {
+        throw new Error(`User not found with ID: ${userId}`);
+      }
+
       console.log('Last login updated successfully');
       return user;
     } catch (error) {
       console.error('Error updating user last login:', error);
-      throw error;
+      throw new Error(`Failed to update last login: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   }
   async createOtpVerification(verification: InsertOtpVerification): Promise<OtpVerification> {

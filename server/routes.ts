@@ -69,46 +69,61 @@ export async function registerRoutes(app: Express): Promise<Server> {
     log("Registering auth routes...");
     app.post("/api/login", async (req, res) => {
       const { emailId, password } = req.body;
-      console.log('Login attempt for:', emailId);
+      console.log('Login attempt initiated for:', emailId);
 
       try {
+        // Input validation
         if (!emailId || !password) {
           console.log('Missing credentials');
-          return res.status(400).json({ error: "Email and password are required" });
+          return res.status(400).json({ 
+            error: "Email and password are required",
+            details: !emailId ? "Email is required" : "Password is required"
+          });
         }
 
-        // Find user by email
-        console.log('Finding user in database...');
+        // Find user
+        console.log('Searching for user in database...');
         const user = await storage.findUserByEmail(emailId);
 
         if (!user) {
-          console.log('User not found:', emailId);
-          return res.status(401).json({ error: "Invalid credentials" });
+          console.log('No user found with email:', emailId);
+          return res.status(401).json({ 
+            error: "Invalid credentials",
+            details: "User not found"
+          });
         }
 
-        console.log('User found, comparing passwords...');
+        // Verify password
+        console.log('Verifying password...');
         const isValidPassword = await bcrypt.compare(password, user.password);
 
         if (!isValidPassword) {
           console.log('Invalid password for user:', emailId);
-          return res.status(401).json({ error: "Invalid credentials" });
+          return res.status(401).json({ 
+            error: "Invalid credentials",
+            details: "Invalid password"
+          });
         }
 
-        console.log('Password valid, generating token...');
+        // Generate token
+        console.log('Generating JWT token...');
         const token = jwt.sign(
-          { userId: user.id, email_id: user.email_id },
+          { 
+            userId: user.id, 
+            email_id: user.email_id 
+          },
           process.env.JWT_SECRET || 'dev-secret-key',
           { expiresIn: '24h' }
         );
 
         // Update last login
-        console.log('Updating last login timestamp...');
+        console.log('Updating last login...');
         await storage.updateUserLastLogin(user.id);
 
-        // Remove sensitive data
+        // Prepare response
         const { password: _, ...userData } = user;
 
-        console.log('Login successful for user:', emailId);
+        console.log('Login successful for:', emailId);
         res.json({
           token,
           user: userData,
@@ -117,7 +132,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       } catch (error: any) {
         console.error('Login error:', error);
-        console.error('Error details:', error.stack);
+        console.error('Stack trace:', error.stack);
         res.status(500).json({
           error: "Server error during login",
           details: error.message
