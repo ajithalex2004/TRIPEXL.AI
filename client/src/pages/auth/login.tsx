@@ -72,6 +72,7 @@ export default function LoginPage() {
 
   const login = useMutation({
     mutationFn: async (data: any) => {
+      console.log('Attempting login with:', { emailId: data.emailId });
       const res = await apiRequest("POST", "/api/login", {
         emailId: data.emailId,
         password: data.password,
@@ -86,7 +87,7 @@ export default function LoginPage() {
       localStorage.setItem("token", data.token);
       toast({
         title: "Success",
-        description: "Logged in successfully",
+        description: data.message || "Logged in successfully",
       });
       setLocation("/");
     },
@@ -100,6 +101,7 @@ export default function LoginPage() {
   });
 
   const onSubmit = form.handleSubmit((data) => {
+    console.log('Form submitted with:', data);
     login.mutate(data);
   });
 

@@ -103,11 +103,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
         // Update last login
         await storage.updateUserLastLogin(user.id);
 
-        // Remove password from response
+        // Remove sensitive data from response
         const { password: _, ...userData } = user;
 
         console.log('Login successful for user:', emailId);
-        res.json({ token, user: userData });
+        res.json({ 
+          token, 
+          user: userData,
+          message: "Login successful"
+        });
       } catch (error: any) {
         console.error('Login error:', error);
         res.status(500).json({ error: "Server error during login" }); 
