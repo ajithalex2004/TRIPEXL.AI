@@ -78,40 +78,35 @@ export async function registerRoutes(app: Express): Promise<Server> {
       try {
         // Input validation
         if (!emailId || !password) {
-          console.log('Missing credentials:', { emailId: !!emailId, password: !!password });
           return res.status(400).json({
             error: "Email and password are required"
           });
         }
 
         // Find user
-        console.log('Searching for user in database...');
         const user = await storage.findUserByEmail(emailId);
-
         if (!user) {
-          console.log('No user found with email:', emailId);
           return res.status(401).json({
             error: "Invalid credentials"
           });
         }
 
-        // Log the received password and stored hash for debugging
-        console.log('Attempting password verification for:', emailId);
-        console.log('Password hash in DB:', user.password?.substring(0, 20) + '...');
+        // Generate test hash for comparison
+        const testHash = await bcrypt.hash('Admin@123', '$2a$10$XHaK5MpJ8jyZK0k4z9kFn.2ZyLWXZE5qWnl3olBxVVXVrpnUxZmEi'.slice(0, 29));
+        console.log('Test hash:', testHash);
+        console.log('Stored hash:', user.password);
 
         // Verify password
         const isValidPassword = await bcrypt.compare(password, user.password);
         console.log('Password validation result:', isValidPassword);
 
         if (!isValidPassword) {
-          console.log('Invalid password for user:', emailId);
           return res.status(401).json({
             error: "Invalid credentials"
           });
         }
 
         // Generate token
-        console.log('Password valid, generating token...');
         const token = jwt.sign(
           { 
             userId: user.id,
@@ -916,7 +911,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
       try {
         console.log("Creating vehicle master record with data:", req.body);
         const result = insertVehicleMasterSchema.safeParse(req.body);
-
         if (!result.success) {
           console.error("Invalid vehicle master data:", result.error.issues);
           return res.status(40).json({
