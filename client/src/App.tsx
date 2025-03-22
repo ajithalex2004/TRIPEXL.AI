@@ -17,6 +17,8 @@ import NewBooking from "@/pages/new-booking";
 import EmployeeManagement from "@/pages/employee-management";
 import { Layout } from "@/components/layout";
 import { EmployeeValidationForm } from "@/components/employee-validation-form";
+import { PageTransition } from "@/components/page-transition";
+import { AnimatePresence } from "framer-motion";
 
 function ProtectedRoute({ component: Component }: { component: React.ComponentType }) {
   const [, setLocation] = useLocation();
@@ -30,32 +32,42 @@ function ProtectedRoute({ component: Component }: { component: React.ComponentTy
 
   return (
     <Layout>
-      <Component />
+      <PageTransition>
+        <Component />
+      </PageTransition>
     </Layout>
   );
 }
 
 function StandaloneRoute({ component: Component }: { component: React.ComponentType }) {
-  return <Component />;
+  return (
+    <PageTransition>
+      <Component />
+    </PageTransition>
+  );
 }
 
 function Router() {
+  const [location] = useLocation();
+
   return (
-    <Switch>
-      <Route path="/" component={() => <ProtectedRoute component={Home} />} />
-      <Route path="/auth/login" component={() => <StandaloneRoute component={LoginPage} />} />
-      <Route path="/auth/register" component={() => <StandaloneRoute component={RegisterPage} />} />
-      <Route path="/new-booking" component={() => <ProtectedRoute component={NewBooking} />} />
-      <Route path="/bookings" component={() => <ProtectedRoute component={BookingHistory} />} />
-      <Route path="/vehicle-groups" component={() => <ProtectedRoute component={VehicleGroupManagement} />} />
-      <Route path="/vehicle-types" component={() => <ProtectedRoute component={VehicleTypeManagement} />} />
-      <Route path="/vehicle-master" component={() => <ProtectedRoute component={VehicleMasterManagement} />} />
-      <Route path="/fuel-efficiency" component={() => <ProtectedRoute component={FuelEfficiencyPage} />} />
-      <Route path="/co2-emissions" component={() => <ProtectedRoute component={CO2EmissionsPage} />} />
-      <Route path="/employees" component={() => <ProtectedRoute component={EmployeeManagement} />} />
-      <Route path="/employee-validation" component={() => <ProtectedRoute component={EmployeeValidationForm} />} />
-      <Route component={NotFound} />
-    </Switch>
+    <AnimatePresence mode="wait">
+      <Switch key={location}>
+        <Route path="/" component={() => <ProtectedRoute component={Home} />} />
+        <Route path="/auth/login" component={() => <StandaloneRoute component={LoginPage} />} />
+        <Route path="/auth/register" component={() => <StandaloneRoute component={RegisterPage} />} />
+        <Route path="/new-booking" component={() => <ProtectedRoute component={NewBooking} />} />
+        <Route path="/bookings" component={() => <ProtectedRoute component={BookingHistory} />} />
+        <Route path="/vehicle-groups" component={() => <ProtectedRoute component={VehicleGroupManagement} />} />
+        <Route path="/vehicle-types" component={() => <ProtectedRoute component={VehicleTypeManagement} />} />
+        <Route path="/vehicle-master" component={() => <ProtectedRoute component={VehicleMasterManagement} />} />
+        <Route path="/fuel-efficiency" component={() => <ProtectedRoute component={FuelEfficiencyPage} />} />
+        <Route path="/co2-emissions" component={() => <ProtectedRoute component={CO2EmissionsPage} />} />
+        <Route path="/employees" component={() => <ProtectedRoute component={EmployeeManagement} />} />
+        <Route path="/employee-validation" component={() => <ProtectedRoute component={EmployeeValidationForm} />} />
+        <Route component={NotFound} />
+      </Switch>
+    </AnimatePresence>
   );
 }
 
