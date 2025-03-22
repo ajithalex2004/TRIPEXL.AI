@@ -151,7 +151,7 @@ const FormMessage = React.forwardRef<
   React.useEffect(() => {
     if (error) {
       setIsVisible(true);
-      const timer = setTimeout(() => setIsVisible(false), 5000); // Hide after 5 seconds
+      const timer = setTimeout(() => setIsVisible(false), 4000); 
       return () => clearTimeout(timer);
     }
   }, [error]);
@@ -161,11 +161,12 @@ const FormMessage = React.forwardRef<
   }
 
   return (
-    <div className="relative">
+    <div className="relative min-h-[20px]" ref={ref} {...props}>
       <AnimatedTooltip
         message={message}
         isVisible={isVisible}
-        className="absolute -top-2 left-0 transform -translate-y-full"
+        type="error"
+        className="absolute -top-1 left-0 transform -translate-y-full"
       />
     </div>
   );
