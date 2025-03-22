@@ -46,7 +46,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
   // Show loading state when location changes
   React.useEffect(() => {
     setIsLoading(true);
-    const timer = setTimeout(() => setIsLoading(false), 800); // Show spinner for at least 800ms
+    const timer = setTimeout(() => setIsLoading(false), 800);
     return () => clearTimeout(timer);
   }, [location]);
 
@@ -176,9 +176,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
           {children}
         </main>
       </div>
-      {showFooter && (
-        <Footer className="fixed bottom-0 left-0 right-0 z-[9999] bg-white/90 dark:bg-black/50 backdrop-blur-md border-t border-border shadow-lg" />
-      )}
+      {showFooter && <Footer />}
     </SidebarProvider>
   );
 }
