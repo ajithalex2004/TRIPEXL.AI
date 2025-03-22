@@ -706,6 +706,45 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
     });
 
+    // Add after other employee routes
+    app.get("/api/employees/validate/:employeeId", async (req, res) => {
+      try {
+        const { employeeId } = req.params;
+        console.log("Validating employee ID:", employeeId);
+
+        const employee = await storage.findEmployeeByEmployeeId(employeeId);
+        if (!employee) {
+          return res.status(404).json({
+            error: "Employee not found",
+            message: "No employee found with the provided ID"
+          });
+        }
+
+        // Check if employee is already registered as a user
+        const existingUser = await storage.findUserByEmployeeId(employeeId);
+        if (existingUser) {
+          return res.status(400).json({
+            error: "Already registered",
+            message: "This employee is already registered as a user"
+          });
+        }
+
+        // Return only necessary employee details
+        res.json({
+          employeeId: employee.employeeId,
+          employeeName: employee.employeeName,
+          emailId: employee.emailId,
+          mobileNumber: employee.mobileNumber
+        });
+      } catch (error: any) {
+        console.error("Error validating employee:", error);
+        res.status(500).json({
+          error: "Server error",
+          message: "Failed to validate employee"
+        });
+      }
+    });
+
     // Add user management routes
     app.get("/api/users", async (_req, res) => {
       try {
