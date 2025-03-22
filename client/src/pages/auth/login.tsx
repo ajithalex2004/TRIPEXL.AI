@@ -16,12 +16,18 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardContent } from "@/components/ui/card";
 import { LoadingIndicator } from "@/components/ui/loading-indicator";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 
 export default function LoginPage() {
   const { toast } = useToast();
   const [, setLocation] = useLocation();
   const [showPassword, setShowPassword] = React.useState(false);
+  const [isLoaded, setIsLoaded] = React.useState(false);
+
+  React.useEffect(() => {
+    // Trigger animation after component mount
+    setIsLoaded(true);
+  }, []);
 
   const form = useForm({
     defaultValues: {
@@ -32,7 +38,6 @@ export default function LoginPage() {
 
   const login = useMutation({
     mutationFn: async (data: any) => {
-      console.log("Attempting login with:", { email: data.emailId });
       const res = await apiRequest("POST", "/api/login", {
         email: data.emailId,
         password: data.password
@@ -66,41 +71,54 @@ export default function LoginPage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-[#004990] via-[#0066cc] to-[#ffffff] relative">
-      {/* EXL Logo with animation */}
-      <motion.div 
-        className="absolute right-4 bottom-4"
-        initial={{ opacity: 0, scale: 0.5 }}
-        animate={{ opacity: 1, scale: 1 }}
-        transition={{ duration: 0.5 }}
-        whileHover={{ 
-          scale: 1.1,
-          rotate: 5,
-          transition: { duration: 0.2 }
-        }}
-      >
-        <motion.img 
-          src="/images/exl-logo.png"
-          alt="EXL Logo"
-          style={{
-            width: '180px',
-            height: 'auto',
-            objectFit: 'contain',
-            display: 'block'
-          }}
-        />
-      </motion.div>
+      <AnimatePresence>
+        {isLoaded && (
+          <>
+            <motion.div 
+              className="absolute right-4 bottom-4"
+              initial={{ opacity: 0, scale: 0.5, y: 50 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              transition={{ 
+                duration: 0.8,
+                type: "spring",
+                stiffness: 100,
+                damping: 10
+              }}
+              whileHover={{ 
+                scale: 1.1,
+                rotate: [0, -5, 5, -5, 0],
+                transition: { duration: 0.5 }
+              }}
+            >
+              <motion.img 
+                src="attached_assets/EXL_Logo-removebg-preview_1742623507146.png"
+                alt="EXL Logo"
+                className="w-[180px] h-auto object-contain"
+                onLoad={() => setIsLoaded(true)}
+              />
+            </motion.div>
 
-      {/* Powered by text with animation */}
-      <motion.div 
-        className="absolute left-4 bottom-4"
-        initial={{ opacity: 0, x: -20 }}
-        animate={{ opacity: 1, x: 0 }}
-        transition={{ duration: 0.5, delay: 0.2 }}
-      >
-        <p className="text-sm font-medium text-[#004990]">
-          Powered by EXL AI Solutions
-        </p>
-      </motion.div>
+            <motion.div 
+              className="absolute left-4 bottom-4"
+              initial={{ opacity: 0, x: -50 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ 
+                duration: 0.8,
+                delay: 0.3,
+                type: "spring",
+                stiffness: 100
+              }}
+            >
+              <motion.p 
+                className="text-sm font-medium text-[#004990]"
+                whileHover={{ scale: 1.05 }}
+              >
+                Powered by EXL AI Solutions
+              </motion.p>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
 
       <div className="container mx-auto h-screen flex flex-col items-center justify-center p-4">
         <div className="w-full max-w-lg space-y-8">
