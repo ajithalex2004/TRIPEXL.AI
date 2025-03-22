@@ -566,7 +566,7 @@ export class DatabaseStorage implements IStorage {
     try {
       console.log('Finding employee by ID:', employeeId);
 
-      // Execute the database query with all required fields
+      // Execute the database query with explicit field selection
       const [employee] = await db
         .select({
           id: schema.employees.id,
@@ -580,13 +580,16 @@ export class DatabaseStorage implements IStorage {
           nationality: schema.employees.nationality,
           region: schema.employees.region,
           communicationLanguage: schema.employees.communicationLanguage,
-          unit: schema.employees.unit
+          unit: schema.employees.unit,
+          isActive: schema.employees.isActive
         })
         .from(schema.employees)
         .where(eq(schema.employees.employeeId, employeeId))
+        .where(eq(schema.employees.isActive, true))
         .limit(1);
 
       if (employee) {
+        // Log employee details with masked sensitive information
         console.log('Found employee:', {
           ...employee,
           mobileNumber: '****' + employee.mobileNumber.slice(-4)
