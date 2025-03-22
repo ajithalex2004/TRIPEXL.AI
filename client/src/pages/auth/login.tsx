@@ -288,13 +288,22 @@ export default function LoginPage() {
                       {login.isPending ? "Signing in..." : "Sign In"}
                     </Button>
                     <div className="text-center mt-3">
-                      <Button
-                        variant="link"
-                        className="text-sm text-[#004990] hover:text-[#003870]"
-                        onClick={() => setLocation("/auth/register")}
-                      >
-                        Don't have an account? Register here
-                      </Button>
+                      <div className="flex flex-col space-y-2">
+                        <Button
+                          variant="link"
+                          className="text-sm text-[#004990] hover:text-[#003870]"
+                          onClick={() => setLocation("/auth/register")}
+                        >
+                          Don't have an account? Register here
+                        </Button>
+                        <Button
+                          variant="link"
+                          className="text-sm text-[#004990] hover:text-[#003870]"
+                          onClick={() => setLocation("/auth/forgot-password")}
+                        >
+                          Forgot Password?
+                        </Button>
+                      </div>
                     </div>
                   </form>
                 </Form>
