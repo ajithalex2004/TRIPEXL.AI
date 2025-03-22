@@ -378,18 +378,18 @@ export class DatabaseStorage implements IStorage {
         .where(eq(schema.users.emailId, emailId))
         .limit(1);
 
-      if (user) {
-        console.log('User found:', { ...user, password: '[REDACTED]' });
-      } else {
-        console.log('No user found with email:', emailId);
-      }
-
-      return user || null;
-    } catch (error) {
-      console.error('Error in findUserByEmail:', error);
-      throw new Error(`Database error: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    if (user) {
+      console.log('User found:', { ...user, password: '[REDACTED]' });
+    } else {
+      console.log('No user found with email:', emailId);
     }
+
+    return user || null;
+  } catch (error) {
+    console.error('Error in findUserByEmail:', error);
+    throw new Error(`Database error: ${error instanceof Error ? error.message : 'Unknown error'}`);
   }
+}
   async getUserByEmail(email: string): Promise<User | null> {
     const [user] = await db
       .select()
@@ -625,7 +625,8 @@ export class DatabaseStorage implements IStorage {
       console.log('Fetching all employees');
       const employees = await db
         .select()
-        .from(schema.employees);
+        .from(schema.employees)
+        .orderBy(schema.employees.employeeId);
 
       console.log(`Found ${employees.length} employees`);
       return employees;
