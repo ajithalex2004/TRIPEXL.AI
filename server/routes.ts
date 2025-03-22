@@ -712,6 +712,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const { employeeId } = req.params;
         console.log("Validating employee ID:", employeeId);
 
+        // Find the employee
         const employee = await storage.findEmployeeByEmployeeId(employeeId);
         console.log("Database response:", employee);
 
@@ -731,15 +732,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
           });
         }
 
-        // Transform employee data to match frontend expectations
+        // Return employee details matching the frontend expectations
         const response = {
           employeeId: employee.employeeId,
           employeeName: employee.name,
           emailId: employee.email,
-          mobileNumber: employee.phone
+          mobileNumber: employee.phone,
+          employeeType: employee.employeeType,
+          designation: employee.designation,
+          department: employee.department,
+          nationality: employee.nationality,
+          region: employee.region,
+          communicationLanguage: employee.communicationLanguage
         };
 
-        console.log("Sending response:", response);
+        console.log("Sending response:", { ...response, mobileNumber: '****' + response.mobileNumber.slice(-4) });
         res.json(response);
       } catch (error: any) {
         console.error("Error validating employee:", error);
