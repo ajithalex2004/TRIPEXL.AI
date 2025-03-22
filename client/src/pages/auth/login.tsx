@@ -63,26 +63,6 @@ export default function LoginPage() {
     },
   };
 
-  const textVariants = {
-    initial: {
-      opacity: 0,
-      x: -30,
-      filter: "blur(10px)",
-    },
-    animate: {
-      opacity: 1,
-      x: 0,
-      filter: "blur(0px)",
-      transition: {
-        type: "spring",
-        stiffness: 100,
-        damping: 10,
-        delay: 0.8,
-      },
-    },
-  };
-
-  // Form handling
   const form = useForm({
     defaultValues: {
       emailId: "",
@@ -129,13 +109,13 @@ export default function LoginPage() {
       <AnimatePresence>
         {isLoaded && (
           <motion.div
-            className="absolute right-4 bottom-4 flex items-center gap-3"
+            className="absolute left-4 bottom-4 flex items-center gap-3"
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.5 }}
           >
             <motion.p
-              className="text-sm font-medium text-white"
+              className="text-sm font-medium text-black"
               whileHover={{ scale: 1.05 }}
             >
               Powered by EXL AI Solutions
@@ -143,7 +123,7 @@ export default function LoginPage() {
             <motion.img
               src="/images/exl-logo.png"
               alt="EXL Logo"
-              className="w-[150px] h-auto object-contain"
+              className="w-[120px] h-auto object-contain"
               onLoad={() => setImageLoaded(true)}
               layoutId="logo"
               style={{ filter: "drop-shadow(0px 4px 8px rgba(0, 0, 0, 0.2))" }}
@@ -153,10 +133,10 @@ export default function LoginPage() {
       </AnimatePresence>
 
       <div className="container mx-auto h-screen flex flex-col items-center justify-center p-4">
-        <div className="flex items-start space-x-8 max-w-4xl">
+        <div className="flex items-start space-x-16 max-w-5xl">
           {/* Title and Description */}
           <motion.div
-            className="flex-1"
+            className="flex-1 pl-12"
             initial={{ opacity: 0, x: -30 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ delay: 0.3 }}
@@ -186,6 +166,15 @@ export default function LoginPage() {
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.5, duration: 0.5 }}
           >
+            <motion.h2
+              className="text-xl font-semibold text-white mb-4 text-center"
+              initial={{ opacity: 0, y: -10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.6 }}
+            >
+              Welcome to TRIPXL
+            </motion.h2>
+
             <Card className="backdrop-blur-sm bg-white/90 dark:bg-black/50 border border-white/20">
               <CardHeader className="space-y-1 pb-4">
                 <h2 className="text-xl font-semibold text-center">Sign In</h2>
