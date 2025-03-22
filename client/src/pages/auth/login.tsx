@@ -69,10 +69,10 @@ export default function LoginPage() {
         <div className="w-full max-w-lg space-y-8">
           {/* App Title and Description */}
           <div className="text-center space-y-2">
-            <h1 className="text-4xl font-bold text-white">
+            <h1 className="text-3xl font-bold text-white">
               TripXL - Enterprise Journey Management
             </h1>
-            <p className="text-xl text-white/80">
+            <p className="text-lg text-white/80">
               Your Intelligent Travel Solutions Platform
             </p>
           </div>
