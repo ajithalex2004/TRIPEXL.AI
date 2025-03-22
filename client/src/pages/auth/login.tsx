@@ -165,7 +165,7 @@ export default function LoginPage() {
               <motion.img
                 src="/images/exl-logo.png"
                 alt="EXL Logo"
-                className="w-[200px] h-auto object-contain"
+                className="w-[180px] h-auto object-contain"
                 onLoad={() => setImageLoaded(true)}
                 layoutId="logo"
                 style={{ filter: "drop-shadow(0px 4px 8px rgba(0, 0, 0, 0.2))" }}
@@ -193,14 +193,14 @@ export default function LoginPage() {
 
       <div className="container mx-auto h-screen flex flex-col items-center justify-center p-4">
         <motion.div 
-          className="w-full max-w-lg space-y-8"
+          className="w-full max-w-md space-y-6" 
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.5, duration: 0.5 }}
         >
-          <div className="text-center space-y-2">
+          <div className="text-center space-y-1"> 
             <motion.h1 
-              className="text-2xl font-bold text-white"
+              className="text-xl font-bold text-white" 
               initial={{ opacity: 0, y: -20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.7, duration: 0.5 }}
@@ -208,7 +208,7 @@ export default function LoginPage() {
               TripXL - Enterprise Journey Management
             </motion.h1>
             <motion.p 
-              className="text-lg text-white/80"
+              className="text-base text-white/80" 
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               transition={{ delay: 0.9, duration: 0.5 }}
@@ -218,20 +218,20 @@ export default function LoginPage() {
           </div>
 
           <Card className="backdrop-blur-sm bg-white/90 dark:bg-black/50 border border-white/20">
-            <CardHeader className="space-y-1">
-              <h2 className="text-2xl font-semibold text-center">Sign In</h2>
+            <CardHeader className="space-y-1 pb-4"> 
+              <h2 className="text-xl font-semibold text-center">Sign In</h2> 
               <p className="text-sm text-muted-foreground text-center">
                 Enter your credentials to continue
               </p>
             </CardHeader>
             <CardContent>
               <Form {...form}>
-                <form onSubmit={onSubmit} className="space-y-4">
+                <form onSubmit={onSubmit} className="space-y-3"> 
                   <FormField
                     control={form.control}
                     name="emailId"
                     render={({ field }) => (
-                      <FormItem>
+                      <FormItem className="space-y-1"> 
                         <FormLabel>Email</FormLabel>
                         <FormControl>
                           <Input {...field} type="email" placeholder="Enter your email" />
@@ -244,7 +244,7 @@ export default function LoginPage() {
                     control={form.control}
                     name="password"
                     render={({ field }) => (
-                      <FormItem>
+                      <FormItem className="space-y-1"> 
                         <FormLabel>Password</FormLabel>
                         <div className="relative">
                           <FormControl>
@@ -308,7 +308,7 @@ export default function LoginPage() {
                     ) : null}
                     {login.isPending ? "Signing in..." : "Sign In"}
                   </Button>
-                  <div className="text-center mt-4">
+                  <div className="text-center mt-3"> 
                     <Button
                       variant="link"
                       className="text-sm text-[#004990] hover:text-[#003870]"
