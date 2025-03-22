@@ -66,7 +66,7 @@ export default function LoginPage() {
   return (
     <div className="min-h-screen bg-gradient-to-b from-[#004990] via-[#0066cc] to-[#ffffff] relative">
       {/* EXL Logo */}
-      <div className="absolute right-8 bottom-8">
+      <div className="absolute right-4 bottom-4">
         <img 
           src="/assets/exl-logo.png"
           alt="EXL Logo"
