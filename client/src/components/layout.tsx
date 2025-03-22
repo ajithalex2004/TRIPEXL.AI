@@ -11,7 +11,7 @@ import {
   SidebarMenuButton,
 } from "@/components/ui/sidebar";
 import { Logo } from "@/components/ui/logo";
-import { Footer } from "@/components/ui/footer";
+//import { Footer } from "@/components/ui/footer"; // Removed as per intention
 import { LoadingPage } from "@/components/loading-page";
 import {
   History,
@@ -176,7 +176,6 @@ export function Layout({ children }: { children: React.ReactNode }) {
             <main className="flex-1 pb-16">
               {children}
             </main>
-            <Footer />
           </div>
         </div>
       </div>

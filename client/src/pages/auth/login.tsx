@@ -64,7 +64,14 @@ export default function LoginPage() {
   });
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-[#004990] via-[#0066cc] to-[#ffffff] pb-16">
+    <div className="min-h-screen bg-gradient-to-b from-[#004990] via-[#0066cc] to-[#ffffff] relative">
+      {/* EXL Logo at bottom left */}
+      <img 
+        src="/attached_assets/image_1742621428346.png" 
+        alt="EXL Logo" 
+        className="absolute left-4 bottom-4 h-8 w-auto"
+      />
+
       <div className="container mx-auto h-screen flex flex-col items-center justify-center p-4">
         <div className="w-full max-w-lg space-y-8">
           {/* App Title and Description */}
