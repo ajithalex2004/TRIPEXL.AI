@@ -73,7 +73,7 @@ export default function LoginPage() {
   const login = useMutation({
     mutationFn: async (data: any) => {
       const res = await apiRequest("POST", "/api/login", {
-        email: data.emailId,
+        emailId: data.emailId,
         password: data.password,
       });
       if (!res.ok) {
@@ -174,7 +174,7 @@ export default function LoginPage() {
 
           {/* Sign In Form */}
           <motion.div
-            className="w-full max-w-sm"
+            className="w-full max-w-[400px]"
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.5, duration: 0.5 }}
