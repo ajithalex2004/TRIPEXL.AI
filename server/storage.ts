@@ -566,12 +566,11 @@ export class DatabaseStorage implements IStorage {
     try {
       console.log('Finding employee by ID:', employeeId);
 
-      // Execute the database query with exact column names
+      // Execute the database query
       const query = db
         .select()
         .from(schema.employees)
         .where(eq(schema.employees.employee_id, employeeId))
-        .where(eq(schema.employees.is_active, true))
         .limit(1);
 
       console.log('Executing query:', query.toSQL());
@@ -581,17 +580,21 @@ export class DatabaseStorage implements IStorage {
       if (employee) {
         // Transform database fields to match the expected interface
         const transformedEmployee = {
+          id: employee.id,
           employeeId: employee.employee_id,
           employeeName: employee.employee_name || '',
           emailId: employee.email,
-          mobileNumber: employee.mobile_number,
+          mobileNumber: employee.mobile_number || employee.phone, // Handle both fields
           employeeType: employee.employee_type,
           designation: employee.designation,
           department: employee.department,
           nationality: employee.nationality,
           region: employee.region,
           communicationLanguage: employee.communication_language,
-          unit: employee.unit
+          unit: employee.unit,
+          isActive: employee.is_active,
+          createdAt: employee.created_at,
+          updatedAt: employee.updated_at,
         };
 
         console.log('Found employee:', {
