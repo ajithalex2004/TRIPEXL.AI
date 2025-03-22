@@ -148,10 +148,10 @@ export default function LoginPage() {
       </AnimatePresence>
 
       <div className="container mx-auto h-screen flex flex-col items-center justify-center p-4">
-        <div className="flex items-center space-x-24 max-w-6xl">
+        <div className="flex items-center space-x-16 max-w-5xl">
           {/* Title and Description */}
           <motion.div
-            className="flex-1 pl-12 flex flex-col justify-center min-w-[450px]"
+            className="flex-1 pl-8 flex flex-col justify-center min-w-[350px]"
             initial={{ opacity: 0, x: -30 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ delay: 0.3 }}
@@ -165,7 +165,7 @@ export default function LoginPage() {
               TRIPXL - Enterprise Journey Management
             </motion.h1>
             <motion.p
-              className="mt-2 text-sm text-white/90 max-w-md leading-relaxed"
+              className="mt-2 text-sm text-white/90 max-w-sm leading-relaxed"
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.5 }}
@@ -176,13 +176,13 @@ export default function LoginPage() {
 
           {/* Sign In Form */}
           <motion.div
-            className="w-full max-w-[500px]"
+            className="w-full max-w-[450px]"
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.5, duration: 0.5 }}
           >
             <motion.h2
-              className="text-xl font-semibold text-white mb-4 text-center"
+              className="text-lg font-semibold text-white mb-3 text-center"
               initial={{ opacity: 0, y: -10 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.6 }}
@@ -190,9 +190,9 @@ export default function LoginPage() {
               Welcome to TRIPXL
             </motion.h2>
 
-            <Card className="backdrop-blur-sm bg-white/90 dark:bg-black/50 border border-white/20 px-6 py-4">
-              <CardHeader className="space-y-2 pb-4">
-                <h2 className="text-2xl font-semibold text-center">Sign In</h2>
+            <Card className="backdrop-blur-sm bg-white/90 dark:bg-black/50 border border-white/20 px-5 py-4">
+              <CardHeader className="space-y-2 pb-3">
+                <h2 className="text-xl font-semibold text-center">Sign In</h2>
                 <p className="text-sm text-muted-foreground text-center">
                   Enter your credentials to continue
                 </p>
