@@ -52,9 +52,12 @@ export default function RegisterPage() {
     defaultValues: {
       firstName: "",
       lastName: "",
-      email: "",
+      emailId: "", // Changed from email to emailId to match schema
       password: "",
       confirmPassword: "",
+      userType: "EMPLOYEE", // Added required fields from schema
+      userOperationType: "STANDARD",
+      userGroup: "GROUP_A",
     },
     mode: "onChange",
   });
@@ -129,7 +132,7 @@ export default function RegisterPage() {
     },
   });
 
-  const onSubmit = form.handleSubmit((data) => {
+  const onSubmit = async (data: RegistrationFormData) => {
     if (passwordMatchError) {
       return;
     }
@@ -138,8 +141,16 @@ export default function RegisterPage() {
 
     try {
       const { confirmPassword, ...registrationData } = data;
-      console.log('Submitting registration data');
-      register.mutate(registrationData);
+      // Add required fields
+      const fullSubmitData = {
+        ...registrationData,
+        userName: `${data.firstName}.${data.lastName}`.toLowerCase(),
+        fullName: `${data.firstName} ${data.lastName}`,
+        userCode: `USR${Math.floor(1000 + Math.random() * 9000)}`,
+      };
+
+      console.log('Submitting registration data:', { ...fullSubmitData, password: '[REDACTED]' });
+      register.mutate(fullSubmitData);
     } catch (error) {
       console.error('Error during form submission:', error);
       toast({
@@ -148,7 +159,7 @@ export default function RegisterPage() {
         variant: "destructive",
       });
     }
-  });
+  };
 
   if (verificationStep) {
     return (
@@ -216,7 +227,7 @@ export default function RegisterPage() {
       </CardHeader>
       <CardContent>
         <Form {...form}>
-          <form onSubmit={onSubmit} className="space-y-4">
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
             {/* First Name */}
             <FormField
               control={form.control}
@@ -250,7 +261,7 @@ export default function RegisterPage() {
             {/* Email */}
             <FormField
               control={form.control}
-              name="email"
+              name="emailId"
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Email</FormLabel>
@@ -339,10 +350,6 @@ export default function RegisterPage() {
               type="submit"
               className="w-full"
               disabled={!!passwordMatchError || register.isPending}
-              onClick={() => {
-                console.log('Register button clicked');
-                form.handleSubmit(onSubmit)();
-              }}
             >
               {register.isPending ? (
                 <div className="w-full flex justify-center">
