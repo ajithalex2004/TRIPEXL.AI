@@ -16,7 +16,6 @@ import CO2EmissionsPage from "@/pages/co2-emissions-page";
 import NewBooking from "@/pages/new-booking";
 import EmployeeManagement from "@/pages/employee-management";
 import { Layout } from "@/components/layout";
-import { EmployeeValidationForm } from "@/components/employee-validation-form";
 import { PageTransition } from "@/components/page-transition";
 import { AnimatePresence } from "framer-motion";
 import { useToast } from "@/hooks/use-toast";
@@ -31,28 +30,8 @@ function ProtectedRoute({ component: Component }: { component: React.ComponentTy
       const token = localStorage.getItem("token");
 
       if (!token) {
-        // Try auto-login with admin credentials
-        try {
-          const res = await apiRequest("POST", "/api/login", {
-            emailId: "admin@tripxl.com",
-            password: "Admin@123"
-          });
-
-          if (!res.ok) {
-            throw new Error("Auto-login failed");
-          }
-
-          const data = await res.json();
-          localStorage.setItem("token", data.token);
-          toast({
-            title: "Auto-login successful",
-            description: "Logged in as admin"
-          });
-        } catch (error) {
-          console.error("Auto-login failed:", error);
-          setLocation("/auth/login");
-          return;
-        }
+        setLocation("/auth/login");
+        return;
       }
     };
 
@@ -93,7 +72,6 @@ function Router() {
         <Route path="/fuel-efficiency" component={() => <ProtectedRoute component={FuelEfficiencyPage} />} />
         <Route path="/co2-emissions" component={() => <ProtectedRoute component={CO2EmissionsPage} />} />
         <Route path="/employees" component={() => <ProtectedRoute component={EmployeeManagement} />} />
-        <Route path="/employee-validation" component={() => <ProtectedRoute component={EmployeeValidationForm} />} />
         <Route component={NotFound} />
       </Switch>
     </AnimatePresence>
