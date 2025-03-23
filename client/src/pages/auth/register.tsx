@@ -82,13 +82,14 @@ export default function RegisterPage() {
   }, [password, confirmPassword]);
 
   const register = useMutation({
-    mutationFn: async (data: Omit<RegistrationFormData, "confirmPassword">) => {
-      const res = await apiRequest("POST", "/api/auth/register", data);
-      if (!res.ok) {
-        const error = await res.json();
-        throw new Error(error.message || "Registration failed");
+    mutationFn: async (data: any) => {
+      console.log("Registering with data:", { ...data, password: '[REDACTED]' });
+      const response = await apiRequest("POST", "/api/auth/register", data);
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || "Failed to register");
       }
-      return res.json();
+      return response.json();
     },
     onSuccess: (data) => {
       toast({
