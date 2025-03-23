@@ -133,8 +133,21 @@ export default function RegisterPage() {
     if (passwordMatchError) {
       return;
     }
-    const { confirmPassword, ...registrationData } = data;
-    register.mutate(registrationData);
+
+    console.log('Form submitted with data:', { ...data, password: '[REDACTED]' });
+
+    try {
+      const { confirmPassword, ...registrationData } = data;
+      console.log('Submitting registration data');
+      register.mutate(registrationData);
+    } catch (error) {
+      console.error('Error during form submission:', error);
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Registration failed",
+        variant: "destructive",
+      });
+    }
   });
 
   if (verificationStep) {
@@ -322,7 +335,15 @@ export default function RegisterPage() {
               )}
             />
 
-            <Button type="submit" className="w-full" disabled={!!passwordMatchError || register.isPending}>
+            <Button
+              type="submit"
+              className="w-full"
+              disabled={!!passwordMatchError || register.isPending}
+              onClick={() => {
+                console.log('Register button clicked');
+                form.handleSubmit(onSubmit)();
+              }}
+            >
               {register.isPending ? (
                 <div className="w-full flex justify-center">
                   <LoadingIndicator size="sm" />
