@@ -20,6 +20,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardContent } from "@/components/ui/card";
 import { LoadingIndicator } from "@/components/ui/loading-indicator";
+import { InputOTP, InputOTPGroup, InputOTPSlot } from "@/components/ui/input-otp";
 
 // Enhanced registration schema with password requirements
 const registrationSchema = insertUserSchema.extend({
@@ -86,8 +87,8 @@ export default function RegisterPage() {
     },
     onSuccess: (data) => {
       toast({
-        title: "Registration successful",
-        description: `Your verification code is: ${data.otp}. This code has also been sent to your email.`,
+        title: "Registration initiated",
+        description: `Please check your email for the verification code.`,
         duration: 10000,
       });
       setUserId(data.userId);
@@ -97,6 +98,32 @@ export default function RegisterPage() {
       toast({
         title: "Error",
         description: error.message || "Registration failed",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const verify = useMutation({
+    mutationFn: async (data: { userId: number; otp: string }) => {
+      const res = await apiRequest("POST", "/api/auth/verify", data);
+      if (!res.ok) {
+        const error = await res.json();
+        throw new Error(error.message || "Verification failed");
+      }
+      return res.json();
+    },
+    onSuccess: (data) => {
+      localStorage.setItem("token", data.token);
+      toast({
+        title: "Success",
+        description: "Account verified successfully",
+      });
+      setLocation("/");
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error.message || "Verification failed",
         variant: "destructive",
       });
     },
@@ -121,7 +148,13 @@ export default function RegisterPage() {
         </CardHeader>
         <CardContent>
           <Form {...form}>
-            <form onSubmit={onSubmit} className="space-y-4">
+            <form onSubmit={(e) => {
+              e.preventDefault();
+              if (!userId) return;
+              const formData = new FormData(e.currentTarget);
+              const otp = formData.get("otp") as string;
+              verify.mutate({ userId, otp });
+            }} className="space-y-4">
               <FormField
                 control={form.control}
                 name="otp"
@@ -129,7 +162,16 @@ export default function RegisterPage() {
                   <FormItem>
                     <FormLabel>Verification Code</FormLabel>
                     <FormControl>
-                      <Input {...field} placeholder="Enter the code" />
+                      <InputOTP maxLength={6} {...field}>
+                        <InputOTPGroup>
+                          <InputOTPSlot index={0} />
+                          <InputOTPSlot index={1} />
+                          <InputOTPSlot index={2} />
+                          <InputOTPSlot index={3} />
+                          <InputOTPSlot index={4} />
+                          <InputOTPSlot index={5} />
+                        </InputOTPGroup>
+                      </InputOTP>
                     </FormControl>
                     <FormMessage />
                   </FormItem>
