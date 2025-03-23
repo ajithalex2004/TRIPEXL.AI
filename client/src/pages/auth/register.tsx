@@ -44,20 +44,36 @@ export default function RegisterPage() {
   const [userId, setUserId] = React.useState<number | null>(null);
   const [showPassword, setShowPassword] = React.useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = React.useState(false);
+  const [passwordMatchError, setPasswordMatchError] = React.useState<string | null>(null);
 
   const form = useForm<RegistrationFormData>({
-    resolver: zodResolver(verificationStep ? z.object({ otp: z.string() }) : registrationSchema),
-    defaultValues: verificationStep ? {
-      otp: "",
-    } : {
+    resolver: zodResolver(registrationSchema),
+    defaultValues: {
       firstName: "",
       lastName: "",
       email: "",
       password: "",
       confirmPassword: "",
     },
-    mode: "onChange", // Enable real-time validation
+    mode: "onChange",
   });
+
+  // Watch both password fields
+  const password = form.watch("password");
+  const confirmPassword = form.watch("confirmPassword");
+
+  // Update password match validation in real-time
+  React.useEffect(() => {
+    if (confirmPassword) {
+      if (password !== confirmPassword) {
+        setPasswordMatchError("Passwords don't match");
+      } else {
+        setPasswordMatchError(null);
+      }
+    } else {
+      setPasswordMatchError(null);
+    }
+  }, [password, confirmPassword]);
 
   const register = useMutation({
     mutationFn: async (data: Omit<RegistrationFormData, "confirmPassword">) => {
@@ -86,39 +102,12 @@ export default function RegisterPage() {
     },
   });
 
-  const verify = useMutation({
-    mutationFn: async (data: { userId: number; otp: string }) => {
-      const res = await apiRequest("POST", "/api/auth/verify", data);
-      if (!res.ok) {
-        const error = await res.json();
-        throw new Error(error.message || "Verification failed");
-      }
-      return res.json();
-    },
-    onSuccess: (data) => {
-      localStorage.setItem("token", data.token);
-      toast({
-        title: "Success",
-        description: "Account verified successfully",
-      });
-      setLocation("/");
-    },
-    onError: (error: any) => {
-      toast({
-        title: "Error",
-        description: error.message || "Verification failed",
-        variant: "destructive",
-      });
-    },
-  });
-
   const onSubmit = form.handleSubmit((data) => {
-    if (!verificationStep) {
-      const { confirmPassword, ...registrationData } = data;
-      register.mutate(registrationData);
-    } else if (userId) {
-      verify.mutate({ userId, otp: data.otp });
+    if (passwordMatchError) {
+      return;
     }
+    const { confirmPassword, ...registrationData } = data;
+    register.mutate(registrationData);
   });
 
   if (verificationStep) {
@@ -173,6 +162,7 @@ export default function RegisterPage() {
       <CardContent>
         <Form {...form}>
           <form onSubmit={onSubmit} className="space-y-4">
+            {/* First Name */}
             <FormField
               control={form.control}
               name="firstName"
@@ -186,6 +176,8 @@ export default function RegisterPage() {
                 </FormItem>
               )}
             />
+
+            {/* Last Name */}
             <FormField
               control={form.control}
               name="lastName"
@@ -199,6 +191,8 @@ export default function RegisterPage() {
                 </FormItem>
               )}
             />
+
+            {/* Email */}
             <FormField
               control={form.control}
               name="email"
@@ -212,6 +206,8 @@ export default function RegisterPage() {
                 </FormItem>
               )}
             />
+
+            {/* Password */}
             <FormField
               control={form.control}
               name="password"
@@ -233,37 +229,7 @@ export default function RegisterPage() {
                       className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
                       onClick={() => setShowPassword(!showPassword)}
                     >
-                      {showPassword ? (
-                        <svg
-                          xmlns="http://www.w3.org/2000/svg"
-                          width="16"
-                          height="16"
-                          viewBox="0 0 24 24"
-                          fill="none"
-                          stroke="currentColor"
-                          strokeWidth="2"
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                        >
-                          <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24" />
-                          <line x1="1" y1="1" x2="23" y2="23" />
-                        </svg>
-                      ) : (
-                        <svg
-                          xmlns="http://www.w3.org/2000/svg"
-                          width="16"
-                          height="16"
-                          viewBox="0 0 24 24"
-                          fill="none"
-                          stroke="currentColor"
-                          strokeWidth="2"
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                        >
-                          <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
-                          <circle cx="12" cy="12" r="3" />
-                        </svg>
-                      )}
+                      {showPassword ? "Hide" : "Show"}
                     </Button>
                   </div>
                   <FormDescription className="text-xs">
@@ -280,6 +246,8 @@ export default function RegisterPage() {
                 </FormItem>
               )}
             />
+
+            {/* Confirm Password */}
             <FormField
               control={form.control}
               name="confirmPassword"
@@ -292,20 +260,6 @@ export default function RegisterPage() {
                         type={showConfirmPassword ? "text" : "password"}
                         {...field}
                         placeholder="Confirm your password"
-                        onChange={(e) => {
-                          field.onChange(e);
-                          // Get current password value
-                          const password = form.getValues("password");
-                          // Show error immediately if passwords don't match
-                          if (e.target.value && e.target.value !== password) {
-                            form.setError("confirmPassword", {
-                              type: "manual",
-                              message: "Passwords don't match"
-                            });
-                          } else {
-                            form.clearErrors("confirmPassword");
-                          }
-                        }}
                       />
                     </FormControl>
                     <Button
@@ -315,44 +269,18 @@ export default function RegisterPage() {
                       className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
                       onClick={() => setShowConfirmPassword(!showConfirmPassword)}
                     >
-                      {showConfirmPassword ? (
-                        <svg
-                          xmlns="http://www.w3.org/2000/svg"
-                          width="16"
-                          height="16"
-                          viewBox="0 0 24 24"
-                          fill="none"
-                          stroke="currentColor"
-                          strokeWidth="2"
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                        >
-                          <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24" />
-                          <line x1="1" y1="1" x2="23" y2="23" />
-                        </svg>
-                      ) : (
-                        <svg
-                          xmlns="http://www.w3.org/2000/svg"
-                          width="16"
-                          height="16"
-                          viewBox="0 0 24 24"
-                          fill="none"
-                          stroke="currentColor"
-                          strokeWidth="2"
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                        >
-                          <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
-                          <circle cx="12" cy="12" r="3" />
-                        </svg>
-                      )}
+                      {showConfirmPassword ? "Hide" : "Show"}
                     </Button>
                   </div>
+                  {passwordMatchError && (
+                    <p className="text-sm font-medium text-destructive">{passwordMatchError}</p>
+                  )}
                   <FormMessage />
                 </FormItem>
               )}
             />
-            <Button type="submit" className="w-full" disabled={register.isPending}>
+
+            <Button type="submit" className="w-full" disabled={!!passwordMatchError || register.isPending}>
               {register.isPending ? (
                 <div className="w-full flex justify-center">
                   <LoadingIndicator size="sm" />
@@ -361,6 +289,7 @@ export default function RegisterPage() {
                 "Register"
               )}
             </Button>
+
             <div className="text-center">
               <Button
                 variant="link"
