@@ -31,20 +31,59 @@ export class AuthService {
 
   private async sendOTPEmail(email: string, otp: string) {
     try {
-      await transporter.sendMail({
+      console.log('Attempting to send OTP email to:', email);
+
+      // Verify SMTP configuration
+      if (!process.env.SMTP_HOST || !process.env.SMTP_USER || !process.env.SMTP_PASS) {
+        console.error('Missing SMTP configuration');
+        throw new Error('Email service not properly configured');
+      }
+
+      // Log SMTP configuration (without sensitive data)
+      console.log('SMTP Configuration:', {
+        host: process.env.SMTP_HOST,
+        port: process.env.SMTP_PORT,
+        secure: process.env.SMTP_SECURE === 'true',
+        from: process.env.SMTP_FROM || '"TripXL Support" <support@tripxl.com>',
+      });
+
+      const mailOptions = {
         from: process.env.SMTP_FROM || '"TripXL Support" <support@tripxl.com>',
         to: email,
         subject: 'Your TripXL Registration Code',
         html: `
-          <h1>Welcome to TripXL!</h1>
-          <p>Your verification code is: <strong>${otp}</strong></p>
-          <p>This code will expire in 15 minutes.</p>
-          <p>If you didn't request this code, please ignore this email.</p>
+          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+            <h1 style="color: #2563eb; text-align: center;">Welcome to TripXL!</h1>
+            <p style="font-size: 16px;">Your verification code is:</p>
+            <div style="background-color: #f3f4f6; padding: 20px; text-align: center; border-radius: 8px;">
+              <strong style="font-size: 24px; letter-spacing: 4px;">${otp}</strong>
+            </div>
+            <p style="color: #6b7280; font-size: 14px; margin-top: 20px;">
+              This code will expire in 15 minutes.<br>
+              If you didn't request this code, please ignore this email.
+            </p>
+          </div>
         `
-      });
+      };
+
+      console.log('Sending email with options:', { ...mailOptions, to: '***' });
+
+      // Send email
+      const info = await transporter.sendMail(mailOptions);
+      console.log('Email sent successfully:', info.messageId);
+
+      return true;
     } catch (error) {
       console.error('Failed to send OTP email:', error);
-      throw new Error('Failed to send verification code');
+      // Log detailed error information
+      if (error instanceof Error) {
+        console.error('Error details:', {
+          name: error.name,
+          message: error.message,
+          stack: error.stack
+        });
+      }
+      throw new Error('Failed to send verification code. Please try again later.');
     }
   }
 
