@@ -147,7 +147,7 @@ export default function RegisterPage() {
   return (
     <Card className="w-[400px] mx-auto mt-8">
       <CardHeader>
-        <h2 className="text-2xl font-bold">Register</h2>
+        <h2 className="text-2xl font-bold">New User Registration</h2>
         <p className="text-sm text-gray-500">
           Create your account
         </p>
