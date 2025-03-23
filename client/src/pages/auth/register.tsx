@@ -14,19 +14,28 @@ import {
   FormItem,
   FormLabel,
   FormMessage,
+  FormDescription,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardContent } from "@/components/ui/card";
 import { LoadingIndicator } from "@/components/ui/loading-indicator";
 
-// Enhanced registration schema without employee validation
+// Enhanced registration schema with password requirements
 const registrationSchema = insertUserSchema.extend({
-  confirmPassword: z.string().min(6, "Password must be at least 6 characters"),
+  password: z.string()
+    .min(8, "Password must be at least 8 characters")
+    .regex(/[A-Z]/, "Password must contain at least one uppercase letter")
+    .regex(/[a-z]/, "Password must contain at least one lowercase letter")
+    .regex(/[0-9]/, "Password must contain at least one number")
+    .regex(/[^A-Za-z0-9]/, "Password must contain at least one special character"),
+  confirmPassword: z.string(),
 }).refine((data) => data.password === data.confirmPassword, {
   message: "Passwords don't match",
   path: ["confirmPassword"],
 });
+
+type RegistrationFormData = z.infer<typeof registrationSchema>;
 
 export default function RegisterPage() {
   const { toast } = useToast();
@@ -36,7 +45,7 @@ export default function RegisterPage() {
   const [showPassword, setShowPassword] = React.useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = React.useState(false);
 
-  const form = useForm({
+  const form = useForm<RegistrationFormData>({
     resolver: zodResolver(verificationStep ? z.object({ otp: z.string() }) : registrationSchema),
     defaultValues: verificationStep ? {
       otp: "",
@@ -47,11 +56,16 @@ export default function RegisterPage() {
       password: "",
       confirmPassword: "",
     },
+    mode: "onChange", // Enable real-time validation
   });
 
   const register = useMutation({
-    mutationFn: async (data: any) => {
+    mutationFn: async (data: Omit<RegistrationFormData, "confirmPassword">) => {
       const res = await apiRequest("POST", "/api/auth/register", data);
+      if (!res.ok) {
+        const error = await res.json();
+        throw new Error(error.message || "Registration failed");
+      }
       return res.json();
     },
     onSuccess: (data) => {
@@ -75,6 +89,10 @@ export default function RegisterPage() {
   const verify = useMutation({
     mutationFn: async (data: { userId: number; otp: string }) => {
       const res = await apiRequest("POST", "/api/auth/verify", data);
+      if (!res.ok) {
+        const error = await res.json();
+        throw new Error(error.message || "Verification failed");
+      }
       return res.json();
     },
     onSuccess: (data) => {
@@ -248,6 +266,16 @@ export default function RegisterPage() {
                       )}
                     </Button>
                   </div>
+                  <FormDescription className="text-xs">
+                    Password must:
+                    <ul className="list-disc list-inside">
+                      <li>Be at least 8 characters long</li>
+                      <li>Contain at least one uppercase letter</li>
+                      <li>Contain at least one lowercase letter</li>
+                      <li>Contain at least one number</li>
+                      <li>Contain at least one special character</li>
+                    </ul>
+                  </FormDescription>
                   <FormMessage />
                 </FormItem>
               )}
