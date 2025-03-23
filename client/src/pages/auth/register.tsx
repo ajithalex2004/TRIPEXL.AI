@@ -292,6 +292,20 @@ export default function RegisterPage() {
                         type={showConfirmPassword ? "text" : "password"}
                         {...field}
                         placeholder="Confirm your password"
+                        onChange={(e) => {
+                          field.onChange(e);
+                          // Get current password value
+                          const password = form.getValues("password");
+                          // Show error immediately if passwords don't match
+                          if (e.target.value && e.target.value !== password) {
+                            form.setError("confirmPassword", {
+                              type: "manual",
+                              message: "Passwords don't match"
+                            });
+                          } else {
+                            form.clearErrors("confirmPassword");
+                          }
+                        }}
                       />
                     </FormControl>
                     <Button
