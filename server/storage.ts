@@ -59,8 +59,9 @@ export interface IStorage {
 
   // OTP methods
   createOtpVerification(verification: InsertOtpVerification): Promise<OtpVerification>;
-  findLatestOtpVerification(userId: number): Promise<OtpVerification | null>;
-  markOtpAsUsed(verificationId: number): Promise<OtpVerification>;
+  getOtpVerification(userId: number): Promise<OtpVerification | null>;
+  deleteOtpVerification(userId: number): Promise<void>;
+  activateUser(userId: number): Promise<User>;
 
   // Add Vehicle Group methods
   getAllVehicleGroups(): Promise<VehicleGroup[]>;
@@ -647,6 +648,33 @@ export class DatabaseStorage implements IStorage {
       console.error('Error fetching all employees:', error);
       throw error;
     }
+  }
+  async getOtpVerification(userId: number): Promise<OtpVerification | null> {
+    const [verification] = await db
+      .select()
+      .from(schema.otpVerifications)
+      .where(eq(schema.otpVerifications.userId, userId))
+      .orderBy(desc(schema.otpVerifications.createdAt))
+      .limit(1);
+    return verification || null;
+  }
+
+  async deleteOtpVerification(userId: number): Promise<void> {
+    await db
+      .delete(schema.otpVerifications)
+      .where(eq(schema.otpVerifications.userId, userId));
+  }
+
+  async activateUser(userId: number): Promise<User> {
+    const [user] = await db
+      .update(schema.users)
+      .set({
+        isActive: true,
+        updatedAt: new Date()
+      })
+      .where(eq(schema.users.id, userId))
+      .returning();
+    return user;
   }
   async validateUserPassword(user: User, password: string): Promise<boolean> {
     try {
