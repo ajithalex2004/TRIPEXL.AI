@@ -21,6 +21,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardContent } from "@/components/ui/card";
 import { LoadingIndicator } from "@/components/ui/loading-indicator";
 import { InputOTP, InputOTPGroup, InputOTPSlot } from "@/components/ui/input-otp";
+import { WelcomeScreen } from "@/components/welcome-screen";
 
 // Enhanced registration schema with password requirements
 const registrationSchema = insertUserSchema.extend({
@@ -42,6 +43,7 @@ export default function RegisterPage() {
   const { toast } = useToast();
   const [, setLocation] = useLocation();
   const [verificationStep, setVerificationStep] = React.useState(false);
+  const [showWelcomeScreen, setShowWelcomeScreen] = React.useState(false);
   const [userId, setUserId] = React.useState<number | null>(null);
   const [showPassword, setShowPassword] = React.useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = React.useState(false);
@@ -52,10 +54,10 @@ export default function RegisterPage() {
     defaultValues: {
       firstName: "",
       lastName: "",
-      emailId: "", // Changed from email to emailId to match schema
+      emailId: "",
       password: "",
       confirmPassword: "",
-      userType: "EMPLOYEE", // Added required fields from schema
+      userType: "EMPLOYEE",
       userOperationType: "STANDARD",
       userGroup: "GROUP_A",
     },
@@ -117,11 +119,7 @@ export default function RegisterPage() {
     },
     onSuccess: (data) => {
       localStorage.setItem("token", data.token);
-      toast({
-        title: "Success",
-        description: "Account verified successfully",
-      });
-      setLocation("/");
+      setShowWelcomeScreen(true);
     },
     onError: (error: any) => {
       toast({
@@ -141,7 +139,6 @@ export default function RegisterPage() {
 
     try {
       const { confirmPassword, ...registrationData } = data;
-      // Add required fields
       const fullSubmitData = {
         ...registrationData,
         userName: `${data.firstName}.${data.lastName}`.toLowerCase(),
@@ -160,6 +157,10 @@ export default function RegisterPage() {
       });
     }
   };
+
+  if (showWelcomeScreen) {
+    return <WelcomeScreen />;
+  }
 
   if (verificationStep) {
     return (
@@ -346,11 +347,7 @@ export default function RegisterPage() {
               )}
             />
 
-            <Button
-              type="submit"
-              className="w-full"
-              disabled={!!passwordMatchError || register.isPending}
-            >
+            <Button type="submit" className="w-full" disabled={!!passwordMatchError || register.isPending}>
               {register.isPending ? (
                 <div className="w-full flex justify-center">
                   <LoadingIndicator size="sm" />
