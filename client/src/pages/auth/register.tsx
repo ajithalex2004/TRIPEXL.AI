@@ -90,8 +90,8 @@ export default function RegisterPage() {
     },
     onSuccess: (data) => {
       toast({
-        title: "Registration initiated",
-        description: `Please check your email for the verification code.`,
+        title: "OTP Sent",
+        description: `A verification code has been sent to your email address. Please check your inbox.`,
         duration: 10000,
       });
       setUserId(data.userId);
