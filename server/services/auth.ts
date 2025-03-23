@@ -5,14 +5,17 @@ import { storage } from '../storage';
 import { UserType, UserOperationType, UserGroup } from '@shared/schema';
 import nodemailer from 'nodemailer';
 
-// Configure email transporter for development
+// Configure email transporter with provided SMTP settings
 const transporter = nodemailer.createTransport({
-  host: process.env.SMTP_HOST || 'smtp.ethereal.email',
+  host: process.env.SMTP_HOST || 'ns1.dt.ae',
   port: parseInt(process.env.SMTP_PORT || '587'),
-  secure: process.env.SMTP_SECURE === 'true',
+  secure: false, // true for 465, false for other ports
   auth: {
-    user: process.env.SMTP_USER,
-    pass: process.env.SMTP_PASS
+    user: process.env.SMTP_USER || 'alert@dt-alert.com',
+    pass: process.env.SMTP_PASS || 'oiuy!@#dr69'
+  },
+  tls: {
+    rejectUnauthorized: false // Allow self-signed certificates
   }
 });
 
@@ -33,22 +36,8 @@ export class AuthService {
     try {
       console.log('Attempting to send OTP email to:', email);
 
-      // Verify SMTP configuration
-      if (!process.env.SMTP_HOST || !process.env.SMTP_USER || !process.env.SMTP_PASS) {
-        console.error('Missing SMTP configuration');
-        throw new Error('Email service not properly configured');
-      }
-
-      // Log SMTP configuration (without sensitive data)
-      console.log('SMTP Configuration:', {
-        host: process.env.SMTP_HOST,
-        port: process.env.SMTP_PORT,
-        secure: process.env.SMTP_SECURE === 'true',
-        from: process.env.SMTP_FROM || '"TripXL Support" <support@tripxl.com>',
-      });
-
       const mailOptions = {
-        from: process.env.SMTP_FROM || '"TripXL Support" <support@tripxl.com>',
+        from: process.env.SMTP_FROM || 'alert@dt-alert.com',
         to: email,
         subject: 'Your TripXL Registration Code',
         html: `
@@ -66,7 +55,12 @@ export class AuthService {
         `
       };
 
-      console.log('Sending email with options:', { ...mailOptions, to: '***' });
+      console.log('Sending email with options:', { 
+        ...mailOptions,
+        to: '***',
+        host: process.env.SMTP_HOST,
+        port: process.env.SMTP_PORT
+      });
 
       // Send email
       const info = await transporter.sendMail(mailOptions);
@@ -75,7 +69,6 @@ export class AuthService {
       return true;
     } catch (error) {
       console.error('Failed to send OTP email:', error);
-      // Log detailed error information
       if (error instanceof Error) {
         console.error('Error details:', {
           name: error.name,
@@ -145,6 +138,8 @@ export class AuthService {
     const password = await this.createHashedPassword(userData.password);
 
     try {
+      console.log('Creating new user:', { ...userData, password: '[REDACTED]' });
+
       // Create user with pending status
       const user = await storage.createUser({
         ...userData,
