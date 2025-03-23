@@ -64,7 +64,7 @@ export default function RegisterPage() {
 
   // Update password match validation in real-time
   React.useEffect(() => {
-    if (confirmPassword) {
+    if (confirmPassword && confirmPassword.length > 0) {
       if (password !== confirmPassword) {
         setPasswordMatchError("Passwords don't match");
       } else {
