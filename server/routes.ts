@@ -14,6 +14,7 @@ import nodemailer from "nodemailer";
 import crypto from "crypto";
 import { eq, sql } from 'drizzle-orm';
 import { db } from './db';
+import { schema } from './schema';
 
 // Configure multer for handling file uploads
 const upload = multer({
@@ -911,7 +912,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
         // Generate reset token
         const resetToken = crypto.randomBytes(32).toString('hex');
-        constresetTokenExpiry = new Date(Date.now() + 3600000); // 1 hour from now
+        const resetTokenExpiry = new Date(Date.now() + 3600000); // 1 hour from now
 
         // Update user with reset token
         await storage.updateUserResetToken(user.id, resetToken, resetTokenExpiry);
@@ -943,20 +944,40 @@ export async function registerRoutes(app: Express): Promise<Server> {
                 <h1 style="color: white; margin: 0;">Reset Your Password</h1>
               </div>
               <div style="padding: 20px; background-color: #f9f9f9;">
-                <p>You have requested to reset your password.</p>
-                <p>Click the button below to set a new password:</p>
+                <p style="font-size: 16px; color: #333;">Hello ${user.full_name},</p>
+                <p style="font-size: 16px; color: #333;">You have requested to reset your password.</p>
+                <p style="font-size: 16px; color: #333;">Click the button below to set a new password:</p>
                 <div style="text-align: center; margin: 30px 0;">
-                  <a href="${resetUrl}" target="_blank" rel="noopener" style="background-color: #004990; color: white; padding: 12px 24px; text-decoration: none; border-radius: 4px; display: inline-block;">Reset Password</a>
+                  <a href="${resetUrl}" style="background-color: #004990; color: white; padding: 15px 30px; text-decoration: none; border-radius: 5px; font-size: 16px; font-weight: bold; display: inline-block;">Reset Password</a>
                 </div>
-                <p style="color: #666; font-size: 14px;">This link will expire in 1 hour for security reasons.</p>
-                <p style="color: #666; font-size: 14px;">If you didn't request this password reset, please ignore this email.</p>
-                <p style="color: #666; font-size: 14px; margin-top: 20px;">
-                  If the button above doesn't work, copy and paste this link into your browser:
-                  <br/>
-                  <a href="${resetUrl}" style="color: #004990; text-decoration: underline; word-break: break-all;">${resetUrl}</a>
-                </p>
+                <div style="margin-top: 20px; padding: 15px; background-color: #f0f0f0; border-radius: 5px;">
+                  <p style="font-size: 14px; color: #666; margin: 0;">
+                    Alternatively, copy and paste this link into your browser:<br/>
+                    <a href="${resetUrl}" style="color: #004990; word-break: break-all;">${resetUrl}</a>
+                  </p>
+                </div>
+                <p style="font-size: 14px; color: #666; margin-top: 20px;">This link will expire in 1 hour for security reasons.</p>
+                <p style="font-size: 14px; color: #666;">If you didn't request this password reset, please ignore this email.</p>
+              </div>
+              <div style="text-align: center; padding: 20px; background-color: #f0f0f0;">
+                <p style="font-size: 12px; color: #666; margin: 0;">© ${new Date().getFullYear()} TripXL. All rights reserved.</p>
               </div>
             </div>
+          `,
+          text: `
+            Reset Your Password
+
+            Hello ${user.full_name},
+
+            You have requested to reset your password. Click the link below to set a new password:
+
+            ${resetUrl}
+
+            This link will expire in 1 hour for security reasons.
+
+            If you didn't request this password reset, please ignore this email.
+
+            © ${new Date().getFullYear()} TripXL
           `
         });
 
@@ -974,51 +995,37 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
     // Add reset password endpoint
     app.post("/api/auth/reset-password", async (req, res) => {
-      const { token, newPassword } = req.body;
-      console.log('Processing password reset with token');
-
       try {
+        const { token, newPassword } = req.body;
+        console.log("Processing password reset request...");
+
         if (!token || !newPassword) {
           return res.status(400).json({
-            error: "Missing required fields",
-            details: "Token and new password are required"
+            error: "Token and new password are required"
           });
         }
 
         // Find user by reset token
         const user = await storage.findUserByResetToken(token);
-        if (!user) {
-          return res.status(404).json({
-            error: "Invalid or expired reset token",
-            details: "Please request a new password reset link"
+        if (!user || !user.reset_token_expiry || user.reset_token_expiry < new Date()) {
+          return res.status(400).json({
+            error: "Invalid or expired reset token"
           });
         }
 
         // Hash new password
         const hashedPassword = await bcrypt.hash(newPassword, 10);
 
-        // Update password and clear reset token
-        const [updatedUser] = await db
-          .update(schema.users)
-          .set({
-            password: hashedPassword,
-            resetToken: null,
-            resetTokenExpiry: null,
-            updatedAt: new Date()
-          })
-          .where(eq(schema.users.id, user.id))
-          .returning();
-
-        if (!updatedUser) {
-          throw new Error("Failed to update password");
-        }
+        // Update user's password and clear reset token
+        await storage.updateUserPassword(user.id, hashedPassword);
+        console.log("Password updated successfully for user:", user.email_id);
 
         res.json({
-          message: "Password reset successful"
+          success: true,
+          message: "Password has been reset successfully"
         });
-
       } catch (error: any) {
-        console.error('Error in reset password:', error);
+        console.error("Error resetting password:", error);
         res.status(500).json({
           error: "Failed to reset password",
           details: error.message

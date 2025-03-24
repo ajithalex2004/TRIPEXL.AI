@@ -106,12 +106,21 @@ export default function ResetPasswordPage() {
       return res.json();
     },
     onSuccess: () => {
-      setIsSuccess(true);
+      console.log("Password reset successful, showing animation...");
+      setIsSuccess(true); // Ensure this runs first
+      toast({
+        title: "Success",
+        description: "Your password has been reset successfully.",
+        duration: 5000,
+      });
+      // Increase timeout to allow animation to complete
       setTimeout(() => {
+        console.log("Redirecting to login page...");
         setLocation("/auth/login");
-      }, 3000);
+      }, 5000); // Increased from 3000 to 5000ms
     },
     onError: (error: any) => {
+      console.error("Password reset failed:", error);
       toast({
         title: "Error",
         description: error.message || "Failed to reset password",
