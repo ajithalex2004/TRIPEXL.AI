@@ -17,13 +17,11 @@ import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardContent } from "@/components/ui/card";
 import { LoadingIndicator } from "@/components/ui/loading-indicator";
 import { motion } from "framer-motion";
-import { CheckCircle2 } from "lucide-react";
 
 export default function ResetPasswordPage() {
   const { toast } = useToast();
   const [, setLocation] = useLocation();
   const [searchParams] = React.useState(new URLSearchParams(window.location.search));
-  const [isSuccess, setIsSuccess] = React.useState(false);
   const token = searchParams.get('token');
 
   const form = useForm({
@@ -51,16 +49,8 @@ export default function ResetPasswordPage() {
 
       return res.json();
     },
-    onSuccess: (data) => {
-      setIsSuccess(true);
-      toast({
-        title: "Success",
-        description: data.message || "Password reset successful",
-      });
-      // Redirect to login after showing success message
-      setTimeout(() => {
-        setLocation("/auth/login");
-      }, 3000);
+    onSuccess: () => {
+      setLocation("/auth/login");
     },
     onError: (error: any) => {
       toast({
@@ -82,28 +72,6 @@ export default function ResetPasswordPage() {
     }
     resetPassword.mutate(data);
   });
-
-  if (isSuccess) {
-    return (
-      <div className="min-h-screen bg-gradient-to-b from-[#004990] via-[#0066cc] to-[#ffffff] flex items-center justify-center">
-        <Card className="w-[450px] backdrop-blur-sm bg-white/90 dark:bg-black/50">
-          <CardContent className="p-6 text-center">
-            <CheckCircle2 className="w-16 h-16 text-green-500 mx-auto mb-4" />
-            <h2 className="text-2xl font-semibold mb-2">Password Reset Successful!</h2>
-            <p className="text-muted-foreground mb-4">
-              Your password has been reset successfully. You will be redirected to the login page in a few seconds.
-            </p>
-            <Button
-              className="w-full"
-              onClick={() => setLocation("/auth/login")}
-            >
-              Go to Login
-            </Button>
-          </CardContent>
-        </Card>
-      </div>
-    );
-  }
 
   if (!token) {
     return (
