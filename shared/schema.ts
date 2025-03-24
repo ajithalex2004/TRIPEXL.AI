@@ -674,17 +674,22 @@ export const insertBookingSchema = createInsertSchema(bookings)
     employee_id: z.number().optional()
   });
 
+// Update the user insert schema to match database columns exactly
 export const insertUserSchema = createInsertSchema(users)
   .extend({
-    user_type: z.enum(Object.values(UserType) as [string, ...string[]]),
-    user_operation_type: z.enum(Object.values(UserOperationType) as [string, ...string[]]),
-    user_group: z.enum(Object.values(UserGroup) as [string, ...string[]]),
-    email_id: z.string().email("Invalid email address"),
-    password: z.string().min(6, "Password must be at least 6 characters long"),
     user_name: z.string().min(3, "Username must be at least 3 characters long"),
     user_code: z.string().min(3, "User code must be at least 3 characters long"),
+    user_type: z.enum(Object.values(UserType) as [string, ...string[]]),
+    email_id: z.string().email("Invalid email address"),
+    user_operation_type: z.enum(Object.values(UserOperationType) as [string, ...string[]]),
+    user_group: z.enum(Object.values(UserGroup) as [string, ...string[]]),
+    full_name: z.string().min(3, "Full name is required"),
     first_name: z.string().min(2, "First name must be at least 2 characters long"),
     last_name: z.string().min(2, "Last name must be at least 2 characters long"),
+    password: z.string().min(6, "Password must be at least 6 characters long"),
+    is_active: z.boolean().optional(),
+    created_at: z.date().optional(),
+    updated_at: z.date().optional(),
     reset_token: z.string().optional(),
     reset_token_expiry: z.date().optional()
   });
@@ -769,13 +774,8 @@ export const insertEmployeeSchema = createInsertSchema(employees)
   });
 
 // Add to the type exports
-export type Employee = typeof employees.$inferSelect;
-export type InsertEmployee = z.infer<typeof insertEmployeeSchema>;
-
-export type VehicleMaster = typeof vehicleMaster.$inferSelect;
-export type InsertVehicleMaster = typeof vehicleMaster.$inferInsert;
-export type InsertUser = z.infer<typeof insertUserSchema>;
 export type User = typeof users.$inferSelect;
+export type InsertUser = z.infer<typeof insertUserSchema>;
 export type OtpVerification = typeof otpVerifications.$inferSelect;
 export type Vehicle = typeof vehicles.$inferSelect;
 export type Driver = typeof drivers.$inferSelect;

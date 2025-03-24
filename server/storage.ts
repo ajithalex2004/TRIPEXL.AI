@@ -353,12 +353,11 @@ export class DatabaseStorage implements IStorage {
   }
   async createUser(userData: InsertUser): Promise<User> {
     try {
-      // Log the incoming data
       console.log('Creating user with data:', {
-        email: userData.email_id,
-        userName: userData.user_name,
-        firstName: userData.first_name,
-        lastName: userData.last_name
+        email_id: userData.email_id,
+        user_name: userData.user_name,
+        first_name: userData.first_name,
+        last_name: userData.last_name
       });
 
       // Check if email already exists
@@ -373,20 +372,20 @@ export class DatabaseStorage implements IStorage {
         throw new Error('Username is already taken');
       }
 
-      // Hash the password
+      // Hash password
       const hashedPassword = await bcrypt.hash(userData.password, 10);
 
-      // Create user with snake_case field names to match DB schema
+      // Insert user with exact field mapping
       const [newUser] = await db
         .insert(schema.users)
         .values({
           user_name: userData.user_name,
           user_code: userData.user_code,
-          user_type: userData.user_type || 'USER',
+          user_type: userData.user_type,
           email_id: userData.email_id,
-          user_operation_type: userData.user_operation_type || 'EMPLOYEE',
-          user_group: userData.user_group || 'GROUP_A',
-          full_name: `${userData.first_name} ${userData.last_name}`,
+          user_operation_type: userData.user_operation_type,
+          user_group: userData.user_group,
+          full_name: userData.full_name,
           first_name: userData.first_name,
           last_name: userData.last_name,
           password: hashedPassword,
@@ -398,8 +397,8 @@ export class DatabaseStorage implements IStorage {
 
       console.log('User created successfully:', {
         id: newUser.id,
-        email: newUser.email_id,
-        userName: newUser.user_name
+        email_id: newUser.email_id,
+        user_name: newUser.user_name
       });
 
       return newUser;

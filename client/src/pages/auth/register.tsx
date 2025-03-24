@@ -22,41 +22,39 @@ import { LoadingIndicator } from "@/components/ui/loading-indicator";
 import { WelcomeScreen } from "@/components/welcome-screen";
 
 const registerSchema = insertUserSchema.extend({
-  password: z.string()
-    .min(8, "Password must be at least 8 characters")
-    .regex(/[A-Z]/, "Password must contain at least one uppercase letter")
-    .regex(/[a-z]/, "Password must contain at least one lowercase letter")
-    .regex(/[0-9]/, "Password must contain at least one number")
-    .regex(/[^A-Za-z0-9]/, "Password must contain at least one special character"),
-  confirmPassword: z.string()
-}).refine((data) => data.password === data.confirmPassword, {
+  confirm_password: z.string()
+}).refine((data) => data.password === data.confirm_password, {
   message: "Passwords don't match",
-  path: ["confirmPassword"],
+  path: ["confirm_password"],
 });
+
+type RegisterFormData = z.infer<typeof registerSchema>;
 
 export default function RegisterPage() {
   const { toast } = useToast();
   const [, setLocation] = useLocation();
   const [showWelcome, setShowWelcome] = React.useState(false);
 
-  const form = useForm({
+  const form = useForm<RegisterFormData>({
     resolver: zodResolver(registerSchema),
     defaultValues: {
-      firstName: "",
-      lastName: "",
-      emailId: "",
+      first_name: "",
+      last_name: "",
+      email_id: "",
       password: "",
-      confirmPassword: "",
-      userType: "EMPLOYEE",
-      userOperationType: "STANDARD",
-      userGroup: "GROUP_A",
+      confirm_password: "",
+      user_type: "USER",
+      user_operation_type: "EMPLOYEE",
+      user_group: "GROUP_A",
     }
   });
 
   const registerMutation = useMutation({
-    mutationFn: async (data: any) => {
-      console.log("Attempting registration with:", { ...data, password: '[REDACTED]' });
-      const response = await apiRequest("POST", "/api/auth/register", data);
+    mutationFn: async (data: RegisterFormData) => {
+      const { confirm_password, ...registrationData } = data;
+      console.log("Attempting registration with:", { ...registrationData, password: '[REDACTED]' });
+
+      const response = await apiRequest("POST", "/api/auth/register", registrationData);
       if (!response.ok) {
         const error = await response.json();
         throw new Error(error.message || "Registration failed");
@@ -81,17 +79,15 @@ export default function RegisterPage() {
     },
   });
 
-  const onSubmit = async (formData: any) => {
+  const onSubmit = async (formData: RegisterFormData) => {
     try {
-      const { confirmPassword, ...registrationData } = formData;
-      const userData = {
+      const { confirm_password, ...registrationData } = formData;
+      await registerMutation.mutateAsync({
         ...registrationData,
-        userName: `${formData.firstName}.${formData.lastName}`.toLowerCase(),
-        fullName: `${formData.firstName} ${formData.lastName}`,
-        userCode: `USR${Math.floor(1000 + Math.random() * 9000)}`,
-      };
-
-      await registerMutation.mutateAsync(userData);
+        user_name: `${formData.first_name}.${formData.last_name}`.toLowerCase(),
+        user_code: `USR${Math.floor(1000 + Math.random() * 9000)}`,
+        full_name: `${formData.first_name} ${formData.last_name}`,
+      });
     } catch (error) {
       console.error("Form submission error:", error);
     }
@@ -112,7 +108,7 @@ export default function RegisterPage() {
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
             <FormField
               control={form.control}
-              name="firstName"
+              name="first_name"
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>First Name</FormLabel>
@@ -126,7 +122,7 @@ export default function RegisterPage() {
 
             <FormField
               control={form.control}
-              name="lastName"
+              name="last_name"
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Last Name</FormLabel>
@@ -140,7 +136,7 @@ export default function RegisterPage() {
 
             <FormField
               control={form.control}
-              name="emailId"
+              name="email_id"
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Email</FormLabel>
@@ -168,7 +164,7 @@ export default function RegisterPage() {
 
             <FormField
               control={form.control}
-              name="confirmPassword"
+              name="confirm_password"
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Confirm Password</FormLabel>
