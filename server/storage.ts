@@ -353,11 +353,15 @@ export class DatabaseStorage implements IStorage {
   }
   async createUser(userData: InsertUser): Promise<User> {
     try {
+      // Log the incoming registration data
       console.log('Creating user with data:', {
         email_id: userData.email_id,
         user_name: userData.user_name,
         first_name: userData.first_name,
-        last_name: userData.last_name
+        last_name: userData.last_name,
+        user_type: userData.user_type,
+        user_operation_type: userData.user_operation_type,
+        user_group: userData.user_group
       });
 
       // Check if email already exists
@@ -375,24 +379,32 @@ export class DatabaseStorage implements IStorage {
       // Hash password
       const hashedPassword = await bcrypt.hash(userData.password, 10);
 
-      // Insert user with exact field mapping
+      // Prepare user data with exact field mapping
+      const userDataToInsert = {
+        user_name: userData.user_name,
+        user_code: userData.user_code,
+        user_type: userData.user_type,
+        email_id: userData.email_id,
+        user_operation_type: userData.user_operation_type,
+        user_group: userData.user_group,
+        full_name: userData.full_name,
+        first_name: userData.first_name,
+        last_name: userData.last_name,
+        password: hashedPassword,
+        is_active: true,
+        created_at: new Date(),
+        updated_at: new Date()
+      };
+
+      // Log the exact data being inserted (excluding password)
+      console.log('Attempting to insert user with data:', {
+        ...userDataToInsert,
+        password: '[REDACTED]'
+      });
+
       const [newUser] = await db
         .insert(schema.users)
-        .values({
-          user_name: userData.user_name,
-          user_code: userData.user_code,
-          user_type: userData.user_type,
-          email_id: userData.email_id,
-          user_operation_type: userData.user_operation_type,
-          user_group: userData.user_group,
-          full_name: userData.full_name,
-          first_name: userData.first_name,
-          last_name: userData.last_name,
-          password: hashedPassword,
-          is_active: true,
-          created_at: new Date(),
-          updated_at: new Date()
-        })
+        .values(userDataToInsert)
         .returning();
 
       console.log('User created successfully:', {
