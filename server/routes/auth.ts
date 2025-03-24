@@ -13,10 +13,7 @@ const generateToken = (userId: number) => {
 
 router.post("/login", async (req, res) => {
   try {
-    console.log('=== Login Request Received ===');
-
     const { email_id, password } = req.body;
-    console.log('Attempting login for:', email_id);
 
     if (!email_id || !password) {
       return res.status(400).json({
@@ -25,7 +22,6 @@ router.post("/login", async (req, res) => {
     }
 
     const user = await storage.getUserByEmail(email_id);
-    console.log('User found:', !!user);
 
     if (!user) {
       return res.status(401).json({
@@ -34,7 +30,6 @@ router.post("/login", async (req, res) => {
     }
 
     const isValid = await bcrypt.compare(password, user.password);
-    console.log('Password validation:', isValid);
 
     if (!isValid) {
       return res.status(401).json({
@@ -43,7 +38,9 @@ router.post("/login", async (req, res) => {
     }
 
     const token = generateToken(user.id);
-    console.log('Token generated successfully');
+
+    // Update last login time
+    await storage.updateUserLastLogin(user.id);
 
     return res.status(200).json({
       token,
