@@ -918,20 +918,44 @@ export async function registerRoutes(app: Express): Promise<Server> {
         // Update user with reset token
         await storage.updateUserResetToken(user.id, resetToken, resetTokenExpiry);
 
-        // Create reset URL with full host information
-        let appHost = req.get('host');
-        // If we're behind a proxy, try to get the actual host
-        if (req.headers['x-forwarded-host']) {
-          appHost = req.headers['x-forwarded-host'] as string;
+        // Create reset URL with robust fallback handling
+        let baseUrl;
+        if (process.env.APP_URL) {
+          // Use configured APP_URL if available
+          baseUrl = process.env.APP_URL.replace(/\/$/, '');
+        } else {
+          // Fallback to constructing URL from request
+          const host = req.get('host');
+          if (!host) {
+            throw new Error('Unable to determine application host');
+          }
+          const protocol = req.secure || req.headers['x-forwarded-proto'] === 'https' ? 'https' : 'http';
+          baseUrl = `${protocol}://${host}`;
         }
-        const protocol = req.secure || req.headers['x-forwarded-proto'] === 'https' ? 'https' : 'http';
-        const resetUrl = `${protocol}://${appHost}/auth/reset-password?token=${resetToken}`;
 
-        console.log('Generated reset URL details:', {
-          protocol,
-          host: appHost,
-          fullUrl: resetUrl
+        // Construct final reset URL
+        const resetUrl = `${baseUrl}/auth/reset-password?token=${resetToken}`;
+
+        // Debug logging
+        console.log('Password Reset URL Generation:', {
+          APP_URL: process.env.APP_URL,
+          requestHost: req.get('host'),
+          requestProtocol: req.protocol,
+          headers: {
+            'x-forwarded-proto': req.headers['x-forwarded-proto'],
+            'x-forwarded-host': req.headers['x-forwarded-host']
+          },
+          computedBaseUrl: baseUrl,
+          finalResetUrl: resetUrl
         });
+
+        // Verify URL is valid
+        try {
+          new URL(resetUrl);
+        } catch (urlError) {
+          console.error('Generated invalid URL:', resetUrl);
+          throw new Error('Failed to generate valid reset URL');
+        }
 
         // Setup email transporter
         const transporter = nodemailer.createTransport({
