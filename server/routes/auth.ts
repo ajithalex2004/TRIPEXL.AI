@@ -5,14 +5,6 @@ import { z } from "zod";
 
 const router = Router();
 
-// Custom registration validation schema
-const registrationSchema = insertUserSchema.extend({
-  confirm_password: z.string()
-}).refine((data) => data.password === data.confirm_password, {
-  message: "Passwords don't match",
-  path: ["confirm_password"],
-});
-
 router.post("/register", async (req, res) => {
   try {
     // Log raw request data
@@ -22,7 +14,7 @@ router.post("/register", async (req, res) => {
     });
 
     // Schema validation
-    const validationResult = registrationSchema.safeParse(req.body);
+    const validationResult = insertUserSchema.safeParse(req.body);
     if (!validationResult.success) {
       const errors = validationResult.error.format();
       console.error("Validation failed:", JSON.stringify(errors, null, 2));
