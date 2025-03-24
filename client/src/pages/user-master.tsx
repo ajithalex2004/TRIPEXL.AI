@@ -56,15 +56,23 @@ export default function UserMasterPage() {
   const createUserMutation = useMutation({
     mutationFn: async (userData: any) => {
       console.log("Creating user with data:", { ...userData, password: '[REDACTED]' });
-      const response = await fetch(USERS_QUERY_KEY, {
+      const response = await fetch("/api/auth/users", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(userData),
+        headers: { 
+          "Content-Type": "application/json",
+          "Accept": "application/json"
+        },
+        body: JSON.stringify({
+          ...userData,
+          is_active: true,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
+        }),
       });
 
       if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.error || "Failed to create user");
+        const errorData = await response.json();
+        throw new Error(errorData.error || "Failed to create user");
       }
 
       return response.json();
@@ -154,6 +162,7 @@ export default function UserMasterPage() {
 
   const handleCreateUser = async (data: any) => {
     try {
+      console.log('Submitting user data:', { ...data, password: '[REDACTED]' });
       await createUserMutation.mutateAsync({
         ...data,
         is_active: true,

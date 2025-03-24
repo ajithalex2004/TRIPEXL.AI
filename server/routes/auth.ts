@@ -82,7 +82,7 @@ router.post("/users", async (req, res) => {
     const { password, ...userData } = req.body;
 
     // Validate required fields
-    const requiredFields = ['user_name', 'user_code', 'email_id', 'user_type', 'user_operation_type', 'user_group'];
+    const requiredFields = ['user_name', 'user_code', 'email_id', 'user_type', 'user_operation_type', 'user_group', 'first_name', 'last_name', 'full_name'];
     const missingFields = requiredFields.filter(field => !userData[field]);
 
     if (missingFields.length > 0) {
@@ -95,6 +95,7 @@ router.post("/users", async (req, res) => {
     // Check if email already exists
     const existingUserEmail = await storage.findUserByEmail(userData.email_id);
     if (existingUserEmail) {
+      console.log('Email already exists:', userData.email_id);
       return res.status(400).json({
         error: "Email already exists"
       });
@@ -103,6 +104,7 @@ router.post("/users", async (req, res) => {
     // Check if username already exists
     const existingUserName = await storage.getUserByUserName(userData.user_name);
     if (existingUserName) {
+      console.log('Username already exists:', userData.user_name);
       return res.status(400).json({
         error: "Username already exists"
       });
