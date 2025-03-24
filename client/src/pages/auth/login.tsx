@@ -19,7 +19,7 @@ export default function LoginPage() {
 
   const form = useForm<LoginFormData>({
     defaultValues: {
-      email_id: "",
+      email_id: "athomas@exlsolutions.ae",
       password: "",
     },
   });
@@ -45,7 +45,7 @@ export default function LoginPage() {
 
       localStorage.setItem("token", responseData.token);
       window.location.href = "/new-booking";
-      
+
     } catch (error: any) {
       console.error("Login error:", error);
       setError(error.message || "Failed to login");
@@ -65,7 +65,8 @@ export default function LoginPage() {
         <CardHeader className="space-y-1">
           <h2 className="text-2xl font-bold text-center">Sign In</h2>
           <p className="text-sm text-muted-foreground text-center">
-            Enter your credentials to continue
+            Email: athomas@exlsolutions.ae <br/>
+            Password: Pass@123
           </p>
           {error && (
             <p className="text-sm text-red-500 text-center">{error}</p>
