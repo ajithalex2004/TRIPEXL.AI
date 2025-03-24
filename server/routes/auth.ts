@@ -24,6 +24,7 @@ router.post("/login", async (req, res) => {
     const user = await storage.findUserByEmail(email_id);
 
     if (!user) {
+      console.error('User not found:', email_id);
       return res.status(401).json({
         error: "Invalid email or password"
       });
@@ -54,7 +55,7 @@ router.post("/login", async (req, res) => {
   } catch (error) {
     console.error('Login error:', error);
     return res.status(500).json({
-      error: "An error occurred during login"
+      error: "An error occurred during login. Please try again."
     });
   }
 });
@@ -115,7 +116,7 @@ router.post("/users", async (req, res) => {
     if (existingUserEmail) {
       console.error('Email already exists:', userData.email_id);
       return res.status(400).json({
-        error: "Email already exists"
+        error: "Email address is already registered"
       });
     }
 
@@ -124,7 +125,7 @@ router.post("/users", async (req, res) => {
     if (existingUserName) {
       console.error('Username already exists:', userData.user_name);
       return res.status(400).json({
-        error: "Username already exists"
+        error: "Username is already taken"
       });
     }
 
@@ -152,7 +153,7 @@ router.post("/users", async (req, res) => {
   } catch (error) {
     console.error('Error creating user:', error);
     return res.status(500).json({
-      error: error instanceof Error ? error.message : "Failed to create user"
+      error: error instanceof Error ? error.message : "Failed to create user. Please try again."
     });
   }
 });

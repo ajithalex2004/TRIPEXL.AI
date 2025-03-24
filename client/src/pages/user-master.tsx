@@ -89,7 +89,7 @@ export default function UserMasterPage() {
       console.error("Error creating user:", error);
       toast({
         title: "Error",
-        description: error.message || "Failed to create user",
+        description: error.message || "Failed to create user. Please try again.",
         variant: "destructive",
       });
     },
@@ -108,6 +108,7 @@ export default function UserMasterPage() {
     } catch (error) {
       console.error("Error in handleCreateUser:", error);
       // Error will be handled by mutation's onError callback
+      throw error; // Re-throw to trigger the form's error handling
     }
   };
 

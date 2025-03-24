@@ -106,6 +106,7 @@ export function UserFormDialog({
       toast({
         title: "Success",
         description: `User ${mode === "create" ? "created" : "updated"} successfully`,
+        variant: "default",
       });
 
       form.reset();
@@ -113,10 +114,12 @@ export function UserFormDialog({
     } catch (error) {
       console.error('Error submitting form:', error);
 
-      // Show error toast
+      // Show error toast with specific message
       toast({
         title: "Error",
-        description: error instanceof Error ? error.message : "Failed to create user. Please try again.",
+        description: error instanceof Error 
+          ? error.message 
+          : "Failed to process user. Please check your input and try again.",
         variant: "destructive",
       });
     } finally {
