@@ -2,6 +2,7 @@ import * as React from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
+import { useToast } from "@/hooks/use-toast";
 import {
   Dialog,
   DialogContent,
@@ -60,6 +61,7 @@ export function UserFormDialog({
   defaultValues,
   mode,
 }: UserFormDialogProps) {
+  const { toast } = useToast();
   const form = useForm<UserFormData>({
     resolver: zodResolver(userFormSchema),
     defaultValues: {
@@ -100,11 +102,23 @@ export function UserFormDialog({
       });
 
       await onSubmit(formattedData);
+
+      toast({
+        title: "Success",
+        description: `User ${mode === "create" ? "created" : "updated"} successfully`,
+      });
+
       form.reset();
       onOpenChange(false);
     } catch (error) {
       console.error('Error submitting form:', error);
-      throw error;
+
+      // Show error toast
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to create user. Please try again.",
+        variant: "destructive",
+      });
     } finally {
       setIsSubmitting(false);
     }
