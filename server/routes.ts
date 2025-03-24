@@ -916,10 +916,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         // Update user with reset token
         await storage.updateUserResetToken(user.id, resetToken, resetTokenExpiry);
 
-        // Create reset URL with correct port and protocol
+        // Create reset URL with correct protocol and host
         const protocol = req.protocol;
-        const host = req.get('host').split(':')[0]; // Get hostname without port
-        const resetUrl = `${protocol}://${host}:5000/auth/reset-password?token=${resetToken}`;
+        const host = req.get('host');
+        const resetUrl = `${protocol}://${host}/auth/reset-password?token=${resetToken}`;
 
         // Setup email transporter
         const transporter = nodemailer.createTransport({
@@ -950,7 +950,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
                 </div>
                 <p style="color: #666; font-size: 14px;">This link will expire in 1 hour for security reasons.</p>
                 <p style="color: #666; font-size: 14px;">If you didn't request this password reset, please ignore this email.</p>
-                <p style="color: #666; font-size: 14px;">If the button doesn't work, copy and paste this link into your browser: <br/>${resetUrl}</p>
+                <p style="color: #666; font-size: 14px;">If the button doesn't work, copy and paste this link into your browser:<br/>${resetUrl}</p>
               </div>
             </div>
           `
