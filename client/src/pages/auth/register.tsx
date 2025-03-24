@@ -20,6 +20,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardContent } from "@/components/ui/card";
 import { LoadingIndicator } from "@/components/ui/loading-indicator";
 import { WelcomeScreen } from "@/components/welcome-screen";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
 const registerSchema = insertUserSchema.extend({
   confirm_password: z.string()
@@ -34,6 +35,7 @@ export default function RegisterPage() {
   const { toast } = useToast();
   const [, setLocation] = useLocation();
   const [showWelcome, setShowWelcome] = React.useState(false);
+  const [error, setError] = React.useState<string | null>(null);
 
   const form = useForm<RegisterFormData>({
     resolver: zodResolver(registerSchema),
@@ -56,6 +58,8 @@ export default function RegisterPage() {
   const registerMutation = useMutation({
     mutationFn: async (data: RegisterFormData) => {
       try {
+        setError(null); // Clear any previous errors
+        console.log("Starting registration mutation");
         const { confirm_password, ...formData } = data;
 
         // Prepare registration data
@@ -66,28 +70,34 @@ export default function RegisterPage() {
           full_name: `${data.first_name} ${data.last_name}`,
         };
 
-        console.log("Attempting registration with:", { 
+        console.log("Sending registration request with data:", {
           ...registrationData,
-          password: '[REDACTED]' 
+          password: '[REDACTED]'
         });
 
         const response = await apiRequest("POST", "/api/auth/register", registrationData);
 
         if (!response.ok) {
           const errorData = await response.json();
-          console.error("Registration failed:", errorData);
+          console.error("Registration API error:", errorData);
           throw new Error(errorData.message || "Failed to register");
         }
 
         const result = await response.json();
-        console.log("Registration successful:", result);
+        console.log("Registration API success:", result);
         return result;
       } catch (error) {
-        console.error("Registration error:", error);
+        console.error("Registration mutation error:", error);
+        if (error instanceof Error) {
+          setError(error.message);
+        } else {
+          setError("An unexpected error occurred");
+        }
         throw error;
       }
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
+      console.log("Registration mutation success callback", data);
       toast({
         title: "Success!",
         description: "Your account has been created successfully.",
@@ -95,6 +105,7 @@ export default function RegisterPage() {
       setShowWelcome(true);
     },
     onError: (error: Error) => {
+      console.log("Registration mutation error callback:", error);
       toast({
         title: "Registration Failed",
         description: error.message || "Something went wrong. Please try again.",
@@ -105,10 +116,10 @@ export default function RegisterPage() {
 
   const onSubmit = async (formData: RegisterFormData) => {
     try {
+      console.log("Form submission started");
       await registerMutation.mutateAsync(formData);
     } catch (error) {
       console.error("Form submission error:", error);
-      // Error will be handled by mutation's onError
     }
   };
 
@@ -123,6 +134,12 @@ export default function RegisterPage() {
         <p className="text-sm text-muted-foreground">Enter your details to register</p>
       </CardHeader>
       <CardContent>
+        {error && (
+          <Alert variant="destructive" className="mb-4">
+            <AlertDescription>{error}</AlertDescription>
+          </Alert>
+        )}
+
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
             <FormField
@@ -202,7 +219,7 @@ export default function RegisterPage() {
             >
               {registerMutation.isPending ? (
                 <>
-                  <LoadingIndicator size="sm" className="mr-2" />
+                  <LoadingIndicator className="mr-2" />
                   Creating Account...
                 </>
               ) : (
