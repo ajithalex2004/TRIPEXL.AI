@@ -908,7 +908,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             error: "User not found",
             details: "No matching user found with provided username and email"
           });
-        }
+                }
 
         // Generate reset token
         const resetToken = crypto.randomBytes(32).toString('hex');
@@ -920,7 +920,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         // Create reset URL with correct protocol and host
         const protocol = req.protocol;
         const host = req.get('host');
-        const resetUrl = `${protocol}://${host}/auth/reset-password?token=${resetToken}`;
+        const baseUrl = `${protocol}://${host}`;
+        const resetUrl = `${baseUrl}/auth/reset-password?token=${resetToken}`;
+
         console.log('Generated reset URL:', resetUrl); // Debug log
 
         // Setup email transporter
@@ -935,7 +937,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
 
         console.log('Sending password reset email to:', emailId);
-        console.log('Reset URL:', resetUrl);
 
         // Send email with basic HTML structure
         await transporter.sendMail({
@@ -945,27 +946,70 @@ export async function registerRoutes(app: Express): Promise<Server> {
           html: `
             <!DOCTYPE html>
             <html>
-            <body>
-              <p>You have requested to reset your password.</p>
-              <p>Click the button below to set a new password:</p>
-              <table role="presentation" border="0" cellpadding="0" cellspacing="0">
+            <head>
+              <meta charset="utf-8">
+              <title>Reset Your Password</title>
+            </head>
+            <body style="font-family: Arial, sans-serif; margin: 0; padding: 20px;">
+              <table width="100%" border="0" cellspacing="0" cellpadding="0">
                 <tr>
-                  <td>
-                    <a href="${resetUrl}" style="padding: 10px 20px; background-color: #004990; color: white; text-decoration: none; display: inline-block;">Reset Password</a>
+                  <td align="center">
+                    <table style="max-width: 600px; width: 100%;" border="0" cellspacing="0" cellpadding="0">
+                      <tr>
+                        <td style="background-color: #004990; padding: 20px; text-align: center;">
+                          <h1 style="color: white; margin: 0;">Reset Your Password</h1>
+                        </td>
+                      </tr>
+                      <tr>
+                        <td style="background-color: #ffffff; padding: 20px;">
+                          <p style="font-size: 16px; line-height: 1.5;">You have requested to reset your password.</p>
+                          <p style="font-size: 16px; line-height: 1.5;">Click the button below to set a new password:</p>
+                          <p style="text-align: center; margin: 30px 0;">
+                            <a href="${resetUrl}" 
+                               style="background-color: #004990; 
+                                      color: white; 
+                                      padding: 12px 25px; 
+                                      text-decoration: none; 
+                                      border-radius: 4px; 
+                                      display: inline-block; 
+                                      font-weight: bold;">
+                              Reset Password
+                            </a>
+                          </p>
+                          <p style="color: #666666; font-size: 14px; line-height: 1.5;">
+                            If the button doesn't work, copy and paste this link into your browser:
+                            <br>
+                            <a href="${resetUrl}" style="color: #004990; text-decoration: underline; word-break: break-all;">
+                              ${resetUrl}
+                            </a>
+                          </p>
+                          <p style="color: #666666; font-size: 14px; margin-top: 20px;">
+                            This link will expire in 1 hour for security reasons.
+                          </p>
+                        </td>
+                      </tr>
+                    </table>
                   </td>
                 </tr>
               </table>
-              <p style="margin-top: 20px;">
-                Alternatively, copy and paste this link into your browser:<br>
-                <a href="${resetUrl}">${resetUrl}</a>
-              </p>
-              <p>This link will expire in 1 hour.</p>
             </body>
             </html>
+          `,
+          text: `
+Reset Your Password
+
+You have requested to reset your password.
+
+Click this link to reset your password: ${resetUrl}
+
+This link will expire in 1 hour for security reasons.
+
+If you didn't request this reset, please ignore this email.
           `
         });
 
-        console.log('Password reset email sent with URL:', resetUrl);
+        console.log('Password reset email sent successfully to:', emailId);
+        console.log('Reset URL in email:', resetUrl);
 
         res.json({
           message: "If an account exists with that email, you will receive password reset instructions."
