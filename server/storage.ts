@@ -510,9 +510,9 @@ export class DatabaseStorage implements IStorage {
       const [user] = await db
         .update(schema.users)
         .set({
-          resetToken,
-          resetTokenExpiry,
-          updatedAt: new Date()
+          reset_token: resetToken,
+          reset_token_expiry: resetTokenExpiry,
+          updated_at: new Date()
         })
         .where(eq(schema.users.id, userId))
         .returning();
