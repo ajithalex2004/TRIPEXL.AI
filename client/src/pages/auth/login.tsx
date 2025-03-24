@@ -20,7 +20,7 @@ export default function LoginPage() {
   const form = useForm<LoginFormData>({
     defaultValues: {
       email_id: "athomas@exlsolutions.ae",
-      password: "",
+      password: "Pass@123"
     },
   });
 
@@ -65,7 +65,8 @@ export default function LoginPage() {
         <CardHeader className="space-y-1">
           <h2 className="text-2xl font-bold text-center">Sign In</h2>
           <p className="text-sm text-muted-foreground text-center">
-            Email: athomas@exlsolutions.ae <br/>
+            Use these credentials to log in:<br />
+            Email: athomas@exlsolutions.ae<br />
             Password: Pass@123
           </p>
           {error && (
