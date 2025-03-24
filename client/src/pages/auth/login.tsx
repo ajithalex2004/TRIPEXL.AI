@@ -10,7 +10,7 @@ import { useToast } from "@/hooks/use-toast";
 
 export default function LoginPage() {
   const { toast } = useToast();
-  const [, setLocation] = useLocation();
+  const [, navigate] = useLocation();
   const [isLoading, setIsLoading] = React.useState(false);
 
   const form = useForm({
@@ -39,13 +39,18 @@ export default function LoginPage() {
         throw new Error(responseData.error || "Failed to login");
       }
 
+      // Store token in localStorage
       localStorage.setItem("token", responseData.token);
+
+      // Show success message
       toast({
         title: "Success",
         description: "Logged in successfully",
       });
-      // Redirect to booking page instead of home
-      setLocation("/new-booking");
+
+      // Force navigation to the booking page
+      window.location.href = "/new-booking";
+
     } catch (error: any) {
       console.error("Login error:", error);
       toast({
