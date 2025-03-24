@@ -21,7 +21,7 @@ router.post("/login", async (req, res) => {
       });
     }
 
-    const user = await storage.getUserByEmail(email_id);
+    const user = await storage.findUserByEmail(email_id);
 
     if (!user) {
       return res.status(401).json({
@@ -63,7 +63,9 @@ router.post("/logout", (req, res) => {
 // Get all users
 router.get("/users", async (_req, res) => {
   try {
+    console.log('Fetching all users');
     const users = await storage.getAllUsers();
+    console.log(`Successfully fetched ${users.length} users`);
     return res.status(200).json(users);
   } catch (error) {
     console.error('Error fetching users:', error);
@@ -76,24 +78,40 @@ router.get("/users", async (_req, res) => {
 // Create new user
 router.post("/users", async (req, res) => {
   try {
+    console.log('Creating new user with data:', { ...req.body, password: '[REDACTED]' });
     const { password, ...userData } = req.body;
 
-    // Hash the password
+    // Validate required fields
+    const requiredFields = ['user_name', 'user_code', 'email_id', 'user_type', 'user_operation_type', 'user_group'];
+    const missingFields = requiredFields.filter(field => !userData[field]);
+
+    if (missingFields.length > 0) {
+      console.error('Missing required fields:', missingFields);
+      return res.status(400).json({
+        error: `Missing required fields: ${missingFields.join(', ')}`
+      });
+    }
+
+    // Hash the password if provided, otherwise use default
     const salt = await bcrypt.genSalt(10);
-    const hashedPassword = await bcrypt.hash(password, salt);
+    const hashedPassword = password 
+      ? await bcrypt.hash(password, salt)
+      : await bcrypt.hash("Pass@123", salt);
 
     const newUser = await storage.createUser({
       ...userData,
       password: hashedPassword,
+      is_active: true,
       created_at: new Date(),
       updated_at: new Date(),
     });
 
+    console.log('User created successfully:', { id: newUser.id, email_id: newUser.email_id });
     return res.status(201).json(newUser);
   } catch (error) {
     console.error('Error creating user:', error);
     return res.status(500).json({
-      error: "Failed to create user"
+      error: error instanceof Error ? error.message : "Failed to create user"
     });
   }
 });
@@ -101,6 +119,7 @@ router.post("/users", async (req, res) => {
 // Update user
 router.put("/users/:id", async (req, res) => {
   try {
+    console.log('Updating user:', req.params.id, 'with data:', req.body);
     const userId = parseInt(req.params.id);
     const userData = req.body;
 
@@ -110,6 +129,7 @@ router.put("/users/:id", async (req, res) => {
       updated_at: new Date(),
     });
 
+    console.log('User updated successfully:', { id: updatedUser.id });
     return res.status(200).json(updatedUser);
   } catch (error) {
     console.error('Error updating user:', error);
@@ -122,8 +142,10 @@ router.put("/users/:id", async (req, res) => {
 // Delete user
 router.delete("/users/:id", async (req, res) => {
   try {
+    console.log('Deleting user:', req.params.id);
     const userId = parseInt(req.params.id);
     await storage.deleteUser(userId);
+    console.log('User deleted successfully');
     return res.status(200).json({ message: "User deleted successfully" });
   } catch (error) {
     console.error('Error deleting user:', error);
