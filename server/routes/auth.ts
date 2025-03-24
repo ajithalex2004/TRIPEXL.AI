@@ -17,6 +17,7 @@ router.post("/login", async (req, res) => {
     }
 
     try {
+      // Get user from storage
       const user = await storage.getUserByEmail(emailId);
       console.log('User found:', user ? 'Yes' : 'No');
 
@@ -26,6 +27,7 @@ router.post("/login", async (req, res) => {
         });
       }
 
+      // Compare passwords
       const isMatch = await bcrypt.compare(password, user.password);
       console.log('Password match:', isMatch ? 'Yes' : 'No');
 
@@ -51,11 +53,13 @@ router.post("/login", async (req, res) => {
 
       console.log('Login successful for user:', userData.userName);
 
+      // Return success response with user data and token
       return res.status(200).json({
         ...userData,
         token: 'dummy-token-for-now', // TODO: Implement proper JWT
         message: "Logged in successfully"
       });
+
     } catch (dbError) {
       console.error('Database error during login:', dbError);
       throw new Error('Failed to retrieve user data');
@@ -64,7 +68,7 @@ router.post("/login", async (req, res) => {
     console.error("Login error:", error);
     return res.status(500).json({
       error: "An unexpected error occurred during login",
-      details: error.message
+      details: error instanceof Error ? error.message : 'Unknown error'
     });
   }
 });
