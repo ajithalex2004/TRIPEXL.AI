@@ -17,9 +17,8 @@ import {
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardContent } from "@/components/ui/card";
-import { LoadingIndicator } from "@/components/ui/loading-indicator";
+import { Loader2 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
-import { CheckCircle2 } from "lucide-react";
 import Confetti from 'react-confetti';
 
 // Password validation schema
@@ -41,14 +40,46 @@ type ResetPasswordForm = z.infer<typeof resetPasswordSchema>;
 export default function ResetPasswordPage() {
   const { toast } = useToast();
   const [, setLocation] = useLocation();
-  const [searchParams] = React.useState(new URLSearchParams(window.location.search));
-  const token = searchParams.get('token');
+  const [token, setToken] = React.useState<string | null>(null);
   const [userName, setUserName] = React.useState<string>("");
   const [isSuccess, setIsSuccess] = React.useState(false);
   const [windowSize, setWindowSize] = React.useState({
     width: window.innerWidth,
     height: window.innerHeight,
   });
+
+  React.useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const resetToken = params.get('token');
+    console.log('Reset token from URL:', resetToken);
+
+    if (resetToken) {
+      setToken(resetToken);
+      // Verify token and get user info
+      apiRequest("GET", `/api/auth/verify-token?token=${resetToken}`)
+        .then(res => {
+          if (!res.ok) throw new Error('Invalid token');
+          return res.json();
+        })
+        .then(data => {
+          console.log('Token verification response:', data);
+          if (data.userName) {
+            setUserName(data.userName);
+          }
+        })
+        .catch(error => {
+          console.error('Token verification error:', error);
+          toast({
+            title: "Error",
+            description: "Invalid or expired reset token",
+            variant: "destructive",
+          });
+          setLocation("/auth/login");
+        });
+    } else {
+      setLocation("/auth/login");
+    }
+  }, [setLocation, toast]);
 
   React.useEffect(() => {
     const handleResize = () => {
@@ -62,27 +93,6 @@ export default function ResetPasswordPage() {
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
-  React.useEffect(() => {
-    // Fetch user info based on reset token
-    if (token) {
-      apiRequest("GET", `/api/auth/verify-token?token=${token}`)
-        .then(res => res.json())
-        .then(data => {
-          if (data.userName) {
-            setUserName(data.userName);
-          }
-        })
-        .catch(() => {
-          toast({
-            title: "Error",
-            description: "Invalid or expired reset token",
-            variant: "destructive",
-          });
-          setLocation("/auth/login");
-        });
-    }
-  }, [token, toast, setLocation]);
-
   const form = useForm<ResetPasswordForm>({
     resolver: zodResolver(resetPasswordSchema),
     defaultValues: {
@@ -93,6 +103,8 @@ export default function ResetPasswordPage() {
 
   const resetPassword = useMutation({
     mutationFn: async (data: ResetPasswordForm) => {
+      if (!token) throw new Error('No reset token found');
+
       const res = await apiRequest("POST", "/api/auth/reset-password", {
         token,
         newPassword: data.newPassword,
@@ -106,21 +118,19 @@ export default function ResetPasswordPage() {
       return res.json();
     },
     onSuccess: () => {
-      console.log("Password reset successful, showing animation...");
-      setIsSuccess(true); // Ensure this runs first
+      console.log("Password reset successful");
+      setIsSuccess(true);
       toast({
         title: "Success",
         description: "Your password has been reset successfully.",
         duration: 5000,
       });
-      // Increase timeout to allow animation to complete
       setTimeout(() => {
-        console.log("Redirecting to login page...");
         setLocation("/auth/login");
-      }, 5000); // Increased from 3000 to 5000ms
+      }, 5000);
     },
     onError: (error: any) => {
-      console.error("Password reset failed:", error);
+      console.error("Password reset error:", error);
       toast({
         title: "Error",
         description: error.message || "Failed to reset password",
@@ -161,7 +171,11 @@ export default function ResetPasswordPage() {
               animate={{ scale: 1 }}
               transition={{ delay: 0.2, type: "spring", stiffness: 260, damping: 20 }}
             >
-              <CheckCircle2 className="w-16 h-16 text-green-500 mx-auto mb-4" />
+              <div className="w-16 h-16 bg-green-500 rounded-full mx-auto mb-4 flex items-center justify-center">
+                <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2">
+                  <polyline points="20 6 9 17 4 12"></polyline>
+                </svg>
+              </div>
             </motion.div>
             <motion.h2
               initial={{ opacity: 0, y: 20 }}
@@ -275,10 +289,10 @@ export default function ResetPasswordPage() {
                     disabled={resetPassword.isPending}
                   >
                     {resetPassword.isPending ? (
-                      <>
-                        <LoadingIndicator size="sm" className="mr-2" />
+                      <div className="flex items-center justify-center">
+                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
                         Resetting Password...
-                      </>
+                      </div>
                     ) : (
                       "Reset Password"
                     )}

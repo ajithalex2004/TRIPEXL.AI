@@ -911,8 +911,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           });
         }
 
-        // Generate reset token
-        const resetToken = crypto.randomBytes(32).toString('hex');
+        // Generate reset token        const resetToken = crypto.randomBytes(32).toString('hex');
         const resetTokenExpiry = new Date(Date.now() + 3600000); // 1 hour from now
 
         // Update user with reset token
@@ -1005,11 +1004,45 @@ This link will expire in 1 hour for security reasons.
       }
     });
 
-    // Add reset password endpoint
+    // Add this endpoint before the reset password endpoint
+    app.get("/api/auth/verify-token", async (req, res) => {
+      try {
+        const { token } = req.query;
+        console.log('Verifying reset token:', token);
+
+        if (!token) {
+          return res.status(400).json({
+            error: "Token is required"
+          });
+        }
+
+        const user = await storage.findUserByResetToken(token as string);
+        if (!user || !user.reset_token_expiry || user.reset_token_expiry < new Date()) {
+          return res.status(400).json({
+            error: "Invalid or expired token"
+          });
+        }
+
+        console.log('Token verified for user:', user.user_name);
+        res.json({
+          userName: user.user_name,
+          email: user.email_id
+        });
+
+      } catch (error: any) {
+        console.error('Error verifying token:', error);
+        res.status(500).json({
+          error: "Failed to verify token",
+          details: error.message
+        });
+      }
+    });
+
+    // Update the reset password endpoint
     app.post("/api/auth/reset-password", async (req, res) => {
       try {
         const { token, newPassword } = req.body;
-        console.log("Processing password reset request...");
+        console.log("Processing password reset request");
 
         if (!token || !newPassword) {
           return res.status(400).json({
@@ -1017,7 +1050,6 @@ This link will expire in 1 hour for security reasons.
           });
         }
 
-        // Find user by reset token
         const user = await storage.findUserByResetToken(token);
         if (!user || !user.reset_token_expiry || user.reset_token_expiry < new Date()) {
           return res.status(400).json({
