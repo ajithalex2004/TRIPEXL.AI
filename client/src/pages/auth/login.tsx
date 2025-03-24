@@ -20,7 +20,7 @@ type LoginFormData = z.infer<typeof loginSchema>;
 export default function LoginPage() {
   const { toast } = useToast();
   const [, setLocation] = useLocation();
-  const [showPassword, setShowPassword] = React.useState(false);
+  const [isLoading, setIsLoading] = React.useState(false);
 
   const form = useForm<LoginFormData>({
     resolver: zodResolver(loginSchema),
@@ -32,7 +32,8 @@ export default function LoginPage() {
 
   const onSubmit = async (data: LoginFormData) => {
     try {
-      console.log("Attempting login with:", data.email_id);
+      setIsLoading(true);
+      console.log("Login attempt with:", { email: data.email_id });
 
       const response = await fetch("/api/auth/login", {
         method: "POST",
@@ -43,18 +44,22 @@ export default function LoginPage() {
       });
 
       const responseData = await response.json();
-      console.log("Server response:", response.status, responseData);
+      console.log("Server response:", { status: response.status, data: responseData });
 
       if (!response.ok) {
         throw new Error(responseData.error || "Failed to login");
       }
 
-      // Store token and redirect
+      // Store token
       localStorage.setItem("token", responseData.token);
+
+      // Show success message
       toast({
         title: "Success",
         description: "Logged in successfully",
       });
+
+      // Redirect to home
       setLocation("/");
     } catch (error: any) {
       console.error("Login error:", error);
@@ -63,6 +68,8 @@ export default function LoginPage() {
         description: error.message || "Failed to login",
         variant: "destructive",
       });
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -88,6 +95,7 @@ export default function LoginPage() {
                       <Input 
                         type="email" 
                         placeholder="Enter your email"
+                        autoComplete="email"
                         {...field}
                       />
                     </FormControl>
@@ -103,8 +111,9 @@ export default function LoginPage() {
                     <FormLabel>Password</FormLabel>
                     <FormControl>
                       <Input
-                        type={showPassword ? "text" : "password"}
+                        type="password"
                         placeholder="Enter your password"
+                        autoComplete="current-password"
                         {...field}
                       />
                     </FormControl>
@@ -115,9 +124,9 @@ export default function LoginPage() {
               <Button 
                 type="submit" 
                 className="w-full"
-                disabled={form.formState.isSubmitting}
+                disabled={isLoading}
               >
-                {form.formState.isSubmitting ? (
+                {isLoading ? (
                   <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                     Signing in...
