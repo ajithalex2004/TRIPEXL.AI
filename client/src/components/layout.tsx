@@ -23,7 +23,8 @@ import {
   PlusCircle,
   LayoutDashboard,
   Users,
-  UserCog
+  UserCog,
+  Network
 } from "lucide-react";
 import { motion } from "framer-motion";
 
@@ -95,7 +96,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
 
                 {/* Vehicle Management Section */}
                 <SidebarMenuItem>
-                  <SidebarMenuButton 
+                  <SidebarMenuButton
                     className="w-full text-white hover:bg-white/10 text-[15px] font-bold"
                     onClick={() => setIsVehicleMenuOpen(!isVehicleMenuOpen)}
                   >
@@ -142,7 +143,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
 
                 {/* Admin Management Section */}
                 <SidebarMenuItem>
-                  <SidebarMenuButton 
+                  <SidebarMenuButton
                     className="w-full text-white hover:bg-white/10 text-[15px] font-bold"
                     onClick={() => setIsAdminMenuOpen(!isAdminMenuOpen)}
                   >
@@ -173,6 +174,14 @@ export function Layout({ children }: { children: React.ReactNode }) {
                         <SidebarMenuButton className="w-full text-white hover:bg-white/10 text-[15px] font-bold pl-8">
                           <Users className="w-4 h-4" />
                           <span>Employee Management</span>
+                        </SidebarMenuButton>
+                      </Link>
+                    </SidebarMenuItem>
+                    <SidebarMenuItem>
+                      <Link href="/permissions-map">
+                        <SidebarMenuButton className="w-full text-white hover:bg-white/10 text-[15px] font-bold pl-8">
+                          <Network className="w-4 h-4" />
+                          <span>User Permissions Map</span>
                         </SidebarMenuButton>
                       </Link>
                     </SidebarMenuItem>

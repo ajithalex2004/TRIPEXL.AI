@@ -15,6 +15,7 @@ import VehicleMasterManagement from "@/pages/vehicle-master-management";
 import UserMasterPage from "@/pages/user-master";
 import NewBooking from "@/pages/new-booking";
 import EmployeeManagement from "@/pages/employee-management";
+import PermissionsMapPage from "@/pages/permissions-map";
 import { Layout } from "@/components/layout";
 
 function ProtectedRoute({ component: Component }: { component: React.ComponentType }) {
@@ -58,6 +59,7 @@ function Router() {
       <Route path="/vehicle-master" component={() => <ProtectedRoute component={VehicleMasterManagement} />} />
       <Route path="/user-master" component={() => <ProtectedRoute component={UserMasterPage} />} />
       <Route path="/employees" component={() => <ProtectedRoute component={EmployeeManagement} />} />
+      <Route path="/permissions-map" component={() => <ProtectedRoute component={PermissionsMapPage} />} />
 
       {/* 404 Route */}
       <Route component={NotFound} />
