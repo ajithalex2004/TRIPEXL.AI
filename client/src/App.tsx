@@ -17,65 +17,53 @@ import CO2EmissionsPage from "@/pages/co2-emissions-page";
 import NewBooking from "@/pages/new-booking";
 import EmployeeManagement from "@/pages/employee-management";
 import { Layout } from "@/components/layout";
-import { PageTransition } from "@/components/page-transition";
-import { AnimatePresence } from "framer-motion";
-import { useToast } from "@/hooks/use-toast";
 
 function ProtectedRoute({ component: Component }: { component: React.ComponentType }) {
   const [, setLocation] = useLocation();
-  const { toast } = useToast();
+  const token = localStorage.getItem("token");
 
   React.useEffect(() => {
-    const token = localStorage.getItem("token");
     if (!token) {
       setLocation("/auth/login");
       return;
     }
-  }, [setLocation, toast]);
+  }, [token, setLocation]);
 
-  return (
+  return token ? (
     <Layout>
-      <PageTransition>
-        <Component />
-      </PageTransition>
+      <Component />
     </Layout>
-  );
+  ) : null;
 }
 
 function StandaloneRoute({ component: Component }: { component: React.ComponentType }) {
-  return (
-    <PageTransition>
-      <Component />
-    </PageTransition>
-  );
+  return <Component />;
 }
 
 function Router() {
   const [location] = useLocation();
 
   return (
-    <AnimatePresence mode="wait">
-      <Switch key={location}>
-        {/* Auth Routes - Standalone */}
-        <Route path="/auth/login" component={() => <StandaloneRoute component={LoginPage} />} />
-        <Route path="/auth/forgot-password" component={() => <StandaloneRoute component={ForgotPasswordPage} />} />
-        <Route path="/auth/reset-password" component={() => <StandaloneRoute component={ResetPasswordPage} />} />
+    <Switch key={location}>
+      {/* Auth Routes - Standalone */}
+      <Route path="/auth/login" component={() => <StandaloneRoute component={LoginPage} />} />
+      <Route path="/auth/forgot-password" component={() => <StandaloneRoute component={ForgotPasswordPage} />} />
+      <Route path="/auth/reset-password" component={() => <StandaloneRoute component={ResetPasswordPage} />} />
 
-        {/* Protected Routes */}
-        <Route path="/" component={() => <ProtectedRoute component={Home} />} />
-        <Route path="/new-booking" component={() => <ProtectedRoute component={NewBooking} />} />
-        <Route path="/bookings" component={() => <ProtectedRoute component={BookingHistory} />} />
-        <Route path="/vehicle-groups" component={() => <ProtectedRoute component={VehicleGroupManagement} />} />
-        <Route path="/vehicle-types" component={() => <ProtectedRoute component={VehicleTypeManagement} />} />
-        <Route path="/vehicle-master" component={() => <ProtectedRoute component={VehicleMasterManagement} />} />
-        <Route path="/fuel-efficiency" component={() => <ProtectedRoute component={FuelEfficiencyPage} />} />
-        <Route path="/co2-emissions" component={() => <ProtectedRoute component={CO2EmissionsPage} />} />
-        <Route path="/employees" component={() => <ProtectedRoute component={EmployeeManagement} />} />
+      {/* Protected Routes */}
+      <Route path="/" component={() => <ProtectedRoute component={Home} />} />
+      <Route path="/new-booking" component={() => <ProtectedRoute component={NewBooking} />} />
+      <Route path="/bookings" component={() => <ProtectedRoute component={BookingHistory} />} />
+      <Route path="/vehicle-groups" component={() => <ProtectedRoute component={VehicleGroupManagement} />} />
+      <Route path="/vehicle-types" component={() => <ProtectedRoute component={VehicleTypeManagement} />} />
+      <Route path="/vehicle-master" component={() => <ProtectedRoute component={VehicleMasterManagement} />} />
+      <Route path="/fuel-efficiency" component={() => <ProtectedRoute component={FuelEfficiencyPage} />} />
+      <Route path="/co2-emissions" component={() => <ProtectedRoute component={CO2EmissionsPage} />} />
+      <Route path="/employees" component={() => <ProtectedRoute component={EmployeeManagement} />} />
 
-        {/* 404 Route */}
-        <Route component={NotFound} />
-      </Switch>
-    </AnimatePresence>
+      {/* 404 Route */}
+      <Route component={NotFound} />
+    </Switch>
   );
 }
 
