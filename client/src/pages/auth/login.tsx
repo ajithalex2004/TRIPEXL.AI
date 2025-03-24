@@ -44,7 +44,8 @@ export default function LoginPage() {
         title: "Success",
         description: "Logged in successfully",
       });
-      setLocation("/");
+      // Redirect to booking page instead of home
+      setLocation("/new-booking");
     } catch (error: any) {
       console.error("Login error:", error);
       toast({
@@ -77,10 +78,10 @@ export default function LoginPage() {
                     <FormLabel>Email</FormLabel>
                     <FormControl>
                       <Input 
-                        {...field}
                         type="email" 
                         placeholder="Enter your email"
                         autoComplete="email"
+                        {...field}
                       />
                     </FormControl>
                     <FormMessage />
@@ -95,10 +96,10 @@ export default function LoginPage() {
                     <FormLabel>Password</FormLabel>
                     <FormControl>
                       <Input
-                        {...field}
                         type="password"
                         placeholder="Enter your password"
                         autoComplete="current-password"
+                        {...field}
                       />
                     </FormControl>
                     <FormMessage />
