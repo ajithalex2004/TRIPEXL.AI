@@ -911,7 +911,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
 
         // Generate reset token
-        const resetToken = crypto.randomBytes(32).toString('hex');        const resetTokenExpiry = new Date(Date.now() + 3600000); // 1 hour from now
+        const resetToken = crypto.randomBytes(32).toString('hex');
+        const resetTokenExpiry = new Date(Date.now() + 3600000); // 1 hour from now
 
         // Update user with reset token
         await storage.updateUserResetToken(user.id, resetToken, resetTokenExpiry);
@@ -942,40 +943,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
           to: emailId,
           subject: 'Reset Your TripXL Password',
           html: `
-            <div style="font-family: Arial, sans-serif; padding: 20px;">
-              <h1 style="color: #004990;">Reset Your Password</h1>
-              <p>Hello ${user.full_name},</p>
-              <p>You have requested to reset your password. Click the link below:</p>
-              <p>
-                <a href="${resetUrl}" style="display: inline-block; padding: 10px 20px; background-color: #004990; color: white; text-decoration: none; border-radius: 5px;">
-                  Reset Password
-                </a>
-              </p>
+            <!DOCTYPE html>
+            <html>
+            <body>
+              <p>You have requested to reset your password.</p>
+              <p>Click the button below to set a new password:</p>
+              <table role="presentation" border="0" cellpadding="0" cellspacing="0">
+                <tr>
+                  <td>
+                    <a href="${resetUrl}" style="padding: 10px 20px; background-color: #004990; color: white; text-decoration: none; display: inline-block;">Reset Password</a>
+                  </td>
+                </tr>
+              </table>
               <p style="margin-top: 20px;">
-                Or copy this link: <a href="${resetUrl}">${resetUrl}</a>
+                Alternatively, copy and paste this link into your browser:<br>
+                <a href="${resetUrl}">${resetUrl}</a>
               </p>
-              <p style="color: #666; font-size: 14px;">
-                This link will expire in 1 hour.
-              </p>
-            </div>
-          `,
-          text: `
-Reset Your Password
-
-Hello ${user.full_name},
-
-You have requested to reset your password. Click this link to reset your password:
-
-${resetUrl}
-
-This link will expire in 1 hour.
-
-Best regards,
-TripXL Support
+              <p>This link will expire in 1 hour.</p>
+            </body>
+            </html>
           `
         });
 
-        console.log('Password reset email sent successfully');
+        console.log('Password reset email sent with URL:', resetUrl);
 
         res.json({
           message: "If an account exists with that email, you will receive password reset instructions."
