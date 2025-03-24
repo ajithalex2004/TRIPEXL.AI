@@ -7,10 +7,10 @@ const router = Router();
 
 router.post("/login", async (req, res) => {
   try {
-    const { emailId, password } = req.body;
-    console.log('Login attempt with email:', emailId);
+    const { email_id, password } = req.body;
+    console.log('Login attempt with email:', email_id);
 
-    if (!emailId || !password) {
+    if (!email_id || !password) {
       return res.status(400).json({
         error: "Email and password are required"
       });
@@ -18,7 +18,7 @@ router.post("/login", async (req, res) => {
 
     try {
       // Get user from storage
-      const user = await storage.getUserByEmail(emailId);
+      const user = await storage.getUserByEmail(email_id);
       console.log('User found:', user ? 'Yes' : 'No');
 
       if (!user) {
@@ -45,9 +45,9 @@ router.post("/login", async (req, res) => {
         userType: user.user_type,
         userOperationType: user.user_operation_type,
         userGroup: user.user_group,
-        fullName: user.full_name,
-        firstName: user.first_name,
-        lastName: user.last_name,
+        fullName: user.full_name || '',
+        firstName: user.first_name || '',
+        lastName: user.last_name || '',
         isActive: user.is_active
       };
 

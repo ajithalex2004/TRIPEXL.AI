@@ -31,9 +31,9 @@ export default function LoginPage() {
 
   const login = useMutation({
     mutationFn: async (data: any) => {
-      console.log('Attempting login with:', { emailId: data.emailId });
-      const res = await apiRequest("POST", "/api/login", {
-        emailId: data.emailId,
+      console.log('Attempting login with:', { email_id: data.emailId }); //Updated console log
+      const res = await apiRequest("POST", "/api/auth/login", {
+        email_id: data.emailId, 
         password: data.password,
       });
       if (!res.ok) {
