@@ -95,6 +95,21 @@ export default function UserMasterPage() {
     },
   });
 
+  const handleCreateUser = async (data: any) => {
+    try {
+      console.log('Submitting user data:', { ...data, password: '[REDACTED]' });
+      await createUserMutation.mutateAsync({
+        ...data,
+        is_active: true,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+        password: data.password || "Pass@123"
+      });
+    } catch (error) {
+      console.error("Error in handleCreateUser:", error);
+    }
+  };
+
   const updateUserMutation = useMutation({
     mutationFn: async ({ id, data }: { id: number; data: any }) => {
       console.log("Updating user:", id, "with data:", data);
@@ -159,19 +174,6 @@ export default function UserMasterPage() {
       });
     },
   });
-
-  const handleCreateUser = async (data: any) => {
-    try {
-      console.log('Submitting user data:', { ...data, password: '[REDACTED]' });
-      await createUserMutation.mutateAsync({
-        ...data,
-        is_active: true,
-        password: data.password || "Pass@123"
-      });
-    } catch (error) {
-      console.error("Error in handleCreateUser:", error);
-    }
-  };
 
   const handleUpdateUser = async (data: any) => {
     if (!selectedUser) return;
