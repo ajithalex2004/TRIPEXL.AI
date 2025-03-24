@@ -52,9 +52,19 @@ export default function RegisterPage() {
   const registerMutation = useMutation({
     mutationFn: async (data: RegisterFormData) => {
       const { confirm_password, ...registrationData } = data;
-      console.log("Attempting registration with:", { ...registrationData, password: '[REDACTED]' });
+      const userData = {
+        ...registrationData,
+        user_name: `${data.first_name}.${data.last_name}`.toLowerCase(),
+        user_code: `USR${Math.floor(1000 + Math.random() * 9000)}`,
+        full_name: `${data.first_name} ${data.last_name}`,
+      };
 
-      const response = await apiRequest("POST", "/api/auth/register", registrationData);
+      console.log("Sending registration data:", {
+        ...userData,
+        password: '[REDACTED]'
+      });
+
+      const response = await apiRequest("POST", "/api/auth/register", userData);
       if (!response.ok) {
         const error = await response.json();
         throw new Error(error.message || "Registration failed");
@@ -81,13 +91,7 @@ export default function RegisterPage() {
 
   const onSubmit = async (formData: RegisterFormData) => {
     try {
-      const { confirm_password, ...registrationData } = formData;
-      await registerMutation.mutateAsync({
-        ...registrationData,
-        user_name: `${formData.first_name}.${formData.last_name}`.toLowerCase(),
-        user_code: `USR${Math.floor(1000 + Math.random() * 9000)}`,
-        full_name: `${formData.first_name} ${formData.last_name}`,
-      });
+      await registerMutation.mutateAsync(formData);
     } catch (error) {
       console.error("Form submission error:", error);
     }
