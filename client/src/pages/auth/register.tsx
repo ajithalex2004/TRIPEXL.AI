@@ -37,6 +37,15 @@ export default function RegisterPage() {
   const [showWelcome, setShowWelcome] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
 
+  // Test toast on component mount
+  React.useEffect(() => {
+    console.log("Testing register page toast...");
+    toast({
+      title: "Register Page Loaded",
+      description: "Toast test from register page"
+    });
+  }, [toast]);
+
   const form = useForm<RegisterFormData>({
     resolver: zodResolver(registerSchema),
     defaultValues: {
@@ -58,11 +67,16 @@ export default function RegisterPage() {
   const registerMutation = useMutation({
     mutationFn: async (data: RegisterFormData) => {
       try {
-        setError(null); // Clear any previous errors
+        setError(null);
         console.log("Starting registration mutation");
         const { confirm_password, ...formData } = data;
 
-        // Prepare registration data
+        // Test toast during mutation
+        toast({
+          title: "Processing",
+          description: "Processing registration..."
+        });
+
         const registrationData = {
           ...formData,
           user_name: `${data.first_name}.${data.last_name}`.toLowerCase(),
@@ -98,18 +112,20 @@ export default function RegisterPage() {
     },
     onSuccess: (data) => {
       console.log("Registration mutation success callback", data);
+      // Test immediate toast
       toast({
         title: "Success!",
-        description: "Your account has been created successfully.",
+        description: "Your account has been created successfully."
       });
       setShowWelcome(true);
     },
     onError: (error: Error) => {
       console.log("Registration mutation error callback:", error);
+      // Test immediate toast
       toast({
         title: "Registration Failed",
         description: error.message || "Something went wrong. Please try again.",
-        variant: "destructive",
+        variant: "destructive"
       });
     },
   });
@@ -117,10 +133,10 @@ export default function RegisterPage() {
   const onSubmit = async (formData: RegisterFormData) => {
     try {
       console.log("Form submission started");
-      // Test toast directly
+      // Test immediate toast
       toast({
-        title: "Testing Toast",
-        description: "This is a test toast message",
+        title: "Form Submitted",
+        description: "Processing your registration..."
       });
       await registerMutation.mutateAsync(formData);
     } catch (error) {

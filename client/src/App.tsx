@@ -78,11 +78,22 @@ function Router() {
   );
 }
 
+// Test toast functionality directly in App component
 function App() {
-  // Ensure QueryClientProvider wraps everything including Toaster
+  const { toast } = useToast();
+
+  React.useEffect(() => {
+    // Test toast on app load
+    console.log("Testing toast notification...");
+    toast({
+      title: "App Started",
+      description: "Toast notification test"
+    });
+  }, [toast]);
+
   return (
     <QueryClientProvider client={queryClient}>
-      <div className="relative">
+      <div className="relative min-h-screen">
         <Router />
         <Toaster />
       </div>
