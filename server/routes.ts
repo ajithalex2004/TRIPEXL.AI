@@ -911,8 +911,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
 
         // Generate reset token
-        const resetToken = crypto.randomBytes(32).toString('hex');
-        const resetTokenExpiry = new Date(Date.now() + 3600000); // 1 hour from now
+        const resetToken = crypto.randomBytes(32).toString('hex');        const resetTokenExpiry = new Date(Date.now() + 3600000); // 1 hour from now
 
         // Update user with reset token
         await storage.updateUserResetToken(user.id, resetToken, resetTokenExpiry);
@@ -921,65 +920,62 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const protocol = req.protocol;
         const host = req.get('host');
         const resetUrl = `${protocol}://${host}/auth/reset-password?token=${resetToken}`;
+        console.log('Generated reset URL:', resetUrl); // Debug log
 
         // Setup email transporter
         const transporter = nodemailer.createTransport({
           host: process.env.SMTP_HOST,
-          port: 465, // SSL port
-          secure: true, // Enable SSL
+          port: 465,
+          secure: true,
           auth: {
             user: process.env.SMTP_USER,
             pass: process.env.SMTP_PASS
           }
         });
 
-        // Send email with improved HTML template
+        console.log('Sending password reset email to:', emailId);
+        console.log('Reset URL:', resetUrl);
+
+        // Send email with basic HTML structure
         await transporter.sendMail({
           from: process.env.SMTP_FROM || '"TripXL Support" <support@tripxl.com>',
           to: emailId,
           subject: 'Reset Your TripXL Password',
           html: `
-            <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-              <div style="background-color: #004990; padding: 20px; text-align: center;">
-                <h1 style="color: white; margin: 0;">Reset Your Password</h1>
-              </div>
-              <div style="padding: 20px; background-color: #f9f9f9;">
-                <p style="font-size: 16px; color: #333;">Hello ${user.full_name},</p>
-                <p style="font-size: 16px; color: #333;">You have requested to reset your password.</p>
-                <p style="font-size: 16px; color: #333;">Click the button below to set a new password:</p>
-                <div style="text-align: center; margin: 30px 0;">
-                  <a href="${resetUrl}" style="background-color: #004990; color: white; padding: 15px 30px; text-decoration: none; border-radius: 5px; font-size: 16px; font-weight: bold; display: inline-block;">Reset Password</a>
-                </div>
-                <div style="margin-top: 20px; padding: 15px; background-color: #f0f0f0; border-radius: 5px;">
-                  <p style="font-size: 14px; color: #666; margin: 0;">
-                    Alternatively, copy and paste this link into your browser:<br/>
-                    <a href="${resetUrl}" style="color: #004990; word-break: break-all;">${resetUrl}</a>
-                  </p>
-                </div>
-                <p style="font-size: 14px; color: #666; margin-top: 20px;">This link will expire in 1 hour for security reasons.</p>
-                <p style="font-size: 14px; color: #666;">If you didn't request this password reset, please ignore this email.</p>
-              </div>
-              <div style="text-align: center; padding: 20px; background-color: #f0f0f0;">
-                <p style="font-size: 12px; color: #666; margin: 0;">© ${new Date().getFullYear()} TripXL. All rights reserved.</p>
-              </div>
+            <div style="font-family: Arial, sans-serif; padding: 20px;">
+              <h1 style="color: #004990;">Reset Your Password</h1>
+              <p>Hello ${user.full_name},</p>
+              <p>You have requested to reset your password. Click the link below:</p>
+              <p>
+                <a href="${resetUrl}" style="display: inline-block; padding: 10px 20px; background-color: #004990; color: white; text-decoration: none; border-radius: 5px;">
+                  Reset Password
+                </a>
+              </p>
+              <p style="margin-top: 20px;">
+                Or copy this link: <a href="${resetUrl}">${resetUrl}</a>
+              </p>
+              <p style="color: #666; font-size: 14px;">
+                This link will expire in 1 hour.
+              </p>
             </div>
           `,
           text: `
-            Reset Your Password
+Reset Your Password
 
-            Hello ${user.full_name},
+Hello ${user.full_name},
 
-            You have requested to reset your password. Click the link below to set a new password:
+You have requested to reset your password. Click this link to reset your password:
 
-            ${resetUrl}
+${resetUrl}
 
-            This link will expire in 1 hour for security reasons.
+This link will expire in 1 hour.
 
-            If you didn't request this password reset, please ignore this email.
-
-            © ${new Date().getFullYear()} TripXL
+Best regards,
+TripXL Support
           `
         });
+
+        console.log('Password reset email sent successfully');
 
         res.json({
           message: "If an account exists with that email, you will receive password reset instructions."
