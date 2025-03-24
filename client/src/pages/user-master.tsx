@@ -18,9 +18,17 @@ import { queryClient } from "@/lib/queryClient";
 interface User {
   id: number;
   user_name: string;
+  user_code: string;
+  user_type: string;
   email_id: string;
-  role: string;
-  isActive: boolean;
+  user_operation_type: string;
+  user_group: string;
+  full_name: string;
+  first_name: string;
+  last_name: string;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
 }
 
 export default function UserMasterPage() {
@@ -50,6 +58,7 @@ export default function UserMasterPage() {
         title: "Success",
         description: "User created successfully",
       });
+      setIsFormOpen(false);
     },
     onError: (error: Error) => {
       toast({
@@ -76,6 +85,7 @@ export default function UserMasterPage() {
         title: "Success",
         description: "User updated successfully",
       });
+      setIsFormOpen(false);
     },
     onError: (error: Error) => {
       toast({
@@ -99,6 +109,8 @@ export default function UserMasterPage() {
         title: "Success",
         description: "User deleted successfully",
       });
+      setIsDeleteDialogOpen(false);
+      setSelectedUser(null);
     },
     onError: (error: Error) => {
       toast({
@@ -121,8 +133,6 @@ export default function UserMasterPage() {
   const handleDeleteUser = async () => {
     if (!selectedUser) return;
     await deleteUserMutation.mutateAsync(selectedUser.id);
-    setIsDeleteDialogOpen(false);
-    setSelectedUser(null);
   };
 
   const openCreateDialog = () => {
@@ -146,7 +156,7 @@ export default function UserMasterPage() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 p-6">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold">User Master</h1>
         <Button
@@ -163,55 +173,50 @@ export default function UserMasterPage() {
           <h2 className="text-lg font-semibold">User List</h2>
         </CardHeader>
         <CardContent>
-          <div className="rounded-md border">
+          <div className="rounded-md border overflow-x-auto">
             <table className="min-w-full divide-y divide-gray-200">
               <thead className="bg-gray-50">
                 <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Name
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Email
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Role
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Status
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Actions
-                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">User Code</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Username</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Full Name</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Email</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Type</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Operation Type</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Group</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Created At</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
                 {users?.map((user) => (
                   <tr key={user.id}>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm">
-                      {user.user_name}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm">
-                      {user.email_id}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm">
-                      {user.role || "User"}
-                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm">{user.user_code}</td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm">{user.user_name}</td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm">{user.full_name}</td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm">{user.email_id}</td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm">{user.user_type}</td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm">{user.user_operation_type}</td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm">{user.user_group}</td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm">
                       <span
                         className={`px-2 py-1 text-xs rounded-full ${
-                          user.isActive
+                          user.is_active
                             ? "bg-green-100 text-green-800"
                             : "bg-red-100 text-red-800"
                         }`}
                       >
-                        {user.isActive ? "Active" : "Inactive"}
+                        {user.is_active ? "Active" : "Inactive"}
                       </span>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm">
+                      {new Date(user.created_at).toLocaleDateString()}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm space-x-2">
                       <Button
                         variant="outline"
                         size="sm"
-                        className="mr-2"
                         onClick={() => openEditDialog(user)}
                       >
                         <Pencil className="h-4 w-4" />
