@@ -907,7 +907,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         if (!user || user.user_name !== userName) {
           return res.status(404).json({
             error: "User not found",
-            details: "No matching user found with provided username and email"
+            details: "No matching user found with provided usernameand email"
           });
         }
 
@@ -918,10 +918,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
         // Update user with reset token
         await storage.updateUserResetToken(user.id, resetToken, resetTokenExpiry);
 
-        // Create reset URL
-        const protocol = req.protocol;
-        const host = req.get('host');
-        const resetUrl = `${protocol}://${host}/auth/reset-password?token=${resetToken}`;
+        // Create reset URL - ensure we have the correct base URL
+        const baseUrl = `${req.protocol}://${req.get('host')}`;
+        const resetUrl = new URL('/auth/reset-password', baseUrl);
+        resetUrl.searchParams.append('token', resetToken);
+
+        console.log('Generated reset URL:', resetUrl.toString());
 
         // Setup email transporter
         const transporter = nodemailer.createTransport({
@@ -942,69 +944,50 @@ export async function registerRoutes(app: Express): Promise<Server> {
           to: emailId,
           subject: 'Reset Your TripXL Password',
           html: `
-        <table width="100%" cellpadding="0" cellspacing="0" style="background-color: #f0f0f0; padding: 20px;">
-          <tr>
-            <td align="center">
-              <table width="600" cellpadding="0" cellspacing="0" style="background-color: #ffffff; border-radius: 5px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
-                <tr>
-                  <td style="padding: 20px; text-align: center; background-color: #004990; border-radius: 5px 5px 0 0;">
-                    <h1 style="color: #ffffff; margin: 0; font-family: Arial, sans-serif;">Reset Your Password</h1>
-                  </td>
-                </tr>
-                <tr>
-                  <td style="padding: 20px;">
-                    <table width="100%" cellpadding="0" cellspacing="0">
-                      <tr>
-                        <td style="padding-bottom: 20px;">
-                          <p style="font-family: Arial, sans-serif; margin: 0;">Hello ${user.full_name},</p>
-                        </td>
-                      </tr>
-                      <tr>
-                        <td style="padding-bottom: 20px;">
-                          <p style="font-family: Arial, sans-serif; margin: 0;">Click the button below to reset your password:</p>
-                        </td>
-                      </tr>
-                      <tr>
-                        <td align="center" style="padding-bottom: 20px;">
-                          <table cellpadding="0" cellspacing="0">
-                            <tr>
-                              <td style="background-color: #004990; border-radius: 5px;">
-                                <a href="${resetUrl}" 
-                                   style="display: inline-block; 
-                                          padding: 15px 30px; 
-                                          color: #ffffff; 
-                                          text-decoration: none; 
-                                          font-family: Arial, sans-serif;">
-                                  Reset Password
-                                </a>
-                              </td>
-                            </tr>
-                          </table>
-                        </td>
-                      </tr>
-                      <tr>
-                        <td style="padding-bottom: 20px;">
-                          <p style="font-family: Arial, sans-serif; margin: 0;">
-                            Or copy this link into your browser:<br>
-                            <a href="${resetUrl}" style="color: #004990;">${resetUrl}</a>
-                          </p>
-                        </td>
-                      </tr>
-                      <tr>
-                        <td>
-                          <p style="font-family: Arial, sans-serif; margin: 0; color: #666666; font-size: 14px;">
-                            This link will expire in 1 hour.
-                          </p>
-                        </td>
-                      </tr>
-                    </table>
-                  </td>
-                </tr>
-              </table>
-            </td>
-          </tr>
-        </table>
-      `,
+            <table width="100%" cellpadding="0" cellspacing="0" style="background-color: #f0f0f0; padding: 20px;">
+              <tr>
+                <td align="center">
+                  <table width="600" cellpadding="0" cellspacing="0" style="background-color: #ffffff; border-radius: 5px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+                    <tr>
+                      <td style="padding: 20px; text-align: center; background-color: #004990; border-radius: 5px 5px 0 0;">
+                        <h1 style="color: #ffffff; margin: 0; font-family: Arial, sans-serif;">Reset Your Password</h1>
+                      </td>
+                    </tr>
+                    <tr>
+                      <td style="padding: 20px;">
+                        <p style="font-family: Arial, sans-serif; margin: 0 0 20px;">Hello ${user.full_name},</p>
+                        <p style="font-family: Arial, sans-serif; margin: 0 0 20px;">Click the button below to reset your password:</p>
+                        <table width="100%" cellpadding="0" cellspacing="0">
+                          <tr>
+                            <td align="center" style="padding: 20px 0;">
+                              <a href="${resetUrl.toString()}" 
+                                 style="background-color: #004990;
+                                        color: #ffffff;
+                                        padding: 15px 30px;
+                                        text-decoration: none;
+                                        border-radius: 5px;
+                                        font-family: Arial, sans-serif;
+                                        font-weight: bold;
+                                        display: inline-block;">
+                                Reset Password
+                              </a>
+                            </td>
+                          </tr>
+                        </table>
+                        <p style="font-family: Arial, sans-serif; margin: 20px 0; padding: 15px; background-color: #f5f5f5; border-radius: 5px;">
+                          If the button doesn't work, copy and paste this link into your browser:<br>
+                          <a href="${resetUrl.toString()}" style="color: #004990; word-break: break-all;">${resetUrl.toString()}</a>
+                        </p>
+                        <p style="font-family: Arial, sans-serif; margin: 20px 0 0; color: #666666; font-size: 14px;">
+                          This link will expire in 1 hour.
+                        </p>
+                      </td>
+                    </tr>
+                  </table>
+                </td>
+              </tr>
+            </table>
+          `,
           text: `
 Reset Your Password
 
@@ -1012,10 +995,10 @@ Hello ${user.full_name},
 
 Click the link below to reset your password:
 
-${resetUrl}
+${resetUrl.toString()}
 
 This link will expire in 1 hour.
-      `
+`
         });
 
         console.log('Password reset email sent successfully');
