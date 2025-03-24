@@ -3,58 +3,24 @@ import { useForm } from "react-hook-form";
 import { useMutation } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
-import { useLocation } from "wouter";
+import { useLocation, Link } from "wouter";
 import { FormField, FormItem, FormLabel, FormControl, FormMessage, Form } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardContent } from "@/components/ui/card";
 import { LoadingIndicator } from "@/components/ui/loading-indicator";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion } from "framer-motion";
 
 export default function LoginPage() {
   const { toast } = useToast();
   const [, setLocation] = useLocation();
   const [showPassword, setShowPassword] = React.useState(false);
   const [isLoaded, setIsLoaded] = React.useState(false);
-  const [imageLoaded, setImageLoaded] = React.useState(false);
 
   React.useEffect(() => {
     const timer = setTimeout(() => setIsLoaded(true), 500);
     return () => clearTimeout(timer);
   }, []);
-
-  // Animation variants
-  const logoVariants = {
-    initial: {
-      opacity: 0,
-      scale: 0.3,
-      y: 50,
-      rotate: -10,
-    },
-    animate: {
-      opacity: 1,
-      scale: 1,
-      y: 0,
-      rotate: 0,
-      transition: {
-        type: "spring",
-        stiffness: 200,
-        damping: 20,
-        duration: 1.2,
-        bounce: 0.5,
-      },
-    },
-    hover: {
-      scale: 1.05,
-      rotate: [0, -5, 5, -5, 0],
-      transition: {
-        duration: 1,
-        repeat: Infinity,
-        repeatType: "reverse",
-        ease: "easeInOut",
-      },
-    },
-  };
 
   const form = useForm({
     defaultValues: {
@@ -100,46 +66,6 @@ export default function LoginPage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-[#004990] via-[#0066cc] to-[#ffffff] relative overflow-hidden">
-      {/* Powered by text with animation */}
-      <AnimatePresence>
-        {isLoaded && (
-          <>
-            {/* Text on the left */}
-            <motion.div
-              className="absolute left-4 bottom-4"
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.5 }}
-            >
-              <motion.p
-                className="text-sm font-medium text-black"
-                whileHover={{ scale: 1.05 }}
-              >
-                Powered by EXL AI Solutions
-              </motion.p>
-            </motion.div>
-
-            {/* Logo on the right */}
-            <motion.div
-              className="absolute right-4 bottom-4"
-              variants={logoVariants}
-              initial="initial"
-              animate="animate"
-              whileHover="hover"
-            >
-              <motion.img
-                src="/images/exl-logo.png"
-                alt="EXL Logo"
-                className="w-[120px] h-auto object-contain"
-                onLoad={() => setImageLoaded(true)}
-                layoutId="logo"
-                style={{ filter: "drop-shadow(0px 4px 8px rgba(0, 0, 0, 0.2))" }}
-              />
-            </motion.div>
-          </>
-        )}
-      </AnimatePresence>
-
       <div className="container mx-auto h-screen flex flex-col items-center justify-center p-4">
         <div className="flex items-center space-x-16 max-w-5xl">
           {/* Title and Description */}
@@ -282,13 +208,9 @@ export default function LoginPage() {
                     </Button>
                     <div className="text-center mt-2">
                       <div className="flex flex-col space-y-1">
-                        <Button
-                          variant="link"
-                          className="text-xs text-[#004990] hover:text-[#003870]"
-                          onClick={() => setLocation("/auth/forgot-password")}
-                        >
+                        <Link href="/auth/forgot-password" className="text-xs text-[#004990] hover:text-[#003870] hover:underline">
                           Forgot Password?
-                        </Button>
+                        </Link>
                       </div>
                     </div>
                   </form>
