@@ -6,37 +6,26 @@ import jwt from "jsonwebtoken";
 const router = Router();
 
 const generateToken = (userId: number) => {
-  try {
-    const token = jwt.sign({ userId }, process.env.JWT_SECRET || 'your-secret-key', {
-      expiresIn: '24h',
-    });
-    console.log('Token generated successfully');
-    return token;
-  } catch (error) {
-    console.error('Error generating token:', error);
-    throw error;
-  }
+  return jwt.sign({ userId }, process.env.JWT_SECRET || 'your-secret-key', {
+    expiresIn: '24h',
+  });
 };
 
 router.post("/login", async (req, res) => {
   try {
     console.log('=== Login Request Received ===');
 
-    // Extract credentials
     const { email_id, password } = req.body;
-    console.log('Received login attempt for:', email_id);
+    console.log('Attempting login for:', email_id);
 
-    // Input validation
     if (!email_id || !password) {
-      console.log('Missing credentials:', { hasEmail: !!email_id, hasPassword: !!password });
       return res.status(400).json({
         error: "Email and password are required"
       });
     }
 
-    // Find user
     const user = await storage.getUserByEmail(email_id);
-    console.log('User lookup result:', user ? 'User found' : 'User not found');
+    console.log('User found:', !!user);
 
     if (!user) {
       return res.status(401).json({
@@ -44,10 +33,8 @@ router.post("/login", async (req, res) => {
       });
     }
 
-    // Verify password
-    console.log('Verifying password...');
     const isValid = await bcrypt.compare(password, user.password);
-    console.log('Password verification result:', isValid ? 'Valid' : 'Invalid');
+    console.log('Password validation:', isValid);
 
     if (!isValid) {
       return res.status(401).json({
@@ -55,25 +42,18 @@ router.post("/login", async (req, res) => {
       });
     }
 
-    // Generate token
     const token = generateToken(user.id);
+    console.log('Token generated successfully');
 
-    // Update last login timestamp
-    await storage.updateUserLastLogin(user.id);
-    console.log('Updated last login timestamp');
-
-    // Return success
-    console.log('Login successful, sending response');
     return res.status(200).json({
+      token,
       id: user.id,
       email_id: user.email_id,
-      userName: user.user_name,
-      token
+      userName: user.user_name
     });
 
   } catch (error) {
-    console.error('=== Login Error ===');
-    console.error('Error details:', error);
+    console.error('Login error:', error);
     return res.status(500).json({
       error: "An error occurred during login"
     });

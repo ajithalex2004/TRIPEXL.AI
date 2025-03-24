@@ -7,30 +7,20 @@ import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardContent } from "@/components/ui/card";
 import { Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { z } from "zod";
-
-const loginSchema = z.object({
-  email_id: z.string().email("Please enter a valid email"),
-  password: z.string().min(1, "Password is required"),
-});
-
-type LoginFormData = z.infer<typeof loginSchema>;
 
 export default function LoginPage() {
   const { toast } = useToast();
   const [, setLocation] = useLocation();
   const [isLoading, setIsLoading] = React.useState(false);
 
-  const form = useForm<LoginFormData>({
-    resolver: zodResolver(loginSchema),
+  const form = useForm({
     defaultValues: {
       email_id: "",
       password: "",
     },
   });
 
-  const onSubmit = async (data: LoginFormData) => {
+  const onSubmit = async (data: { email_id: string; password: string }) => {
     try {
       setIsLoading(true);
       console.log("Login attempt:", { email: data.email_id });
@@ -40,27 +30,20 @@ export default function LoginPage() {
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({
-          email_id: data.email_id,
-          password: data.password,
-        }),
+        body: JSON.stringify(data),
       });
 
       const responseData = await response.json();
-      console.log("Server response status:", response.status);
 
       if (!response.ok) {
         throw new Error(responseData.error || "Failed to login");
       }
 
-      console.log("Login successful, received token");
       localStorage.setItem("token", responseData.token);
-
       toast({
         title: "Success",
         description: "Logged in successfully",
       });
-
       setLocation("/");
     } catch (error: any) {
       console.error("Login error:", error);
@@ -78,9 +61,9 @@ export default function LoginPage() {
     <div className="min-h-screen bg-gradient-to-b from-[#004990] via-[#0066cc] to-[#ffffff] flex items-center justify-center p-4">
       <Card className="w-full max-w-md">
         <CardHeader className="space-y-1">
-          <h2 className="text-2xl font-bold text-center">Sign In</h2>
+          <h2 className="text-2xl font-bold text-center">Login</h2>
           <p className="text-sm text-muted-foreground text-center">
-            Enter your credentials to continue
+            Test credentials: athomas@exlsolutions.ae / test123
           </p>
         </CardHeader>
         <CardContent>
