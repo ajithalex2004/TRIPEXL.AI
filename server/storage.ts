@@ -659,7 +659,7 @@ export class DatabaseStorage implements IStorage {
   }
   async validateUserPassword(user: User, password: string): Promise<boolean> {
     try {
-      console.log('Starting password validation for user:', user.emailId);
+      console.log('Starting password validation for user:', user.email_id);
 
       if (!user.password) {
         console.log('No password hash stored for user');

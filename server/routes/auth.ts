@@ -28,7 +28,7 @@ router.post("/login", async (req, res) => {
       }
 
       // Compare passwords
-      const isMatch = await bcrypt.compare(password, user.password);
+      const isMatch = await storage.validateUserPassword(user, password);
       console.log('Password match:', isMatch ? 'Yes' : 'No');
 
       if (!isMatch) {
