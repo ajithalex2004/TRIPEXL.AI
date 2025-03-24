@@ -5,6 +5,7 @@ import { db } from "./db";
 import { sql } from "drizzle-orm";
 import { createServer } from "http";
 import authRouter from "./routes/auth";
+import path from "path";
 
 // Add global error handlers
 process.on("uncaughtException", (error) => {
@@ -38,8 +39,20 @@ app.use((req, res, next) => {
   }
 });
 
-// Mount auth routes
+// API Routes - Mount these before the catch-all route
 app.use("/api/auth", authRouter);
+
+// All other routes should serve the frontend
+app.get('*', (req, res, next) => {
+  // Skip API routes
+  if (req.path.startsWith('/api/')) {
+    return next();
+  }
+
+  // For all other routes, let Vite handle it in development
+  // or serve static files in production
+  next();
+});
 
 // Basic error handling middleware
 app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
