@@ -52,10 +52,12 @@ export class AuthService {
     }
   }
 
+  private async hashPassword(password: string): Promise<string> {
+    return bcrypt.hash(password, 10);
+  }
+
   async registerUser(userData: InsertUser): Promise<{ user: User; userId: number }> {
     try {
-      console.log('Starting registration for:', userData.emailId);
-
       // Check if user exists
       const existingUser = await storage.findUserByEmail(userData.emailId);
       if (existingUser) {
@@ -63,31 +65,21 @@ export class AuthService {
       }
 
       // Hash password
-      const hashedPassword = await bcrypt.hash(userData.password, 10);
+      const hashedPassword = await this.hashPassword(userData.password);
 
-      // Create user
+      // Create user (initially active for testing)
       const user = await storage.createUser({
         ...userData,
         password: hashedPassword,
-        isActive: false
+        isActive: true // Set to true for initial testing
       });
 
-      console.log('User created:', user.id);
-
-      // Generate and store OTP
-      const otp = await this.generateOTP();
-      const expiresAt = new Date();
-      expiresAt.setMinutes(expiresAt.getMinutes() + 15);
-
-      await storage.createOtpVerification({
-        userId: user.id,
-        otp,
-        type: 'registration',
-        expiresAt
-      });
-
-      // Send verification email
-      await this.sendOTPEmail(userData.emailId, otp);
+      // Generate JWT token
+      const token = jwt.sign(
+        { userId: user.id, emailId: user.emailId },
+        process.env.JWT_SECRET || 'dev-secret-key',
+        { expiresIn: '24h' }
+      );
 
       return { user, userId: user.id };
     } catch (error) {
@@ -129,10 +121,6 @@ export class AuthService {
       console.error('OTP verification error:', error);
       throw error;
     }
-  }
-
-  private async hashPassword(password: string): Promise<string> {
-    return bcrypt.hash(password, 10);
   }
 
   async login(emailId: string, password: string): Promise<{ user: User; token: string }> {

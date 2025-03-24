@@ -19,7 +19,6 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardContent } from "@/components/ui/card";
 import { LoadingIndicator } from "@/components/ui/loading-indicator";
-import { InputOTP, InputOTPGroup, InputOTPSlot } from "@/components/ui/input-otp";
 import { WelcomeScreen } from "@/components/welcome-screen";
 
 const registerSchema = insertUserSchema.extend({
@@ -38,9 +37,7 @@ const registerSchema = insertUserSchema.extend({
 export default function RegisterPage() {
   const { toast } = useToast();
   const [, setLocation] = useLocation();
-  const [showVerification, setShowVerification] = React.useState(false);
   const [showWelcome, setShowWelcome] = React.useState(false);
-  const [userId, setUserId] = React.useState<number | null>(null);
 
   const form = useForm({
     resolver: zodResolver(registerSchema),
@@ -58,6 +55,7 @@ export default function RegisterPage() {
 
   const registerMutation = useMutation({
     mutationFn: async (data: any) => {
+      console.log("Attempting registration with:", { ...data, password: '[REDACTED]' });
       const response = await apiRequest("POST", "/api/auth/register", data);
       if (!response.ok) {
         const error = await response.json();
@@ -66,39 +64,18 @@ export default function RegisterPage() {
       return response.json();
     },
     onSuccess: (data) => {
-      setUserId(data.userId);
+      console.log("Registration successful:", data);
       toast({
-        title: "Registration Successful",
-        description: "Please check your email for the verification code",
+        title: "Account Created",
+        description: "Your account has been created successfully!",
       });
-      setShowVerification(true);
-    },
-    onError: (error: Error) => {
-      toast({
-        title: "Registration Failed",
-        description: error.message,
-        variant: "destructive",
-      });
-    },
-  });
-
-  const verifyMutation = useMutation({
-    mutationFn: async ({ userId, otp }: { userId: number; otp: string }) => {
-      const response = await apiRequest("POST", "/api/auth/verify", { userId, otp });
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.message || "Verification failed");
-      }
-      return response.json();
-    },
-    onSuccess: (data) => {
-      localStorage.setItem("token", data.token);
       setShowWelcome(true);
     },
     onError: (error: Error) => {
+      console.error("Registration failed:", error);
       toast({
-        title: "Verification Failed",
-        description: error.message,
+        title: "Registration Failed",
+        description: error.message || "Failed to create account",
         variant: "destructive",
       });
     },
@@ -107,12 +84,14 @@ export default function RegisterPage() {
   const onSubmit = async (formData: any) => {
     try {
       const { confirmPassword, ...registrationData } = formData;
-      await registerMutation.mutateAsync({
+      const userData = {
         ...registrationData,
         userName: `${formData.firstName}.${formData.lastName}`.toLowerCase(),
         fullName: `${formData.firstName} ${formData.lastName}`,
         userCode: `USR${Math.floor(1000 + Math.random() * 9000)}`,
-      });
+      };
+
+      await registerMutation.mutateAsync(userData);
     } catch (error) {
       console.error("Form submission error:", error);
     }
@@ -120,47 +99,6 @@ export default function RegisterPage() {
 
   if (showWelcome) {
     return <WelcomeScreen />;
-  }
-
-  if (showVerification) {
-    return (
-      <Card className="w-[400px] mx-auto mt-8">
-        <CardHeader>
-          <h2 className="text-2xl font-bold">Verify Your Email</h2>
-          <p className="text-sm text-muted-foreground">
-            Enter the verification code sent to your email
-          </p>
-        </CardHeader>
-        <CardContent>
-          <form onSubmit={(e) => {
-            e.preventDefault();
-            if (!userId) return;
-
-            const formData = new FormData(e.currentTarget);
-            const otp = Array.from(formData.entries())
-              .filter(([key]) => key.startsWith('otp-'))
-              .map(([, value]) => value)
-              .join('');
-
-            verifyMutation.mutate({ userId, otp });
-          }} className="space-y-4">
-            <InputOTP maxLength={6} name="otp">
-              <InputOTPGroup>
-                <InputOTPSlot index={0} />
-                <InputOTPSlot index={1} />
-                <InputOTPSlot index={2} />
-                <InputOTPSlot index={3} />
-                <InputOTPSlot index={4} />
-                <InputOTPSlot index={5} />
-              </InputOTPGroup>
-            </InputOTP>
-            <Button type="submit" className="w-full" disabled={verifyMutation.isPending}>
-              {verifyMutation.isPending ? <LoadingIndicator size="sm" /> : "Verify"}
-            </Button>
-          </form>
-        </CardContent>
-      </Card>
-    );
   }
 
   return (
