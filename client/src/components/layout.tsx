@@ -22,7 +22,8 @@ import {
   ChevronRight,
   PlusCircle,
   LayoutDashboard,
-  Users
+  Users,
+  UserCog
 } from "lucide-react";
 import { motion } from "framer-motion";
 
@@ -38,6 +39,7 @@ const AnimatedIcon = ({ children, className = "" }: { children: React.ReactNode;
 
 export function Layout({ children }: { children: React.ReactNode }) {
   const [isVehicleMenuOpen, setIsVehicleMenuOpen] = React.useState(false);
+  const [isAdminMenuOpen, setIsAdminMenuOpen] = React.useState(false);
   const [isLoading, setIsLoading] = React.useState(false);
   const [location] = useLocation();
 
@@ -132,6 +134,45 @@ export function Layout({ children }: { children: React.ReactNode }) {
                         <SidebarMenuButton className="w-full text-white hover:bg-white/10 text-[15px] font-bold pl-8">
                           <Database className="w-4 h-4" />
                           <span>Vehicle Master</span>
+                        </SidebarMenuButton>
+                      </Link>
+                    </SidebarMenuItem>
+                  </>
+                )}
+
+                {/* Admin Management Section */}
+                <SidebarMenuItem>
+                  <SidebarMenuButton 
+                    className="w-full text-white hover:bg-white/10 text-[15px] font-bold"
+                    onClick={() => setIsAdminMenuOpen(!isAdminMenuOpen)}
+                  >
+                    <AnimatedIcon className="text-white">
+                      <Users className="w-4 h-4" />
+                    </AnimatedIcon>
+                    <span>Admin Management</span>
+                    {isAdminMenuOpen ? (
+                      <ChevronDown className="w-4 h-4 ml-auto" />
+                    ) : (
+                      <ChevronRight className="w-4 h-4 ml-auto" />
+                    )}
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+
+                {isAdminMenuOpen && (
+                  <>
+                    <SidebarMenuItem>
+                      <Link href="/user-master">
+                        <SidebarMenuButton className="w-full text-white hover:bg-white/10 text-[15px] font-bold pl-8">
+                          <UserCog className="w-4 h-4" />
+                          <span>User Master</span>
+                        </SidebarMenuButton>
+                      </Link>
+                    </SidebarMenuItem>
+                    <SidebarMenuItem>
+                      <Link href="/employees">
+                        <SidebarMenuButton className="w-full text-white hover:bg-white/10 text-[15px] font-bold pl-8">
+                          <Users className="w-4 h-4" />
+                          <span>Employee Management</span>
                         </SidebarMenuButton>
                       </Link>
                     </SidebarMenuItem>

@@ -12,8 +12,7 @@ import ResetPasswordPage from "@/pages/auth/reset-password";
 import VehicleGroupManagement from "@/pages/vehicle-group-management";
 import VehicleTypeManagement from "@/pages/vehicle-type-management";
 import VehicleMasterManagement from "@/pages/vehicle-master-management";
-import FuelEfficiencyPage from "@/pages/fuel-efficiency-page";
-import CO2EmissionsPage from "@/pages/co2-emissions-page";
+import UserMasterPage from "@/pages/user-master";
 import NewBooking from "@/pages/new-booking";
 import EmployeeManagement from "@/pages/employee-management";
 import { Layout } from "@/components/layout";
@@ -57,8 +56,7 @@ function Router() {
       <Route path="/vehicle-groups" component={() => <ProtectedRoute component={VehicleGroupManagement} />} />
       <Route path="/vehicle-types" component={() => <ProtectedRoute component={VehicleTypeManagement} />} />
       <Route path="/vehicle-master" component={() => <ProtectedRoute component={VehicleMasterManagement} />} />
-      <Route path="/fuel-efficiency" component={() => <ProtectedRoute component={FuelEfficiencyPage} />} />
-      <Route path="/co2-emissions" component={() => <ProtectedRoute component={CO2EmissionsPage} />} />
+      <Route path="/user-master" component={() => <ProtectedRoute component={UserMasterPage} />} />
       <Route path="/employees" component={() => <ProtectedRoute component={EmployeeManagement} />} />
 
       {/* 404 Route */}
