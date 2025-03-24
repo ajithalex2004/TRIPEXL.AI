@@ -907,55 +907,36 @@ export async function registerRoutes(app: Express): Promise<Server> {
         if (!user || user.user_name !== userName) {
           return res.status(404).json({
             error: "User not found",
-            details: "No matching user found with provided usernameand email"
+            details: "No matching user found with provided username and email"
           });
         }
 
         // Generate reset token
-        const resetToken = crypto.randomBytes(32).toString('hex');
-        const resetTokenExpiry = new Date(Date.now() + 3600000); // 1 hour from now
+        const resetToken = crypto.randomBytes(32).toString('hex');        const resetTokenExpiry = new Date(Date.now() + 3600000); // 1 hour from now
 
-        // Update user with reset token
-        await storage.updateUserResetToken(user.id, resetToken, resetTokenExpiry);
-
-        // Create reset URL with robust fallback handling
-        let baseUrl;
-        if (process.env.APP_URL) {
-          // Use configured APP_URL if available
-          baseUrl = process.env.APP_URL.replace(/\/$/, '');
-        } else {
-          // Fallback to constructing URL from request
-          const host = req.get('host');
-          if (!host) {
-            throw new Error('Unable to determine application host');
-          }
-          const protocol = req.secure || req.headers['x-forwarded-proto'] === 'https' ? 'https' : 'http';
-          baseUrl = `${protocol}://${host}`;
+        try {
+          // Update user with reset token
+          await storage.updateUserResetToken(user.id, resetToken, resetTokenExpiry);
+        } catch (dbError) {
+          console.error('Database error updating reset token:', dbError);
+          throw new Error('Failed to update reset token');
         }
 
-        // Construct final reset URL
+        // Ensure APP_URL is available
+        if (!process.env.APP_URL) {
+          throw new Error('APP_URL environment variable is not configured');
+        }
+
+        // Create reset URL
+        const baseUrl = process.env.APP_URL.replace(/\/$/, '');
         const resetUrl = `${baseUrl}/auth/reset-password?token=${resetToken}`;
 
-        // Debug logging
-        console.log('Password Reset URL Generation:', {
-          APP_URL: process.env.APP_URL,
-          requestHost: req.get('host'),
-          requestProtocol: req.protocol,
-          headers: {
-            'x-forwarded-proto': req.headers['x-forwarded-proto'],
-            'x-forwarded-host': req.headers['x-forwarded-host']
-          },
-          computedBaseUrl: baseUrl,
-          finalResetUrl: resetUrl
+        console.log('Reset URL generated:', {
+          baseUrl,
+          resetUrl,
+          userName: user.user_name,
+          email: user.email_id
         });
-
-        // Verify URL is valid
-        try {
-          new URL(resetUrl);
-        } catch (urlError) {
-          console.error('Generated invalid URL:', resetUrl);
-          throw new Error('Failed to generate valid reset URL');
-        }
 
         // Setup email transporter
         const transporter = nodemailer.createTransport({
@@ -968,43 +949,46 @@ export async function registerRoutes(app: Express): Promise<Server> {
           }
         });
 
-        // Send email with simple, reliable template
+        // Send email
         await transporter.sendMail({
           from: process.env.SMTP_FROM || '"TripXL Support" <support@tripxl.com>',
           to: emailId,
           subject: 'Reset Your TripXL Password',
           html: `
-            <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
-              <div style="background-color: #004990; padding: 20px; text-align: center; border-radius: 5px 5px 0 0;">
-                <h1 style="color: white; margin: 0;">Reset Your Password</h1>
-              </div>
-              <div style="background-color: #ffffff; padding: 20px; border-radius: 0 0 5px 5px; border: 1px solid #e0e0e0;">
-                <p style="margin-bottom: 20px;">Hello ${user.full_name},</p>
-                <p style="margin-bottom: 20px;">You have requested to reset your password. Click the button below:</p>
-                <div style="text-align: center; margin: 30px 0;">
-                  <a href="${resetUrl}" 
-                     style="background-color: #004990;
-                            color: white;
-                            padding: 12px 30px;
-                            text-decoration: none;
-                            border-radius: 4px;
-                            font-weight: bold;
-                            display: inline-block;">
-                    Reset Password
-                  </a>
-                </div>
-                <div style="background-color: #f5f5f5; padding: 15px; margin-top: 20px; border-radius: 4px;">
-                  <p style="margin: 0;">
-                    If the button doesn't work, copy and paste this link into your browser:<br>
-                    <a href="${resetUrl}" style="color: #004990; word-break: break-all;">${resetUrl}</a>
-                  </p>
-                </div>
-                <p style="color: #666; font-size: 14px; margin-top: 20px; text-align: center;">
-                  This link will expire in 1 hour for security reasons.
-                </p>
-              </div>
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+          <div style="background-color: #004990; padding: 20px; text-align: center;">
+            <h1 style="color: white; margin: 0;">Reset Your Password</h1>
+          </div>
+          <div style="padding: 20px; background-color: #ffffff; border: 1px solid #e0e0e0;">
+            <p>Hello ${user.full_name},</p>
+            <p>You have requested to reset your password.</p>
+            <div style="text-align: center; margin: 30px 0;">
+              <table cellpadding="0" cellspacing="0" style="margin: 0 auto;">
+                <tr>
+                  <td style="background-color: #004990; border-radius: 4px; padding: 0;">
+                    <a href="${resetUrl}" 
+                       target="_blank"
+                       style="color: white;
+                              padding: 12px 24px;
+                              text-decoration: none;
+                              display: inline-block;
+                              font-weight: bold;">
+                      Reset Password
+                    </a>
+                  </td>
+                </tr>
+              </table>
             </div>
-          `,
+            <p style="background-color: #f5f5f5; padding: 15px; margin-top: 20px;">
+              If the button doesn't work, copy and paste this link into your browser:<br>
+              <a href="${resetUrl}" style="color: #004990; word-break: break-all;">${resetUrl}</a>
+            </p>
+            <p style="color: #666; font-size: 14px; margin-top: 20px;">
+              This link will expire in 1 hour for security reasons.
+            </p>
+          </div>
+        </div>
+      `,
           text: `
 Reset Your Password
 
@@ -1017,17 +1001,17 @@ ${resetUrl}
 This link will expire in 1 hour.
 
 If you didn't request this reset, please ignore this email.
-          `
+      `
         });
 
-        console.log('Password reset email sent successfully to:', emailId);
+        console.log('Password reset email sent successfully');
 
         res.json({
           message: "If an account exists with that email, you will receive password reset instructions."
         });
 
       } catch (error: any) {
-        console.error('Error sending password reset email:', error);
+        console.error('Error in forgot password flow:', error);
         res.status(500).json({
           error: "Failed to process password reset request",
           details: error.message
