@@ -922,8 +922,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         // Setup email transporter
         const transporter = nodemailer.createTransport({
           host: process.env.SMTP_HOST,
-          port: parseInt(process.env.SMTP_PORT || '587'),
-          secure: process.env.SMTP_SECURE === 'true',
+          port: 465, // Changed to 465 for SSL
+          secure: true, // Enable SSL
           auth: {
             user: process.env.SMTP_USER,
             pass: process.env.SMTP_PASS
