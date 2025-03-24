@@ -98,13 +98,7 @@ export default function UserMasterPage() {
   const handleCreateUser = async (data: any) => {
     try {
       console.log('Submitting user data:', { ...data, password: '[REDACTED]' });
-      await createUserMutation.mutateAsync({
-        ...data,
-        is_active: true,
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-        password: data.password || "Pass@123"
-      });
+      await createUserMutation.mutateAsync(data);
     } catch (error) {
       console.error("Error in handleCreateUser:", error);
       // Error will be handled by mutation's onError callback
