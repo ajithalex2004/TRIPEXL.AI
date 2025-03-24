@@ -908,120 +908,106 @@ export async function registerRoutes(app: Express): Promise<Server> {
             error: "User not found",
             details: "No matching user found with provided username and email"
           });
-                }
+        }
 
         // Generate reset token
         const resetToken = crypto.randomBytes(32).toString('hex');
-        const resetTokenExpiry = new Date(Date.now() + 3600000); // 1 hour from now
+    const resetTokenExpiry = new Date(Date.now() + 3600000); // 1 hour from now
 
-        // Update user with reset token
-        await storage.updateUserResetToken(user.id, resetToken, resetTokenExpiry);
+    // Update user with reset token
+    await storage.updateUserResetToken(user.id, resetToken, resetTokenExpiry);
 
-        // Create reset URL with correct protocol and host
-        const protocol = req.protocol;
-        const host = req.get('host');
-        const baseUrl = `${protocol}://${host}`;
-        const resetUrl = `${baseUrl}/auth/reset-password?token=${resetToken}`;
+    // Create reset URL
+    const appUrl = `${req.protocol}://${req.get('host')}`;
+    const resetUrl = new URL(`/auth/reset-password`, appUrl);
+    resetUrl.searchParams.append('token', resetToken);
 
-        console.log('Generated reset URL:', resetUrl); // Debug log
+    console.log('Generated reset URL:', resetUrl.toString());
 
-        // Setup email transporter
-        const transporter = nodemailer.createTransport({
-          host: process.env.SMTP_HOST,
-          port: 465,
-          secure: true,
-          auth: {
-            user: process.env.SMTP_USER,
-            pass: process.env.SMTP_PASS
-          }
-        });
+    // Setup email transporter
+    const transporter = nodemailer.createTransport({
+      host: process.env.SMTP_HOST,
+      port: 465,
+      secure: true,
+      auth: {
+        user: process.env.SMTP_USER,
+        pass: process.env.SMTP_PASS
+      }
+    });
 
-        console.log('Sending password reset email to:', emailId);
+    console.log('Sending password reset email to:', emailId);
 
-        // Send email with basic HTML structure
-        await transporter.sendMail({
-          from: process.env.SMTP_FROM || '"TripXL Support" <support@tripxl.com>',
-          to: emailId,
-          subject: 'Reset Your TripXL Password',
-          html: `
-            <!DOCTYPE html>
-            <html>
-            <head>
-              <meta charset="utf-8">
-              <title>Reset Your Password</title>
-            </head>
-            <body style="font-family: Arial, sans-serif; margin: 0; padding: 20px;">
-              <table width="100%" border="0" cellspacing="0" cellpadding="0">
-                <tr>
-                  <td align="center">
-                    <table style="max-width: 600px; width: 100%;" border="0" cellspacing="0" cellpadding="0">
-                      <tr>
-                        <td style="background-color: #004990; padding: 20px; text-align: center;">
-                          <h1 style="color: white; margin: 0;">Reset Your Password</h1>
-                        </td>
-                      </tr>
-                      <tr>
-                        <td style="background-color: #ffffff; padding: 20px;">
-                          <p style="font-size: 16px; line-height: 1.5;">You have requested to reset your password.</p>
-                          <p style="font-size: 16px; line-height: 1.5;">Click the button below to set a new password:</p>
-                          <p style="text-align: center; margin: 30px 0;">
-                            <a href="${resetUrl}" 
-                               style="background-color: #004990; 
-                                      color: white; 
-                                      padding: 12px 25px; 
-                                      text-decoration: none; 
-                                      border-radius: 4px; 
-                                      display: inline-block; 
-                                      font-weight: bold;">
-                              Reset Password
-                            </a>
-                          </p>
-                          <p style="color: #666666; font-size: 14px; line-height: 1.5;">
-                            If the button doesn't work, copy and paste this link into your browser:
-                            <br>
-                            <a href="${resetUrl}" style="color: #004990; text-decoration: underline; word-break: break-all;">
-                              ${resetUrl}
-                            </a>
-                          </p>
-                          <p style="color: #666666; font-size: 14px; margin-top: 20px;">
-                            This link will expire in 1 hour for security reasons.
-                          </p>
-                        </td>
-                      </tr>
-                    </table>
-                  </td>
-                </tr>
-              </table>
-            </body>
-            </html>
-          `,
-          text: `
+    // Send email
+    await transporter.sendMail({
+      from: process.env.SMTP_FROM || '"TripXL Support" <support@tripxl.com>',
+      to: emailId,
+      subject: 'Reset Your TripXL Password',
+      html: `
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+        </head>
+        <body style="font-family: Arial, sans-serif; margin: 0; padding: 20px;">
+          <div style="max-width: 600px; margin: 0 auto;">
+            <div style="background-color: #004990; padding: 20px; text-align: center;">
+              <h1 style="color: white; margin: 0;">Reset Your Password</h1>
+            </div>
+            <div style="padding: 20px; background-color: #f9f9f9;">
+              <p>You have requested to reset your password.</p>
+              <p>Click the button below to set a new password:</p>
+              <div style="text-align: center; margin: 30px 0;">
+                <a href="${resetUrl.toString()}" 
+                   style="background-color: #004990; 
+                          color: white; 
+                          padding: 12px 24px; 
+                          text-decoration: none; 
+                          border-radius: 4px; 
+                          display: inline-block;">
+                  Reset Password
+                </a>
+              </div>
+              <p style="color: #666; font-size: 14px;">
+                If the button doesn't work, copy and paste this link into your browser:<br/>
+                <a href="${resetUrl.toString()}" style="color: #004990;">
+                  ${resetUrl.toString()}
+                </a>
+              </p>
+              <p style="color: #666; font-size: 14px;">
+                This link will expire in 1 hour for security reasons.
+              </p>
+            </div>
+          </div>
+        </body>
+        </html>
+      `,
+      text: `
 Reset Your Password
 
-You have requested to reset your password.
+You have requested to reset your password. Click the link below to set a new password:
 
-Click this link to reset your password: ${resetUrl}
+${resetUrl.toString()}
 
 This link will expire in 1 hour for security reasons.
 
 If you didn't request this reset, please ignore this email.
-          `
-        });
-
-        console.log('Password reset email sent successfully to:', emailId);
-        console.log('Reset URL in email:', resetUrl);
-
-        res.json({
-          message: "If an account exists with that email, you will receive password reset instructions."
-        });
-
-      } catch (error: any) {
-        console.error('Error in forgot password:', error);
-        res.status(500).json({
-          error: "Failed to process password reset request. Please try again later."
-        });
-      }
+      `
     });
+
+    console.log('Password reset email sent successfully');
+
+    res.json({
+      message: "If an account exists with that email, you will receive password reset instructions."
+    });
+
+  } catch (error: any) {
+    console.error('Error sending password reset email:', error);
+    res.status(500).json({
+      error: "Failed to process password reset request",
+      details: error.message
+    });
+  }
+});
 
     // Add reset password endpoint
     app.post("/api/auth/reset-password", async (req, res) => {
