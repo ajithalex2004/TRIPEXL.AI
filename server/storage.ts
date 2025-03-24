@@ -351,28 +351,48 @@ export class DatabaseStorage implements IStorage {
       .where(eq(schema.employees.email, email));
     return employee || null;
   }
-  async createUser(user: InsertUser): Promise<User> {
-    console.log('Creating new user:', { ...user, password: '[REDACTED]' });
+  async createUser(userData: InsertUser): Promise<User> {
     try {
+      console.log('Creating user with data:', {
+        ...userData,
+        password: '[REDACTED]',
+        emailId: userData.emailId,
+        userName: userData.userName
+      });
+
+      // Validate required fields
+      if (!userData.emailId || !userData.password || !userData.userName) {
+        throw new Error('Missing required fields for user creation');
+      }
+
       const [newUser] = await db
         .insert(schema.users)
         .values({
-          ...user,
+          ...userData,
           isActive: true,
           createdAt: new Date(),
           updatedAt: new Date()
         })
         .returning();
-      console.log('Created user successfully');
+
+      console.log('User created successfully:', {
+        id: newUser.id,
+        emailId: newUser.emailId,
+        userName: newUser.userName
+      });
+
       return newUser;
     } catch (error) {
       console.error('Error creating user:', error);
-      throw error;
+      if (error instanceof Error) {
+        throw new Error(`Failed to create user: ${error.message}`);
+      }
+      throw new Error('Failed to create user');
     }
   }
   async findUserByEmail(emailId: string): Promise<User | null> {
     try {
-      console.log('Starting findUserByEmail with:', emailId);
+      console.log('Finding user by email:', emailId);
 
       const [user] = await db
         .select()
@@ -380,28 +400,11 @@ export class DatabaseStorage implements IStorage {
         .where(eq(schema.users.emailId, emailId))
         .limit(1);
 
-      if (user) {
-        console.log('Database query successful, found user:', {
-          id: user.id,
-          emailId: user.emailId,
-          userName: user.userName,
-          hasPassword: !!user.password,
-          passwordLength: user.password?.length
-        });
-
-        // Log password hash format (first few chars only for security)
-        if (user.password) {
-          console.log('Password hash format check:', user.password.substring(0, 8));
-        }
-
-        return user;
-      } else {
-        console.log('No user found in database for email:', emailId);
-        return null;
-      }
+      console.log('User search result:', user ? 'Found' : 'Not found');
+      return user || null;
     } catch (error) {
-      console.error('Database error in findUserByEmail:', error);
-      throw new Error(`Database error: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      console.error('Error finding user by email:', error);
+      throw new Error('Database error while finding user');
     }
   }
   async getUserByEmail(email: string): Promise<User | null> {
