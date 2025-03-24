@@ -7,18 +7,21 @@ const router = Router();
 
 // Generate JWT token
 const generateToken = (userId: number) => {
-  return jwt.sign({ userId }, process.env.JWT_SECRET || 'your-secret-key', {
+  const token = jwt.sign({ userId }, process.env.JWT_SECRET || 'your-secret-key', {
     expiresIn: '24h',
   });
+  console.log('Generated token for user:', userId);
+  return token;
 };
 
 router.post("/login", async (req, res) => {
   try {
     const { email_id, password } = req.body;
-    console.log('Login attempt for:', email_id);
+    console.log('Login attempt received for:', email_id);
 
     // Validate input
     if (!email_id || !password) {
+      console.log('Missing credentials:', { hasEmail: !!email_id, hasPassword: !!password });
       return res.status(400).json({
         error: "Email and password are required"
       });
@@ -26,7 +29,7 @@ router.post("/login", async (req, res) => {
 
     // Get user from storage
     const user = await storage.getUserByEmail(email_id);
-    console.log('User found:', user ? 'Yes' : 'No');
+    console.log('Database lookup result:', user ? 'User found' : 'User not found');
 
     if (!user) {
       return res.status(401).json({
@@ -34,9 +37,12 @@ router.post("/login", async (req, res) => {
       });
     }
 
+    // Log stored password hash for debugging
+    console.log('Stored password hash:', user.password);
+
     // Compare passwords
     const isMatch = await bcrypt.compare(password, user.password);
-    console.log('Password match:', isMatch ? 'Yes' : 'No');
+    console.log('Password verification result:', isMatch);
 
     if (!isMatch) {
       return res.status(401).json({
@@ -46,6 +52,9 @@ router.post("/login", async (req, res) => {
 
     // Generate token
     const token = generateToken(user.id);
+
+    // Log successful login
+    console.log('Login successful for user:', user.email_id);
 
     // Return user data and token
     return res.status(200).json({

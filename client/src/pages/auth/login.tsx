@@ -1,14 +1,12 @@
 import * as React from "react";
 import { useForm } from "react-hook-form";
-import { useMutation } from "@tanstack/react-query";
-import { apiRequest } from "@/lib/queryClient";
-import { useToast } from "@/hooks/use-toast";
 import { useLocation } from "wouter";
 import { FormField, FormItem, FormLabel, FormControl, FormMessage, Form } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardContent } from "@/components/ui/card";
 import { Loader2 } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 
@@ -32,44 +30,41 @@ export default function LoginPage() {
     },
   });
 
-  const login = useMutation({
-    mutationFn: async (credentials: LoginFormData) => {
+  const onSubmit = async (data: LoginFormData) => {
+    try {
+      console.log("Attempting login with:", data.email_id);
+
       const response = await fetch("/api/auth/login", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify(credentials),
+        body: JSON.stringify(data),
       });
 
+      const responseData = await response.json();
+      console.log("Server response:", response.status, responseData);
+
       if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || "Login failed");
+        throw new Error(responseData.error || "Failed to login");
       }
 
-      return response.json();
-    },
-    onSuccess: (data) => {
-      localStorage.setItem("token", data.token);
+      // Store token and redirect
+      localStorage.setItem("token", responseData.token);
       toast({
         title: "Success",
         description: "Logged in successfully",
       });
       setLocation("/");
-    },
-    onError: (error: Error) => {
+    } catch (error: any) {
+      console.error("Login error:", error);
       toast({
         title: "Error",
-        description: error.message,
+        description: error.message || "Failed to login",
         variant: "destructive",
       });
-    },
-  });
-
-  const onSubmit = form.handleSubmit((data) => {
-    console.log("Submitting form with data:", data);
-    login.mutate(data);
-  });
+    }
+  };
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-[#004990] via-[#0066cc] to-[#ffffff] flex items-center justify-center p-4">
@@ -82,7 +77,7 @@ export default function LoginPage() {
         </CardHeader>
         <CardContent>
           <Form {...form}>
-            <form onSubmit={onSubmit} className="space-y-4">
+            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
               <FormField
                 control={form.control}
                 name="email_id"
@@ -120,9 +115,9 @@ export default function LoginPage() {
               <Button 
                 type="submit" 
                 className="w-full"
-                disabled={login.isPending}
+                disabled={form.formState.isSubmitting}
               >
-                {login.isPending ? (
+                {form.formState.isSubmitting ? (
                   <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                     Signing in...
