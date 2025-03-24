@@ -11,7 +11,7 @@ const generateToken = (userId: number) => {
     const token = jwt.sign({ userId }, process.env.JWT_SECRET || 'your-secret-key', {
       expiresIn: '24h',
     });
-    console.log('Token generated successfully for user:', userId);
+    console.log('Token generated successfully');
     return token;
   } catch (error) {
     console.error('Error generating token:', error);
@@ -21,25 +21,25 @@ const generateToken = (userId: number) => {
 
 router.post("/login", async (req, res) => {
   try {
-    console.log('=== Login Request Received ===');
-    console.log('Request body:', req.body);
+    console.log('=== New Login Attempt ===');
+    console.log('Request body:', { email: req.body.email_id });
 
     const { email_id, password } = req.body;
 
     // Input validation
     if (!email_id || !password) {
-      console.log('Missing credentials:', { hasEmail: !!email_id, hasPassword: !!password });
+      console.log('Missing credentials');
       return res.status(400).json({
         error: "Email and password are required"
       });
     }
 
     // Find user
-    console.log('Looking up user with email:', email_id);
+    console.log('Looking up user...');
     const user = await storage.getUserByEmail(email_id);
-    console.log('User lookup result:', user ? 'User found' : 'User not found');
 
     if (!user) {
+      console.log('User not found');
       return res.status(401).json({
         error: "Invalid credentials"
       });
@@ -47,25 +47,24 @@ router.post("/login", async (req, res) => {
 
     // Verify password
     console.log('Verifying password...');
-    const isMatch = await bcrypt.compare(password, user.password);
-    console.log('Password verification result:', isMatch);
+    const isValid = await bcrypt.compare(password, user.password);
+    console.log('Password validation result:', isValid);
 
-    if (!isMatch) {
+    if (!isValid) {
       return res.status(401).json({
         error: "Invalid credentials"
       });
     }
 
     // Generate token
-    console.log('Generating token for user:', user.id);
     const token = generateToken(user.id);
 
-    // Update last login
+    // Update last login timestamp
     await storage.updateUserLastLogin(user.id);
-    console.log('Updated last login timestamp');
 
-    // Send response
-    console.log('Login successful, sending response');
+    console.log('Login successful');
+
+    // Return success response
     return res.status(200).json({
       id: user.id,
       email_id: user.email_id,
