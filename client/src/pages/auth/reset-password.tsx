@@ -18,6 +18,9 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardContent } from "@/components/ui/card";
 import { LoadingIndicator } from "@/components/ui/loading-indicator";
+import { motion, AnimatePresence } from "framer-motion";
+import { CheckCircle2 } from "lucide-react";
+import Confetti from 'react-confetti';
 
 // Password validation schema
 const resetPasswordSchema = z.object({
@@ -41,6 +44,23 @@ export default function ResetPasswordPage() {
   const [searchParams] = React.useState(new URLSearchParams(window.location.search));
   const token = searchParams.get('token');
   const [userName, setUserName] = React.useState<string>("");
+  const [isSuccess, setIsSuccess] = React.useState(false);
+  const [windowSize, setWindowSize] = React.useState({
+    width: window.innerWidth,
+    height: window.innerHeight,
+  });
+
+  React.useEffect(() => {
+    const handleResize = () => {
+      setWindowSize({
+        width: window.innerWidth,
+        height: window.innerHeight,
+      });
+    };
+
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
   React.useEffect(() => {
     // Fetch user info based on reset token
@@ -86,14 +106,10 @@ export default function ResetPasswordPage() {
       return res.json();
     },
     onSuccess: () => {
-      toast({
-        title: "Success",
-        description: "Your password has been reset successfully. Please login with your new password.",
-        duration: 5000,
-      });
+      setIsSuccess(true);
       setTimeout(() => {
         setLocation("/auth/login");
-      }, 2000);
+      }, 3000);
     },
     onError: (error: any) => {
       toast({
@@ -116,6 +132,50 @@ export default function ResetPasswordPage() {
     resetPassword.mutate(data);
   });
 
+  if (isSuccess) {
+    return (
+      <div className="min-h-screen bg-gradient-to-b from-[#004990] via-[#0066cc] to-[#ffffff] flex items-center justify-center">
+        <Confetti
+          width={windowSize.width}
+          height={windowSize.height}
+          recycle={false}
+          numberOfPieces={200}
+        />
+        <motion.div
+          initial={{ scale: 0 }}
+          animate={{ scale: 1 }}
+          transition={{ type: "spring", stiffness: 260, damping: 20 }}
+        >
+          <Card className="w-[450px] backdrop-blur-sm bg-white/90 dark:bg-black/50 text-center p-8">
+            <motion.div
+              initial={{ scale: 0 }}
+              animate={{ scale: 1 }}
+              transition={{ delay: 0.2, type: "spring", stiffness: 260, damping: 20 }}
+            >
+              <CheckCircle2 className="w-16 h-16 text-green-500 mx-auto mb-4" />
+            </motion.div>
+            <motion.h2
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.4 }}
+              className="text-2xl font-semibold mb-2"
+            >
+              Password Reset Successful!
+            </motion.h2>
+            <motion.p
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.6 }}
+              className="text-muted-foreground mb-4"
+            >
+              Your password has been reset successfully. You will be redirected to the login page shortly.
+            </motion.p>
+          </Card>
+        </motion.div>
+      </div>
+    );
+  }
+
   if (!token) {
     return (
       <div className="min-h-screen bg-gradient-to-b from-[#004990] via-[#0066cc] to-[#ffffff] flex items-center justify-center">
@@ -136,82 +196,90 @@ export default function ResetPasswordPage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-[#004990] via-[#0066cc] to-[#ffffff] flex items-center justify-center">
-      <Card className="w-[450px] backdrop-blur-sm bg-white/90 dark:bg-black/50">
-        <CardHeader className="space-y-1 text-center">
-          <h2 className="text-2xl font-semibold">Reset Password</h2>
-          {userName && (
-            <p className="text-sm text-muted-foreground">
-              Reset password for user: <span className="font-medium">{userName}</span>
-            </p>
-          )}
-        </CardHeader>
-        <CardContent>
-          <Form {...form}>
-            <form onSubmit={onSubmit} className="space-y-4">
-              <FormField
-                control={form.control}
-                name="newPassword"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>New Password</FormLabel>
-                    <FormControl>
-                      <Input
-                        {...field}
-                        type="password"
-                        placeholder="Enter new password"
-                        className="text-sm px-3 py-2"
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="confirmPassword"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Confirm Password</FormLabel>
-                    <FormControl>
-                      <Input
-                        {...field}
-                        type="password"
-                        placeholder="Confirm new password"
-                        className="text-sm px-3 py-2"
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <div className="text-sm text-muted-foreground">
-                <p>Password must contain:</p>
-                <ul className="list-disc list-inside">
-                  <li>At least 8 characters</li>
-                  <li>One uppercase letter</li>
-                  <li>One lowercase letter</li>
-                  <li>One number</li>
-                  <li>One special character</li>
-                </ul>
-              </div>
-              <Button
-                type="submit"
-                className="w-full bg-gradient-to-r from-[#004990] to-[#0066cc] hover:from-[#003870] hover:to-[#004990] text-white"
-                disabled={resetPassword.isPending}
-              >
-                {resetPassword.isPending ? (
-                  <>
-                    <LoadingIndicator size="sm" className="mr-2" />
-                    Resetting Password...
-                  </>
-                ) : (
-                  "Reset Password"
-                )}
-              </Button>
-            </form>
-          </Form>
-        </CardContent>
-      </Card>
+      <AnimatePresence>
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: -20 }}
+        >
+          <Card className="w-[450px] backdrop-blur-sm bg-white/90 dark:bg-black/50">
+            <CardHeader className="space-y-1 text-center">
+              <h2 className="text-2xl font-semibold">Reset Password</h2>
+              {userName && (
+                <p className="text-sm text-muted-foreground">
+                  Reset password for user: <span className="font-medium">{userName}</span>
+                </p>
+              )}
+            </CardHeader>
+            <CardContent>
+              <Form {...form}>
+                <form onSubmit={onSubmit} className="space-y-4">
+                  <FormField
+                    control={form.control}
+                    name="newPassword"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>New Password</FormLabel>
+                        <FormControl>
+                          <Input
+                            {...field}
+                            type="password"
+                            placeholder="Enter new password"
+                            className="text-sm px-3 py-2"
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="confirmPassword"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Confirm Password</FormLabel>
+                        <FormControl>
+                          <Input
+                            {...field}
+                            type="password"
+                            placeholder="Confirm new password"
+                            className="text-sm px-3 py-2"
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <div className="text-sm text-muted-foreground">
+                    <p>Password must contain:</p>
+                    <ul className="list-disc list-inside">
+                      <li>At least 8 characters</li>
+                      <li>One uppercase letter</li>
+                      <li>One lowercase letter</li>
+                      <li>One number</li>
+                      <li>One special character</li>
+                    </ul>
+                  </div>
+                  <Button
+                    type="submit"
+                    className="w-full bg-gradient-to-r from-[#004990] to-[#0066cc] hover:from-[#003870] hover:to-[#004990] text-white"
+                    disabled={resetPassword.isPending}
+                  >
+                    {resetPassword.isPending ? (
+                      <>
+                        <LoadingIndicator size="sm" className="mr-2" />
+                        Resetting Password...
+                      </>
+                    ) : (
+                      "Reset Password"
+                    )}
+                  </Button>
+                </form>
+              </Form>
+            </CardContent>
+          </Card>
+        </motion.div>
+      </AnimatePresence>
     </div>
   );
 }
