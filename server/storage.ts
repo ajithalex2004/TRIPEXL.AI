@@ -430,21 +430,30 @@ export class DatabaseStorage implements IStorage {
         throw new Error(`Missing required fields: ${missingFields.join(', ')}`);
       }
 
-      // Insert user with properly formatted data
-      const [newUser] = await db
-        .insert(schema.users)
-        .values({
-          ...userData,
-          is_active: true,
-          created_at: new Date(),
-          updated_at: new Date()
-        })
-        .returning();
+      // Begin transaction
+      const newUser = await db.transaction(async (tx) => {
+        const [user] = await tx
+          .insert(schema.users)
+          .values({
+            ...userData,
+            is_active: true,
+            created_at: new Date(),
+            updated_at: new Date()
+          })
+          .returning();
+
+        if (!user) {
+          throw new Error('Failed to create user record');
+        }
+
+        return user;
+      });
 
       console.log('User created successfully:', {
         id: newUser.id,
         email: newUser.email_id,
-        username: newUser.user_name
+        username: newUser.user_name,
+        timestamp: new Date().toISOString()
       });
 
       return newUser;
