@@ -1,7 +1,7 @@
 import * as React from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { insertUserSchema } from "@shared/schema";
+import { insertUserSchema, UserType, UserOperationType, UserGroup } from "@shared/schema";
 import { z } from "zod";
 import { useMutation } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
@@ -21,7 +21,15 @@ import { Card, CardHeader, CardContent } from "@/components/ui/card";
 import { LoadingIndicator } from "@/components/ui/loading-indicator";
 import { WelcomeScreen } from "@/components/welcome-screen";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
+// Registration schema matches insertUserSchema from shared/schema.ts
 const registerSchema = insertUserSchema.extend({
   confirm_password: z.string()
 }).refine((data) => data.password === data.confirm_password, {
@@ -43,18 +51,18 @@ export default function RegisterPage() {
   const form = useForm<RegisterFormData>({
     resolver: zodResolver(registerSchema),
     defaultValues: {
-      first_name: "",
-      last_name: "",
-      email_id: "",
-      password: "",
-      confirm_password: "",
-      user_type: "USER",
-      user_operation_type: "EMPLOYEE",
-      user_group: "GROUP_A",
       user_name: "",
       user_code: "",
+      user_type: UserType.USER,
+      email_id: "",
+      user_operation_type: UserOperationType.EMPLOYEE,
+      user_group: UserGroup.GROUP_A,
       full_name: "",
-      is_active: true
+      first_name: "",
+      last_name: "",
+      password: "",
+      is_active: true,
+      confirm_password: ""
     }
   });
 
@@ -66,11 +74,12 @@ export default function RegisterPage() {
 
         const { confirm_password, ...formData } = data;
 
+        // Transform data to match schema
         const registrationData = {
           ...formData,
           user_name: `${data.first_name}.${data.last_name}`.toLowerCase(),
           user_code: `USR${Math.floor(1000 + Math.random() * 9000)}`,
-          full_name: `${data.first_name} ${data.last_name}`,
+          full_name: `${data.first_name} ${data.last_name}`
         };
 
         console.log("Sending registration request...");
@@ -113,7 +122,11 @@ export default function RegisterPage() {
 
   const onSubmit = async (formData: RegisterFormData) => {
     try {
-      console.log("Form submitted");
+      console.log("Form submitted with data:", {
+        ...formData,
+        password: '[REDACTED]',
+        confirm_password: '[REDACTED]'
+      });
       setNotification({
         type: 'success',
         message: 'Processing registration...'
@@ -183,6 +196,90 @@ export default function RegisterPage() {
                   <FormControl>
                     <Input {...field} type="email" placeholder="Enter your email" />
                   </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="user_type"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>User Type</FormLabel>
+                  <Select
+                    onValueChange={field.onChange}
+                    defaultValue={field.value}
+                  >
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select user type" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      {Object.values(UserType).map((type) => (
+                        <SelectItem key={type} value={type}>
+                          {type}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="user_operation_type"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Operation Type</FormLabel>
+                  <Select
+                    onValueChange={field.onChange}
+                    defaultValue={field.value}
+                  >
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select operation type" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      {Object.values(UserOperationType).map((type) => (
+                        <SelectItem key={type} value={type}>
+                          {type}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="user_group"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>User Group</FormLabel>
+                  <Select
+                    onValueChange={field.onChange}
+                    defaultValue={field.value}
+                  >
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select user group" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      {Object.values(UserGroup).map((group) => (
+                        <SelectItem key={group} value={group}>
+                          {group}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                   <FormMessage />
                 </FormItem>
               )}
