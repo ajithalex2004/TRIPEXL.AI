@@ -81,21 +81,25 @@ async function testDbConnection() {
 // Initialize server with proper error handling
 async function initializeServer() {
   try {
-    log("Starting application...");
+    log("Starting application initialization...");
 
     // Test database connection first
+    log("Testing database connection...");
     const dbConnected = await testDbConnection();
     if (!dbConnected) {
       throw new Error("Failed to connect to database");
     }
+    log("Database connection successful");
 
     // Create HTTP server first
+    log("Creating HTTP server...");
     const server = createServer(app);
+    log("HTTP server created");
 
     // Register API routes
-    log("Registering routes...");
+    log("Registering API routes...");
     await registerRoutes(app);
-    log("Routes registered successfully");
+    log("API routes registered successfully");
 
     // Set up Vite or static serving
     if (app.get("env") === "development") {
@@ -110,6 +114,8 @@ async function initializeServer() {
 
     // Bind to 0.0.0.0 to be accessible from outside
     const port = process.env.PORT || 5000;
+    log(`Attempting to start server on port ${port}...`);
+
     server.listen(port, "0.0.0.0", () => {
       log(`Server successfully started and listening on port ${port}`);
       log(`Server is accessible at http://localhost:${port}`);
