@@ -282,35 +282,35 @@ export const contactInfo = z.object({
 
 export const users = pgTable("users", {
   id: serial("id").primaryKey(),
-  userName: text("user_name").notNull().unique(),
-  userCode: text("user_code").notNull().unique(),
-  userType: text("user_type").notNull(),
-  emailId: text("email_id").notNull().unique(),
-  userOperationType: text("user_operation_type").notNull(),
-  userGroup: text("user_group").notNull(),
-  fullName: text("full_name").notNull(),
-  firstName: text("first_name").notNull(),
-  lastName: text("last_name").notNull(),
+  user_name: text("user_name").notNull().unique(),
+  user_code: text("user_code").notNull().unique(),
+  user_type: text("user_type").notNull(),
+  email_id: text("email_id").notNull().unique(),
+  user_operation_type: text("user_operation_type").notNull(),
+  user_group: text("user_group").notNull(),
+  full_name: text("full_name").notNull(),
+  first_name: text("first_name").notNull(),
+  last_name: text("last_name").notNull(),
   password: text("password").notNull(),
-  resetToken: text("reset_token"),
-  resetTokenExpiry: timestamp("reset_token_expiry"),
-  isActive: boolean("is_active").notNull().default(true),
-  createdAt: timestamp("created_at").notNull().defaultNow(),
-  updatedAt: timestamp("updated_at").notNull().defaultNow()
+  is_active: boolean("is_active").notNull().default(true),
+  created_at: timestamp("created_at").notNull().defaultNow(),
+  updated_at: timestamp("updated_at").notNull().defaultNow(),
+  reset_token: text("reset_token"),
+  reset_token_expiry: timestamp("reset_token_expiry")
 });
 
 export const vehicleGroups = pgTable("vehicle_groups", {
   id: serial("id").primaryKey(),
-  groupCode: text("group_code").notNull().unique(),
+  group_code: text("group_code").notNull().unique(),
   region: text("region").notNull(),
   name: text("name").notNull().unique(),
   type: text("type").notNull(),
   department: text("department").notNull(),
-  imageUrl: text("image_url"),
+  image_url: text("image_url"),
   description: text("description"),
-  isActive: boolean("is_active").notNull().default(true),
-  createdAt: timestamp("created_at").notNull().defaultNow(),
-  updatedAt: timestamp("updated_at").notNull().defaultNow()
+  is_active: boolean("is_active").notNull().default(true),
+  created_at: timestamp("created_at").notNull().defaultNow(),
+  updated_at: timestamp("updated_at").notNull().defaultNow()
 });
 
 export const vehicleGroupsRelations = relations(vehicleGroups, ({ many }) => ({
@@ -320,95 +320,95 @@ export const vehicleGroupsRelations = relations(vehicleGroups, ({ many }) => ({
 
 export const vehicleTypeMaster = pgTable("vehicle_type_master", {
   id: serial("id").primaryKey(),
-  groupId: integer("group_id").references(() => vehicleGroups.id).notNull(),
-  vehicleTypeCode: text("vehicle_type_code").notNull().unique(),
-  vehicleTypeName: text("vehicle_type_name").notNull(),
+  group_id: integer("group_id").references(() => vehicleGroups.id).notNull(),
+  vehicle_type_code: text("vehicle_type_code").notNull().unique(),
+  vehicle_type_name: text("vehicle_type_name").notNull(),
   manufacturer: text("manufacturer").notNull(),
-  modelYear: integer("model_year").notNull(),
-  numberOfPassengers: integer("number_of_passengers").notNull(),
+  model_year: integer("model_year").notNull(),
+  number_of_passengers: integer("number_of_passengers").notNull(),
   region: text("region").notNull(),
-  fuelEfficiency: decimal("fuel_efficiency", { precision: 10, scale: 2 }).notNull(),
-  fuelPricePerLitre: decimal("fuel_price_per_litre", { precision: 10, scale: 2 }).notNull(),
-  fuelType: text("fuel_type").notNull(),
-  servicePlan: text("service_plan").notNull(),
-  costPerKm: decimal("cost_per_km", { precision: 10, scale: 2 }).notNull(),
-  vehicleType: text("vehicle_type").notNull(),
+  fuel_efficiency: decimal("fuel_efficiency", { precision: 10, scale: 2 }).notNull(),
+  fuel_price_per_litre: decimal("fuel_price_per_litre", { precision: 10, scale: 2 }).notNull(),
+  fuel_type: text("fuel_type").notNull(),
+  service_plan: text("service_plan").notNull(),
+  cost_per_km: decimal("cost_per_km", { precision: 10, scale: 2 }).notNull(),
+  vehicle_type: text("vehicle_type").notNull(),
   department: text("department").notNull(),
   unit: text("unit"),
-  alertBefore: integer("alert_before").notNull(),
-  idleFuelConsumption: decimal("idle_fuel_consumption", { precision: 10, scale: 2 }).notNull(),
-  vehicleCapacity: integer("vehicle_capacity").notNull(),
-  co2EmissionFactor: decimal("co2_emission_factor", { precision: 10, scale: 2 }).notNull().default('0'),
-  isActive: boolean("is_active").notNull().default(true),
-  createdAt: timestamp("created_at").notNull().defaultNow(),
-  updatedAt: timestamp("updated_at").notNull().defaultNow()
+  alert_before: integer("alert_before").notNull(),
+  idle_fuel_consumption: decimal("idle_fuel_consumption", { precision: 10, scale: 2 }).notNull(),
+  vehicle_capacity: integer("vehicle_capacity").notNull(),
+  co2_emission_factor: decimal("co2_emission_factor", { precision: 10, scale: 2 }).notNull().default('0'),
+  is_active: boolean("is_active").notNull().default(true),
+  created_at: timestamp("created_at").notNull().defaultNow(),
+  updated_at: timestamp("updated_at").notNull().defaultNow()
 });
 
 export const vehicleTypeMasterRelations = relations(vehicleTypeMaster, ({ one }) => ({
   group: one(vehicleGroups, {
-    fields: [vehicleTypeMaster.groupId],
+    fields: [vehicleTypeMaster.group_id],
     references: [vehicleGroups.id]
   })
 }));
 
 export const vehicles = pgTable("vehicles", {
   id: serial("id").primaryKey(),
-  groupId: integer("group_id").references(() => vehicleGroups.id),
-  typeId: integer("type_id").references(() => vehicleTypeMaster.id),
-  vehicleNumber: text("vehicle_number").notNull().unique(),
+  group_id: integer("group_id").references(() => vehicleGroups.id),
+  type_id: integer("type_id").references(() => vehicleTypeMaster.id),
+  vehicle_number: text("vehicle_number").notNull().unique(),
   name: text("name").notNull(),
   make: text("make").notNull(),
   model: text("model").notNull(),
   year: integer("year").notNull(),
-  registrationNumber: text("registration_number").notNull().unique(),
-  loadCapacity: integer("load_capacity").notNull(),
-  passengerCapacity: integer("passenger_capacity"),
+  registration_number: text("registration_number").notNull().unique(),
+  load_capacity: integer("load_capacity").notNull(),
+  passenger_capacity: integer("passenger_capacity"),
   status: text("status").notNull().default("Available"),
-  currentLocation: json("current_location").$type<z.infer<typeof locations>>().notNull(),
-  lastMaintenanceDate: timestamp("last_maintenance_date"),
-  nextMaintenanceDate: timestamp("next_maintenance_date"),
+  current_location: json("current_location").$type<z.infer<typeof locations>>().notNull(),
+  last_maintenance_date: timestamp("last_maintenance_date"),
+  next_maintenance_date: timestamp("next_maintenance_date"),
   features: text("features").array().default([]),
-  imageUrl: text("image_url"),
-  isActive: boolean("is_active").notNull().default(true),
-  createdAt: timestamp("created_at").notNull().defaultNow(),
-  updatedAt: timestamp("updated_at").notNull().defaultNow()
+  image_url: text("image_url"),
+  is_active: boolean("is_active").notNull().default(true),
+  created_at: timestamp("created_at").notNull().defaultNow(),
+  updated_at: timestamp("updated_at").notNull().defaultNow()
 }, (table) => {
   return {
-    groupIdIdx: index("vehicles_group_id_idx").on(table.groupId),
-    typeIdIdx: index("vehicles_type_id_idx").on(table.typeId),
-    statusIdx: index("vehicles_status_idx").on(table.status)
+    group_id_idx: index("vehicles_group_id_idx").on(table.group_id),
+    type_id_idx: index("vehicles_type_id_idx").on(table.type_id),
+    status_idx: index("vehicles_status_idx").on(table.status)
   };
 });
 
 export const vehiclesRelations = relations(vehicles, ({ one }) => ({
   group: one(vehicleGroups, {
-    fields: [vehicles.groupId],
+    fields: [vehicles.group_id],
     references: [vehicleGroups.id]
   }),
   type: one(vehicleTypeMaster, {
-    fields: [vehicles.typeId],
+    fields: [vehicles.type_id],
     references: [vehicleTypeMaster.id]
   })
 }));
 
 export const drivers = pgTable("drivers", {
   id: serial("id").primaryKey(),
-  employeeId: text("employee_id").notNull().unique(),
+  employee_id: text("employee_id").notNull().unique(),
   name: text("name").notNull(),
-  licenseNumber: text("license_number").notNull().unique(),
-  licenseType: text("license_type").notNull(),
-  licenseExpiry: timestamp("license_expiry").notNull(),
+  license_number: text("license_number").notNull().unique(),
+  license_type: text("license_type").notNull(),
+  license_expiry: timestamp("license_expiry").notNull(),
   phone: text("phone").notNull(),
   email: text("email").notNull(),
   status: text("status").notNull().default("Available"),
-  currentLocation: json("current_location").$type<z.infer<typeof locations>>().notNull(),
+  current_location: json("current_location").$type<z.infer<typeof locations>>().notNull(),
   specializations: text("specializations").array().default([]),
-  preferredVehicleTypes: text("preferred_vehicle_types").array(),
+  preferred_vehicle_types: text("preferred_vehicle_types").array(),
   rating: integer("rating"),
-  avatarUrl: text("avatar_url"),
-  isActive: boolean("is_active").notNull().default(true),
-  createdAt: timestamp("created_at").notNull().defaultNow(),
-  updatedAt: timestamp("updated_at").notNull().defaultNow()
+  avatar_url: text("avatar_url"),
+  is_active: boolean("is_active").notNull().default(true),
+  created_at: timestamp("created_at").notNull().defaultNow(),
+  updated_at: timestamp("updated_at").notNull().defaultNow()
 });
 
 export const locationsMaster = pgTable("locations_master", {
@@ -417,12 +417,12 @@ export const locationsMaster = pgTable("locations_master", {
   address: text("address").notNull(),
   coordinates: json("coordinates").$type<{ lat: number; lng: number }>().notNull(),
   type: text("type").notNull(),
-  contactPerson: text("contact_person"),
-  contactPhone: text("contact_phone"),
-  operatingHours: json("operating_hours").$type<{ open: string; close: string }[]>(),
-  isActive: boolean("is_active").notNull().default(true),
-  createdAt: timestamp("created_at").notNull().defaultNow(),
-  updatedAt: timestamp("updated_at").notNull().defaultNow()
+  contact_person: text("contact_person"),
+  contact_phone: text("contact_phone"),
+  operating_hours: json("operating_hours").$type<{ open: string; close: string }[]>(),
+  is_active: boolean("is_active").notNull().default(true),
+  created_at: timestamp("created_at").notNull().defaultNow(),
+  updated_at: timestamp("updated_at").notNull().defaultNow()
 });
 
 // Add these enums after the existing ones, before the table definitions
@@ -455,29 +455,29 @@ export const HierarchyLevel = {
 // Update the employees table definition
 export const employees = pgTable("employees", {
   id: serial("id").primaryKey(),
-  employeeId: integer("employee_id").notNull().unique(),
-  employeeName: varchar("employee_name", { length: 100 }).notNull(),
-  emailId: varchar("email_id", { length: 50 }).notNull(),
-  mobileNumber: varchar("mobile_number", { length: 15 }).notNull(),
+  employee_id: integer("employee_id").notNull().unique(),
+  employee_name: varchar("employee_name", { length: 100 }).notNull(),
+  email_id: varchar("email_id", { length: 50 }).notNull(),
+  mobile_number: varchar("mobile_number", { length: 15 }).notNull(),
   designation: text("designation").notNull(),
-  hierarchyLevel: text("hierarchy_level").notNull(),
-  employeeType: varchar("employee_type", { length: 50 }),
+  hierarchy_level: text("hierarchy_level").notNull(),
+  employee_type: varchar("employee_type", { length: 50 }),
   region: varchar("region", { length: 50 }).notNull(),
   department: varchar("department", { length: 50 }).notNull(),
   unit: varchar("unit", { length: 50 }).notNull(),
-  dateOfBirth: date("date_of_birth"),
+  date_of_birth: date("date_of_birth"),
   nationality: text("nationality"),
   password: varchar("password", { length: 50 }),
-  communicationLanguage: varchar("communication_language", { length: 50 }),
-  supervisorId: integer("supervisor_id").references(() => employees.id),
-  isActive: boolean("is_active").notNull().default(true),
-  createdAt: timestamp("created_at").notNull().defaultNow(),
-  updatedAt: timestamp("updated_at").notNull().defaultNow()
+  communication_language: varchar("communication_language", { length: 50 }),
+  supervisor_id: integer("supervisor_id").references(() => employees.id),
+  is_active: boolean("is_active").notNull().default(true),
+  created_at: timestamp("created_at").notNull().defaultNow(),
+  updated_at: timestamp("updated_at").notNull().defaultNow()
 });
 
 export const employeesRelations = relations(employees, ({ one, many }) => ({
   supervisor: one(employees, {
-    fields: [employees.supervisorId],
+    fields: [employees.supervisor_id],
     references: [employees.id],
   }),
   subordinates: many(employees),
@@ -486,52 +486,52 @@ export const employeesRelations = relations(employees, ({ one, many }) => ({
 
 export const bookings = pgTable("bookings", {
   id: serial("id").primaryKey(),
-  userId: integer("user_id").references(() => users.id),
-  employeeId: integer("employee_id").references(() => employees.id),
-  bookingType: text("booking_type").notNull(),
+  user_id: integer("user_id").references(() => users.id),
+  employee_id: integer("employee_id").references(() => employees.id),
+  booking_type: text("booking_type").notNull(),
   purpose: text("purpose").notNull(),
   priority: text("priority").notNull(),
 
   // Cargo details
-  cargoType: text("cargo_type"),
-  numBoxes: integer("num_boxes"),
+  cargo_type: text("cargo_type"),
+  num_boxes: integer("num_boxes"),
   weight: integer("weight"),
-  boxSize: text("box_size").array(),
+  box_size: text("box_size").array(),
 
   // Trip details
-  tripType: text("trip_type"),
-  numPassengers: integer("num_passengers"),
-  withDriver: boolean("with_driver").default(false),
-  bookingForSelf: boolean("booking_for_self").default(false),
-  passengerDetails: json("passenger_details").$type<{ name: string; contact: string }[]>(),
+  trip_type: text("trip_type"),
+  num_passengers: integer("num_passengers"),
+  with_driver: boolean("with_driver").default(false),
+  booking_for_self: boolean("booking_for_self").default(false),
+  passenger_details: json("passenger_details").$type<{ name: string; contact: string }[]>(),
 
   // Location details
-  pickupLocation: json("pickup_location").$type<z.infer<typeof locations>>().notNull(),
-  dropoffLocation: json("dropoff_location").$type<z.infer<typeof locations>>().notNull(),
-  pickupTime: text("pickup_time").notNull(),
-  dropoffTime: text("dropoff_time").notNull(),
+  pickup_location: json("pickup_location").$type<z.infer<typeof locations>>().notNull(),
+  dropoff_location: json("dropoff_location").$type<z.infer<typeof locations>>().notNull(),
+  pickup_time: text("pickup_time").notNull(),
+  dropoff_time: text("dropoff_time").notNull(),
 
   // Reference and tracking
-  referenceNo: text("reference_no").unique(),
+  reference_no: text("reference_no").unique(),
   remarks: text("remarks"),
   status: text("status").notNull().default("new"),
 
   // Vehicle assignment
-  assignedVehicleId: integer("assigned_vehicle_id").references(() => vehicles.id),
-  assignedDriverId: integer("assigned_driver_id").references(() => drivers.id),
+  assigned_vehicle_id: integer("assigned_vehicle_id").references(() => vehicles.id),
+  assigned_driver_id: integer("assigned_driver_id").references(() => drivers.id),
 
   // Timestamps
-  createdAt: timestamp("created_at").notNull().defaultNow(),
-  updatedAt: timestamp("updated_at").notNull().defaultNow(),
-  confirmedAt: timestamp("confirmed_at"),
-  completedAt: timestamp("completed_at"),
-  cancelledAt: timestamp("cancelled_at"),
+  created_at: timestamp("created_at").notNull().defaultNow(),
+  updated_at: timestamp("updated_at").notNull().defaultNow(),
+  confirmed_at: timestamp("confirmed_at"),
+  completed_at: timestamp("completed_at"),
+  cancelled_at: timestamp("cancelled_at"),
 
   // Booking metadata
-  totalDistance: decimal("total_distance", { precision: 10, scale: 2 }),
-  estimatedCost: decimal("estimated_cost", { precision: 10, scale: 2 }),
-  actualCost: decimal("actual_cost", { precision: 10, scale: 2 }),
-  co2Emissions: decimal("co2_emissions", { precision: 10, scale: 2 }),
+  total_distance: decimal("total_distance", { precision: 10, scale: 2 }),
+  estimated_cost: decimal("estimated_cost", { precision: 10, scale: 2 }),
+  actual_cost: decimal("actual_cost", { precision: 10, scale: 2 }),
+  co2_emissions: decimal("co2_emissions", { precision: 10, scale: 2 }),
 
   // Feedback and rating
   rating: integer("rating"),
@@ -540,109 +540,109 @@ export const bookings = pgTable("bookings", {
 
 export const otpVerifications = pgTable("otp_verifications", {
   id: serial("id").primaryKey(),
-  userId: integer("user_id").references(() => users.id),
+  user_id: integer("user_id").references(() => users.id),
   otp: text("otp").notNull(),
   type: text("type").notNull(),
-  expiresAt: timestamp("expires_at").notNull(),
-  isUsed: boolean("is_used").notNull().default(false),
-  createdAt: timestamp("created_at").notNull().defaultNow()
+  expires_at: timestamp("expires_at").notNull(),
+  is_used: boolean("is_used").notNull().default(false),
+  created_at: timestamp("created_at").notNull().defaultNow()
 });
 
 export const bookingsRelations = relations(bookings, ({ one }) => ({
   user: one(users, {
-    fields: [bookings.userId],
+    fields: [bookings.user_id],
     references: [users.id],
   }),
   vehicle: one(vehicles, {
-    fields: [bookings.assignedVehicleId],
+    fields: [bookings.assigned_vehicle_id],
     references: [vehicles.id],
   }),
   driver: one(drivers, {
-    fields: [bookings.assignedDriverId],
+    fields: [bookings.assigned_driver_id],
     references: [drivers.id],
   }),
   employee: one(employees, {
-    fields: [bookings.employeeId],
+    fields: [bookings.employee_id],
     references: [employees.id]
   })
 }));
 
 export const vehicleMaster = pgTable("vehicle_master", {
   id: serial("id").primaryKey(),
-  vehicleId: text("vehicle_id").notNull().unique(),
+  vehicle_id: text("vehicle_id").notNull().unique(),
   emirate: text("emirate").notNull(),
-  registrationNumber: text("registration_number").notNull(),
-  plateCode: text("plate_code").notNull(),
-  plateNumber: text("plate_number").notNull(),
-  currentOdometer: decimal("current_odometer", { precision: 10, scale: 2 }).notNull(),
-  plateCategory: text("plate_category").notNull(),
-  vehicleTypeCode: text("vehicle_type_code").references(() => vehicleTypeMaster.vehicleTypeCode).notNull(),
-  vehicleTypeName: text("vehicle_type_name").notNull(),
-  stopRunModeCommFreq: decimal("stop_run_mode_comm_freq", { precision: 10, scale: 2 }),
-  maxSpeed: decimal("max_speed", { precision: 10, scale: 2 }),
-  vehicleModel: text("vehicle_model").notNull(),
-  fuelType: text("fuel_type").notNull(),
-  transmissionType: text("transmission_type").notNull(),
+  registration_number: text("registration_number").notNull(),
+  plate_code: text("plate_code").notNull(),
+  plate_number: text("plate_number").notNull(),
+  current_odometer: decimal("current_odometer", { precision: 10, scale: 2 }).notNull(),
+  plate_category: text("plate_category").notNull(),
+  vehicle_type_code: text("vehicle_type_code").references(() => vehicleTypeMaster.vehicle_type_code).notNull(),
+  vehicle_type_name: text("vehicle_type_name").notNull(),
+  stop_run_mode_comm_freq: decimal("stop_run_mode_comm_freq", { precision: 10, scale: 2 }),
+  max_speed: decimal("max_speed", { precision: 10, scale: 2 }),
+  vehicle_model: text("vehicle_model").notNull(),
+  fuel_type: text("fuel_type").notNull(),
+  transmission_type: text("transmission_type").notNull(),
   region: text("region").notNull(),
   department: text("department").notNull(),
-  chassisNumber: text("chassis_number").notNull(),
-  engineNumber: text("engine_number").notNull(),
+  chassis_number: text("chassis_number").notNull(),
+  engine_number: text("engine_number").notNull(),
   unit: text("unit").notNull(),
-  modelYear: integer("model_year").notNull(),
-  assetType: text("asset_type").notNull(),
-  tyreSize: text("tyre_size"),
+  model_year: integer("model_year").notNull(),
+  asset_type: text("asset_type").notNull(),
+  tyre_size: text("tyre_size"),
   manufacturer: text("manufacturer").notNull(),
-  numberOfPassengers: integer("number_of_passengers"),
-  vehicleColor: text("vehicle_color"),
-  salikTagNumber: text("salik_tag_number"),
-  salikAccountNumber: text("salik_account_number"),
-  deviceId: text("device_id"),
-  simCardNumber: text("sim_card_number"),
-  vehicleUsage: text("vehicle_usage").notNull(),
+  number_of_passengers: integer("number_of_passengers"),
+  vehicle_color: text("vehicle_color"),
+  salik_tag_number: text("salik_tag_number"),
+  salik_account_number: text("salik_account_number"),
+  device_id: text("device_id"),
+  sim_card_number: text("sim_card_number"),
+  vehicle_usage: text("vehicle_usage").notNull(),
 
   // Yellow/Blue highlighted fields as YES/NO text fields
-  isCanConnected: text("is_can_connected").notNull(),
-  isWeightSensorConnected: text("is_weight_sensor_connected").notNull(),
-  isTemperatureSensorConnected: text("is_temperature_sensor_connected").notNull(),
-  isPtoConnected: text("is_pto_connected").notNull(),
+  is_can_connected: text("is_can_connected").notNull(),
+  is_weight_sensor_connected: text("is_weight_sensor_connected").notNull(),
+  is_temperature_sensor_connected: text("is_temperature_sensor_connected").notNull(),
+  is_pto_connected: text("is_pto_connected").notNull(),
 
   // Document tracking
-  documentNo: text("document_no"),
-  issuedOn: timestamp("issued_on"),
-  expiresOn: timestamp("expires_on"),
+  document_no: text("document_no"),
+  issued_on: timestamp("issued_on"),
+  expires_on: timestamp("expires_on"),
   attachment: text("attachment"),
-  isValid: boolean("is_valid").default(true),
+  is_valid: boolean("is_valid").default(true),
 
-  createdAt: timestamp("created_at").notNull().defaultNow(),
-  updatedAt: timestamp("updated_at").notNull().defaultNow()
+  created_at: timestamp("created_at").notNull().defaultNow(),
+  updated_at: timestamp("updated_at").notNull().defaultNow()
 });
 
 export const vehicleMasterRelations = relations(vehicleMaster, ({ one }) => ({
   vehicleType: one(vehicleTypeMaster, {
-    fields: [vehicleMaster.vehicleTypeCode],
-    references: [vehicleTypeMaster.vehicleTypeCode],
+    fields: [vehicleMaster.vehicle_type_code],
+    references: [vehicleTypeMaster.vehicle_type_code],
   }),
 }));
 
 export const insertBookingSchema = createInsertSchema(bookings)
   .extend({
-    bookingType: z.enum([BookingType.FREIGHT, BookingType.PASSENGER, BookingType.AMBULANCE]),
+    booking_type: z.enum([BookingType.FREIGHT, BookingType.PASSENGER, BookingType.AMBULANCE]),
     purpose: z.enum(Object.values(BookingPurpose) as [string, ...string[]]),
     priority: z.enum(Object.values(Priority) as [string, ...string[]]),
-    tripType: z.enum(Object.values(TripType) as [string, ...string[]]).optional(),
+    trip_type: z.enum(Object.values(TripType) as [string, ...string[]]).optional(),
     status: z.enum(["new", "pending", "approved", "confirmed", "in_progress", "completed", "cancelled"] as [string, ...string[]]).optional(),
-    cargoType: z.enum(Object.values(CargoType) as [string, ...string[]]).optional(),
-    boxSize: z.array(z.enum(Object.values(BoxSize) as [string, ...string[]])).optional(),
+    cargo_type: z.enum(Object.values(CargoType) as [string, ...string[]]).optional(),
+    box_size: z.array(z.enum(Object.values(BoxSize) as [string, ...string[]])).optional(),
 
     // Make location objects more flexible
-    pickupLocation: z.object({
+    pickup_location: z.object({
       address: z.string(),
       coordinates: z.object({
         lat: z.number(),
         lng: z.number()
       })
     }),
-    dropoffLocation: z.object({
+    dropoff_location: z.object({
       address: z.string(),
       coordinates: z.object({
         lat: z.number(),
@@ -651,47 +651,47 @@ export const insertBookingSchema = createInsertSchema(bookings)
     }),
 
     // Optional fields
-    withDriver: z.boolean().optional(),
-    bookingForSelf: z.boolean().optional(),
-    passengerDetails: z.array(
+    with_driver: z.boolean().optional(),
+    booking_for_self: z.boolean().optional(),
+    passenger_details: z.array(
       z.object({
         name: z.string(),
         contact: z.string()
       })
     ).optional(),
-    referenceNo: z.string().optional(),
+    reference_no: z.string().optional(),
     remarks: z.string().optional(),
-    assignedVehicleId: z.number().optional(),
-    assignedDriverId: z.number().optional(),
+    assigned_vehicle_id: z.number().optional(),
+    assigned_driver_id: z.number().optional(),
     rating: z.number().min(1).max(5).optional(),
     feedback: z.string().optional(),
-    totalDistance: z.number().optional(),
-    estimatedCost: z.number().optional(),
-    co2Emissions: z.number().optional(),
-    numPassengers: z.number().optional(),
-    numBoxes: z.number().optional(),
+    total_distance: z.number().optional(),
+    estimated_cost: z.number().optional(),
+    co2_emissions: z.number().optional(),
+    num_passengers: z.number().optional(),
+    num_boxes: z.number().optional(),
     weight: z.number().optional(),
-    employeeId: z.number().optional()
+    employee_id: z.number().optional()
   });
 
 export const insertUserSchema = createInsertSchema(users)
   .extend({
-    userType: z.enum(Object.values(UserType) as [string, ...string[]]),
-    userOperationType: z.enum(Object.values(UserOperationType) as [string, ...string[]]),
-    userGroup: z.enum(Object.values(UserGroup) as [string, ...string[]]),
-    emailId: z.string().email("Invalid email address"),
+    user_type: z.enum(Object.values(UserType) as [string, ...string[]]),
+    user_operation_type: z.enum(Object.values(UserOperationType) as [string, ...string[]]),
+    user_group: z.enum(Object.values(UserGroup) as [string, ...string[]]),
+    email_id: z.string().email("Invalid email address"),
     password: z.string().min(6, "Password must be at least 6 characters long"),
-    userName: z.string().min(3, "Username must be at least 3 characters long"),
-    userCode: z.string().min(3, "User code must be at least 3 characters long"),
-    firstName: z.string().min(2, "First name must be at least 2 characters long"),
-    lastName: z.string().min(2, "Last name must be at least 2 characters long"),
-    resetToken: z.string().optional(),
-    resetTokenExpiry: z.date().optional()
+    user_name: z.string().min(3, "Username must be at least 3 characters long"),
+    user_code: z.string().min(3, "User code must be at least 3 characters long"),
+    first_name: z.string().min(2, "First name must be at least 2 characters long"),
+    last_name: z.string().min(2, "Last name must be at least 2 characters long"),
+    reset_token: z.string().optional(),
+    reset_token_expiry: z.date().optional()
   });
 
 export const insertOtpVerificationSchema = createInsertSchema(otpVerifications).omit({
-  isUsed: true,
-  createdAt: true
+  is_used: true,
+  created_at: true
 });
 
 export const insertVehicleSchema = createInsertSchema(vehicles);
@@ -702,70 +702,70 @@ export const insertVehicleGroupSchema = createInsertSchema(vehicleGroups)
   .extend({
     type: z.enum(Object.values(VehicleGroupType) as [string, ...string[]]),
     department: z.enum(Object.values(Department) as [string, ...string[]]),
-    groupCode: z.string().min(1, "Vehicle group code is required")
+    group_code: z.string().min(1, "Vehicle group code is required")
       .max(20, "Vehicle group code cannot exceed 20 characters"),
     region: z.string().min(1, "Region is required"),
     name: z.string().min(1, "Vehicle group name is required")
       .max(100, "Vehicle group name cannot exceed 100 characters"),
-    imageUrl: z.string().optional(),
+    image_url: z.string().optional(),
     description: z.string().optional()
   });
 
 export const insertVehicleTypeMasterSchema = createInsertSchema(vehicleTypeMaster)
   .extend({
-    groupId: z.number().min(1, "Vehicle group is required"),
-    vehicleTypeCode: z.string().min(1, "Vehicle type code is required"),
-    vehicleTypeName: z.string().min(1, "Vehicle type name is required"),
+    group_id: z.number().min(1, "Vehicle group is required"),
+    vehicle_type_code: z.string().min(1, "Vehicle type code is required"),
+    vehicle_type_name: z.string().min(1, "Vehicle type name is required"),
     manufacturer: z.string().min(1, "Manufacturer is required"),
-    modelYear: z.number().min(1900, "Invalid model year").max(new Date().getFullYear() + 1, "Future model year not allowed"),
-    numberOfPassengers: z.number().min(0, "Number of passengers must be positive"),
+    model_year: z.number().min(1900, "Invalid model year").max(new Date().getFullYear() + 1, "Future model year not allowed"),
+    number_of_passengers: z.number().min(0, "Number of passengers must be positive"),
     region: z.enum(Object.values(Region) as [string, ...string[]]),
-    fuelEfficiency: z.number().min(0, "Fuel efficiency must be positive"),
-    fuelPricePerLitre: z.number().min(0, "Fuel price per litre must be positive"),
-    fuelType: z.enum(Object.values(VehicleFuelType) as [string, ...string[]]),
-    servicePlan: z.string().optional(),
-    costPerKm: z.number().min(0, "Cost per KM must be positive"),
-    vehicleType: z.string().min(1, "Vehicle type is required"),
+    fuel_efficiency: z.number().min(0, "Fuel efficiency must be positive"),
+    fuel_price_per_litre: z.number().min(0, "Fuel price per litre must be positive"),
+    fuel_type: z.enum(Object.values(VehicleFuelType) as [string, ...string[]]),
+    service_plan: z.string().optional(),
+    cost_per_km: z.number().min(0, "Cost per KM must be positive"),
+    vehicle_type: z.string().min(1, "Vehicle type is required"),
     department: z.enum(Object.values(Department) as [string, ...string[]]),
     unit: z.string().optional(),
-    alertBefore: z.number().min(0, "Alert before must be positive").optional(),
-    idleFuelConsumption: z.number().min(0, "Idle fuel consumption must be positive"),
-    vehicleCapacity: z.number().min(0, "Vehicle capacity must be positive"),
-    co2EmissionFactor: z.number().min(0, "CO2 emission factor must be positive")
+    alert_before: z.number().min(0, "Alert before must be positive").optional(),
+    idle_fuel_consumption: z.number().min(0, "Idle fuel consumption must be positive"),
+    vehicle_capacity: z.number().min(0, "Vehicle capacity must be positive"),
+    co2_emission_factor: z.number().min(0, "CO2 emission factor must be positive")
   });
 
 export const insertVehicleMasterSchema = createInsertSchema(vehicleMaster)
   .extend({
-    plateCategory: z.enum(Object.values(PlateCategory) as [string, ...string[]]),
-    transmissionType: z.enum(Object.values(TransmissionType) as [string, ...string[]]),
-    fuelType: z.enum(Object.values(VehicleFuelType) as [string, ...string[]]),
+    plate_category: z.enum(Object.values(PlateCategory) as [string, ...string[]]),
+    transmission_type: z.enum(Object.values(TransmissionType) as [string, ...string[]]),
+    fuel_type: z.enum(Object.values(VehicleFuelType) as [string, ...string[]]),
     emirate: z.enum(Object.values(Emirates) as [string, ...string[]]),
     region: z.enum(Object.values(Region) as [string, ...string[]]),
     department: z.enum(Object.values(Department) as [string, ...string[]]),
-    assetType: z.enum(Object.values(AssetType) as [string, ...string[]]),
-    isCanConnected: z.enum(Object.values(YesNo) as [string, ...string[]]),
-    isWeightSensorConnected: z.enum(Object.values(YesNo) as [string, ...string[]]),
-    isTemperatureSensorConnected: z.enum(Object.values(YesNo) as [string, ...string[]]),
-    isPPtoConnected: z.enum(Object.values(YesNo) as [string, ...string[]]),
+    asset_type: z.enum(Object.values(AssetType) as [string, ...string[]]),
+    is_can_connected: z.enum(Object.values(YesNo) as [string, ...string[]]),
+    is_weight_sensor_connected: z.enum(Object.values(YesNo) as [string, ...string[]]),
+    is_temperature_sensor_connected: z.enum(Object.values(YesNo) as [string, ...string[]]),
+    is_pto_connected: z.enum(Object.values(YesNo) as [string, ...string[]]),
   });
 
 // Update the insert schema
 export const insertEmployeeSchema = createInsertSchema(employees)
   .extend({
-    employeeId: z.number().positive("Employee ID must be a positive number"),
-    employeeName: z.string().min(1, "Employee name is required").max(100),
-    emailId: z.string().email("Invalid email format").max(50),
-    mobileNumber: z.string().min(8, "Invalid mobile number").max(15),
+    employee_id: z.number().positive("Employee ID must be a positive number"),
+    employee_name: z.string().min(1, "Employee name is required").max(100),
+    email_id: z.string().email("Invalid email format").max(50),
+    mobile_number: z.string().min(8, "Invalid mobile number").max(15),
     designation: z.enum(Object.values(EmployeeDesignation) as [string, ...string[]]),
-    hierarchyLevel: z.enum(Object.values(HierarchyLevel) as [string, ...string[]]),
+    hierarchy_level: z.enum(Object.values(HierarchyLevel) as [string, ...string[]]),
     region: z.enum(Object.values(Region) as [string, ...string[]]),
     department: z.enum(Object.values(Department) as [string, ...string[]]),
     unit: z.string().min(1, "Unit is required").max(50),
-    dateOfBirth: z.date().optional(),
+    date_of_birth: z.date().optional(),
     nationality: z.string().optional(),
     password: z.string().max(50).optional(),
-    communicationLanguage: z.string().max(50).optional(),
-    supervisorId: z.number().optional()
+    communication_language: z.string().max(50).optional(),
+    supervisor_id: z.number().optional()
   });
 
 // Add to the type exports

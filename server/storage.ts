@@ -353,32 +353,53 @@ export class DatabaseStorage implements IStorage {
   }
   async createUser(userData: InsertUser): Promise<User> {
     try {
+      // Log the incoming data
       console.log('Creating user with data:', {
-        ...userData,
-        password: '[REDACTED]',
-        emailId: userData.emailId,
-        userName: userData.userName
+        email: userData.email_id,
+        userName: userData.user_name,
+        firstName: userData.first_name,
+        lastName: userData.last_name
       });
 
-      // Validate required fields
-      if (!userData.emailId || !userData.password || !userData.userName) {
-        throw new Error('Missing required fields for user creation');
+      // Check if email already exists
+      const existingEmail = await this.findUserByEmail(userData.email_id);
+      if (existingEmail) {
+        throw new Error('Email address is already registered');
       }
 
+      // Check if username already exists
+      const existingUsername = await this.getUserByUserName(userData.user_name);
+      if (existingUsername) {
+        throw new Error('Username is already taken');
+      }
+
+      // Hash the password
+      const hashedPassword = await bcrypt.hash(userData.password, 10);
+
+      // Create user with snake_case field names to match DB schema
       const [newUser] = await db
         .insert(schema.users)
         .values({
-          ...userData,
-          isActive: true,
-          createdAt: new Date(),
-          updatedAt: new Date()
+          user_name: userData.user_name,
+          user_code: userData.user_code,
+          user_type: userData.user_type || 'USER',
+          email_id: userData.email_id,
+          user_operation_type: userData.user_operation_type || 'EMPLOYEE',
+          user_group: userData.user_group || 'GROUP_A',
+          full_name: `${userData.first_name} ${userData.last_name}`,
+          first_name: userData.first_name,
+          last_name: userData.last_name,
+          password: hashedPassword,
+          is_active: true,
+          created_at: new Date(),
+          updated_at: new Date()
         })
         .returning();
 
       console.log('User created successfully:', {
         id: newUser.id,
-        emailId: newUser.emailId,
-        userName: newUser.userName
+        email: newUser.email_id,
+        userName: newUser.user_name
       });
 
       return newUser;
@@ -392,15 +413,12 @@ export class DatabaseStorage implements IStorage {
   }
   async findUserByEmail(emailId: string): Promise<User | null> {
     try {
-      console.log('Finding user by email:', emailId);
-
       const [user] = await db
         .select()
         .from(schema.users)
-        .where(eq(schema.users.emailId, emailId))
+        .where(eq(schema.users.email_id, emailId))
         .limit(1);
 
-      console.log('User search result:', user ? 'Found' : 'Not found');
       return user || null;
     } catch (error) {
       console.error('Error finding user by email:', error);
@@ -524,18 +542,25 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getUserByUserName(userName: string): Promise<User | null> {
-    const [user] = await db
-      .select()
-      .from(schema.users)
-      .where(eq(schema.users.userName, userName));
-    return user || null;
+    try {
+      const [user] = await db
+        .select()
+        .from(schema.users)
+        .where(eq(schema.users.user_name, userName))
+        .limit(1);
+
+      return user || null;
+    } catch (error) {
+      console.error('Error finding user by username:', error);
+      throw new Error('Database error while finding user');
+    }
   }
 
   async getUserByEmail(emailId: string): Promise<User | null> {
     const [user] = await db
       .select()
       .from(schema.users)
-      .where(eq(schema.users.emailId, emailId));
+      .where(eq(schema.users.email_id, emailId));
     return user || null;
   }
 
