@@ -117,6 +117,11 @@ export default function RegisterPage() {
   const onSubmit = async (formData: RegisterFormData) => {
     try {
       console.log("Form submission started");
+      // Test toast directly
+      toast({
+        title: "Testing Toast",
+        description: "This is a test toast message",
+      });
       await registerMutation.mutateAsync(formData);
     } catch (error) {
       console.error("Form submission error:", error);
