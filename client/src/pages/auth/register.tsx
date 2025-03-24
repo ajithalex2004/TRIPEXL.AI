@@ -55,37 +55,44 @@ export default function RegisterPage() {
 
   const registerMutation = useMutation({
     mutationFn: async (data: RegisterFormData) => {
-      const { confirm_password, ...registrationData } = data;
+      try {
+        const { confirm_password, ...formData } = data;
 
-      // Generate derived fields
-      const userData = {
-        ...registrationData,
-        user_name: `${data.first_name}.${data.last_name}`.toLowerCase(),
-        user_code: `USR${Math.floor(1000 + Math.random() * 9000)}`,
-        full_name: `${data.first_name} ${data.last_name}`,
-      };
+        // Prepare registration data
+        const registrationData = {
+          ...formData,
+          user_name: `${data.first_name}.${data.last_name}`.toLowerCase(),
+          user_code: `USR${Math.floor(1000 + Math.random() * 9000)}`,
+          full_name: `${data.first_name} ${data.last_name}`,
+        };
 
-      console.log("Sending registration data:", {
-        ...userData,
-        password: '[REDACTED]'
-      });
+        console.log("Sending registration data:", {
+          ...registrationData,
+          password: '[REDACTED]'
+        });
 
-      const response = await apiRequest("POST", "/api/auth/register", userData);
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.message || "Registration failed");
+        const response = await apiRequest("POST", "/api/auth/register", registrationData);
+
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(errorData.message || "Registration failed");
+        }
+
+        return await response.json();
+      } catch (error) {
+        console.error("Registration request failed:", error);
+        throw error;
       }
-      return response.json();
     },
     onSuccess: () => {
       toast({
-        title: "Account Created",
-        description: "Your account has been created successfully!",
+        title: "Success",
+        description: "Account created successfully!",
       });
       setShowWelcome(true);
     },
     onError: (error: Error) => {
-      console.error("Registration failed:", error);
+      console.error("Registration error:", error);
       toast({
         title: "Registration Failed",
         description: error.message || "Failed to create account",
