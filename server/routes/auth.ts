@@ -8,7 +8,7 @@ const router = Router();
 router.post("/login", async (req, res) => {
   try {
     const { emailId, password } = req.body;
-    console.log('Login attempt with:', { emailId });
+    console.log('Login attempt with email:', emailId);
 
     if (!emailId || !password) {
       return res.status(400).json({
@@ -16,47 +16,60 @@ router.post("/login", async (req, res) => {
       });
     }
 
-    const user = await storage.getUserByEmail(emailId);
-    if (!user) {
-      return res.status(401).json({
-        error: "Invalid credentials"
+    try {
+      const user = await storage.getUserByEmail(emailId);
+      console.log('User found:', user ? 'Yes' : 'No');
+
+      if (!user) {
+        return res.status(401).json({
+          error: "Invalid credentials"
+        });
+      }
+
+      const isMatch = await bcrypt.compare(password, user.password);
+      console.log('Password match:', isMatch ? 'Yes' : 'No');
+
+      if (!isMatch) {
+        return res.status(401).json({
+          error: "Invalid credentials"
+        });
+      }
+
+      // Transform user data to match frontend expectations
+      const userData = {
+        id: user.id,
+        emailId: user.email_id,
+        userName: user.user_name,
+        userType: user.user_type,
+        userOperationType: user.user_operation_type,
+        userGroup: user.user_group,
+        fullName: user.full_name,
+        firstName: user.first_name,
+        lastName: user.last_name,
+        isActive: user.is_active
+      };
+
+      console.log('Login successful for user:', userData.userName);
+
+      return res.status(200).json({
+        ...userData,
+        token: 'dummy-token-for-now', // TODO: Implement proper JWT
+        message: "Logged in successfully"
       });
+    } catch (dbError) {
+      console.error('Database error during login:', dbError);
+      throw new Error('Failed to retrieve user data');
     }
-
-    const isMatch = await bcrypt.compare(password, user.password);
-    if (!isMatch) {
-      return res.status(401).json({
-        error: "Invalid credentials"
-      });
-    }
-
-    const userData = {
-      id: user.id,
-      emailId: user.email_id,
-      userName: user.user_name,
-      userType: user.user_type,
-      userOperationType: user.user_operation_type,
-      userGroup: user.user_group,
-      fullName: user.full_name,
-      firstName: user.first_name,
-      lastName: user.last_name,
-      isActive: user.is_active
-    };
-
-    return res.status(200).json({
-      ...userData,
-      token: 'dummy-token-for-now', // TODO: Implement proper JWT
-      message: "Logged in successfully"
-    });
   } catch (error) {
     console.error("Login error:", error);
     return res.status(500).json({
-      error: "An unexpected error occurred during login"
+      error: "An unexpected error occurred during login",
+      details: error.message
     });
   }
 });
 
-// Keep other route handlers unchanged
+// Keeping the logout route simple for now
 router.post("/logout", (req, res) => {
   res.status(200).json({ message: "Logged out successfully" });
 });
