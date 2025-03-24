@@ -91,6 +91,53 @@ export function Layout({ children }: { children: React.ReactNode }) {
                   </Link>
                 </SidebarMenuItem>
 
+                {/* Vehicle Management Section */}
+                <SidebarMenuItem>
+                  <SidebarMenuButton 
+                    className="w-full text-white hover:bg-white/10 text-[15px] font-bold"
+                    onClick={() => setIsVehicleMenuOpen(!isVehicleMenuOpen)}
+                  >
+                    <AnimatedIcon className="text-white">
+                      <Car className="w-4 h-4" />
+                    </AnimatedIcon>
+                    <span>Vehicle Management</span>
+                    {isVehicleMenuOpen ? (
+                      <ChevronDown className="w-4 h-4 ml-auto" />
+                    ) : (
+                      <ChevronRight className="w-4 h-4 ml-auto" />
+                    )}
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+
+                {isVehicleMenuOpen && (
+                  <>
+                    <SidebarMenuItem>
+                      <Link href="/vehicle-groups">
+                        <SidebarMenuButton className="w-full text-white hover:bg-white/10 text-[15px] font-bold pl-8">
+                          <Package className="w-4 h-4" />
+                          <span>Vehicle Groups</span>
+                        </SidebarMenuButton>
+                      </Link>
+                    </SidebarMenuItem>
+                    <SidebarMenuItem>
+                      <Link href="/vehicle-types">
+                        <SidebarMenuButton className="w-full text-white hover:bg-white/10 text-[15px] font-bold pl-8">
+                          <Wrench className="w-4 h-4" />
+                          <span>Vehicle Types</span>
+                        </SidebarMenuButton>
+                      </Link>
+                    </SidebarMenuItem>
+                    <SidebarMenuItem>
+                      <Link href="/vehicle-master">
+                        <SidebarMenuButton className="w-full text-white hover:bg-white/10 text-[15px] font-bold pl-8">
+                          <Database className="w-4 h-4" />
+                          <span>Vehicle Master</span>
+                        </SidebarMenuButton>
+                      </Link>
+                    </SidebarMenuItem>
+                  </>
+                )}
+
                 <div className="mt-auto">
                   <LogoutButton 
                     className="w-full text-white hover:bg-white/10 text-[15px] font-bold"
