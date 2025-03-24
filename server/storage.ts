@@ -10,12 +10,7 @@ import { eq, desc } from "drizzle-orm";
 import * as schema from "@shared/schema";
 import { sql } from 'drizzle-orm';
 
-// Add VehicleMaster operations to IStorage interface
-import { type User, type InsertUser } from "@shared/schema";
-import * as schema from "@shared/schema";
-import { eq } from "drizzle-orm";
-import bcrypt from "bcryptjs";
-
+// Add these methods to the IStorage interface
 export interface IStorage {
   // Vehicles
   getVehicles(): Promise<Vehicle[]>;
@@ -80,9 +75,10 @@ export interface IStorage {
   createVehicleMaster(data: InsertVehicleMaster): Promise<VehicleMaster>;
   updateVehicleMaster(id: number, data: Partial<InsertVehicleMaster>): Promise<VehicleMaster>;
 
-  updateUserResetToken(userId: number, resetToken: string, resetTokenExpiry: Date): Promise<User>;
+  updateUserResetToken(userId: number, resetToken: string | null, resetTokenExpiry: Date | null): Promise<User>;
   findUserByResetToken(resetToken: string): Promise<User | null>;
   getAllEmployees(): Promise<Employee[]>;
+  updateUserPassword(userId: number, hashedPassword: string): Promise<User>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -504,7 +500,7 @@ export class DatabaseStorage implements IStorage {
     return user || null;
   }
 
-  async updateUserResetToken(userId: number, resetToken: string, resetTokenExpiry: Date): Promise<User> {
+  async updateUserResetToken(userId: number, resetToken: string | null, resetTokenExpiry: Date | null): Promise<User> {
     try {
       console.log('Updating reset token for user:', userId);
       const [user] = await db
@@ -521,7 +517,6 @@ export class DatabaseStorage implements IStorage {
         throw new Error(`User not found with ID: ${userId}`);
       }
 
-      console.log('Reset token updated successfully');
       return user;
     } catch (error) {
       console.error('Error updating reset token:', error);
@@ -531,12 +526,12 @@ export class DatabaseStorage implements IStorage {
 
   async findUserByResetToken(resetToken: string): Promise<User | null> {
     try {
+      console.log('Finding user by reset token');
       const [user] = await db
         .select()
         .from(schema.users)
-        .where(eq(schema.users.resetToken, resetToken))
-        .where(sql`${schema.users.resetTokenExpiry} > NOW()`)
-        .limit(1);
+        .where(eq(schema.users.reset_token, resetToken))
+        .where(sql`${schema.users.reset_token_expiry} > NOW()`);
 
       return user || null;
     } catch (error) {
@@ -660,6 +655,30 @@ export class DatabaseStorage implements IStorage {
     } catch (error) {
       console.error('Error during password validation:', error);
       return false;
+    }
+  }
+  async updateUserPassword(userId: number, hashedPassword: string): Promise<User> {
+    try {
+      console.log('Updating password for user:', userId);
+      const [user] = await db
+        .update(schema.users)
+        .set({
+          password: hashedPassword,
+          reset_token: null,
+          reset_token_expiry: null,
+          updated_at: new Date()
+        })
+        .where(eq(schema.users.id, userId))
+        .returning();
+
+      if (!user) {
+        throw new Error(`User not found with ID: ${userId}`);
+      }
+
+      return user;
+    } catch (error) {
+      console.error('Error updating user password:', error);
+      throw new Error(`Failed to update password: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   }
 }
