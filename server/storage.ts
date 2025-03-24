@@ -49,6 +49,9 @@ export interface IStorage {
   updateUserLastLogin(userId: number): Promise<User>;
   getAllUsers(): Promise<User[]>;
   getUserByUserName(userName: string): Promise<User | null>;
+  createUser(userData: InsertUser): Promise<User>;
+  updateUser(userId: number, userData: Partial<User>): Promise<User>;
+  deleteUser(userId: number): Promise<void>;
 
 
   // OTP methods
@@ -417,6 +420,63 @@ export class DatabaseStorage implements IStorage {
       throw new Error(`Failed to update last login: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   }
+  async createUser(userData: InsertUser): Promise<User> {
+    try {
+      console.log('Creating new user:', { ...userData, password: '[REDACTED]' });
+      const [user] = await db
+        .insert(schema.users)
+        .values({
+          ...userData,
+          created_at: new Date(),
+          updated_at: new Date()
+        })
+        .returning();
+
+      console.log('User created successfully:', { id: user.id, email_id: user.email_id });
+      return user;
+    } catch (error) {
+      console.error('Error creating user:', error);
+      throw new Error(`Failed to create user: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
+  }
+
+  async updateUser(userId: number, userData: Partial<User>): Promise<User> {
+    try {
+      console.log('Updating user:', userId);
+      const [user] = await db
+        .update(schema.users)
+        .set({
+          ...userData,
+          updated_at: new Date()
+        })
+        .where(eq(schema.users.id, userId))
+        .returning();
+
+      if (!user) {
+        throw new Error(`User not found with ID: ${userId}`);
+      }
+
+      console.log('User updated successfully:', { id: user.id });
+      return user;
+    } catch (error) {
+      console.error('Error updating user:', error);
+      throw new Error(`Failed to update user: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
+  }
+
+  async deleteUser(userId: number): Promise<void> {
+    try {
+      console.log('Deleting user:', userId);
+      await db
+        .delete(schema.users)
+        .where(eq(schema.users.id, userId));
+      console.log('User deleted successfully');
+    } catch (error) {
+      console.error('Error deleting user:', error);
+      throw new Error(`Failed to delete user: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
+  }
+
   async createOtpVerification(verification: InsertOtpVerification): Promise<OtpVerification> {
     const [newVerification] = await db
       .insert(schema.otpVerifications)
