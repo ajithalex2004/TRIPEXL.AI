@@ -432,10 +432,21 @@ export class DatabaseStorage implements IStorage {
 
       // Begin transaction
       const newUser = await db.transaction(async (tx) => {
+        console.log('Starting database transaction for user creation');
+
         const [user] = await tx
           .insert(schema.users)
           .values({
-            ...userData,
+            user_name: userData.user_name,
+            user_code: userData.user_code,
+            email_id: userData.email_id,
+            user_type: userData.user_type,
+            user_operation_type: userData.user_operation_type,
+            user_group: userData.user_group,
+            first_name: userData.first_name,
+            last_name: userData.last_name,
+            full_name: userData.full_name,
+            password: userData.password,
             is_active: true,
             created_at: new Date(),
             updated_at: new Date()
@@ -446,6 +457,7 @@ export class DatabaseStorage implements IStorage {
           throw new Error('Failed to create user record');
         }
 
+        console.log('Database transaction completed successfully');
         return user;
       });
 

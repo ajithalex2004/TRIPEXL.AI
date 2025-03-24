@@ -89,8 +89,15 @@ export function UserFormDialog({
         ...data,
         is_active: true,
         created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString()
+        updated_at: new Date().toISOString(),
+        // Ensure password is set
+        password: data.password || "Pass@123"
       };
+
+      console.log('Submitting formatted data:', {
+        ...formattedData,
+        password: '[REDACTED]'
+      });
 
       await onSubmit(formattedData);
       form.reset();
