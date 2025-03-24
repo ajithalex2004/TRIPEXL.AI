@@ -32,6 +32,7 @@ const registrationSchema = insertUserSchema.extend({
     .regex(/[0-9]/, "Password must contain at least one number")
     .regex(/[^A-Za-z0-9]/, "Password must contain at least one special character"),
   confirmPassword: z.string(),
+  otp: z.string().optional(),
 }).refine((data) => data.password === data.confirmPassword, {
   message: "Passwords don't match",
   path: ["confirmPassword"],
@@ -84,71 +85,68 @@ export default function RegisterPage() {
   const register = useMutation({
     mutationFn: async (data: any) => {
       try {
-        console.log("Attempting registration with data:", { ...data, password: '[REDACTED]' });
+        console.log("Creating user with data:", { ...data, password: '[REDACTED]' });
         const response = await apiRequest("POST", "/api/auth/register", data);
 
         if (!response.ok) {
           const errorData = await response.json();
           console.error("Registration failed:", errorData);
-          throw new Error(errorData.message || "Failed to register");
+          throw new Error(errorData.message || "Failed to create account");
         }
 
-        const responseData = await response.json();
-        console.log("Registration successful:", { userId: responseData.userId });
-        return responseData;
+        return response.json();
       } catch (error) {
         console.error("Registration error:", error);
         throw error;
       }
     },
     onSuccess: (data) => {
-      console.log("Registration mutation succeeded:", { userId: data.userId });
+      console.log("Registration successful:", data);
       toast({
-        title: "Registration Successful",
-        description: "Please check your email for the verification code.",
-        duration: 10000,
+        title: "Verification Required",
+        description: "A verification code has been sent to your email. Please check your inbox.",
+        duration: 5000,
       });
       setUserId(data.userId);
       setVerificationStep(true);
     },
     onError: (error: any) => {
-      console.error("Registration mutation failed:", error);
+      console.error("Registration failed:", error);
       toast({
         title: "Registration Failed",
-        description: error.message || "An error occurred during registration",
+        description: error.message || "Failed to create account. Please try again.",
         variant: "destructive",
       });
     },
   });
 
   const verify = useMutation({
-    mutationFn: async (data: { userId: number; otp: string }) => {
+    mutationFn: async ({ userId, otp }: { userId: number; otp: string }) => {
       try {
-        console.log("Attempting OTP verification:", { userId: data.userId });
-        const response = await apiRequest("POST", "/api/auth/verify", data);
+        console.log("Verifying OTP for user:", userId);
+        const response = await apiRequest("POST", "/api/auth/verify", { userId, otp });
 
         if (!response.ok) {
           const error = await response.json();
-          console.error("Verification failed:", error);
-          throw new Error(error.message || "Verification failed");
+          throw new Error(error.message || "Invalid verification code");
         }
 
         return response.json();
       } catch (error) {
-        console.error("Verification error:", error);
+        console.error("OTP verification failed:", error);
         throw error;
       }
     },
     onSuccess: (data) => {
-      console.log("Verification successful");
+      console.log("OTP verification successful");
       localStorage.setItem("token", data.token);
       setShowWelcomeScreen(true);
     },
     onError: (error: any) => {
-      console.error("Verification failed:", error);
+      console.error("OTP verification error:", error);
       toast({
         title: "Verification Failed",
-        description: error.message || "Failed to verify OTP",
+        description: error.message || "Invalid verification code. Please try again.",
         variant: "destructive",
       });
     },
@@ -158,16 +156,14 @@ export default function RegisterPage() {
     try {
       if (passwordMatchError) {
         toast({
-          title: "Validation Error",
-          description: "Please fix the password mismatch before submitting",
+          title: "Invalid Password",
+          description: "Please make sure your passwords match",
           variant: "destructive",
         });
         return;
       }
 
-      console.log('Form submitted with data:', { ...data, password: '[REDACTED]' });
-
-      const { confirmPassword, ...registrationData } = data;
+      const { confirmPassword, otp, ...registrationData } = data;
       const fullSubmitData = {
         ...registrationData,
         userName: `${data.firstName}.${data.lastName}`.toLowerCase(),
@@ -175,15 +171,9 @@ export default function RegisterPage() {
         userCode: `USR${Math.floor(1000 + Math.random() * 9000)}`,
       };
 
-      console.log('Submitting registration data:', { ...fullSubmitData, password: '[REDACTED]' });
       await register.mutateAsync(fullSubmitData);
     } catch (error) {
-      console.error('Error during form submission:', error);
-      toast({
-        title: "Error",
-        description: error instanceof Error ? error.message : "Registration failed",
-        variant: "destructive",
-      });
+      console.error("Form submission error:", error);
     }
   };
 
@@ -201,51 +191,41 @@ export default function RegisterPage() {
           </p>
         </CardHeader>
         <CardContent>
-          <Form {...form}>
-            <form onSubmit={(e) => {
-              e.preventDefault();
-              if (!userId) {
-                console.error("No userId available for verification");
-                return;
-              }
-              const formData = new FormData(e.currentTarget);
-              const otp = formData.get("otp") as string;
-              console.log("Submitting OTP verification:", { userId, otp: '******' });
-              verify.mutate({ userId, otp });
-            }} className="space-y-4">
-              <FormField
-                control={form.control}
-                name="otp"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Verification Code</FormLabel>
-                    <FormControl>
-                      <InputOTP maxLength={6} {...field}>
-                        <InputOTPGroup>
-                          <InputOTPSlot index={0} />
-                          <InputOTPSlot index={1} />
-                          <InputOTPSlot index={2} />
-                          <InputOTPSlot index={3} />
-                          <InputOTPSlot index={4} />
-                          <InputOTPSlot index={5} />
-                        </InputOTPGroup>
-                      </InputOTP>
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <Button type="submit" className="w-full" disabled={verify.isPending}>
-                {verify.isPending ? (
-                  <div className="w-full flex justify-center">
-                    <LoadingIndicator size="sm" />
-                  </div>
-                ) : (
-                  "Verify"
-                )}
-              </Button>
-            </form>
-          </Form>
+          <form onSubmit={(e) => {
+            e.preventDefault();
+            if (!userId) {
+              console.error("No userId available for verification");
+              return;
+            }
+            const formData = new FormData(e.currentTarget);
+            const otp = Array.from(formData.entries())
+              .filter(([key]) => key.startsWith('otp-'))
+              .map(([, value]) => value)
+              .join('');
+
+            console.log("Submitting OTP:", { userId, otp: '******' });
+            verify.mutate({ userId, otp });
+          }} className="space-y-4">
+            <div className="space-y-2">
+              <InputOTP maxLength={6} name="otp">
+                <InputOTPGroup>
+                  <InputOTPSlot index={0} />
+                  <InputOTPSlot index={1} />
+                  <InputOTPSlot index={2} />
+                  <InputOTPSlot index={3} />
+                  <InputOTPSlot index={4} />
+                  <InputOTPSlot index={5} />
+                </InputOTPGroup>
+              </InputOTP>
+            </div>
+            <Button type="submit" className="w-full" disabled={verify.isPending}>
+              {verify.isPending ? (
+                <LoadingIndicator size="sm" />
+              ) : (
+                "Verify"
+              )}
+            </Button>
+          </form>
         </CardContent>
       </Card>
     );
@@ -254,15 +234,14 @@ export default function RegisterPage() {
   return (
     <Card className="w-[400px] mx-auto mt-8">
       <CardHeader>
-        <h2 className="text-2xl font-bold">New User Registration</h2>
+        <h2 className="text-2xl font-bold">Create Account</h2>
         <p className="text-sm text-gray-500">
-          Create your account
+          Enter your details to register
         </p>
       </CardHeader>
       <CardContent>
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-            {/* First Name */}
             <FormField
               control={form.control}
               name="firstName"
@@ -277,7 +256,6 @@ export default function RegisterPage() {
               )}
             />
 
-            {/* Last Name */}
             <FormField
               control={form.control}
               name="lastName"
@@ -292,7 +270,6 @@ export default function RegisterPage() {
               )}
             />
 
-            {/* Email */}
             <FormField
               control={form.control}
               name="emailId"
@@ -307,98 +284,55 @@ export default function RegisterPage() {
               )}
             />
 
-            {/* Password */}
             <FormField
               control={form.control}
               name="password"
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Password</FormLabel>
-                  <div className="relative">
-                    <FormControl>
-                      <Input
-                        type={showPassword ? "text" : "password"}
-                        {...field}
-                        placeholder="Create a password"
-                      />
-                    </FormControl>
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="sm"
-                      className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
-                      onClick={() => setShowPassword(!showPassword)}
-                    >
-                      {showPassword ? "Hide" : "Show"}
-                    </Button>
-                  </div>
-                  <FormDescription className="text-xs">
-                    Password must:
-                    <ul className="list-disc list-inside">
-                      <li>Be at least 8 characters long</li>
-                      <li>Contain at least one uppercase letter</li>
-                      <li>Contain at least one lowercase letter</li>
-                      <li>Contain at least one number</li>
-                      <li>Contain at least one special character</li>
-                    </ul>
+                  <FormControl>
+                    <Input
+                      {...field}
+                      type={showPassword ? "text" : "password"}
+                      placeholder="Create a strong password"
+                    />
+                  </FormControl>
+                  <FormDescription>
+                    Password must have at least 8 characters, one uppercase, one lowercase,
+                    one number and one special character.
                   </FormDescription>
                   <FormMessage />
                 </FormItem>
               )}
             />
 
-            {/* Confirm Password */}
             <FormField
               control={form.control}
               name="confirmPassword"
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Confirm Password</FormLabel>
-                  <div className="relative">
-                    <FormControl>
-                      <Input
-                        type={showConfirmPassword ? "text" : "password"}
-                        {...field}
-                        placeholder="Confirm your password"
-                      />
-                    </FormControl>
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="sm"
-                      className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
-                      onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                    >
-                      {showConfirmPassword ? "Hide" : "Show"}
-                    </Button>
-                  </div>
-                  {passwordMatchError && (
-                    <p className="text-sm font-medium text-destructive">{passwordMatchError}</p>
-                  )}
+                  <FormControl>
+                    <Input
+                      {...field}
+                      type={showConfirmPassword ? "text" : "password"}
+                      placeholder="Confirm your password"
+                    />
+                  </FormControl>
                   <FormMessage />
                 </FormItem>
               )}
             />
 
-            <Button 
-              type="submit" 
-              className="w-full" 
-              disabled={!!passwordMatchError || register.isPending}
-              onClick={() => {
-                console.log("Register button clicked");
-                if (form.formState.isValid) {
-                  console.log("Form is valid, submitting...");
-                } else {
-                  console.log("Form validation errors:", form.formState.errors);
-                }
-              }}
+            <Button
+              type="submit"
+              className="w-full"
+              disabled={register.isPending || !!passwordMatchError}
             >
               {register.isPending ? (
-                <div className="w-full flex justify-center">
-                  <LoadingIndicator size="sm" />
-                </div>
+                <LoadingIndicator size="sm" />
               ) : (
-                "Register"
+                "Create Account"
               )}
             </Button>
 
