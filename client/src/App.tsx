@@ -7,6 +7,8 @@ import NotFound from "@/pages/not-found";
 import Home from "@/pages/home";
 import BookingHistory from "@/pages/booking-history";
 import LoginPage from "@/pages/auth/login";
+import ForgotPasswordPage from "@/pages/auth/forgot-password";
+import ResetPasswordPage from "@/pages/auth/reset-password";
 import VehicleGroupManagement from "@/pages/vehicle-group-management";
 import VehicleTypeManagement from "@/pages/vehicle-type-management";
 import VehicleMasterManagement from "@/pages/vehicle-master-management";
@@ -61,6 +63,8 @@ function Router() {
       <Switch key={location}>
         <Route path="/" component={() => <ProtectedRoute component={Home} />} />
         <Route path="/auth/login" component={() => <StandaloneRoute component={LoginPage} />} />
+        <Route path="/auth/forgot-password" component={() => <StandaloneRoute component={ForgotPasswordPage} />} />
+        <Route path="/auth/reset-password" component={() => <StandaloneRoute component={ResetPasswordPage} />} />
         <Route path="/new-booking" component={() => <ProtectedRoute component={NewBooking} />} />
         <Route path="/bookings" component={() => <ProtectedRoute component={BookingHistory} />} />
         <Route path="/vehicle-groups" component={() => <ProtectedRoute component={VehicleGroupManagement} />} />
