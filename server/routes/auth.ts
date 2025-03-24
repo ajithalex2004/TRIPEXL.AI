@@ -6,39 +6,40 @@ const router = Router();
 
 router.post("/register", async (req, res) => {
   try {
-    // Log the incoming request data
-    console.log("Registration request received:", {
+    // Log raw request data
+    console.log("Raw registration request:", {
       ...req.body,
       password: '[REDACTED]'
     });
 
-    // Validate the request data
+    // Schema validation
     const validationResult = insertUserSchema.safeParse(req.body);
-
     if (!validationResult.success) {
-      console.error("Validation errors:", validationResult.error.format());
+      const errors = validationResult.error.format();
+      console.error("Validation failed:", JSON.stringify(errors, null, 2));
       return res.status(400).json({
         message: "Invalid registration data",
-        errors: validationResult.error.errors
+        errors: errors
       });
     }
 
-    // Log the validated data
-    console.log("Validated registration data:", {
-      ...validationResult.data,
+    // Log validated data
+    const validatedData = validationResult.data;
+    console.log("Validated data:", {
+      ...validatedData,
       password: '[REDACTED]'
     });
 
     try {
-      const user = await storage.createUser(validationResult.data);
-
-      console.log("User created successfully:", {
+      // Attempt user creation
+      const user = await storage.createUser(validatedData);
+      console.log("User created:", {
         id: user.id,
         email_id: user.email_id,
         user_name: user.user_name
       });
 
-      // Return success response without sensitive data
+      // Return success without sensitive data
       return res.status(201).json({
         id: user.id,
         email_id: user.email_id,
@@ -53,18 +54,19 @@ router.post("/register", async (req, res) => {
       });
     } catch (error) {
       console.error("Database error during user creation:", error);
+      if (error instanceof Error) {
+        console.error("Error stack:", error.stack);
+      }
       throw error;
     }
   } catch (error) {
     console.error("Registration error:", error);
-
     if (error instanceof Error) {
       return res.status(500).json({
         message: error.message,
         stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
       });
     }
-
     return res.status(500).json({
       message: "An unexpected error occurred during registration"
     });
