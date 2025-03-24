@@ -4,6 +4,7 @@ import { setupVite, serveStatic, log } from "./vite";
 import { db } from "./db";
 import { sql } from "drizzle-orm";
 import { createServer } from "http";
+import authRouter from "./routes/auth"; // Add this import
 
 // Add global error handlers
 process.on("uncaughtException", (error) => {
@@ -21,6 +22,9 @@ process.on("unhandledRejection", (reason, promise) => {
 const app = express();
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
+
+// Mount auth routes
+app.use("/api/auth", authRouter); // Add this line
 
 // Basic error handling middleware
 app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
