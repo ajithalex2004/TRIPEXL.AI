@@ -47,7 +47,6 @@ export interface IStorage {
   findUserByEmployeeId(employeeId: string): Promise<User | null>; // Added method
 
   // User methods
-  createUser(user: InsertUser): Promise<User>;
   findUserByEmail(email: string): Promise<User | null>;
   getUserByEmail(email: string): Promise<User | null>;
   getUser(id: number): Promise<User | null>;
@@ -351,80 +350,7 @@ export class DatabaseStorage implements IStorage {
       .where(eq(schema.employees.email, email));
     return employee || null;
   }
-  async createUser(userData: InsertUser): Promise<User> {
-    try {
-      // Log incoming data
-      console.log('Creating user - Input data:', {
-        ...userData,
-        password: '[REDACTED]'
-      });
 
-      // Check for existing email
-      const existingEmail = await this.findUserByEmail(userData.email_id);
-      if (existingEmail) {
-        throw new Error('Email address is already registered');
-      }
-
-      // Check for existing username
-      const existingUsername = await this.getUserByUserName(userData.user_name);
-      if (existingUsername) {
-        throw new Error('Username is already taken');
-      }
-
-      // Hash password
-      const hashedPassword = await bcrypt.hash(userData.password, 10);
-
-      // Prepare data for insertion
-      const userDataToInsert = {
-        user_name: userData.user_name,
-        user_code: userData.user_code,
-        user_type: userData.user_type,
-        email_id: userData.email_id,
-        user_operation_type: userData.user_operation_type,
-        user_group: userData.user_group,
-        full_name: userData.full_name,
-        first_name: userData.first_name,
-        last_name: userData.last_name,
-        password: hashedPassword,
-        is_active: true,
-        created_at: new Date(),
-        updated_at: new Date()
-      };
-
-      // Log insertion attempt
-      console.log('Attempting database insertion with:', {
-        ...userDataToInsert,
-        password: '[REDACTED]'
-      });
-
-      try {
-        const [newUser] = await db
-          .insert(schema.users)
-          .values(userDataToInsert)
-          .returning();
-
-        console.log('User created successfully:', {
-          id: newUser.id,
-          email_id: newUser.email_id,
-          user_name: newUser.user_name
-        });
-
-        return newUser;
-      } catch (dbError) {
-        console.error('Database insertion error:', dbError);
-        if (dbError instanceof Error) {
-          console.error('Error details:', {
-            message: dbError.message,
-            stack: dbError.stack
-          });
-        }
-        throw new Error(`Failed to create user in database: ${dbError}`);
-      }
-    } catch (error) {
-      console.error('Error in createUser:', error);
-      throw error;
-    }
-  }
   async findUserByEmail(emailId: string): Promise<User | null> {
     try {
       const [user] = await db

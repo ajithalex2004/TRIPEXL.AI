@@ -7,7 +7,6 @@ import NotFound from "@/pages/not-found";
 import Home from "@/pages/home";
 import BookingHistory from "@/pages/booking-history";
 import LoginPage from "@/pages/auth/login";
-import RegisterPage from "@/pages/auth/register";
 import VehicleGroupManagement from "@/pages/vehicle-group-management";
 import VehicleTypeManagement from "@/pages/vehicle-type-management";
 import VehicleMasterManagement from "@/pages/vehicle-master-management";
@@ -19,7 +18,6 @@ import { Layout } from "@/components/layout";
 import { PageTransition } from "@/components/page-transition";
 import { AnimatePresence } from "framer-motion";
 import { useToast } from "@/hooks/use-toast";
-import { apiRequest } from "@/lib/queryClient";
 
 function ProtectedRoute({ component: Component }: { component: React.ComponentType }) {
   const [, setLocation] = useLocation();
@@ -63,7 +61,6 @@ function Router() {
       <Switch key={location}>
         <Route path="/" component={() => <ProtectedRoute component={Home} />} />
         <Route path="/auth/login" component={() => <StandaloneRoute component={LoginPage} />} />
-        <Route path="/auth/register" component={() => <StandaloneRoute component={RegisterPage} />} />
         <Route path="/new-booking" component={() => <ProtectedRoute component={NewBooking} />} />
         <Route path="/bookings" component={() => <ProtectedRoute component={BookingHistory} />} />
         <Route path="/vehicle-groups" component={() => <ProtectedRoute component={VehicleGroupManagement} />} />
@@ -78,19 +75,7 @@ function Router() {
   );
 }
 
-// Test toast functionality directly in App component
 function App() {
-  const { toast } = useToast();
-
-  React.useEffect(() => {
-    // Test toast on app load
-    console.log("Testing toast notification...");
-    toast({
-      title: "App Started",
-      description: "Toast notification test"
-    });
-  }, [toast]);
-
   return (
     <QueryClientProvider client={queryClient}>
       <div className="relative min-h-screen">

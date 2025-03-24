@@ -285,13 +285,6 @@ export default function LoginPage() {
                         <Button
                           variant="link"
                           className="text-xs text-[#004990] hover:text-[#003870]"
-                          onClick={() => setLocation("/auth/register")}
-                        >
-                          Don't have an account? Register here
-                        </Button>
-                        <Button
-                          variant="link"
-                          className="text-xs text-[#004990] hover:text-[#003870]"
                           onClick={() => setLocation("/auth/forgot-password")}
                         >
                           Forgot Password?
