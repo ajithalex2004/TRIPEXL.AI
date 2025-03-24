@@ -83,27 +83,39 @@ export default function RegisterPage() {
 
   const register = useMutation({
     mutationFn: async (data: any) => {
-      console.log("Registering with data:", { ...data, password: '[REDACTED]' });
-      const response = await apiRequest("POST", "/api/auth/register", data);
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || "Failed to register");
+      try {
+        console.log("Attempting registration with data:", { ...data, password: '[REDACTED]' });
+        const response = await apiRequest("POST", "/api/auth/register", data);
+
+        if (!response.ok) {
+          const errorData = await response.json();
+          console.error("Registration failed:", errorData);
+          throw new Error(errorData.message || "Failed to register");
+        }
+
+        const responseData = await response.json();
+        console.log("Registration successful:", { userId: responseData.userId });
+        return responseData;
+      } catch (error) {
+        console.error("Registration error:", error);
+        throw error;
       }
-      return response.json();
     },
     onSuccess: (data) => {
+      console.log("Registration mutation succeeded:", { userId: data.userId });
       toast({
-        title: "OTP Sent",
-        description: `A verification code has been sent to your email address. Please check your inbox.`,
+        title: "Registration Successful",
+        description: "Please check your email for the verification code.",
         duration: 10000,
       });
       setUserId(data.userId);
       setVerificationStep(true);
     },
     onError: (error: any) => {
+      console.error("Registration mutation failed:", error);
       toast({
-        title: "Error",
-        description: error.message || "Registration failed",
+        title: "Registration Failed",
+        description: error.message || "An error occurred during registration",
         variant: "destructive",
       });
     },
@@ -111,34 +123,50 @@ export default function RegisterPage() {
 
   const verify = useMutation({
     mutationFn: async (data: { userId: number; otp: string }) => {
-      const res = await apiRequest("POST", "/api/auth/verify", data);
-      if (!res.ok) {
-        const error = await res.json();
-        throw new Error(error.message || "Verification failed");
+      try {
+        console.log("Attempting OTP verification:", { userId: data.userId });
+        const response = await apiRequest("POST", "/api/auth/verify", data);
+
+        if (!response.ok) {
+          const error = await response.json();
+          console.error("Verification failed:", error);
+          throw new Error(error.message || "Verification failed");
+        }
+
+        return response.json();
+      } catch (error) {
+        console.error("Verification error:", error);
+        throw error;
       }
-      return res.json();
     },
     onSuccess: (data) => {
+      console.log("Verification successful");
       localStorage.setItem("token", data.token);
       setShowWelcomeScreen(true);
     },
     onError: (error: any) => {
+      console.error("Verification failed:", error);
       toast({
-        title: "Error",
-        description: error.message || "Verification failed",
+        title: "Verification Failed",
+        description: error.message || "Failed to verify OTP",
         variant: "destructive",
       });
     },
   });
 
   const onSubmit = async (data: RegistrationFormData) => {
-    if (passwordMatchError) {
-      return;
-    }
-
-    console.log('Form submitted with data:', { ...data, password: '[REDACTED]' });
-
     try {
+      if (passwordMatchError) {
+        toast({
+          title: "Validation Error",
+          description: "Please fix the password mismatch before submitting",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      console.log('Form submitted with data:', { ...data, password: '[REDACTED]' });
+
       const { confirmPassword, ...registrationData } = data;
       const fullSubmitData = {
         ...registrationData,
@@ -148,7 +176,7 @@ export default function RegisterPage() {
       };
 
       console.log('Submitting registration data:', { ...fullSubmitData, password: '[REDACTED]' });
-      register.mutate(fullSubmitData);
+      await register.mutateAsync(fullSubmitData);
     } catch (error) {
       console.error('Error during form submission:', error);
       toast({
@@ -176,9 +204,13 @@ export default function RegisterPage() {
           <Form {...form}>
             <form onSubmit={(e) => {
               e.preventDefault();
-              if (!userId) return;
+              if (!userId) {
+                console.error("No userId available for verification");
+                return;
+              }
               const formData = new FormData(e.currentTarget);
               const otp = formData.get("otp") as string;
+              console.log("Submitting OTP verification:", { userId, otp: '******' });
               verify.mutate({ userId, otp });
             }} className="space-y-4">
               <FormField
@@ -348,7 +380,19 @@ export default function RegisterPage() {
               )}
             />
 
-            <Button type="submit" className="w-full" disabled={!!passwordMatchError || register.isPending}>
+            <Button 
+              type="submit" 
+              className="w-full" 
+              disabled={!!passwordMatchError || register.isPending}
+              onClick={() => {
+                console.log("Register button clicked");
+                if (form.formState.isValid) {
+                  console.log("Form is valid, submitting...");
+                } else {
+                  console.log("Form validation errors:", form.formState.errors);
+                }
+              }}
+            >
               {register.isPending ? (
                 <div className="w-full flex justify-center">
                   <LoadingIndicator size="sm" />
