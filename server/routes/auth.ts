@@ -2,6 +2,7 @@ import { Router } from "express";
 import { storage } from "../storage";
 import { insertUserSchema } from "@shared/schema";
 import { z } from "zod";
+import bcrypt from "bcryptjs";
 
 const router = Router();
 
@@ -15,8 +16,25 @@ router.post("/register", async (req, res) => {
       confirm_password: '[REDACTED]'
     });
 
+    // Remove confirm_password before validation
+    const { confirm_password, ...registrationData } = req.body;
+
+    // Ensure required fields are present with correct types
+    const processedData = {
+      ...registrationData,
+      user_name: `${req.body.first_name}.${req.body.last_name}`.toLowerCase(),
+      user_code: `USR${Math.floor(1000 + Math.random() * 9000)}`,
+      full_name: `${req.body.first_name} ${req.body.last_name}`,
+      is_active: true
+    };
+
+    console.log("Processed registration data:", {
+      ...processedData,
+      password: '[REDACTED]'
+    });
+
     // Schema validation
-    const validationResult = insertUserSchema.safeParse(req.body);
+    const validationResult = insertUserSchema.safeParse(processedData);
     if (!validationResult.success) {
       const errors = validationResult.error.format();
       console.error("Validation failed:", JSON.stringify(errors, null, 2));
@@ -27,13 +45,17 @@ router.post("/register", async (req, res) => {
     }
 
     const validatedData = validationResult.data;
-    console.log("Validated registration data:", {
-      ...validatedData,
-      password: '[REDACTED]'
-    });
+
+    // Hash password
+    const salt = await bcrypt.genSalt(10);
+    const hashedPassword = await bcrypt.hash(validatedData.password, salt);
 
     try {
-      const user = await storage.createUser(validatedData);
+      const user = await storage.createUser({
+        ...validatedData,
+        password: hashedPassword
+      });
+
       console.log("User created successfully:", {
         id: user.id,
         email_id: user.email_id,
