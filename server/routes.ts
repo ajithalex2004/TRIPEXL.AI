@@ -912,102 +912,143 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
         // Generate reset token
         const resetToken = crypto.randomBytes(32).toString('hex');
-    const resetTokenExpiry = new Date(Date.now() + 3600000); // 1 hour from now
+        const resetTokenExpiry = new Date(Date.now() + 3600000); // 1 hour from now
 
-    // Update user with reset token
-    await storage.updateUserResetToken(user.id, resetToken, resetTokenExpiry);
+        // Update user with reset token
+        await storage.updateUserResetToken(user.id, resetToken, resetTokenExpiry);
 
-    // Create reset URL
-    const appUrl = `${req.protocol}://${req.get('host')}`;
-    const resetUrl = new URL(`/auth/reset-password`, appUrl);
-    resetUrl.searchParams.append('token', resetToken);
+        // Create reset URL
+        const appUrl = process.env.APP_URL || `${req.protocol}://${req.get('host')}`;
+        const resetUrl = `${appUrl}/auth/reset-password?token=${resetToken}`;
 
-    console.log('Generated reset URL:', resetUrl.toString());
+        console.log('Generated reset URL:', resetUrl);
 
-    // Setup email transporter
-    const transporter = nodemailer.createTransport({
-      host: process.env.SMTP_HOST,
-      port: 465,
-      secure: true,
-      auth: {
-        user: process.env.SMTP_USER,
-        pass: process.env.SMTP_PASS
+        // Setup email transporter
+        const transporter = nodemailer.createTransport({
+          host: process.env.SMTP_HOST,
+          port: 465,
+          secure: true,
+          auth: {
+            user: process.env.SMTP_USER,
+            pass: process.env.SMTP_PASS
+          }
+        });
+
+        console.log('Sending password reset email to:', emailId);
+
+        // Send email with improved template
+        await transporter.sendMail({
+          from: process.env.SMTP_FROM || '"TripXL Support" <support@tripxl.com>',
+          to: emailId,
+          subject: 'Reset Your TripXL Password',
+          html: `
+            <!DOCTYPE html>
+            <html>
+            <head>
+              <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+              <meta name="viewport" content="width=device-width, initial-scale=1.0">
+              <title>Reset Your TripXL Password</title>
+            </head>
+            <body style="font-family: Arial, sans-serif; margin: 0; padding: 0; background-color: #f4f4f4;">
+              <table role="presentation" cellpadding="0" cellspacing="0" style="width: 100%; background-color: #f4f4f4;">
+                <tr>
+                  <td style="padding: 20px 0;">
+                    <table role="presentation" cellpadding="0" cellspacing="0" style="max-width: 600px; margin: 0 auto; background-color: #ffffff; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+                      <tr>
+                        <td style="background-color: #004990; padding: 30px; text-align: center;">
+                          <h1 style="color: #ffffff; margin: 0; font-size: 24px;">Reset Your Password</h1>
+                        </td>
+                      </tr>
+                      <tr>
+                        <td style="padding: 30px;">
+                          <p style="margin: 0 0 20px; color: #333333; font-size: 16px;">Hello ${user.full_name},</p>
+                          <p style="margin: 0 0 20px; color: #333333; font-size: 16px;">We received a request to reset the password for your TripXL account:</p>
+                          <p style="margin: 0 0 10px; color: #666666; font-size: 14px;">
+                            <strong>Username:</strong> ${user.user_name}
+                          </p>
+                          <div style="text-align: center; margin: 30px 0;">
+                            <a href="${resetUrl}" 
+                               style="display: inline-block;
+                                      background-color: #004990;
+                                      color: #ffffff;
+                                      text-decoration: none;
+                                      padding: 14px 30px;
+                                      border-radius: 4px;
+                                      font-size: 16px;
+                                      font-weight: bold;
+                                      box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+                              Reset Password
+                            </a>
+                          </div>
+                          <div style="margin: 30px 0; padding: 20px; background-color: #f8f9fa; border-radius: 4px;">
+                            <p style="margin: 0 0 10px; color: #666666; font-size: 14px;">
+                              If the button above doesn't work, copy and paste this link into your browser:
+                            </p>
+                            <p style="margin: 0; word-break: break-all;">
+                              <a href="${resetUrl}" 
+                                 style="color: #004990; 
+                                        text-decoration: underline; 
+                                        font-size: 14px;">
+                                ${resetUrl}
+                              </a>
+                            </p>
+                          </div>
+                          <p style="margin: 20px 0 0; color: #666666; font-size: 14px;">
+                            This password reset link will expire in 1 hour for security reasons.
+                          </p>
+                          <p style="margin: 20px 0 0; color: #666666; font-size: 14px;">
+                            If you didn't request a password reset, please ignore this email or contact support if you have concerns.
+                          </p>
+                        </td>
+                      </tr>
+                      <tr>
+                        <td style="background-color: #f8f9fa; padding: 20px; text-align: center; border-top: 1px solid #eee;">
+                          <p style="margin: 0; color: #666666; font-size: 12px;">
+                            © ${new Date().getFullYear()} TripXL. All rights reserved.
+                          </p>
+                        </td>
+                      </tr>
+                    </table>
+                  </td>
+                </tr>
+              </table>
+            </body>
+            </html>
+          `,
+          text: `
+Reset Your TripXL Password
+
+Hello ${user.full_name},
+
+We received a request to reset the password for your TripXL account.
+
+Username: ${user.user_name}
+
+To reset your password, click on the following link:
+${resetUrl}
+
+This password reset link will expire in 1 hour for security reasons.
+
+If you didn't request a password reset, please ignore this email or contact support if you have concerns.
+
+© ${new Date().getFullYear()} TripXL
+          `
+        });
+
+        console.log('Password reset email sent successfully');
+
+        res.json({
+          message: "If an account exists with that email, you will receive password reset instructions."
+        });
+
+      } catch (error: any) {
+        console.error('Error sending password reset email:', error);
+        res.status(500).json({
+          error: "Failed to process password reset request",
+          details: error.message
+        });
       }
     });
-
-    console.log('Sending password reset email to:', emailId);
-
-    // Send email
-    await transporter.sendMail({
-      from: process.env.SMTP_FROM || '"TripXL Support" <support@tripxl.com>',
-      to: emailId,
-      subject: 'Reset Your TripXL Password',
-      html: `
-        <!DOCTYPE html>
-        <html>
-        <head>
-          <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
-        </head>
-        <body style="font-family: Arial, sans-serif; margin: 0; padding: 20px;">
-          <div style="max-width: 600px; margin: 0 auto;">
-            <div style="background-color: #004990; padding: 20px; text-align: center;">
-              <h1 style="color: white; margin: 0;">Reset Your Password</h1>
-            </div>
-            <div style="padding: 20px; background-color: #f9f9f9;">
-              <p>You have requested to reset your password.</p>
-              <p>Click the button below to set a new password:</p>
-              <div style="text-align: center; margin: 30px 0;">
-                <a href="${resetUrl.toString()}" 
-                   style="background-color: #004990; 
-                          color: white; 
-                          padding: 12px 24px; 
-                          text-decoration: none; 
-                          border-radius: 4px; 
-                          display: inline-block;">
-                  Reset Password
-                </a>
-              </div>
-              <p style="color: #666; font-size: 14px;">
-                If the button doesn't work, copy and paste this link into your browser:<br/>
-                <a href="${resetUrl.toString()}" style="color: #004990;">
-                  ${resetUrl.toString()}
-                </a>
-              </p>
-              <p style="color: #666; font-size: 14px;">
-                This link will expire in 1 hour for security reasons.
-              </p>
-            </div>
-          </div>
-        </body>
-        </html>
-      `,
-      text: `
-Reset Your Password
-
-You have requested to reset your password. Click the link below to set a new password:
-
-${resetUrl.toString()}
-
-This link will expire in 1 hour for security reasons.
-
-If you didn't request this reset, please ignore this email.
-      `
-    });
-
-    console.log('Password reset email sent successfully');
-
-    res.json({
-      message: "If an account exists with that email, you will receive password reset instructions."
-    });
-
-  } catch (error: any) {
-    console.error('Error sending password reset email:', error);
-    res.status(500).json({
-      error: "Failed to process password reset request",
-      details: error.message
-    });
-  }
-});
 
     // Add reset password endpoint
     app.post("/api/auth/reset-password", async (req, res) => {
