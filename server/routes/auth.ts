@@ -29,8 +29,11 @@ router.post("/login", async (req, res) => {
       });
     }
 
-    // For the current login attempt, compare with "Pass@123" directly
-    if (password !== "Pass@123") {
+    // Compare the provided password with the stored password
+    const isValidPassword = await bcrypt.compare(password, user.password);
+
+    if (!isValidPassword) {
+      console.error('Password validation failed for user:', email_id);
       return res.status(401).json({
         error: "Invalid email or password"
       });
