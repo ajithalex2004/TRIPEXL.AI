@@ -9,13 +9,13 @@ import nodemailer from 'nodemailer';
 const transporter = nodemailer.createTransport({
   host: process.env.SMTP_HOST || 'ns1.dt.ae',
   port: parseInt(process.env.SMTP_PORT || '587'),
-  secure: false, // true for 465, false for other ports
+  secure: false,
   auth: {
     user: process.env.SMTP_USER || 'alert@dt-alert.com',
     pass: process.env.SMTP_PASS || 'oiuy!@#dr69'
   },
   tls: {
-    rejectUnauthorized: false // Allow self-signed certificates
+    rejectUnauthorized: false
   }
 });
 
@@ -24,30 +24,22 @@ export class AuthService {
     return Math.floor(100000 + Math.random() * 900000).toString();
   }
 
-  private generateToken(user: User): string {
-    return jwt.sign(
-      { userId: user.id, emailId: user.emailId },
-      process.env.JWT_SECRET || 'dev-secret-key',
-      { expiresIn: '24h' }
-    );
-  }
-
-  private async sendOTPEmail(email: string, otp: string) {
+  private async sendOTPEmail(email: string, otp: string): Promise<boolean> {
     try {
-      console.log('Attempting to send OTP email to:', email);
+      console.log('Sending OTP email to:', email);
 
       const mailOptions = {
         from: process.env.SMTP_FROM || 'alert@dt-alert.com',
         to: email,
-        subject: 'Your TripXL Registration Code',
+        subject: 'Your TripXL Verification Code',
         html: `
           <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
             <h1 style="color: #2563eb; text-align: center;">Welcome to TripXL!</h1>
-            <p style="font-size: 16px;">Your verification code is:</p>
-            <div style="background-color: #f3f4f6; padding: 20px; text-align: center; border-radius: 8px;">
-              <strong style="font-size: 24px; letter-spacing: 4px;">${otp}</strong>
+            <p style="font-size: 16px; text-align: center;">Your verification code is:</p>
+            <div style="background-color: #f3f4f6; padding: 20px; text-align: center; border-radius: 8px; margin: 20px 0;">
+              <strong style="font-size: 32px; letter-spacing: 8px;">${otp}</strong>
             </div>
-            <p style="color: #6b7280; font-size: 14px; margin-top: 20px;">
+            <p style="color: #6b7280; font-size: 14px; text-align: center;">
               This code will expire in 15 minutes.<br>
               If you didn't request this code, please ignore this email.
             </p>
@@ -55,29 +47,97 @@ export class AuthService {
         `
       };
 
-      console.log('Sending email with options:', { 
-        ...mailOptions,
-        to: '***',
-        host: process.env.SMTP_HOST,
-        port: process.env.SMTP_PORT
-      });
-
-      // Send email
       const info = await transporter.sendMail(mailOptions);
       console.log('Email sent successfully:', info.messageId);
-
       return true;
     } catch (error) {
       console.error('Failed to send OTP email:', error);
-      if (error instanceof Error) {
-        console.error('Error details:', {
-          name: error.name,
-          message: error.message,
-          stack: error.stack
-        });
-      }
-      throw new Error('Failed to send verification code. Please try again later.');
+      throw new Error('Failed to send verification code');
     }
+  }
+
+  private async hashPassword(password: string): Promise<string> {
+    return bcrypt.hash(password, 10);
+  }
+
+  async registerUser(userData: InsertUser): Promise<{ user: User; userId: number }> {
+    try {
+      console.log('Processing registration for:', userData.emailId);
+
+      // Hash the password
+      const hashedPassword = await this.hashPassword(userData.password);
+
+      // Create inactive user
+      const user = await storage.createUser({
+        ...userData,
+        password: hashedPassword,
+        isActive: false
+      });
+
+      // Generate and store OTP
+      const otp = this.generateOTP();
+      const expiresAt = new Date();
+      expiresAt.setMinutes(expiresAt.getMinutes() + 15);
+
+      await storage.createOtpVerification({
+        userId: user.id,
+        otp,
+        type: 'registration',
+        expiresAt
+      });
+
+      // Send OTP email
+      await this.sendOTPEmail(userData.emailId, otp);
+
+      return { user, userId: user.id };
+    } catch (error) {
+      console.error('Registration error:', error);
+      throw error;
+    }
+  }
+
+  async verifyOTP(userId: number, otp: string): Promise<{ user: User; token: string }> {
+    try {
+      console.log('Verifying OTP for user:', userId);
+
+      const verification = await storage.getOtpVerification(userId);
+      if (!verification) {
+        throw new Error('Verification code not found');
+      }
+
+      if (verification.otp !== otp) {
+        throw new Error('Invalid verification code');
+      }
+
+      if (new Date() > verification.expiresAt) {
+        throw new Error('Verification code has expired');
+      }
+
+      // Activate user
+      const user = await storage.activateUser(userId);
+
+      // Delete used OTP
+      await storage.deleteOtpVerification(userId);
+
+      // Generate JWT token
+      const token = jwt.sign(
+        { userId: user.id, emailId: user.emailId },
+        process.env.JWT_SECRET || 'dev-secret-key',
+        { expiresIn: '24h' }
+      );
+
+      return { user, token };
+    } catch (error) {
+      console.error('OTP verification error:', error);
+      throw error;
+    }
+  }
+  private generateToken(user: User): string {
+    return jwt.sign(
+      { userId: user.id, emailId: user.emailId },
+      process.env.JWT_SECRET || 'dev-secret-key',
+      { expiresIn: '24h' }
+    );
   }
 
   async login(emailId: string, password: string): Promise<{ user: User; token: string }> {
@@ -129,76 +189,6 @@ export class AuthService {
     return bcrypt.hash(password, 10);
   }
 
-  async registerUser(userData: InsertUser): Promise<{ user: User; otp: string }> {
-    if (!userData.password) {
-      throw new Error('Password is required');
-    }
-
-    // Hash password
-    const password = await this.createHashedPassword(userData.password);
-
-    try {
-      console.log('Creating new user:', { ...userData, password: '[REDACTED]' });
-
-      // Create user with pending status
-      const user = await storage.createUser({
-        ...userData,
-        password,
-        isActive: false, // User starts as inactive until OTP verification
-      });
-
-      // Generate OTP
-      const otp = this.generateOTP();
-      const expiresAt = new Date();
-      expiresAt.setMinutes(expiresAt.getMinutes() + 15);
-
-      // Store OTP
-      await storage.createOtpVerification({
-        userId: user.id,
-        otp,
-        type: 'registration',
-        expiresAt,
-      });
-
-      // Send OTP email
-      await this.sendOTPEmail(userData.emailId, otp);
-
-      return { user, otp };
-    } catch (error) {
-      console.error('Error in registerUser:', error);
-      if (error instanceof Error) {
-        throw new Error(error.message);
-      }
-      throw new Error('Failed to register user');
-    }
-  }
-
-  async verifyOTP(userId: number, otp: string): Promise<{ user: User; token: string }> {
-    const verification = await storage.getOtpVerification(userId);
-
-    if (!verification) {
-      throw new Error('Verification code not found');
-    }
-
-    if (verification.otp !== otp) {
-      throw new Error('Invalid verification code');
-    }
-
-    if (new Date() > verification.expiresAt) {
-      throw new Error('Verification code has expired');
-    }
-
-    // Activate user
-    const user = await storage.activateUser(userId);
-
-    // Delete used OTP
-    await storage.deleteOtpVerification(userId);
-
-    // Generate JWT token
-    const token = this.generateToken(user);
-
-    return { user, token };
-  }
   async initializeDefaultUser(): Promise<void> {
     try {
       console.log("Checking for default user existence...");
