@@ -911,7 +911,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
         // Generate reset token
         const resetToken = crypto.randomBytes(32).toString('hex');
-        const resetTokenExpiry = new Date(Date.now() + 3600000); // 1 hour from now
+        constresetTokenExpiry = new Date(Date.now() + 3600000); // 1 hour from now
 
         // Update user with reset token
         await storage.updateUserResetToken(user.id, resetToken, resetTokenExpiry);
@@ -946,11 +946,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
                 <p>You have requested to reset your password.</p>
                 <p>Click the button below to set a new password:</p>
                 <div style="text-align: center; margin: 30px 0;">
-                  <a href="${resetUrl}" target="_blank" style="background-color: #004990; color: white; padding: 12px 24px; text-decoration: none; border-radius: 4px; display: inline-block;">Reset Password</a>
+                  <a href="${resetUrl}" target="_blank" rel="noopener" style="background-color: #004990; color: white; padding: 12px 24px; text-decoration: none; border-radius: 4px; display: inline-block;">Reset Password</a>
                 </div>
                 <p style="color: #666; font-size: 14px;">This link will expire in 1 hour for security reasons.</p>
                 <p style="color: #666; font-size: 14px;">If you didn't request this password reset, please ignore this email.</p>
-                <p style="color: #666; font-size: 14px;">If the button doesn't work, copy and paste this link into your browser:<br/>${resetUrl}</p>
+                <p style="color: #666; font-size: 14px; margin-top: 20px;">
+                  If the button above doesn't work, copy and paste this link into your browser:
+                  <br/>
+                  <a href="${resetUrl}" style="color: #004990; text-decoration: underline; word-break: break-all;">${resetUrl}</a>
+                </p>
               </div>
             </div>
           `
