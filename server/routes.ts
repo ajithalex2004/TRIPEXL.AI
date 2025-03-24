@@ -911,18 +911,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
         // Generate reset token
         const resetToken = crypto.randomBytes(32).toString('hex');
-        const resetTokenExpiry = new Date(Date.now() +360000); // 1 hour from now
+        const resetTokenExpiry = new Date(Date.now() + 3600000); // 1 hour from now
 
         // Update user with reset token
         await storage.updateUserResetToken(user.id, resetToken, resetTokenExpiry);
 
-        // Create reset URL
-        const resetUrl = `${process.env.APP_URL || 'http://localhost:3000'}/auth/reset-password?token=${resetToken}`;
+        // Create reset URL with correct port and protocol
+        const protocol = req.protocol;
+        const host = req.get('host').split(':')[0]; // Get hostname without port
+        const resetUrl = `${protocol}://${host}:5000/auth/reset-password?token=${resetToken}`;
 
         // Setup email transporter
         const transporter = nodemailer.createTransport({
           host: process.env.SMTP_HOST,
-          port: 465, // Changed to 465 for SSL
+          port: 465, // SSL port
           secure: true, // Enable SSL
           auth: {
             user: process.env.SMTP_USER,
@@ -949,6 +951,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             </div>
             <p style="color: #666; font-size: 14px;">This link will expire in 1 hour for security reasons.</p>
             <p style="color: #666; font-size: 14px;">If you didn't request this password reset, please ignore this email or contact support if you have concerns.</p>
+            <p style="color: #666; font-size: 14px;">If the button doesn't work, copy and paste this link into your browser: ${resetUrl}</p>
           </div>
           <div style="text-align: center; padding: 20px; color: #666; font-size: 12px;">
             <p>© ${new Date().getFullYear()} TripXL. All rights reserved.</p>
@@ -958,7 +961,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
 
         res.json({
-          message: "Password reset instructions sent to your email"
+          message: "If an account exists with that email, you will receive password reset instructions."
         });
 
       } catch (error: any) {
