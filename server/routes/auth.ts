@@ -5,82 +5,94 @@ import { authService } from "../services/auth";
 
 const router = Router();
 
-// Keep existing login/logout functionality
 router.post("/login", async (req, res) => {
   try {
-    const { email_id, password } = req.body;
+    const { emailId, password } = req.body;
+    console.log('Login attempt with:', { emailId });
 
-    if (!email_id || !password) {
+    if (!emailId || !password) {
       return res.status(400).json({
-        message: "Email and password are required"
+        error: "Email and password are required"
       });
     }
 
-    const user = await storage.getUserByEmail(email_id);
+    const user = await storage.getUserByEmail(emailId);
     if (!user) {
       return res.status(401).json({
-        message: "Invalid credentials"
+        error: "Invalid credentials"
       });
     }
 
     const isMatch = await bcrypt.compare(password, user.password);
     if (!isMatch) {
       return res.status(401).json({
-        message: "Invalid credentials"
+        error: "Invalid credentials"
       });
     }
 
-    return res.status(200).json({
+    const userData = {
       id: user.id,
-      email_id: user.email_id,
-      user_name: user.user_name,
-      user_type: user.user_type,
-      user_operation_type: user.user_operation_type,
-      user_group: user.user_group,
-      full_name: user.full_name,
-      first_name: user.first_name,
-      last_name: user.last_name,
-      is_active: user.is_active
+      emailId: user.email_id,
+      userName: user.user_name,
+      userType: user.user_type,
+      userOperationType: user.user_operation_type,
+      userGroup: user.user_group,
+      fullName: user.full_name,
+      firstName: user.first_name,
+      lastName: user.last_name,
+      isActive: user.is_active
+    };
+
+    return res.status(200).json({
+      ...userData,
+      token: 'dummy-token-for-now', // TODO: Implement proper JWT
+      message: "Logged in successfully"
     });
   } catch (error) {
     console.error("Login error:", error);
     return res.status(500).json({
-      message: "An unexpected error occurred during login"
+      error: "An unexpected error occurred during login"
     });
   }
 });
 
+// Keep other route handlers unchanged
 router.post("/logout", (req, res) => {
   res.status(200).json({ message: "Logged out successfully" });
 });
 
-// Add forgot password route
 router.post("/forgot-password", async (req, res) => {
   try {
-    const { emailId } = req.body;
-    console.log('Received forgot password request for:', emailId);
+    const { emailId, userName } = req.body;
+    console.log('Received forgot password request for:', { emailId, userName });
 
-    if (!emailId) {
+    if (!emailId || !userName) {
       return res.status(400).json({
-        error: "Email is required"
+        error: "Email and username are required"
+      });
+    }
+
+    const user = await storage.getUserByEmail(emailId);
+    if (!user || user.user_name !== userName) {
+      return res.status(404).json({
+        error: "User not found"
       });
     }
 
     await authService.initiatePasswordReset(emailId);
 
-    // Always return success even if email doesn't exist (security best practice)
     res.json({
       message: "If an account exists with that email, you will receive password reset instructions."
     });
   } catch (error) {
     console.error('Error in forgot-password route:', error);
     res.status(500).json({
-      error: "Failed to process password reset request. Please try again later."
+      error: "Failed to process password reset request",
+      details: error.message
     });
   }
 });
 
-// Add reset password route
 router.post("/reset-password", async (req, res) => {
   try {
     const { token, newPassword } = req.body;
