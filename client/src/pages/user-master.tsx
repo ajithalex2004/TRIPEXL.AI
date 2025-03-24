@@ -6,7 +6,7 @@ import { Loader2, Plus } from "lucide-react";
 
 export default function UserMasterPage() {
   const { data: users, isLoading } = useQuery({
-    queryKey: ["/api/users"],
+    queryKey: ["/api/auth/users"],
   });
 
   if (isLoading) {

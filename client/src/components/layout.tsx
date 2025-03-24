@@ -180,8 +180,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
                 )}
 
                 <div className="mt-auto">
-                  <LogoutButton 
-                    className="w-full text-white hover:bg-white/10 text-[15px] font-bold"
+                  <LogoutButton
                     onClick={() => {
                       localStorage.removeItem("token");
                       window.location.href = "/auth/login";

@@ -67,4 +67,17 @@ router.post("/logout", (req, res) => {
   res.status(200).json({ message: "Logged out successfully" });
 });
 
+// Add users route
+router.get("/users", async (_req, res) => {
+  try {
+    const users = await storage.getAllUsers();
+    return res.status(200).json(users);
+  } catch (error) {
+    console.error('Error fetching users:', error);
+    return res.status(500).json({
+      error: "Failed to fetch users"
+    });
+  }
+});
+
 export default router;
