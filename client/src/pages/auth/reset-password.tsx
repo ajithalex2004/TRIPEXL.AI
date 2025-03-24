@@ -49,8 +49,15 @@ export default function ResetPasswordPage() {
 
       return res.json();
     },
-    onSuccess: () => {
-      setLocation("/auth/login");
+    onSuccess: (data) => {
+      toast({
+        title: "Success",
+        description: "Your password has been reset successfully. Please login with your new password.",
+        duration: 5000,
+      });
+      setTimeout(() => {
+        setLocation("/auth/login");
+      }, 2000);
     },
     onError: (error: any) => {
       toast({

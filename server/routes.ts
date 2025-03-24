@@ -707,7 +707,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
     });
 
-
     // Add these new endpoints after existing employee routes
     app.get("/api/employees/:id/details", async (req, res) => {
       try {
@@ -903,7 +902,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
         // Find user
         const user = await storage.findUserByEmail(emailId);
-        if (!user || user.userName !== userName) {
+        if (!user || user.user_name !== userName) {
           return res.status(404).json({
             error: "User not found",
             details: "No matching user found with provided username and email"
@@ -912,7 +911,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
         // Generate reset token
         const resetToken = crypto.randomBytes(32).toString('hex');
-        const resetTokenExpiry = new Date(Date.now() + 360000); // 1 hour from now
+        const resetTokenExpiry = new Date(Date.now() +360000); // 1 hour from now
 
         // Update user with reset token
         await storage.updateUserResetToken(user.id, resetToken, resetTokenExpiry);
@@ -931,18 +930,31 @@ export async function registerRoutes(app: Express): Promise<Server> {
           }
         });
 
-        // Send email
+        // Send email with improved HTML template
         await transporter.sendMail({
           from: process.env.SMTP_FROM || '"TripXL Support" <support@tripxl.com>',
           to: emailId,
-          subject: 'Password Reset Request',
+          subject: 'Reset Your TripXL Password',
           html: `
-            <h1>Password Reset Request</h1>
-            <p>You requested to reset your password. Click the link below to reset it:</p>
-            <a href="${resetUrl}">Reset Password</a>
-            <p>This link will expire in 1 hour.</p>
-            <p>If you didn't request this, please ignore this email.</p>
-          `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+          <div style="background-color: #004990; padding: 20px; text-align: center;">
+            <h1 style="color: white; margin: 0;">Password Reset Request</h1>
+          </div>
+          <div style="padding: 20px; background-color: #f9f9f9;">
+            <p>Hello ${user.full_name},</p>
+            <p>We received a request to reset your password for your TripXL account.</p>
+            <p>To reset your password, click the button below:</p>
+            <div style="text-align: center; margin: 30px 0;">
+              <a href="${resetUrl}" style="background-color: #004990; color: white; padding: 12px 24px; text-decoration: none; border-radius: 4px; display: inline-block;">Reset Password</a>
+            </div>
+            <p style="color: #666; font-size: 14px;">This link will expire in 1 hour for security reasons.</p>
+            <p style="color: #666; font-size: 14px;">If you didn't request this password reset, please ignore this email or contact support if you have concerns.</p>
+          </div>
+          <div style="text-align: center; padding: 20px; color: #666; font-size: 12px;">
+            <p>© ${new Date().getFullYear()} TripXL. All rights reserved.</p>
+          </div>
+        </div>
+      `
         });
 
         res.json({
@@ -952,8 +964,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       } catch (error: any) {
         console.error('Error in forgot password:', error);
         res.status(500).json({
-          error: "Failed to process password reset request",
-          details: error.message
+          error: "Failed to process password reset request. Please try again later."
         });
       }
     });
