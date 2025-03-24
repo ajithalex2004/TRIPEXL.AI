@@ -26,16 +26,11 @@ function ProtectedRoute({ component: Component }: { component: React.ComponentTy
   const { toast } = useToast();
 
   React.useEffect(() => {
-    const autoLogin = async () => {
-      const token = localStorage.getItem("token");
-
-      if (!token) {
-        setLocation("/auth/login");
-        return;
-      }
-    };
-
-    autoLogin();
+    const token = localStorage.getItem("token");
+    if (!token) {
+      setLocation("/auth/login");
+      return;
+    }
   }, [setLocation, toast]);
 
   return (
@@ -61,10 +56,13 @@ function Router() {
   return (
     <AnimatePresence mode="wait">
       <Switch key={location}>
-        <Route path="/" component={() => <ProtectedRoute component={Home} />} />
+        {/* Auth Routes - Standalone */}
         <Route path="/auth/login" component={() => <StandaloneRoute component={LoginPage} />} />
         <Route path="/auth/forgot-password" component={() => <StandaloneRoute component={ForgotPasswordPage} />} />
         <Route path="/auth/reset-password" component={() => <StandaloneRoute component={ResetPasswordPage} />} />
+
+        {/* Protected Routes */}
+        <Route path="/" component={() => <ProtectedRoute component={Home} />} />
         <Route path="/new-booking" component={() => <ProtectedRoute component={NewBooking} />} />
         <Route path="/bookings" component={() => <ProtectedRoute component={BookingHistory} />} />
         <Route path="/vehicle-groups" component={() => <ProtectedRoute component={VehicleGroupManagement} />} />
@@ -73,6 +71,8 @@ function Router() {
         <Route path="/fuel-efficiency" component={() => <ProtectedRoute component={FuelEfficiencyPage} />} />
         <Route path="/co2-emissions" component={() => <ProtectedRoute component={CO2EmissionsPage} />} />
         <Route path="/employees" component={() => <ProtectedRoute component={EmployeeManagement} />} />
+
+        {/* 404 Route */}
         <Route component={NotFound} />
       </Switch>
     </AnimatePresence>

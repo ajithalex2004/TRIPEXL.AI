@@ -4,7 +4,7 @@ import { setupVite, serveStatic, log } from "./vite";
 import { db } from "./db";
 import { sql } from "drizzle-orm";
 import { createServer } from "http";
-import authRouter from "./routes/auth"; // Add this import
+import authRouter from "./routes/auth";
 
 // Add global error handlers
 process.on("uncaughtException", (error) => {
@@ -20,11 +20,26 @@ process.on("unhandledRejection", (reason, promise) => {
 });
 
 const app = express();
+
+// Essential middleware
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 
+// CORS for development
+app.use((req, res, next) => {
+  res.header('Access-Control-Allow-Origin', '*');
+  res.header('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE,OPTIONS');
+  res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+
+  if (req.method === 'OPTIONS') {
+    res.sendStatus(200);
+  } else {
+    next();
+  }
+});
+
 // Mount auth routes
-app.use("/api/auth", authRouter); // Add this line
+app.use("/api/auth", authRouter);
 
 // Basic error handling middleware
 app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
@@ -66,7 +81,7 @@ async function initializeServer() {
 
     // Register API routes
     log("Registering routes...");
-    await registerRoutes(app, server);
+    await registerRoutes(app);
     log("Routes registered successfully");
 
     // Set up Vite or static serving
@@ -80,13 +95,11 @@ async function initializeServer() {
       log("Static serving setup complete");
     }
 
+    // Bind to 0.0.0.0 to be accessible from outside
     const port = process.env.PORT || 5000;
-    server.listen({
-      port,
-      host: "0.0.0.0",
-      reusePort: true,
-    }, () => {
+    server.listen(port, "0.0.0.0", () => {
       log(`Server successfully started and listening on port ${port}`);
+      log(`Server is accessible at http://localhost:${port}`);
     });
 
     return server;
