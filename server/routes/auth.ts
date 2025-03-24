@@ -7,10 +7,12 @@ const router = Router();
 
 router.post("/register", async (req, res) => {
   try {
-    // Log raw request data
-    console.log("Raw registration request:", {
+    // Detailed request logging
+    console.log("Raw registration request headers:", req.headers);
+    console.log("Raw registration request body:", {
       ...req.body,
-      password: '[REDACTED]'
+      password: '[REDACTED]',
+      confirm_password: '[REDACTED]'
     });
 
     // Schema validation
@@ -24,23 +26,20 @@ router.post("/register", async (req, res) => {
       });
     }
 
-    // Log validated data
     const validatedData = validationResult.data;
-    console.log("Validated data:", {
+    console.log("Validated registration data:", {
       ...validatedData,
       password: '[REDACTED]'
     });
 
     try {
-      // Attempt user creation
       const user = await storage.createUser(validatedData);
-      console.log("User created:", {
+      console.log("User created successfully:", {
         id: user.id,
         email_id: user.email_id,
         user_name: user.user_name
       });
 
-      // Return success without sensitive data
       return res.status(201).json({
         id: user.id,
         email_id: user.email_id,
