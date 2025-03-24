@@ -48,6 +48,7 @@ export default function LoginPage() {
         title: "Success",
         description: data.message || "Logged in successfully",
       });
+      // Redirect to home page after successful login
       setLocation("/");
     },
     onError: (error: any) => {
