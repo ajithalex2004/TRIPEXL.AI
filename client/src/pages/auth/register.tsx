@@ -22,8 +22,7 @@ import { LoadingIndicator } from "@/components/ui/loading-indicator";
 import { InputOTP, InputOTPGroup, InputOTPSlot } from "@/components/ui/input-otp";
 import { WelcomeScreen } from "@/components/welcome-screen";
 
-// Simple registration schema
-const registrationSchema = insertUserSchema.extend({
+const registerSchema = insertUserSchema.extend({
   password: z.string()
     .min(8, "Password must be at least 8 characters")
     .regex(/[A-Z]/, "Password must contain at least one uppercase letter")
@@ -39,12 +38,12 @@ const registrationSchema = insertUserSchema.extend({
 export default function RegisterPage() {
   const { toast } = useToast();
   const [, setLocation] = useLocation();
-  const [verificationStep, setVerificationStep] = React.useState(false);
-  const [showWelcomeScreen, setShowWelcomeScreen] = React.useState(false);
+  const [showVerification, setShowVerification] = React.useState(false);
+  const [showWelcome, setShowWelcome] = React.useState(false);
   const [userId, setUserId] = React.useState<number | null>(null);
 
   const form = useForm({
-    resolver: zodResolver(registrationSchema),
+    resolver: zodResolver(registerSchema),
     defaultValues: {
       firstName: "",
       lastName: "",
@@ -57,8 +56,7 @@ export default function RegisterPage() {
     }
   });
 
-  // Registration mutation
-  const register = useMutation({
+  const registerMutation = useMutation({
     mutationFn: async (data: any) => {
       const response = await apiRequest("POST", "/api/auth/register", data);
       if (!response.ok) {
@@ -70,23 +68,22 @@ export default function RegisterPage() {
     onSuccess: (data) => {
       setUserId(data.userId);
       toast({
-        title: "Success",
-        description: "Please check your email for the verification code.",
+        title: "Registration Successful",
+        description: "Please check your email for the verification code",
       });
-      setVerificationStep(true);
+      setShowVerification(true);
     },
-    onError: (error: any) => {
+    onError: (error: Error) => {
       toast({
         title: "Registration Failed",
-        description: error.message || "Something went wrong",
+        description: error.message,
         variant: "destructive",
       });
-    }
+    },
   });
 
-  // OTP verification mutation
-  const verify = useMutation({
-    mutationFn: async ({ userId, otp }: { userId: number, otp: string }) => {
+  const verifyMutation = useMutation({
+    mutationFn: async ({ userId, otp }: { userId: number; otp: string }) => {
       const response = await apiRequest("POST", "/api/auth/verify", { userId, otp });
       if (!response.ok) {
         const error = await response.json();
@@ -96,44 +93,41 @@ export default function RegisterPage() {
     },
     onSuccess: (data) => {
       localStorage.setItem("token", data.token);
-      setShowWelcomeScreen(true);
+      setShowWelcome(true);
     },
-    onError: (error: any) => {
+    onError: (error: Error) => {
       toast({
         title: "Verification Failed",
-        description: error.message || "Invalid verification code",
+        description: error.message,
         variant: "destructive",
       });
-    }
+    },
   });
 
-  // Form submission handler
   const onSubmit = async (formData: any) => {
     try {
       const { confirmPassword, ...registrationData } = formData;
-      const userData = {
+      await registerMutation.mutateAsync({
         ...registrationData,
         userName: `${formData.firstName}.${formData.lastName}`.toLowerCase(),
         fullName: `${formData.firstName} ${formData.lastName}`,
-        userCode: `USR${Math.floor(1000 + Math.random() * 9000)}`
-      };
-
-      await register.mutateAsync(userData);
+        userCode: `USR${Math.floor(1000 + Math.random() * 9000)}`,
+      });
     } catch (error) {
       console.error("Form submission error:", error);
     }
   };
 
-  if (showWelcomeScreen) {
+  if (showWelcome) {
     return <WelcomeScreen />;
   }
 
-  if (verificationStep) {
+  if (showVerification) {
     return (
       <Card className="w-[400px] mx-auto mt-8">
         <CardHeader>
-          <h2 className="text-2xl font-bold">Email Verification</h2>
-          <p className="text-sm text-gray-500">
+          <h2 className="text-2xl font-bold">Verify Your Email</h2>
+          <p className="text-sm text-muted-foreground">
             Enter the verification code sent to your email
           </p>
         </CardHeader>
@@ -148,7 +142,7 @@ export default function RegisterPage() {
               .map(([, value]) => value)
               .join('');
 
-            verify.mutate({ userId, otp });
+            verifyMutation.mutate({ userId, otp });
           }} className="space-y-4">
             <InputOTP maxLength={6} name="otp">
               <InputOTPGroup>
@@ -160,8 +154,8 @@ export default function RegisterPage() {
                 <InputOTPSlot index={5} />
               </InputOTPGroup>
             </InputOTP>
-            <Button type="submit" className="w-full" disabled={verify.isPending}>
-              {verify.isPending ? <LoadingIndicator size="sm" /> : "Verify"}
+            <Button type="submit" className="w-full" disabled={verifyMutation.isPending}>
+              {verifyMutation.isPending ? <LoadingIndicator size="sm" /> : "Verify"}
             </Button>
           </form>
         </CardContent>
@@ -173,7 +167,7 @@ export default function RegisterPage() {
     <Card className="w-[400px] mx-auto mt-8">
       <CardHeader>
         <h2 className="text-2xl font-bold">Create Account</h2>
-        <p className="text-sm text-gray-500">Enter your details to register</p>
+        <p className="text-sm text-muted-foreground">Enter your details to register</p>
       </CardHeader>
       <CardContent>
         <Form {...form}>
@@ -248,8 +242,8 @@ export default function RegisterPage() {
               )}
             />
 
-            <Button type="submit" className="w-full" disabled={register.isPending}>
-              {register.isPending ? <LoadingIndicator size="sm" /> : "Create Account"}
+            <Button type="submit" className="w-full" disabled={registerMutation.isPending}>
+              {registerMutation.isPending ? <LoadingIndicator size="sm" /> : "Create Account"}
             </Button>
 
             <div className="text-center">
