@@ -3,7 +3,7 @@ import { useForm } from "react-hook-form";
 import { useMutation } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
-import { useLocation, Link } from "wouter";
+import { useLocation } from "wouter";
 import { FormField, FormItem, FormLabel, FormControl, FormMessage, Form } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -11,31 +11,27 @@ import { Card, CardHeader, CardContent } from "@/components/ui/card";
 import { LoadingIndicator } from "@/components/ui/loading-indicator";
 import { motion } from "framer-motion";
 
+interface LoginFormData {
+  email_id: string;
+  password: string;
+}
+
 export default function LoginPage() {
   const { toast } = useToast();
   const [, setLocation] = useLocation();
   const [showPassword, setShowPassword] = React.useState(false);
-  const [isLoaded, setIsLoaded] = React.useState(false);
 
-  React.useEffect(() => {
-    const timer = setTimeout(() => setIsLoaded(true), 500);
-    return () => clearTimeout(timer);
-  }, []);
-
-  const form = useForm({
+  const form = useForm<LoginFormData>({
     defaultValues: {
-      emailId: "",
+      email_id: "",
       password: "",
     },
   });
 
   const login = useMutation({
-    mutationFn: async (data: any) => {
-      console.log('Attempting login with:', { email_id: data.emailId });
-      const res = await apiRequest("POST", "/api/auth/login", {
-        email_id: data.emailId,
-        password: data.password,
-      });
+    mutationFn: async (data: LoginFormData) => {
+      console.log('Attempting login with:', { email_id: data.email_id });
+      const res = await apiRequest("POST", "/api/auth/login", data);
       if (!res.ok) {
         const error = await res.json();
         throw new Error(error.error || "Login failed");
@@ -43,15 +39,16 @@ export default function LoginPage() {
       return res.json();
     },
     onSuccess: (data) => {
+      console.log('Login successful:', data);
       localStorage.setItem("token", data.token);
       toast({
         title: "Success",
-        description: data.message || "Logged in successfully",
+        description: "Logged in successfully",
       });
-      // Redirect to home page after successful login
       setLocation("/");
     },
     onError: (error: any) => {
+      console.error('Login error:', error);
       toast({
         title: "Error",
         description: error.message || "Login failed",
@@ -69,7 +66,6 @@ export default function LoginPage() {
     <div className="min-h-screen bg-gradient-to-b from-[#004990] via-[#0066cc] to-[#ffffff] relative overflow-hidden">
       <div className="container mx-auto h-screen flex flex-col items-center justify-center p-4">
         <div className="flex items-center space-x-16 max-w-5xl">
-          {/* Title and Description */}
           <motion.div
             className="flex-1 pl-8 flex flex-col justify-center min-w-[350px]"
             initial={{ opacity: 0, x: -30 }}
@@ -94,22 +90,12 @@ export default function LoginPage() {
             </motion.p>
           </motion.div>
 
-          {/* Sign In Form */}
           <motion.div
             className="w-full max-w-[350px]"
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.5, duration: 0.5 }}
           >
-            <motion.h2
-              className="text-base font-semibold text-white mb-2 text-center"
-              initial={{ opacity: 0, y: -10 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.6 }}
-            >
-              Welcome to TRIPXL
-            </motion.h2>
-
             <Card className="backdrop-blur-sm bg-white/90 dark:bg-black/50 border border-white/20 px-3 py-2">
               <CardHeader className="space-y-1 pb-2">
                 <h2 className="text-base font-semibold text-center">Sign In</h2>
@@ -122,7 +108,7 @@ export default function LoginPage() {
                   <form onSubmit={onSubmit} className="space-y-2">
                     <FormField
                       control={form.control}
-                      name="emailId"
+                      name="email_id"
                       render={({ field }) => (
                         <FormItem className="space-y-1">
                           <FormLabel className="text-sm">Email</FormLabel>
@@ -203,17 +189,14 @@ export default function LoginPage() {
                       disabled={login.isPending}
                     >
                       {login.isPending ? (
-                        <LoadingIndicator className="mr-2" />
-                      ) : null}
-                      {login.isPending ? "Signing in..." : "Sign In"}
+                        <>
+                          <LoadingIndicator className="mr-2" />
+                          Signing in...
+                        </>
+                      ) : (
+                        "Sign In"
+                      )}
                     </Button>
-                    <div className="text-center mt-2">
-                      <div className="flex flex-col space-y-1">
-                        <Link href="/auth/forgot-password" className="text-xs text-[#004990] hover:text-[#003870] hover:underline">
-                          Forgot Password?
-                        </Link>
-                      </div>
-                    </div>
                   </form>
                 </Form>
               </CardContent>

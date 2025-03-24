@@ -11,6 +11,7 @@ router.post("/login", async (req, res) => {
     console.log('Login attempt with email:', email_id);
 
     if (!email_id || !password) {
+      console.log('Missing credentials:', { email_id: !!email_id, password: !!password });
       return res.status(400).json({
         error: "Email and password are required"
       });
@@ -19,7 +20,7 @@ router.post("/login", async (req, res) => {
     try {
       // Get user from storage
       const user = await storage.getUserByEmail(email_id);
-      console.log('User found:', user ? 'Yes' : 'No');
+      console.log('User lookup result:', user ? 'Found' : 'Not found');
 
       if (!user) {
         return res.status(401).json({
@@ -27,9 +28,17 @@ router.post("/login", async (req, res) => {
         });
       }
 
-      // Direct password comparison using bcrypt
+      // Verify if the user is active
+      if (!user.is_active) {
+        console.log('User account is not active');
+        return res.status(401).json({
+          error: "Account is not active"
+        });
+      }
+
+      // Compare passwords using bcrypt
       const isMatch = await bcrypt.compare(password, user.password);
-      console.log('Password match:', isMatch ? 'Yes' : 'No');
+      console.log('Password verification result:', isMatch ? 'Match' : 'No match');
 
       if (!isMatch) {
         return res.status(401).json({
