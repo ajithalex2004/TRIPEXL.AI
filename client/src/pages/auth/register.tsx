@@ -46,12 +46,18 @@ export default function RegisterPage() {
       user_type: "USER",
       user_operation_type: "EMPLOYEE",
       user_group: "GROUP_A",
+      user_name: "",
+      user_code: "",
+      full_name: "",
+      is_active: true
     }
   });
 
   const registerMutation = useMutation({
     mutationFn: async (data: RegisterFormData) => {
       const { confirm_password, ...registrationData } = data;
+
+      // Generate derived fields
       const userData = {
         ...registrationData,
         user_name: `${data.first_name}.${data.last_name}`.toLowerCase(),
@@ -71,8 +77,7 @@ export default function RegisterPage() {
       }
       return response.json();
     },
-    onSuccess: (data) => {
-      console.log("Registration successful:", data);
+    onSuccess: () => {
       toast({
         title: "Account Created",
         description: "Your account has been created successfully!",
