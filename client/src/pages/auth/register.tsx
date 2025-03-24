@@ -35,16 +35,10 @@ export default function RegisterPage() {
   const { toast } = useToast();
   const [, setLocation] = useLocation();
   const [showWelcome, setShowWelcome] = React.useState(false);
-  const [error, setError] = React.useState<string | null>(null);
-
-  // Test toast on component mount
-  React.useEffect(() => {
-    console.log("Testing register page toast...");
-    toast({
-      title: "Register Page Loaded",
-      description: "Toast test from register page"
-    });
-  }, [toast]);
+  const [notification, setNotification] = React.useState<{
+    type: 'success' | 'error' | null;
+    message: string;
+  }>({ type: null, message: '' });
 
   const form = useForm<RegisterFormData>({
     resolver: zodResolver(registerSchema),
@@ -67,15 +61,10 @@ export default function RegisterPage() {
   const registerMutation = useMutation({
     mutationFn: async (data: RegisterFormData) => {
       try {
-        setError(null);
-        console.log("Starting registration mutation");
-        const { confirm_password, ...formData } = data;
+        setNotification({ type: null, message: '' });
+        console.log("Starting registration process...");
 
-        // Test toast during mutation
-        toast({
-          title: "Processing",
-          description: "Processing registration..."
-        });
+        const { confirm_password, ...formData } = data;
 
         const registrationData = {
           ...formData,
@@ -84,63 +73,54 @@ export default function RegisterPage() {
           full_name: `${data.first_name} ${data.last_name}`,
         };
 
-        console.log("Sending registration request with data:", {
-          ...registrationData,
-          password: '[REDACTED]'
-        });
-
+        console.log("Sending registration request...");
         const response = await apiRequest("POST", "/api/auth/register", registrationData);
 
         if (!response.ok) {
           const errorData = await response.json();
-          console.error("Registration API error:", errorData);
-          throw new Error(errorData.message || "Failed to register");
+          throw new Error(errorData.message || "Registration failed");
         }
 
         const result = await response.json();
-        console.log("Registration API success:", result);
+        console.log("Registration successful!", result);
         return result;
       } catch (error) {
-        console.error("Registration mutation error:", error);
+        console.error("Registration failed:", error);
         if (error instanceof Error) {
-          setError(error.message);
+          setNotification({ type: 'error', message: error.message });
         } else {
-          setError("An unexpected error occurred");
+          setNotification({ type: 'error', message: "An unexpected error occurred" });
         }
         throw error;
       }
     },
-    onSuccess: (data) => {
-      console.log("Registration mutation success callback", data);
-      // Test immediate toast
-      toast({
-        title: "Success!",
-        description: "Your account has been created successfully."
+    onSuccess: () => {
+      console.log("Setting success notification");
+      setNotification({
+        type: 'success',
+        message: 'Account created successfully!'
       });
       setShowWelcome(true);
     },
     onError: (error: Error) => {
-      console.log("Registration mutation error callback:", error);
-      // Test immediate toast
-      toast({
-        title: "Registration Failed",
-        description: error.message || "Something went wrong. Please try again.",
-        variant: "destructive"
+      console.log("Setting error notification");
+      setNotification({
+        type: 'error',
+        message: error.message || "Failed to create account"
       });
     },
   });
 
   const onSubmit = async (formData: RegisterFormData) => {
     try {
-      console.log("Form submission started");
-      // Test immediate toast
-      toast({
-        title: "Form Submitted",
-        description: "Processing your registration..."
+      console.log("Form submitted");
+      setNotification({
+        type: 'success',
+        message: 'Processing registration...'
       });
       await registerMutation.mutateAsync(formData);
     } catch (error) {
-      console.error("Form submission error:", error);
+      console.error("Submit handler error:", error);
     }
   };
 
@@ -155,9 +135,12 @@ export default function RegisterPage() {
         <p className="text-sm text-muted-foreground">Enter your details to register</p>
       </CardHeader>
       <CardContent>
-        {error && (
-          <Alert variant="destructive" className="mb-4">
-            <AlertDescription>{error}</AlertDescription>
+        {notification.type && (
+          <Alert 
+            variant={notification.type === 'error' ? "destructive" : "default"} 
+            className="mb-4"
+          >
+            <AlertDescription>{notification.message}</AlertDescription>
           </Alert>
         )}
 
