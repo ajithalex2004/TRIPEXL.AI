@@ -8,7 +8,7 @@ import { FormField, FormItem, FormLabel, FormControl, FormMessage, Form } from "
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardContent } from "@/components/ui/card";
-import { LoadingIndicator } from "@/components/ui/loading-indicator";
+import { Loader2 } from "lucide-react";
 import { motion } from "framer-motion";
 
 interface LoginFormData {
@@ -31,12 +31,17 @@ export default function LoginPage() {
   const login = useMutation({
     mutationFn: async (data: LoginFormData) => {
       console.log('Attempting login with:', { email_id: data.email_id });
-      const res = await apiRequest("POST", "/api/auth/login", data);
-      if (!res.ok) {
-        const error = await res.json();
-        throw new Error(error.error || "Login failed");
+      try {
+        const res = await apiRequest("POST", "/api/auth/login", data);
+        if (!res.ok) {
+          const error = await res.json();
+          throw new Error(error.error || "Login failed");
+        }
+        return res.json();
+      } catch (error) {
+        console.error('Login API error:', error);
+        throw error;
       }
-      return res.json();
     },
     onSuccess: (data) => {
       console.log('Login successful:', data);
@@ -190,7 +195,7 @@ export default function LoginPage() {
                     >
                       {login.isPending ? (
                         <>
-                          <LoadingIndicator className="mr-2" />
+                          <Loader2 className="w-4 h-4 mr-2 animate-spin" />
                           Signing in...
                         </>
                       ) : (
