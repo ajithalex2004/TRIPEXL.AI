@@ -66,36 +66,38 @@ export default function RegisterPage() {
           full_name: `${data.first_name} ${data.last_name}`,
         };
 
-        console.log("Sending registration data:", {
+        console.log("Attempting registration with:", { 
           ...registrationData,
-          password: '[REDACTED]'
+          password: '[REDACTED]' 
         });
 
         const response = await apiRequest("POST", "/api/auth/register", registrationData);
 
         if (!response.ok) {
           const errorData = await response.json();
-          throw new Error(errorData.message || "Registration failed");
+          console.error("Registration failed:", errorData);
+          throw new Error(errorData.message || "Failed to register");
         }
 
-        return await response.json();
+        const result = await response.json();
+        console.log("Registration successful:", result);
+        return result;
       } catch (error) {
-        console.error("Registration request failed:", error);
+        console.error("Registration error:", error);
         throw error;
       }
     },
     onSuccess: () => {
       toast({
-        title: "Success",
-        description: "Account created successfully!",
+        title: "Success!",
+        description: "Your account has been created successfully.",
       });
       setShowWelcome(true);
     },
     onError: (error: Error) => {
-      console.error("Registration error:", error);
       toast({
         title: "Registration Failed",
-        description: error.message || "Failed to create account",
+        description: error.message || "Something went wrong. Please try again.",
         variant: "destructive",
       });
     },
@@ -106,6 +108,7 @@ export default function RegisterPage() {
       await registerMutation.mutateAsync(formData);
     } catch (error) {
       console.error("Form submission error:", error);
+      // Error will be handled by mutation's onError
     }
   };
 
@@ -192,8 +195,19 @@ export default function RegisterPage() {
               )}
             />
 
-            <Button type="submit" className="w-full" disabled={registerMutation.isPending}>
-              {registerMutation.isPending ? <LoadingIndicator size="sm" /> : "Create Account"}
+            <Button 
+              type="submit" 
+              className="w-full" 
+              disabled={registerMutation.isPending}
+            >
+              {registerMutation.isPending ? (
+                <>
+                  <LoadingIndicator size="sm" className="mr-2" />
+                  Creating Account...
+                </>
+              ) : (
+                "Create Account"
+              )}
             </Button>
 
             <div className="text-center">
