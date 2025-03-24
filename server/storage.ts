@@ -405,7 +405,22 @@ export class DatabaseStorage implements IStorage {
   }
   async createUser(userData: InsertUser): Promise<User> {
     try {
-      console.log('Creating new user:', { ...userData, password: '[REDACTED]' });
+      console.log('Starting user creation process:', { 
+        ...userData,
+        password: '[REDACTED]',
+        timestamp: new Date().toISOString() 
+      });
+
+      // Ensure all required fields are present
+      const requiredFields = ['user_name', 'user_code', 'email_id', 'user_type', 'user_operation_type', 'user_group'];
+      const missingFields = requiredFields.filter(field => !userData[field]);
+
+      if (missingFields.length > 0) {
+        const error = `Missing required fields: ${missingFields.join(', ')}`;
+        console.error('Validation error:', error);
+        throw new Error(error);
+      }
+
       const [user] = await db
         .insert(schema.users)
         .values({
@@ -415,10 +430,23 @@ export class DatabaseStorage implements IStorage {
         })
         .returning();
 
-      console.log('User created successfully:', { id: user.id, email_id: user.email_id });
+      console.log('User created successfully:', {
+        id: user.id,
+        email_id: user.email_id,
+        user_name: user.user_name,
+        timestamp: new Date().toISOString()
+      });
+
       return user;
     } catch (error) {
-      console.error('Error creating user:', error);
+      console.error('Error in createUser:', error);
+      if (error instanceof Error) {
+        console.error('Error details:', {
+          message: error.message,
+          stack: error.stack,
+          timestamp: new Date().toISOString()
+        });
+      }
       throw new Error(`Failed to create user: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   }
