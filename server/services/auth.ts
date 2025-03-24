@@ -4,12 +4,13 @@ import { Employee, InsertUser, User } from '@shared/schema';
 import { storage } from '../storage';
 import { UserType, UserOperationType, UserGroup } from '@shared/schema';
 import nodemailer from 'nodemailer';
+import crypto from 'crypto';
 
 // Configure SMTP transport with environment variables
 const emailTransporter = nodemailer.createTransport({
-  host: 'smtp.gmail.com',
-  port: 587,
-  secure: false,
+  host: process.env.SMTP_HOST,
+  port: parseInt(process.env.SMTP_PORT || '587'),
+  secure: process.env.SMTP_PORT === '465', // true for 465, false for other ports
   auth: {
     user: process.env.SMTP_USER,
     pass: process.env.SMTP_PASS
@@ -204,6 +205,67 @@ export class AuthService {
       }
     } catch (error) {
       console.error("Error in initializeDefaultUser:", error);
+    }
+  }
+
+  async sendPasswordResetEmail(email: string, resetToken: string): Promise<void> {
+    try {
+      console.log('Sending password reset email to:', email);
+
+      const mailOptions = {
+        from: process.env.SMTP_FROM,
+        to: email,
+        subject: 'Reset Your TripXL Password',
+        html: `
+          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+            <h1 style="color: #004990; text-align: center;">TripXL Password Reset</h1>
+            <p style="font-size: 16px; line-height: 1.5;">
+              You have requested to reset your password. Click the button below to set a new password:
+            </p>
+            <div style="text-align: center; margin: 30px 0;">
+              <a href="${process.env.APP_URL}/auth/reset-password?token=${resetToken}" 
+                 style="background-color: #004990; color: white; padding: 12px 24px; 
+                        text-decoration: none; border-radius: 4px; display: inline-block;">
+                Reset Password
+              </a>
+            </div>
+            <p style="color: #666; font-size: 14px; text-align: center;">
+              This link will expire in 1 hour.<br>
+              If you didn't request this, please ignore this email.
+            </p>
+          </div>
+        `
+      };
+
+      const info = await emailTransporter.sendMail(mailOptions);
+      console.log('Password reset email sent successfully:', info.messageId);
+    } catch (error) {
+      console.error('Failed to send password reset email:', error);
+      throw new Error('Failed to send password reset email. Please try again later.');
+    }
+  }
+
+  async initiatePasswordReset(email: string): Promise<void> {
+    try {
+      // Find user by email
+      const user = await storage.findUserByEmail(email);
+      if (!user) {
+        // For security, don't reveal if email exists
+        return;
+      }
+
+      // Generate reset token
+      const resetToken = crypto.randomBytes(32).toString('hex');
+      const resetTokenExpiry = new Date(Date.now() + 3600000); // 1 hour from now
+
+      // Save reset token to user record
+      await storage.updateUserResetToken(user.id, resetToken, resetTokenExpiry);
+
+      // Send reset email
+      await this.sendPasswordResetEmail(email, resetToken);
+    } catch (error) {
+      console.error('Error in initiatePasswordReset:', error);
+      throw error;
     }
   }
 }
