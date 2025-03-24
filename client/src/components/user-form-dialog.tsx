@@ -83,11 +83,21 @@ export function UserFormDialog({
     try {
       console.log('Submitting form data:', { ...data, password: '[REDACTED]' });
       setIsSubmitting(true);
-      await onSubmit(data);
+
+      // Ensure all required fields are present
+      const formattedData = {
+        ...data,
+        is_active: true,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      };
+
+      await onSubmit(formattedData);
       form.reset();
       onOpenChange(false);
     } catch (error) {
       console.error('Error submitting form:', error);
+      throw error;
     } finally {
       setIsSubmitting(false);
     }

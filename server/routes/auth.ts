@@ -75,18 +75,33 @@ router.get("/users", async (_req, res) => {
   }
 });
 
-// Create new user
+// Update user creation route
 router.post("/users", async (req, res) => {
   try {
-    console.log('Creating new user with data:', { ...req.body, password: '[REDACTED]' });
+    console.log('Received user creation request:', {
+      ...req.body,
+      password: '[REDACTED]',
+      timestamp: new Date().toISOString()
+    });
+
     const { password, ...userData } = req.body;
 
     // Validate required fields
-    const requiredFields = ['user_name', 'user_code', 'email_id', 'user_type', 'user_operation_type', 'user_group', 'first_name', 'last_name', 'full_name'];
-    const missingFields = requiredFields.filter(field => !userData[field]);
+    const requiredFields = [
+      'user_name',
+      'user_code',
+      'email_id',
+      'user_type',
+      'user_operation_type',
+      'user_group',
+      'first_name',
+      'last_name',
+      'full_name'
+    ];
 
+    const missingFields = requiredFields.filter(field => !userData[field]);
     if (missingFields.length > 0) {
-      console.error('Missing required fields:', missingFields);
+      console.error('Validation failed - missing fields:', missingFields);
       return res.status(400).json({
         error: `Missing required fields: ${missingFields.join(', ')}`
       });
@@ -95,7 +110,7 @@ router.post("/users", async (req, res) => {
     // Check if email already exists
     const existingUserEmail = await storage.findUserByEmail(userData.email_id);
     if (existingUserEmail) {
-      console.log('Email already exists:', userData.email_id);
+      console.error('Email already exists:', userData.email_id);
       return res.status(400).json({
         error: "Email already exists"
       });
@@ -104,27 +119,32 @@ router.post("/users", async (req, res) => {
     // Check if username already exists
     const existingUserName = await storage.getUserByUserName(userData.user_name);
     if (existingUserName) {
-      console.log('Username already exists:', userData.user_name);
+      console.error('Username already exists:', userData.user_name);
       return res.status(400).json({
         error: "Username already exists"
       });
     }
 
-    // Hash the password if provided, otherwise use default
+    // Hash password
     const salt = await bcrypt.genSalt(10);
-    const hashedPassword = password 
+    const hashedPassword = password
       ? await bcrypt.hash(password, salt)
       : await bcrypt.hash("Pass@123", salt);
 
+    // Create user with validated data
     const newUser = await storage.createUser({
       ...userData,
       password: hashedPassword,
-      is_active: true,
-      created_at: new Date(),
-      updated_at: new Date(),
+      is_active: true
     });
 
-    console.log('User created successfully:', { id: newUser.id, email_id: newUser.email_id });
+    console.log('User created successfully:', {
+      id: newUser.id,
+      email: newUser.email_id,
+      username: newUser.user_name,
+      timestamp: new Date().toISOString()
+    });
+
     return res.status(201).json(newUser);
   } catch (error) {
     console.error('Error creating user:', error);

@@ -405,49 +405,59 @@ export class DatabaseStorage implements IStorage {
   }
   async createUser(userData: InsertUser): Promise<User> {
     try {
-      console.log('Starting user creation process:', { 
+      // Log the incoming data
+      console.log('Creating user with data:', {
         ...userData,
         password: '[REDACTED]',
-        timestamp: new Date().toISOString() 
+        timestamp: new Date().toISOString()
       });
 
-      // Ensure all required fields are present
-      const requiredFields = ['user_name', 'user_code', 'email_id', 'user_type', 'user_operation_type', 'user_group'];
-      const missingFields = requiredFields.filter(field => !userData[field]);
+      // Validate required fields
+      const requiredFields = [
+        'user_name',
+        'user_code',
+        'email_id',
+        'user_type',
+        'user_operation_type',
+        'user_group',
+        'first_name',
+        'last_name',
+        'full_name'
+      ];
 
+      const missingFields = requiredFields.filter(field => !userData[field as keyof InsertUser]);
       if (missingFields.length > 0) {
-        const error = `Missing required fields: ${missingFields.join(', ')}`;
-        console.error('Validation error:', error);
-        throw new Error(error);
+        throw new Error(`Missing required fields: ${missingFields.join(', ')}`);
       }
 
-      const [user] = await db
+      // Insert user with properly formatted data
+      const [newUser] = await db
         .insert(schema.users)
         .values({
           ...userData,
+          is_active: true,
           created_at: new Date(),
           updated_at: new Date()
         })
         .returning();
 
       console.log('User created successfully:', {
-        id: user.id,
-        email_id: user.email_id,
-        user_name: user.user_name,
-        timestamp: new Date().toISOString()
+        id: newUser.id,
+        email: newUser.email_id,
+        username: newUser.user_name
       });
 
-      return user;
+      return newUser;
     } catch (error) {
       console.error('Error in createUser:', error);
       if (error instanceof Error) {
-        console.error('Error details:', {
+        console.error('Detailed error:', {
           message: error.message,
           stack: error.stack,
           timestamp: new Date().toISOString()
         });
       }
-      throw new Error(`Failed to create user: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      throw error;
     }
   }
 
