@@ -10,11 +10,15 @@ import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardContent } from "@/components/ui/card";
 import { Loader2 } from "lucide-react";
 import { motion } from "framer-motion";
+import { z } from "zod";
+import { zodResolver } from "@hookform/resolvers/zod";
 
-interface LoginFormData {
-  email_id: string;
-  password: string;
-}
+const loginSchema = z.object({
+  email_id: z.string().email("Please enter a valid email"),
+  password: z.string().min(6, "Password must be at least 6 characters"),
+});
+
+type LoginFormData = z.infer<typeof loginSchema>;
 
 export default function LoginPage() {
   const { toast } = useToast();
@@ -22,6 +26,7 @@ export default function LoginPage() {
   const [showPassword, setShowPassword] = React.useState(false);
 
   const form = useForm<LoginFormData>({
+    resolver: zodResolver(loginSchema),
     defaultValues: {
       email_id: "",
       password: "",
@@ -30,17 +35,18 @@ export default function LoginPage() {
 
   const login = useMutation({
     mutationFn: async (data: LoginFormData) => {
-      console.log('Attempting login with:', { email_id: data.email_id });
       try {
         const res = await apiRequest("POST", "/api/auth/login", data);
+        const responseData = await res.json();
+
         if (!res.ok) {
-          const error = await res.json();
-          throw new Error(error.error || "Login failed");
+          throw new Error(responseData.error || "Login failed");
         }
-        return res.json();
-      } catch (error) {
+
+        return responseData;
+      } catch (error: any) {
         console.error('Login API error:', error);
-        throw error;
+        throw new Error(error.message || "Failed to login");
       }
     },
     onSuccess: (data) => {
@@ -56,7 +62,7 @@ export default function LoginPage() {
       console.error('Login error:', error);
       toast({
         title: "Error",
-        description: error.message || "Login failed",
+        description: error.message || "Failed to login",
         variant: "destructive",
       });
     },
@@ -123,6 +129,7 @@ export default function LoginPage() {
                               type="email"
                               placeholder="Enter your email"
                               className="text-xs px-2 py-1"
+                              autoComplete="email"
                             />
                           </FormControl>
                           <FormMessage className="text-xs"/>
@@ -142,6 +149,7 @@ export default function LoginPage() {
                                 type={showPassword ? "text" : "password"}
                                 placeholder="Enter your password"
                                 className="text-xs px-2 py-1"
+                                autoComplete="current-password"
                               />
                             </FormControl>
                             <Button

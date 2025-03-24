@@ -1,9 +1,16 @@
 import { Router } from "express";
 import { storage } from "../storage";
 import bcrypt from "bcryptjs";
-import { authService } from "../services/auth";
+import jwt from "jsonwebtoken";
 
 const router = Router();
+
+// Generate JWT token
+const generateToken = (userId: number) => {
+  return jwt.sign({ userId }, process.env.JWT_SECRET || 'your-secret-key', {
+    expiresIn: '24h',
+  });
+};
 
 router.post("/login", async (req, res) => {
   try {
@@ -46,10 +53,13 @@ router.post("/login", async (req, res) => {
         });
       }
 
+      // Generate token
+      const token = generateToken(user.id);
+
       // Transform user data to match frontend expectations
       const userData = {
         id: user.id,
-        emailId: user.email_id,
+        email_id: user.email_id,
         userName: user.user_name,
         userType: user.user_type,
         userOperationType: user.user_operation_type,
@@ -57,17 +67,17 @@ router.post("/login", async (req, res) => {
         fullName: user.full_name || '',
         firstName: user.first_name || '',
         lastName: user.last_name || '',
-        isActive: user.is_active
+        isActive: user.is_active,
+        token
       };
 
       console.log('Login successful for user:', userData.userName);
 
+      // Update last login timestamp
+      await storage.updateUserLastLogin(user.id);
+
       // Return success response with user data and token
-      return res.status(200).json({
-        ...userData,
-        token: 'dummy-token-for-now', // TODO: Implement proper JWT
-        message: "Logged in successfully"
-      });
+      return res.status(200).json(userData);
 
     } catch (dbError) {
       console.error('Database error during login:', dbError);
@@ -82,7 +92,7 @@ router.post("/login", async (req, res) => {
   }
 });
 
-// Keeping the logout route simple for now
+// Keep the logout route simple for now
 router.post("/logout", (req, res) => {
   res.status(200).json({ message: "Logged out successfully" });
 });
