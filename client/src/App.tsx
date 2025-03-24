@@ -79,10 +79,13 @@ function Router() {
 }
 
 function App() {
+  // Ensure QueryClientProvider wraps everything including Toaster
   return (
     <QueryClientProvider client={queryClient}>
-      <Router />
-      <Toaster />
+      <div className="relative">
+        <Router />
+        <Toaster />
+      </div>
     </QueryClientProvider>
   );
 }
