@@ -31,6 +31,8 @@ interface User {
   updated_at: string;
 }
 
+const USERS_QUERY_KEY = "/api/auth/users";
+
 export default function UserMasterPage() {
   const { toast } = useToast();
   const [selectedUser, setSelectedUser] = React.useState<User | null>(null);
@@ -38,14 +40,23 @@ export default function UserMasterPage() {
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = React.useState(false);
   const [formMode, setFormMode] = React.useState<"create" | "edit">("create");
 
-  const { data: users, isLoading } = useQuery<User[]>({
-    queryKey: ["/api/auth/users"],
+  const { data: users, isLoading, error } = useQuery<User[]>({
+    queryKey: [USERS_QUERY_KEY],
+    refetchOnWindowFocus: false,
+    onError: (error: Error) => {
+      console.error('Error fetching users:', error);
+      toast({
+        title: "Error",
+        description: "Failed to fetch users",
+        variant: "destructive",
+      });
+    }
   });
 
   const createUserMutation = useMutation({
     mutationFn: async (userData: any) => {
       console.log("Creating user with data:", { ...userData, password: '[REDACTED]' });
-      const response = await fetch("/api/auth/users", {
+      const response = await fetch(USERS_QUERY_KEY, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(userData),
@@ -59,7 +70,7 @@ export default function UserMasterPage() {
       return response.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/auth/users"] });
+      queryClient.invalidateQueries({ queryKey: [USERS_QUERY_KEY] });
       toast({
         title: "Success",
         description: "User created successfully",
@@ -79,7 +90,7 @@ export default function UserMasterPage() {
   const updateUserMutation = useMutation({
     mutationFn: async ({ id, data }: { id: number; data: any }) => {
       console.log("Updating user:", id, "with data:", data);
-      const response = await fetch(`/api/auth/users/${id}`, {
+      const response = await fetch(`${USERS_QUERY_KEY}/${id}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(data),
@@ -93,7 +104,7 @@ export default function UserMasterPage() {
       return response.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/auth/users"] });
+      queryClient.invalidateQueries({ queryKey: [USERS_QUERY_KEY] });
       toast({
         title: "Success",
         description: "User updated successfully",
@@ -113,7 +124,7 @@ export default function UserMasterPage() {
   const deleteUserMutation = useMutation({
     mutationFn: async (id: number) => {
       console.log("Deleting user:", id);
-      const response = await fetch(`/api/auth/users/${id}`, {
+      const response = await fetch(`${USERS_QUERY_KEY}/${id}`, {
         method: "DELETE",
       });
 
@@ -123,7 +134,7 @@ export default function UserMasterPage() {
       }
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/auth/users"] });
+      queryClient.invalidateQueries({ queryKey: [USERS_QUERY_KEY] });
       toast({
         title: "Success",
         description: "User deleted successfully",
@@ -145,8 +156,8 @@ export default function UserMasterPage() {
     try {
       await createUserMutation.mutateAsync({
         ...data,
-        is_active: true, // Ensure is_active is set
-        password: data.password || "Pass@123" // Use default password if not provided
+        is_active: true,
+        password: data.password || "Pass@123"
       });
     } catch (error) {
       console.error("Error in handleCreateUser:", error);
@@ -160,7 +171,7 @@ export default function UserMasterPage() {
         id: selectedUser.id,
         data: {
           ...data,
-          updated_at: new Date()
+          updated_at: new Date().toISOString()
         }
       });
     } catch (error) {
@@ -193,6 +204,14 @@ export default function UserMasterPage() {
     return (
       <div className="flex items-center justify-center p-8">
         <Loader2 className="h-8 w-8 animate-spin" />
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="p-8 text-center text-red-600">
+        <p>Error loading users. Please try again later.</p>
       </div>
     );
   }
