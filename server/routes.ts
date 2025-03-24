@@ -942,70 +942,96 @@ export async function registerRoutes(app: Express): Promise<Server> {
           to: emailId,
           subject: 'Reset Your TripXL Password',
           html: `
-            <!DOCTYPE html>
-            <html>
+            <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+            <html xmlns="http://www.w3.org/1999/xhtml">
             <head>
-              <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
-              <meta name="viewport" content="width=device-width, initial-scale=1.0">
-              <title>Reset Your TripXL Password</title>
+              <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+              <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+              <title>Reset Your Password</title>
             </head>
-            <body style="font-family: Arial, sans-serif; margin: 0; padding: 0; background-color: #f4f4f4;">
-              <table role="presentation" cellpadding="0" cellspacing="0" style="width: 100%; background-color: #f4f4f4;">
+            <body style="margin: 0; padding: 0; background-color: #f4f4f4;">
+              <!-- Outer Table -->
+              <table border="0" cellpadding="0" cellspacing="0" width="100%" style="background-color: #f4f4f4;">
                 <tr>
-                  <td style="padding: 20px 0;">
-                    <table role="presentation" cellpadding="0" cellspacing="0" style="max-width: 600px; margin: 0 auto; background-color: #ffffff; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+                  <td align="center" style="padding: 40px 0;">
+                    <!-- Email Container -->
+                    <table border="0" cellpadding="0" cellspacing="0" width="600" style="background-color: #ffffff; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+                      <!-- Header -->
                       <tr>
-                        <td style="background-color: #004990; padding: 30px; text-align: center;">
-                          <h1 style="color: #ffffff; margin: 0; font-size: 24px;">Reset Your Password</h1>
+                        <td align="center" style="padding: 40px 0; background-color: #004990; border-radius: 8px 8px 0 0;">
+                          <h1 style="color: #ffffff; margin: 0; font-family: Arial, sans-serif;">Reset Your Password</h1>
                         </td>
                       </tr>
+                      <!-- Content -->
                       <tr>
-                        <td style="padding: 30px;">
-                          <p style="margin: 0 0 20px; color: #333333; font-size: 16px;">Hello ${user.full_name},</p>
-                          <p style="margin: 0 0 20px; color: #333333; font-size: 16px;">We received a request to reset the password for your TripXL account:</p>
-                          <p style="margin: 0 0 10px; color: #666666; font-size: 14px;">
-                            <strong>Username:</strong> ${user.user_name}
-                          </p>
-                          <div style="text-align: center; margin: 30px 0;">
-                            <a href="${resetUrl}" 
-                               style="display: inline-block;
-                                      background-color: #004990;
-                                      color: #ffffff;
-                                      text-decoration: none;
-                                      padding: 14px 30px;
-                                      border-radius: 4px;
-                                      font-size: 16px;
-                                      font-weight: bold;
-                                      box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
-                              Reset Password
-                            </a>
-                          </div>
-                          <div style="margin: 30px 0; padding: 20px; background-color: #f8f9fa; border-radius: 4px;">
-                            <p style="margin: 0 0 10px; color: #666666; font-size: 14px;">
-                              If the button above doesn't work, copy and paste this link into your browser:
-                            </p>
-                            <p style="margin: 0; word-break: break-all;">
-                              <a href="${resetUrl}" 
-                                 style="color: #004990; 
-                                        text-decoration: underline; 
-                                        font-size: 14px;">
-                                ${resetUrl}
-                              </a>
-                            </p>
-                          </div>
-                          <p style="margin: 20px 0 0; color: #666666; font-size: 14px;">
-                            This password reset link will expire in 1 hour for security reasons.
-                          </p>
-                          <p style="margin: 20px 0 0; color: #666666; font-size: 14px;">
-                            If you didn't request a password reset, please ignore this email or contact support if you have concerns.
-                          </p>
-                        </td>
-                      </tr>
-                      <tr>
-                        <td style="background-color: #f8f9fa; padding: 20px; text-align: center; border-top: 1px solid #eee;">
-                          <p style="margin: 0; color: #666666; font-size: 12px;">
-                            © ${new Date().getFullYear()} TripXL. All rights reserved.
-                          </p>
+                        <td style="padding: 40px;">
+                          <table border="0" cellpadding="0" cellspacing="0" width="100%">
+                            <tr>
+                              <td style="padding: 0 0 20px 0; font-family: Arial, sans-serif;">
+                                <p style="margin: 0 0 20px 0; font-size: 16px;">Hello ${user.full_name},</p>
+                                <p style="margin: 0 0 20px 0; font-size: 16px;">We received a request to reset the password for your TripXL account.</p>
+                                <p style="margin: 0 0 10px 0; font-size: 14px; color: #666666;">
+                                  <strong>Username:</strong> ${user.user_name}
+                                </p>
+                              </td>
+                            </tr>
+                            <!-- Button -->
+                            <tr>
+                              <td align="center" style="padding: 30px 0;">
+                                <!--[if mso]>
+                                <v:roundrect xmlns:v="urn:schemas-microsoft-com:vml" xmlns:w="urn:schemas-microsoft-com:office:word" href="${resetUrl}" style="height:50px;v-text-anchor:middle;width:200px;" arcsize="10%" stroke="f" fillcolor="#004990">
+                                  <w:anchorlock/>
+                                  <center style="color:#ffffff;font-family:sans-serif;font-size:16px;font-weight:bold;">Reset Password</center>
+                                </v:roundrect>
+                                <![endif]-->
+                                <!--[if !mso]><!-->
+                                <table border="0" cellspacing="0" cellpadding="0">
+                                  <tr>
+                                    <td align="center" style="border-radius: 4px;" bgcolor="#004990">
+                                      <a href="${resetUrl}"
+                                         target="_blank"
+                                         style="font-size: 16px;
+                                                font-family: Arial, sans-serif;
+                                                color: #ffffff;
+                                                text-decoration: none;
+                                                padding: 15px 30px;
+                                                border: 1px solid #004990;
+                                                display: inline-block;
+                                                border-radius: 4px;
+                                                font-weight: bold;">
+                                        Reset Password
+                                      </a>
+                                    </td>
+                                  </tr>
+                                </table>
+                                <!--<![endif]-->
+                              </td>
+                            </tr>
+                            <!-- Fallback Link -->
+                            <tr>
+                              <td style="padding: 20px; background-color: #f8f9fa; border-radius: 4px;">
+                                <p style="margin: 0 0 10px 0; font-family: Arial, sans-serif; font-size: 14px; color: #666666;">
+                                  If the button doesn't work, copy and paste this link into your browser:
+                                </p>
+                                <p style="margin: 0; word-break: break-all;">
+                                  <a href="${resetUrl}"
+                                     style="color: #004990; 
+                                            text-decoration: underline; 
+                                            font-family: Arial, sans-serif;
+                                            font-size: 14px;">
+                                    ${resetUrl}
+                                  </a>
+                                </p>
+                              </td>
+                            </tr>
+                            <!-- Footer -->
+                            <tr>
+                              <td style="padding: 20px 0 0 0; font-family: Arial, sans-serif; font-size: 14px; color: #666666;">
+                                <p style="margin: 0 0 10px 0;">This password reset link will expire in 1 hour for security reasons.</p>
+                                <p style="margin: 0;">If you didn't request this reset, please ignore this email.</p>
+                              </td>
+                            </tr>
+                          </table>
                         </td>
                       </tr>
                     </table>
@@ -1029,9 +1055,7 @@ ${resetUrl}
 
 This password reset link will expire in 1 hour for security reasons.
 
-If you didn't request a password reset, please ignore this email or contact support if you have concerns.
-
-© ${new Date().getFullYear()} TripXL
+If you didn't request this reset, please ignore this email.
           `
         });
 
