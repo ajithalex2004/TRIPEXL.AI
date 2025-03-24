@@ -22,6 +22,7 @@ import { LoadingIndicator } from "@/components/ui/loading-indicator";
 import { InputOTP, InputOTPGroup, InputOTPSlot } from "@/components/ui/input-otp";
 import { WelcomeScreen } from "@/components/welcome-screen";
 
+// Simple registration schema
 const registrationSchema = insertUserSchema.extend({
   password: z.string()
     .min(8, "Password must be at least 8 characters")
@@ -56,28 +57,20 @@ export default function RegisterPage() {
     }
   });
 
+  // Registration mutation
   const register = useMutation({
     mutationFn: async (data: any) => {
-      try {
-        console.log("Registering user:", { ...data, password: '[REDACTED]' });
-        const response = await apiRequest("POST", "/api/auth/register", data);
-
-        if (!response.ok) {
-          const error = await response.json();
-          throw new Error(error.message || "Registration failed");
-        }
-
-        return response.json();
-      } catch (error) {
-        console.error("Registration error:", error);
-        throw error;
+      const response = await apiRequest("POST", "/api/auth/register", data);
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || "Registration failed");
       }
+      return response.json();
     },
     onSuccess: (data) => {
-      console.log("Registration successful:", data);
       setUserId(data.userId);
       toast({
-        title: "Registration Successful",
+        title: "Success",
         description: "Please check your email for the verification code.",
       });
       setVerificationStep(true);
@@ -91,25 +84,17 @@ export default function RegisterPage() {
     }
   });
 
+  // OTP verification mutation
   const verify = useMutation({
     mutationFn: async ({ userId, otp }: { userId: number, otp: string }) => {
-      try {
-        console.log("Verifying OTP for user:", userId);
-        const response = await apiRequest("POST", "/api/auth/verify", { userId, otp });
-
-        if (!response.ok) {
-          const error = await response.json();
-          throw new Error(error.message || "Verification failed");
-        }
-
-        return response.json();
-      } catch (error) {
-        console.error("Verification error:", error);
-        throw error;
+      const response = await apiRequest("POST", "/api/auth/verify", { userId, otp });
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || "Verification failed");
       }
+      return response.json();
     },
     onSuccess: (data) => {
-      console.log("Verification successful");
       localStorage.setItem("token", data.token);
       setShowWelcomeScreen(true);
     },
@@ -122,6 +107,7 @@ export default function RegisterPage() {
     }
   });
 
+  // Form submission handler
   const onSubmit = async (formData: any) => {
     try {
       const { confirmPassword, ...registrationData } = formData;
@@ -146,7 +132,7 @@ export default function RegisterPage() {
     return (
       <Card className="w-[400px] mx-auto mt-8">
         <CardHeader>
-          <h2 className="text-2xl font-bold">Verify Your Email</h2>
+          <h2 className="text-2xl font-bold">Email Verification</h2>
           <p className="text-sm text-gray-500">
             Enter the verification code sent to your email
           </p>
@@ -262,11 +248,7 @@ export default function RegisterPage() {
               )}
             />
 
-            <Button 
-              type="submit" 
-              className="w-full"
-              disabled={register.isPending}
-            >
+            <Button type="submit" className="w-full" disabled={register.isPending}>
               {register.isPending ? <LoadingIndicator size="sm" /> : "Create Account"}
             </Button>
 

@@ -5,7 +5,6 @@ import { storage } from '../storage';
 import { UserType, UserOperationType, UserGroup } from '@shared/schema';
 import nodemailer from 'nodemailer';
 
-// Configure email transporter with provided SMTP settings
 const transporter = nodemailer.createTransport({
   host: process.env.SMTP_HOST || 'ns1.dt.ae',
   port: parseInt(process.env.SMTP_PORT || '587'),
@@ -24,10 +23,8 @@ export class AuthService {
     return Math.floor(100000 + Math.random() * 900000).toString();
   }
 
-  private async sendOTPEmail(email: string, otp: string): Promise<boolean> {
+  private async sendOTPEmail(email: string, otp: string): Promise<void> {
     try {
-      console.log('Sending OTP email to:', email);
-
       const mailOptions = {
         from: process.env.SMTP_FROM || 'alert@dt-alert.com',
         to: email,
@@ -47,9 +44,7 @@ export class AuthService {
         `
       };
 
-      const info = await transporter.sendMail(mailOptions);
-      console.log('Email sent successfully:', info.messageId);
-      return true;
+      await transporter.sendMail(mailOptions);
     } catch (error) {
       console.error('Failed to send OTP email:', error);
       throw new Error('Failed to send verification code');
@@ -62,8 +57,6 @@ export class AuthService {
 
   async registerUser(userData: InsertUser): Promise<{ user: User; userId: number }> {
     try {
-      console.log('Processing registration for:', userData.emailId);
-
       // Hash the password
       const hashedPassword = await this.hashPassword(userData.password);
 
@@ -98,8 +91,6 @@ export class AuthService {
 
   async verifyOTP(userId: number, otp: string): Promise<{ user: User; token: string }> {
     try {
-      console.log('Verifying OTP for user:', userId);
-
       const verification = await storage.getOtpVerification(userId);
       if (!verification) {
         throw new Error('Verification code not found');
@@ -132,50 +123,41 @@ export class AuthService {
       throw error;
     }
   }
-  private generateToken(user: User): string {
-    return jwt.sign(
-      { userId: user.id, emailId: user.emailId },
-      process.env.JWT_SECRET || 'dev-secret-key',
-      { expiresIn: '24h' }
-    );
-  }
 
   async login(emailId: string, password: string): Promise<{ user: User; token: string }> {
     if (!emailId || !password) {
       throw new Error('Email and password are required');
     }
 
-    console.log('Attempting login for email:', emailId);
-
     const user = await storage.findUserByEmail(emailId);
     if (!user) {
-      console.log('User not found:', emailId);
       throw new Error('Invalid email or password');
     }
 
     const isValid = await bcrypt.compare(password, user.password);
     if (!isValid) {
-      console.log('Invalid password for user:', emailId);
       throw new Error('Invalid email or password');
     }
 
-    // Update last login
     await storage.updateUserLastLogin(user.id);
 
-    const token = this.generateToken(user);
+    const token = jwt.sign(
+      { userId: user.id, emailId: user.emailId },
+      process.env.JWT_SECRET || 'dev-secret-key',
+      { expiresIn: '24h' }
+    );
+
     return { user, token };
   }
 
   async verifyEmployee(employeeId: string, emailId: string): Promise<Employee | null> {
     if (!employeeId || !emailId) {
-      console.log('Missing employee verification data:', { employeeId, emailId });
       return null;
     }
 
     try {
       const employee = await storage.findEmployeeByIdAndEmail(employeeId, emailId);
       if (!employee || !employee.isActive) {
-        console.log('Employee verification failed:', { employeeId, emailId });
         return null;
       }
       return employee;
@@ -184,11 +166,6 @@ export class AuthService {
       return null;
     }
   }
-
-  private async createHashedPassword(password: string): Promise<string> {
-    return bcrypt.hash(password, 10);
-  }
-
   async initializeDefaultUser(): Promise<void> {
     try {
       console.log("Checking for default user existence...");
@@ -196,7 +173,7 @@ export class AuthService {
 
       if (!existingUser) {
         console.log("Default user not found, creating...");
-        const password = await this.createHashedPassword("Code@4088");
+        const password = await this.hashPassword("Code@4088");
 
         try {
           const userCode = "USR" + Math.floor(1000 + Math.random() * 9000).toString();
