@@ -907,22 +907,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
         if (!user || user.user_name !== userName) {
           return res.status(404).json({
             error: "User not found",
-            details: "No matchinguser found with provided username and email"
+            details: "No matching user found with provided username and email"
           });
         }
 
-        // Generate reset token        const resetToken = crypto.randomBytes(32).toString('hex');
+        // Generate reset token
+        const resetToken = crypto.randomBytes(32).toString('hex');
         const resetTokenExpiry = new Date(Date.now() + 3600000); // 1 hour from now
 
         // Update user with reset token
         await storage.updateUserResetToken(user.id, resetToken, resetTokenExpiry);
 
-        // Create reset URL with proper protocol and host
+        // Create reset URL
         const protocol = req.protocol;
         const host = req.get('host');
         const resetUrl = `${protocol}://${host}/auth/reset-password?token=${resetToken}`;
-
-        console.log('Generated reset URL:', resetUrl);
 
         // Setup email transporter
         const transporter = nodemailer.createTransport({
@@ -937,102 +936,98 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
         console.log('Sending password reset email to:', emailId);
 
-        // Send email with the simpler, more compatible template
+        // Send email with simple template
         await transporter.sendMail({
           from: process.env.SMTP_FROM || '"TripXL Support" <support@tripxl.com>',
           to: emailId,
           subject: 'Reset Your TripXL Password',
           html: `
-            <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
-              <div style="background-color: #004990; padding: 20px; text-align: center;">
-                <h1 style="color: white; margin: 0;">Reset Your Password</h1>
-              </div>
-              <div style="padding: 20px; background-color: #ffffff; border: 1px solid #e0e0e0;">
-                <p>Hello ${user.full_name},</p>
-                <p>You have requested to reset your password.</p>
-                <p><strong>Username:</strong> ${user.user_name}</p>
-                <div style="text-align: center; margin: 30px 0;">
-                  <a href="${resetUrl}" 
-                     style="background-color: #004990;
-                            color: white;
-                            padding: 12px 24px;
-                            text-decoration: none;
-                            border-radius: 4px;
-                            display: inline-block;
-                            font-weight: bold;">
-                    Reset Password
-                  </a>
-                </div>
-                <p style="background-color: #f5f5f5; padding: 15px; margin-top: 20px;">
-                  If the button doesn't work, copy and paste this link into your browser:<br>
-                  <a href="${resetUrl}" style="color: #004990; word-break: break-all;">${resetUrl}</a>
-                </p>
-                <p style="color: #666; font-size: 14px; margin-top: 20px;">
-                  This link will expire in 1 hour for security reasons.
-                </p>
-              </div>
-            </div>
-          `,
+        <table width="100%" cellpadding="0" cellspacing="0" style="background-color: #f0f0f0; padding: 20px;">
+          <tr>
+            <td align="center">
+              <table width="600" cellpadding="0" cellspacing="0" style="background-color: #ffffff; border-radius: 5px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+                <tr>
+                  <td style="padding: 20px; text-align: center; background-color: #004990; border-radius: 5px 5px 0 0;">
+                    <h1 style="color: #ffffff; margin: 0; font-family: Arial, sans-serif;">Reset Your Password</h1>
+                  </td>
+                </tr>
+                <tr>
+                  <td style="padding: 20px;">
+                    <table width="100%" cellpadding="0" cellspacing="0">
+                      <tr>
+                        <td style="padding-bottom: 20px;">
+                          <p style="font-family: Arial, sans-serif; margin: 0;">Hello ${user.full_name},</p>
+                        </td>
+                      </tr>
+                      <tr>
+                        <td style="padding-bottom: 20px;">
+                          <p style="font-family: Arial, sans-serif; margin: 0;">Click the button below to reset your password:</p>
+                        </td>
+                      </tr>
+                      <tr>
+                        <td align="center" style="padding-bottom: 20px;">
+                          <table cellpadding="0" cellspacing="0">
+                            <tr>
+                              <td style="background-color: #004990; border-radius: 5px;">
+                                <a href="${resetUrl}" 
+                                   style="display: inline-block; 
+                                          padding: 15px 30px; 
+                                          color: #ffffff; 
+                                          text-decoration: none; 
+                                          font-family: Arial, sans-serif;">
+                                  Reset Password
+                                </a>
+                              </td>
+                            </tr>
+                          </table>
+                        </td>
+                      </tr>
+                      <tr>
+                        <td style="padding-bottom: 20px;">
+                          <p style="font-family: Arial, sans-serif; margin: 0;">
+                            Or copy this link into your browser:<br>
+                            <a href="${resetUrl}" style="color: #004990;">${resetUrl}</a>
+                          </p>
+                        </td>
+                      </tr>
+                      <tr>
+                        <td>
+                          <p style="font-family: Arial, sans-serif; margin: 0; color: #666666; font-size: 14px;">
+                            This link will expire in 1 hour.
+                          </p>
+                        </td>
+                      </tr>
+                    </table>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+        </table>
+      `,
           text: `
 Reset Your Password
 
 Hello ${user.full_name},
 
-You have requested to reset your password.
-Username: ${user.user_name}
+Click the link below to reset your password:
 
-Click this link to reset your password:
 ${resetUrl}
 
-This link will expire in 1 hour for security reasons.
-          `
+This link will expire in 1 hour.
+      `
         });
 
         console.log('Password reset email sent successfully');
 
         res.json({
-          success: true,
-          message: "Password reset instructions have been sent to your email"
+          message: "If an account exists with that email, you will receive password reset instructions."
         });
 
       } catch (error: any) {
-        console.error('Error in forgot password:', error);
+        console.error('Error sending password reset email:', error);
         res.status(500).json({
           error: "Failed to process password reset request",
-          details: error.message
-        });
-      }
-    });
-
-    // Add this endpoint before the reset password endpoint
-    app.get("/api/auth/verify-token", async (req, res) => {
-      try {
-        const { token } = req.query;
-        console.log('Verifying reset token:', token);
-
-        if (!token) {
-          return res.status(400).json({
-            error: "Token is required"
-          });
-        }
-
-        const user = await storage.findUserByResetToken(token as string);
-        if (!user || !user.reset_token_expiry || user.reset_token_expiry < new Date()) {
-          return res.status(400).json({
-            error: "Invalid or expired token"
-          });
-        }
-
-        console.log('Token verified for user:', user.user_name);
-        res.json({
-          userName: user.user_name,
-          email: user.email_id
-        });
-
-      } catch (error: any) {
-        console.error('Error verifying token:', error);
-        res.status(500).json({
-          error: "Failed to verify token",
           details: error.message
         });
       }
@@ -1042,14 +1037,14 @@ This link will expire in 1 hour for security reasons.
     app.post("/api/auth/reset-password", async (req, res) => {
       try {
         const { token, newPassword } = req.body;
-        console.log("Processing password reset request");
 
         if (!token || !newPassword) {
           return res.status(400).json({
-            error: "Token and new password are required"
+            error: "Missing required fields"
           });
         }
 
+        // Find user by reset token
         const user = await storage.findUserByResetToken(token);
         if (!user || !user.reset_token_expiry || user.reset_token_expiry < new Date()) {
           return res.status(400).json({
@@ -1062,14 +1057,13 @@ This link will expire in 1 hour for security reasons.
 
         // Update user's password and clear reset token
         await storage.updateUserPassword(user.id, hashedPassword);
-        console.log("Password updated successfully for user:", user.email_id);
 
         res.json({
-          success: true,
-          message: "Password has been reset successfully"
+          message: "Password reset successful"
         });
+
       } catch (error: any) {
-        console.error("Error resetting password:", error);
+        console.error('Error resetting password:', error);
         res.status(500).json({
           error: "Failed to reset password",
           details: error.message
