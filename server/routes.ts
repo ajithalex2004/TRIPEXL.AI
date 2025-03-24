@@ -938,26 +938,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
           to: emailId,
           subject: 'Reset Your TripXL Password',
           html: `
-        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-          <div style="background-color: #004990; padding: 20px; text-align: center;">
-            <h1 style="color: white; margin: 0;">Password Reset Request</h1>
-          </div>
-          <div style="padding: 20px; background-color: #f9f9f9;">
-            <p>Hello ${user.full_name},</p>
-            <p>We received a request to reset your password for your TripXL account.</p>
-            <p>To reset your password, click the button below:</p>
-            <div style="text-align: center; margin: 30px 0;">
-              <a href="${resetUrl}" style="background-color: #004990; color: white; padding: 12px 24px; text-decoration: none; border-radius: 4px; display: inline-block;">Reset Password</a>
+            <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+              <div style="background-color: #004990; padding: 20px; text-align: center;">
+                <h1 style="color: white; margin: 0;">Reset Your Password</h1>
+              </div>
+              <div style="padding: 20px; background-color: #f9f9f9;">
+                <p>You have requested to reset your password.</p>
+                <p>Click the button below to set a new password:</p>
+                <div style="text-align: center; margin: 30px 0;">
+                  <a href="${resetUrl}" target="_blank" style="background-color: #004990; color: white; padding: 12px 24px; text-decoration: none; border-radius: 4px; display: inline-block;">Reset Password</a>
+                </div>
+                <p style="color: #666; font-size: 14px;">This link will expire in 1 hour for security reasons.</p>
+                <p style="color: #666; font-size: 14px;">If you didn't request this password reset, please ignore this email.</p>
+                <p style="color: #666; font-size: 14px;">If the button doesn't work, copy and paste this link into your browser: <br/>${resetUrl}</p>
+              </div>
             </div>
-            <p style="color: #666; font-size: 14px;">This link will expire in 1 hour for security reasons.</p>
-            <p style="color: #666; font-size: 14px;">If you didn't request this password reset, please ignore this email or contact support if you have concerns.</p>
-            <p style="color: #666; font-size: 14px;">If the button doesn't work, copy and paste this link into your browser: ${resetUrl}</p>
-          </div>
-          <div style="text-align: center; padding: 20px; color: #666; font-size: 12px;">
-            <p>© ${new Date().getFullYear()} TripXL. All rights reserved.</p>
-          </div>
-        </div>
-      `
+          `
         });
 
         res.json({
