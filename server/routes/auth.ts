@@ -15,79 +15,50 @@ const generateToken = (userId: number) => {
 router.post("/login", async (req, res) => {
   try {
     const { email_id, password } = req.body;
-    console.log('Login attempt with email:', email_id);
+    console.log('Login attempt for:', email_id);
 
+    // Validate input
     if (!email_id || !password) {
-      console.log('Missing credentials:', { email_id: !!email_id, password: !!password });
       return res.status(400).json({
         error: "Email and password are required"
       });
     }
 
-    try {
-      // Get user from storage
-      const user = await storage.getUserByEmail(email_id);
-      console.log('User lookup result:', user ? 'Found' : 'Not found');
+    // Get user from storage
+    const user = await storage.getUserByEmail(email_id);
+    console.log('User found:', user ? 'Yes' : 'No');
 
-      if (!user) {
-        return res.status(401).json({
-          error: "Invalid credentials"
-        });
-      }
-
-      // Verify if the user is active
-      if (!user.is_active) {
-        console.log('User account is not active');
-        return res.status(401).json({
-          error: "Account is not active"
-        });
-      }
-
-      // Compare passwords using bcrypt
-      const isMatch = await bcrypt.compare(password, user.password);
-      console.log('Password verification result:', isMatch ? 'Match' : 'No match');
-
-      if (!isMatch) {
-        return res.status(401).json({
-          error: "Invalid credentials"
-        });
-      }
-
-      // Generate token
-      const token = generateToken(user.id);
-
-      // Transform user data to match frontend expectations
-      const userData = {
-        id: user.id,
-        email_id: user.email_id,
-        userName: user.user_name,
-        userType: user.user_type,
-        userOperationType: user.user_operation_type,
-        userGroup: user.user_group,
-        fullName: user.full_name || '',
-        firstName: user.first_name || '',
-        lastName: user.last_name || '',
-        isActive: user.is_active,
-        token
-      };
-
-      console.log('Login successful for user:', userData.userName);
-
-      // Update last login timestamp
-      await storage.updateUserLastLogin(user.id);
-
-      // Return success response with user data and token
-      return res.status(200).json(userData);
-
-    } catch (dbError) {
-      console.error('Database error during login:', dbError);
-      throw new Error('Failed to retrieve user data');
+    if (!user) {
+      return res.status(401).json({
+        error: "Invalid credentials"
+      });
     }
+
+    // Compare passwords
+    const isMatch = await bcrypt.compare(password, user.password);
+    console.log('Password match:', isMatch ? 'Yes' : 'No');
+
+    if (!isMatch) {
+      return res.status(401).json({
+        error: "Invalid credentials"
+      });
+    }
+
+    // Generate token
+    const token = generateToken(user.id);
+
+    // Return user data and token
+    return res.status(200).json({
+      id: user.id,
+      email_id: user.email_id,
+      userName: user.user_name,
+      token
+    });
+
   } catch (error) {
     console.error("Login error:", error);
     return res.status(500).json({
-      error: "An unexpected error occurred during login",
-      details: error instanceof Error ? error.message : 'Unknown error'
+      error: "An error occurred during login"
     });
   }
 });
