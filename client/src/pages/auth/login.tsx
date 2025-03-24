@@ -53,7 +53,7 @@ export default function LoginPage() {
         description: "Logged in successfully",
       });
 
-      // Force navigation to the booking page
+      // Force page navigation (this ensures full page reload)
       window.location.href = "/new-booking";
 
     } catch (error: any) {
