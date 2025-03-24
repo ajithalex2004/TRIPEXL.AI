@@ -43,7 +43,6 @@ export interface IStorage {
 
   // User methods
   findUserByEmail(email: string): Promise<User | null>;
-  getUserByEmail(email: string): Promise<User | null>;
   getUser(id: number): Promise<User | null>;
   markUserAsVerified(userId: number): Promise<User>;
   updateUserLastLogin(userId: number): Promise<User>;
@@ -364,22 +363,6 @@ export class DatabaseStorage implements IStorage {
       throw new Error('Database error while finding user');
     }
   }
-  async getUserByEmail(emailId: string): Promise<User | null> {
-    try {
-      console.log('Looking up user by email:', emailId);
-      const [user] = await db
-        .select()
-        .from(schema.users)
-        .where(eq(schema.users.email_id, emailId))
-        .limit(1);
-
-      console.log('User lookup result:', user ? 'Found' : 'Not found');
-      return user || null;
-    } catch (error) {
-      console.error('Error finding user by email:', error);
-      throw new Error('Database error while finding user');
-    }
-  }
   async getUser(id: number): Promise<User | null> {
     const [user] = await db
       .select()
@@ -557,23 +540,6 @@ export class DatabaseStorage implements IStorage {
       return user || null;
     } catch (error) {
       console.error('Error finding user by username:', error);
-      throw new Error('Database error while finding user');
-    }
-  }
-
-  async getUserByEmail(emailId: string): Promise<User | null> {
-    try {
-      console.log('Looking up user by email:', emailId);
-      const [user] = await db
-        .select()
-        .from(schema.users)
-        .where(eq(schema.users.email_id, emailId))
-        .limit(1);
-
-      console.log('User lookup result:', user ? 'Found' : 'Not found');
-      return user || null;
-    } catch (error) {
-      console.error('Error finding user by email:', error);
       throw new Error('Database error while finding user');
     }
   }
