@@ -44,12 +44,18 @@ export default function UserMasterPage() {
 
   const createUserMutation = useMutation({
     mutationFn: async (userData: any) => {
+      console.log("Creating user with data:", { ...userData, password: '[REDACTED]' });
       const response = await fetch("/api/auth/users", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(userData),
       });
-      if (!response.ok) throw new Error("Failed to create user");
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || "Failed to create user");
+      }
+
       return response.json();
     },
     onSuccess: () => {
@@ -61,6 +67,7 @@ export default function UserMasterPage() {
       setIsFormOpen(false);
     },
     onError: (error: Error) => {
+      console.error("Error creating user:", error);
       toast({
         title: "Error",
         description: error.message,
@@ -71,12 +78,18 @@ export default function UserMasterPage() {
 
   const updateUserMutation = useMutation({
     mutationFn: async ({ id, data }: { id: number; data: any }) => {
+      console.log("Updating user:", id, "with data:", data);
       const response = await fetch(`/api/auth/users/${id}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(data),
       });
-      if (!response.ok) throw new Error("Failed to update user");
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || "Failed to update user");
+      }
+
       return response.json();
     },
     onSuccess: () => {
@@ -88,6 +101,7 @@ export default function UserMasterPage() {
       setIsFormOpen(false);
     },
     onError: (error: Error) => {
+      console.error("Error updating user:", error);
       toast({
         title: "Error",
         description: error.message,
@@ -98,10 +112,15 @@ export default function UserMasterPage() {
 
   const deleteUserMutation = useMutation({
     mutationFn: async (id: number) => {
+      console.log("Deleting user:", id);
       const response = await fetch(`/api/auth/users/${id}`, {
         method: "DELETE",
       });
-      if (!response.ok) throw new Error("Failed to delete user");
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || "Failed to delete user");
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/auth/users"] });
@@ -113,6 +132,7 @@ export default function UserMasterPage() {
       setSelectedUser(null);
     },
     onError: (error: Error) => {
+      console.error("Error deleting user:", error);
       toast({
         title: "Error",
         description: error.message,
@@ -122,17 +142,39 @@ export default function UserMasterPage() {
   });
 
   const handleCreateUser = async (data: any) => {
-    await createUserMutation.mutateAsync(data);
+    try {
+      await createUserMutation.mutateAsync({
+        ...data,
+        is_active: true, // Ensure is_active is set
+        password: data.password || "Pass@123" // Use default password if not provided
+      });
+    } catch (error) {
+      console.error("Error in handleCreateUser:", error);
+    }
   };
 
   const handleUpdateUser = async (data: any) => {
     if (!selectedUser) return;
-    await updateUserMutation.mutateAsync({ id: selectedUser.id, data });
+    try {
+      await updateUserMutation.mutateAsync({
+        id: selectedUser.id,
+        data: {
+          ...data,
+          updated_at: new Date()
+        }
+      });
+    } catch (error) {
+      console.error("Error in handleUpdateUser:", error);
+    }
   };
 
   const handleDeleteUser = async () => {
     if (!selectedUser) return;
-    await deleteUserMutation.mutateAsync(selectedUser.id);
+    try {
+      await deleteUserMutation.mutateAsync(selectedUser.id);
+    } catch (error) {
+      console.error("Error in handleDeleteUser:", error);
+    }
   };
 
   const openCreateDialog = () => {

@@ -92,6 +92,22 @@ router.post("/users", async (req, res) => {
       });
     }
 
+    // Check if email already exists
+    const existingUserEmail = await storage.findUserByEmail(userData.email_id);
+    if (existingUserEmail) {
+      return res.status(400).json({
+        error: "Email already exists"
+      });
+    }
+
+    // Check if username already exists
+    const existingUserName = await storage.getUserByUserName(userData.user_name);
+    if (existingUserName) {
+      return res.status(400).json({
+        error: "Username already exists"
+      });
+    }
+
     // Hash the password if provided, otherwise use default
     const salt = await bcrypt.genSalt(10);
     const hashedPassword = password 
@@ -122,6 +138,34 @@ router.put("/users/:id", async (req, res) => {
     console.log('Updating user:', req.params.id, 'with data:', req.body);
     const userId = parseInt(req.params.id);
     const userData = req.body;
+
+    // Fetch existing user
+    const existingUser = await storage.getUser(userId);
+    if (!existingUser) {
+      return res.status(404).json({
+        error: "User not found"
+      });
+    }
+
+    // Check email uniqueness if email is being updated
+    if (userData.email_id && userData.email_id !== existingUser.email_id) {
+      const existingUserEmail = await storage.findUserByEmail(userData.email_id);
+      if (existingUserEmail) {
+        return res.status(400).json({
+          error: "Email already exists"
+        });
+      }
+    }
+
+    // Check username uniqueness if username is being updated
+    if (userData.user_name && userData.user_name !== existingUser.user_name) {
+      const existingUserName = await storage.getUserByUserName(userData.user_name);
+      if (existingUserName) {
+        return res.status(400).json({
+          error: "Username already exists"
+        });
+      }
+    }
 
     // Update user data
     const updatedUser = await storage.updateUser(userId, {

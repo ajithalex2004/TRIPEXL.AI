@@ -81,12 +81,13 @@ export function UserFormDialog({
 
   const handleSubmit = async (data: UserFormData) => {
     try {
+      console.log('Submitting form data:', { ...data, password: '[REDACTED]' });
       setIsSubmitting(true);
       await onSubmit(data);
       form.reset();
       onOpenChange(false);
     } catch (error) {
-      console.error("Error submitting form:", error);
+      console.error('Error submitting form:', error);
     } finally {
       setIsSubmitting(false);
     }
