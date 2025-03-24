@@ -5,7 +5,6 @@ import jwt from "jsonwebtoken";
 
 const router = Router();
 
-// Generate JWT token
 const generateToken = (userId: number) => {
   try {
     const token = jwt.sign({ userId }, process.env.JWT_SECRET || 'your-secret-key', {
@@ -21,25 +20,25 @@ const generateToken = (userId: number) => {
 
 router.post("/login", async (req, res) => {
   try {
-    console.log('=== New Login Attempt ===');
-    console.log('Request body:', { email: req.body.email_id });
+    console.log('=== Login Request Received ===');
 
+    // Extract credentials
     const { email_id, password } = req.body;
+    console.log('Received login attempt for:', email_id);
 
     // Input validation
     if (!email_id || !password) {
-      console.log('Missing credentials');
+      console.log('Missing credentials:', { hasEmail: !!email_id, hasPassword: !!password });
       return res.status(400).json({
         error: "Email and password are required"
       });
     }
 
     // Find user
-    console.log('Looking up user...');
     const user = await storage.getUserByEmail(email_id);
+    console.log('User lookup result:', user ? 'User found' : 'User not found');
 
     if (!user) {
-      console.log('User not found');
       return res.status(401).json({
         error: "Invalid credentials"
       });
@@ -48,7 +47,7 @@ router.post("/login", async (req, res) => {
     // Verify password
     console.log('Verifying password...');
     const isValid = await bcrypt.compare(password, user.password);
-    console.log('Password validation result:', isValid);
+    console.log('Password verification result:', isValid ? 'Valid' : 'Invalid');
 
     if (!isValid) {
       return res.status(401).json({
@@ -61,10 +60,10 @@ router.post("/login", async (req, res) => {
 
     // Update last login timestamp
     await storage.updateUserLastLogin(user.id);
+    console.log('Updated last login timestamp');
 
-    console.log('Login successful');
-
-    // Return success response
+    // Return success
+    console.log('Login successful, sending response');
     return res.status(200).json({
       id: user.id,
       email_id: user.email_id,

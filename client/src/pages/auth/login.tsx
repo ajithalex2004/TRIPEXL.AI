@@ -7,8 +7,8 @@ import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardContent } from "@/components/ui/card";
 import { Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
 
 const loginSchema = z.object({
   email_id: z.string().email("Please enter a valid email"),
@@ -33,33 +33,34 @@ export default function LoginPage() {
   const onSubmit = async (data: LoginFormData) => {
     try {
       setIsLoading(true);
-      console.log("Attempting login with:", data.email_id);
+      console.log("Login attempt:", { email: data.email_id });
 
       const response = await fetch("/api/auth/login", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify(data),
+        body: JSON.stringify({
+          email_id: data.email_id,
+          password: data.password,
+        }),
       });
 
       const responseData = await response.json();
-      console.log("Server response:", { status: response.status, data: responseData });
+      console.log("Server response status:", response.status);
 
       if (!response.ok) {
         throw new Error(responseData.error || "Failed to login");
       }
 
-      // Store token
+      console.log("Login successful, received token");
       localStorage.setItem("token", responseData.token);
 
-      // Show success message
       toast({
         title: "Success",
         description: "Logged in successfully",
       });
 
-      // Redirect to home
       setLocation("/");
     } catch (error: any) {
       console.error("Login error:", error);
@@ -93,10 +94,10 @@ export default function LoginPage() {
                     <FormLabel>Email</FormLabel>
                     <FormControl>
                       <Input 
+                        {...field}
                         type="email" 
                         placeholder="Enter your email"
                         autoComplete="email"
-                        {...field}
                       />
                     </FormControl>
                     <FormMessage />
@@ -111,10 +112,10 @@ export default function LoginPage() {
                     <FormLabel>Password</FormLabel>
                     <FormControl>
                       <Input
+                        {...field}
                         type="password"
                         placeholder="Enter your password"
                         autoComplete="current-password"
-                        {...field}
                       />
                     </FormControl>
                     <FormMessage />
