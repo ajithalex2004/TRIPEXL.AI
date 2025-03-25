@@ -313,7 +313,7 @@ router.delete("/users/:id", async (req, res) => {
 router.get("/check-email/:email", async (req, res) => {
   try {
     const { email } = req.params;
-    console.log('Checking email availability:', email);
+    console.log('Checking email:', email);
 
     if (!email) {
       return res.status(400).json({
@@ -325,7 +325,7 @@ router.get("/check-email/:email", async (req, res) => {
 
     return res.json({
       available: !existingUser,
-      message: existingUser ? "Email is already registered" : "Email is available"
+      message: existingUser ? "Email is already registered" : ""
     });
 
   } catch (error) {

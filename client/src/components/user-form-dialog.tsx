@@ -151,7 +151,7 @@ export function UserFormDialog({
         setMobileCheckStatus({
           checking: false,
           available: data.available,
-          message: data.message || "" 
+          message: data.message || ""
         });
       } catch (error) {
         console.error('Error checking mobile number:', error);
@@ -317,7 +317,7 @@ export function UserFormDialog({
                     {emailCheckStatus.checking ? (
                       <FormDescription>
                         <Loader2 className="w-4 h-4 inline mr-2 animate-spin" />
-                        Checking email availability...
+                        Checking email...
                       </FormDescription>
                     ) : emailCheckStatus.message ? (
                       <FormDescription className={emailCheckStatus.available ? "text-green-600" : "text-red-600"}>
@@ -373,17 +373,7 @@ export function UserFormDialog({
                           value={field.value || ''}
                         />
                       </FormControl>
-                      {mobileCheckStatus.checking ? (
-                        <FormDescription>
-                          <Loader2 className="w-4 h-4 inline mr-2 animate-spin" />
-                          Checking mobile number...
-                        </FormDescription>
-                      ) : mobileCheckStatus.message ? (
-                        <FormDescription className="text-red-600">
-                          {mobileCheckStatus.message}
-                        </FormDescription>
-                      ) : null}
-                      <FormMessage />
+                      <FormMessage /> {/*Removed mobileCheckStatus feedback*/}
                     </FormItem>
                   )}
                 />
@@ -499,7 +489,7 @@ export function UserFormDialog({
                 type="submit"
                 className="bg-[#004990] hover:bg-[#003870]"
                 disabled={isSubmitting ||
-                  (mode === "create" && (!emailCheckStatus.available || !mobileCheckStatus.available))}
+                  (mode === "create" && !emailCheckStatus.available)}
               >
                 {isSubmitting ? (
                   <>
