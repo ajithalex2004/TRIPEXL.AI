@@ -140,6 +140,7 @@ export default function UserMasterPage() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [USERS_QUERY_KEY] });
+      setIsFormOpen(false); // Close the dialog after successful update
       toast({
         title: "Success",
         description: "User updated successfully",

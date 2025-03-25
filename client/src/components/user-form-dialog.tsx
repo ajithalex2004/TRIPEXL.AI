@@ -183,18 +183,10 @@ export function UserFormDialog({
 
       await onSubmit(formattedData);
 
-      // Close dialog first
-      onOpenChange(false);
-
-      // Then show success message
-      toast({
-        title: mode === "create" ? "User Created" : "User Updated",
-        description: `User has been ${mode === "create" ? "created" : "updated"} successfully.`,
-        variant: "default",
-      });
-
-      // Reset form after successful submission
+      // Reset form
       form.reset();
+
+      // Success is handled by the parent component
     } catch (error) {
       console.error('Error submitting form:', error);
       toast({
