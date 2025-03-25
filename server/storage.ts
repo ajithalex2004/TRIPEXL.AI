@@ -721,7 +721,7 @@ export class DatabaseStorage implements IStorage {
       const employees = await db
         .select()
         .from(schema.employees)
-        .orderBy(schema.employees.employeeId);
+        .orderBy(schema.employees.employee_id);
 
       console.log(`Found ${employees.length} employees`);
       return employees;
