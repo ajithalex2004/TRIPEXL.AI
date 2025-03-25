@@ -16,8 +16,10 @@ export default function EmployeeManagement() {
           <DialogTrigger asChild>
             <Button variant="default">Add New Employee</Button>
           </DialogTrigger>
-          <DialogContent className="sm:max-w-[600px]">
-            <AddEmployeeForm onSuccess={() => setIsAddDialogOpen(false)} />
+          <DialogContent className="sm:max-w-[700px] max-h-[90vh] overflow-hidden flex flex-col">
+            <div className="flex-1 overflow-auto px-6">
+              <AddEmployeeForm onSuccess={() => setIsAddDialogOpen(false)} />
+            </div>
           </DialogContent>
         </Dialog>
       </div>
