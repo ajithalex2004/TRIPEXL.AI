@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import { Sun, Moon, Sunrise, Cloud } from "lucide-react";
 
 const getTimeBasedGreeting = () => {
@@ -10,6 +10,43 @@ const getTimeBasedGreeting = () => {
   return { text: "Good Night", icon: Moon };
 };
 
+const AnimatedIcon = ({ Icon }: { Icon: any }) => (
+  <motion.div
+    initial={{ scale: 0, rotate: -180 }}
+    animate={{ 
+      scale: 1, 
+      rotate: 0,
+      transition: {
+        type: "spring",
+        stiffness: 260,
+        damping: 20
+      }
+    }}
+    whileHover={{ 
+      scale: 1.2,
+      rotate: 360,
+      transition: { duration: 0.8 }
+    }}
+    className="relative"
+  >
+    <motion.div
+      className="absolute inset-0 bg-white/20 rounded-full blur-lg"
+      animate={{
+        scale: [1, 1.2, 1],
+        opacity: [0.5, 0.8, 0.5],
+      }}
+      transition={{
+        duration: 2,
+        repeat: Infinity,
+        ease: "easeInOut"
+      }}
+    />
+    <div className="p-3 bg-[#004990] rounded-full text-white relative">
+      <Icon className="w-8 h-8" />
+    </div>
+  </motion.div>
+);
+
 export function PersonalizedGreeting() {
   const [greeting, setGreeting] = useState(getTimeBasedGreeting());
 
@@ -19,25 +56,28 @@ export function PersonalizedGreeting() {
     return () => clearInterval(timer);
   }, []);
 
-  const Icon = greeting.icon;
-
   return (
     <motion.div
       initial={{ opacity: 0, y: -20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5 }}
-      className="flex items-center gap-3 p-4 bg-gradient-to-r from-[#004990]/10 to-transparent rounded-lg"
+      className="flex items-center gap-6 p-6 bg-gradient-to-r from-[#004990]/10 to-transparent rounded-lg"
     >
-      <motion.div
-        whileHover={{ scale: 1.1, rotate: 360 }}
-        transition={{ duration: 0.5 }}
-        className="p-2 bg-[#004990] rounded-full text-white"
-      >
-        <Icon className="w-6 h-6" />
-      </motion.div>
+      <AnimatePresence mode="wait">
+        <motion.div
+          key={greeting.text}
+          initial={{ opacity: 0, x: -20 }}
+          animate={{ opacity: 1, x: 0 }}
+          exit={{ opacity: 0, x: 20 }}
+          transition={{ duration: 0.5 }}
+        >
+          <AnimatedIcon Icon={greeting.icon} />
+        </motion.div>
+      </AnimatePresence>
+
       <div>
         <motion.h2 
-          className="text-2xl font-bold text-[#004990]"
+          className="text-3xl font-bold text-[#004990]"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ delay: 0.2 }}
@@ -45,7 +85,7 @@ export function PersonalizedGreeting() {
           {greeting.text}!
         </motion.h2>
         <motion.p 
-          className="text-muted-foreground"
+          className="text-muted-foreground text-lg"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ delay: 0.3 }}
