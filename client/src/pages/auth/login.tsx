@@ -10,6 +10,7 @@ import { motion } from "framer-motion";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useLocation } from "wouter";
+import { PersonalizedGreeting } from "@/components/personalized-greeting"; // Added import
 
 const loginSchema = z.object({
   email_id: z.string().min(1, "Email is required").email("Invalid email format"),
@@ -101,8 +102,9 @@ export default function LoginPage() {
             animate={{ opacity: 1, x: 0 }}
             transition={{ delay: 0.3 }}
           >
+            <PersonalizedGreeting />
             <motion.h1
-              className="text-base font-bold text-white tracking-wider whitespace-nowrap"
+              className="text-base font-bold text-white tracking-wider whitespace-nowrap mt-6"
               initial={{ opacity: 0, y: -20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.3 }}
