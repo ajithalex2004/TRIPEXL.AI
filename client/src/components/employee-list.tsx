@@ -36,9 +36,9 @@ interface Employee {
 
 export function EmployeeList() {
   const [searchTerm, setSearchTerm] = useState("");
-  const [departmentFilter, setDepartmentFilter] = useState<string>("");
-  const [regionFilter, setRegionFilter] = useState<string>("");
-  const [typeFilter, setTypeFilter] = useState<string>("");
+  const [departmentFilter, setDepartmentFilter] = useState<string>("all");
+  const [regionFilter, setRegionFilter] = useState<string>("all");
+  const [typeFilter, setTypeFilter] = useState<string>("all");
 
   const { data: employees, isLoading } = useQuery<Employee[]>({
     queryKey: ['/api/employees'],
@@ -49,13 +49,13 @@ export function EmployeeList() {
       employee.employee_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       employee.employee_id.toString().includes(searchTerm);
 
-    const matchesDepartment = departmentFilter === "" || 
+    const matchesDepartment = departmentFilter === "all" || 
       employee.department === departmentFilter;
 
-    const matchesRegion = regionFilter === "" || 
+    const matchesRegion = regionFilter === "all" || 
       employee.region === regionFilter;
 
-    const matchesType = typeFilter === "" || 
+    const matchesType = typeFilter === "all" || 
       employee.employee_type === typeFilter;
 
     return matchesSearch && matchesDepartment && matchesRegion && matchesType;
@@ -87,7 +87,7 @@ export function EmployeeList() {
               <SelectValue placeholder="Filter by Department" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="">All Departments</SelectItem>
+              <SelectItem value="all">All Departments</SelectItem>
               {Object.values(Department).map((dept) => (
                 <SelectItem key={dept} value={dept}>
                   {dept}
@@ -101,7 +101,7 @@ export function EmployeeList() {
               <SelectValue placeholder="Filter by Region" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="">All Regions</SelectItem>
+              <SelectItem value="all">All Regions</SelectItem>
               {Object.values(Region).map((region) => (
                 <SelectItem key={region} value={region}>
                   {region}
@@ -115,7 +115,7 @@ export function EmployeeList() {
               <SelectValue placeholder="Filter by Type" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="">All Types</SelectItem>
+              <SelectItem value="all">All Types</SelectItem>
               {Object.values(EmployeeType).map((type) => (
                 <SelectItem key={type} value={type}>
                   {type}
