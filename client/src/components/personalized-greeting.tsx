@@ -1,6 +1,5 @@
 import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
-import { useAuth } from "@/hooks/use-auth";
 import { Sun, Moon, Sunrise, Cloud } from "lucide-react";
 
 const getTimeBasedGreeting = () => {
@@ -12,7 +11,6 @@ const getTimeBasedGreeting = () => {
 };
 
 export function PersonalizedGreeting() {
-  const { user } = useAuth();
   const [greeting, setGreeting] = useState(getTimeBasedGreeting());
 
   useEffect(() => {
@@ -21,13 +19,7 @@ export function PersonalizedGreeting() {
     return () => clearInterval(timer);
   }, []);
 
-  // Debug: Log user data to see what we're getting
-  console.log('Current user data:', user);
-
   const Icon = greeting.icon;
-
-  // Extract user name, with fallback
-  const userName = user?.user_name || 'Guest';
 
   return (
     <motion.div
@@ -50,7 +42,7 @@ export function PersonalizedGreeting() {
           animate={{ opacity: 1 }}
           transition={{ delay: 0.2 }}
         >
-          {greeting.text}, {userName}!
+          {greeting.text}!
         </motion.h2>
         <motion.p 
           className="text-muted-foreground"
