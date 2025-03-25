@@ -9,6 +9,7 @@ import { useToast } from "@/hooks/use-toast";
 import { motion } from "framer-motion";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { useLocation } from "wouter";
 
 const loginSchema = z.object({
   email_id: z.string().min(1, "Email is required").email("Invalid email format"),
@@ -21,6 +22,7 @@ export default function LoginPage() {
   const { toast } = useToast();
   const [isLoading, setIsLoading] = React.useState(false);
   const [showPassword, setShowPassword] = React.useState(false);
+  const [, setLocation] = useLocation();
 
   const form = useForm<LoginFormData>({
     resolver: zodResolver(loginSchema),
@@ -59,7 +61,7 @@ export default function LoginPage() {
       }
 
       localStorage.setItem("token", responseData.token);
-      window.location.href = "/new-booking";
+      setLocation("/"); // Navigate to home page using wouter
 
     } catch (error: any) {
       console.error("Login error:", error);
