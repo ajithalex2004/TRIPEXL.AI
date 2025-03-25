@@ -127,7 +127,7 @@ export default function UserMasterPage() {
           ...data,
           country_code: data.country_code || "+971",
           mobile_number: data.mobile_number,
-          updated_at: new Date().toISOString()
+          updated_at: new Date()
         }),
       });
 
@@ -144,7 +144,6 @@ export default function UserMasterPage() {
         title: "Success",
         description: "User updated successfully",
       });
-      setIsFormOpen(false);
     },
     onError: (error: Error) => {
       console.error("Error updating user:", error);

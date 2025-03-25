@@ -183,15 +183,18 @@ export function UserFormDialog({
 
       await onSubmit(formattedData);
 
+      // Close dialog first
+      onOpenChange(false);
+
+      // Then show success message
       toast({
         title: mode === "create" ? "User Created" : "User Updated",
         description: `User has been ${mode === "create" ? "created" : "updated"} successfully.`,
         variant: "default",
       });
 
-      // Reset form and close dialog
+      // Reset form after successful submission
       form.reset();
-      onOpenChange(false);
     } catch (error) {
       console.error('Error submitting form:', error);
       toast({
@@ -204,7 +207,6 @@ export function UserFormDialog({
     }
   };
 
-  // Update full name when first or last name changes
   useEffect(() => {
     const subscription = form.watch((value, { name }) => {
       if (name === "first_name" || name === "last_name") {
@@ -216,7 +218,6 @@ export function UserFormDialog({
     return () => subscription.unsubscribe();
   }, [form]);
 
-  // Update form values when initialData changes (for edit mode)
   useEffect(() => {
     if (initialData && mode === "edit") {
       form.reset({
@@ -227,7 +228,6 @@ export function UserFormDialog({
     }
   }, [initialData, mode, form]);
 
-  // Reset form when mode changes
   useEffect(() => {
     if (mode === "create") {
       form.reset({
