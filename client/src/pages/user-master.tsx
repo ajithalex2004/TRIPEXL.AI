@@ -288,7 +288,7 @@ export default function UserMasterPage() {
                   <TableCell>{user.full_name}</TableCell>
                   <TableCell>{user.email_id}</TableCell>
                   <TableCell>
-                    {user.country_code && user.mobile_number ? (
+                    {user.mobile_number ? (
                       <span>{user.country_code} {user.mobile_number}</span>
                     ) : (
                       <span className="text-muted-foreground">Not provided</span>
