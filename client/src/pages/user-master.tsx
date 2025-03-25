@@ -21,6 +21,8 @@ interface User {
   user_code: string;
   user_type: string;
   email_id: string;
+  country_code: string;
+  mobile_number: string;
   user_operation_type: string;
   user_group: string;
   full_name: string;
@@ -62,12 +64,7 @@ export default function UserMasterPage() {
           "Content-Type": "application/json",
           "Accept": "application/json"
         },
-        body: JSON.stringify({
-          ...userData,
-          is_active: true,
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString()
-        }),
+        body: JSON.stringify(userData),
       });
 
       if (!response.ok) {
@@ -313,8 +310,8 @@ export default function UserMasterPage() {
         open={isFormOpen}
         onOpenChange={setIsFormOpen}
         onSubmit={formMode === "create" ? handleCreateUser : handleUpdateUser}
-        defaultValues={selectedUser || undefined}
         mode={formMode}
+        initialData={selectedUser || undefined}
       />
 
       <AlertDialog
