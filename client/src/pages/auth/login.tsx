@@ -20,7 +20,6 @@ type LoginFormData = z.infer<typeof loginSchema>;
 export default function LoginPage() {
   const { toast } = useToast();
   const [isLoading, setIsLoading] = React.useState(false);
-  const [error, setError] = React.useState<string | null>(null);
   const [showPassword, setShowPassword] = React.useState(false);
 
   const form = useForm<LoginFormData>({
@@ -29,12 +28,21 @@ export default function LoginPage() {
       email_id: "",
       password: "",
     },
+    mode: "onSubmit",
   });
 
   const onSubmit = async (data: LoginFormData) => {
     try {
+      if (!data.email_id || !data.password) {
+        toast({
+          title: "Error",
+          description: "Email and password are required",
+          variant: "destructive",
+        });
+        return;
+      }
+
       setIsLoading(true);
-      setError(null);
 
       const response = await fetch("/api/login", {
         method: "POST",
@@ -55,7 +63,6 @@ export default function LoginPage() {
 
     } catch (error: any) {
       console.error("Login error:", error);
-      setError(error.message || "Failed to login");
       toast({
         title: "Error",
         description: error.message || "Failed to login",
@@ -103,9 +110,6 @@ export default function LoginPage() {
             <Card className="backdrop-blur-sm bg-white/90 dark:bg-black/50 border border-white/20 px-3 py-2">
               <CardHeader className="space-y-1 pb-2">
                 <h2 className="text-base font-semibold text-center">Sign In</h2>
-                {error && (
-                  <p className="text-sm text-red-500 text-center">{error}</p>
-                )}
               </CardHeader>
               <CardContent>
                 <Form {...form}>
