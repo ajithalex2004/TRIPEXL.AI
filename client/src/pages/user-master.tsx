@@ -108,8 +108,14 @@ export default function UserMasterPage() {
       console.log("Updating user:", id, "with data:", data);
       const response = await fetch(`${USERS_QUERY_KEY}/${id}`, {
         method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(data),
+        headers: { 
+          "Content-Type": "application/json",
+          "Accept": "application/json"
+        },
+        body: JSON.stringify({
+          ...data,
+          updated_at: new Date().toISOString()
+        }),
       });
 
       if (!response.ok) {
@@ -136,6 +142,23 @@ export default function UserMasterPage() {
       });
     },
   });
+
+  const handleUpdateUser = async (data: any) => {
+    if (!selectedUser) return;
+    try {
+      await updateUserMutation.mutateAsync({
+        id: selectedUser.id,
+        data: {
+          ...data,
+          country_code: data.country_code || "+971",
+          mobile_number: data.mobile_number,
+          updated_at: new Date().toISOString()
+        }
+      });
+    } catch (error) {
+      console.error("Error in handleUpdateUser:", error);
+    }
+  };
 
   const deleteUserMutation = useMutation({
     mutationFn: async (id: number) => {
@@ -167,21 +190,6 @@ export default function UserMasterPage() {
       });
     },
   });
-
-  const handleUpdateUser = async (data: any) => {
-    if (!selectedUser) return;
-    try {
-      await updateUserMutation.mutateAsync({
-        id: selectedUser.id,
-        data: {
-          ...data,
-          updated_at: new Date().toISOString()
-        }
-      });
-    } catch (error) {
-      console.error("Error in handleUpdateUser:", error);
-    }
-  };
 
   const handleDeleteUser = async () => {
     if (!selectedUser) return;
