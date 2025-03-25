@@ -34,6 +34,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { StatusBadge } from "./status-badge";
 
 interface Employee {
   id: number;
@@ -207,13 +208,14 @@ export function EmployeeList() {
               <TableHead>Department</TableHead>
               <TableHead>Region</TableHead>
               <TableHead>Unit</TableHead>
+              <TableHead>Status</TableHead>
               <TableHead className="text-right">Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {filteredEmployees?.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={10} className="text-center py-8">
+                <TableCell colSpan={11} className="text-center py-8">
                   No employees found matching the filters
                 </TableCell>
               </TableRow>
@@ -229,6 +231,9 @@ export function EmployeeList() {
                   <TableCell>{employee.department}</TableCell>
                   <TableCell>{employee.region}</TableCell>
                   <TableCell>{employee.unit}</TableCell>
+                  <TableCell>
+                    <StatusBadge status={employee.is_active ? "active" : "inactive"} />
+                  </TableCell>
                   <TableCell className="text-right">
                     <div className="flex justify-end gap-2">
                       <Button
