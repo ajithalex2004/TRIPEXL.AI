@@ -12,6 +12,48 @@ const generateToken = (userId: number) => {
   });
 };
 
+// Update the default user creation code
+console.log('Initializing default user...');
+const defaultUser = {
+  user_name: 'john.smith',
+  user_code: 'USR1444',
+  user_type: 'ADMIN',
+  email_id: 'john.smith@company.com',
+  country_code: '+971',
+  mobile_number: '501234567',
+  user_operation_type: 'ADMIN',
+  user_group: 'DEFAULT',
+  first_name: 'John',
+  last_name: 'Smith',
+  full_name: 'John Smith',
+  password: 'Pass@123',
+  is_active: true,
+  created_at: new Date().toISOString(),
+  updated_at: new Date().toISOString()
+};
+
+console.log('Checking for default user existence...');
+const existingUser = await storage.findUserByEmail(defaultUser.email_id);
+
+if (!existingUser) {
+  console.log('Default user not found, creating...');
+  try {
+    const salt = await bcrypt.genSalt(10);
+    const hashedPassword = await bcrypt.hash(defaultUser.password, salt);
+
+    await storage.createUser({
+      ...defaultUser,
+      password: hashedPassword
+    });
+    console.log('Default user created successfully');
+  } catch (error) {
+    console.error('Error creating default user:', error);
+    throw error;
+  }
+} else {
+  console.log('Default user already exists');
+}
+
 router.post("/login", async (req, res) => {
   try {
     const { email_id, password } = req.body;
