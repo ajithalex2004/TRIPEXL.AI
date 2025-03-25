@@ -42,7 +42,7 @@ const AnimatedIcon = ({ Icon }: { Icon: any }) => (
       }}
     />
     <div className="p-3 bg-[#004990] rounded-full text-white relative">
-      <Icon className="w-8 h-8" />
+      <Icon className="w-8 h-8 animate-pulse" />
     </div>
   </motion.div>
 );
@@ -77,15 +77,15 @@ export function PersonalizedGreeting() {
 
       <div>
         <motion.h2 
-          className="text-3xl font-bold text-[#004990]"
+          className="text-3xl font-bold text-white"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ delay: 0.2 }}
         >
-          {greeting.text}!
+          {greeting.text}!!!
         </motion.h2>
         <motion.p 
-          className="text-muted-foreground text-lg"
+          className="text-white text-lg font-bold"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ delay: 0.3 }}
