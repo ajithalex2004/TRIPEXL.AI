@@ -144,7 +144,7 @@ export function UserFormDialog({
   // Check mobile number availability when debounced mobile number changes
   React.useEffect(() => {
     async function checkMobileAvailability() {
-      if (!debouncedMobileNumber || !debouncedCountryCode || mode === "edit" || debouncedMobileNumber.length < 9) return;
+      if (!debouncedMobileNumber || mode === "edit") return;
 
       try {
         setMobileCheckStatus({ checking: true });
@@ -165,7 +165,10 @@ export function UserFormDialog({
       }
     }
 
-    checkMobileAvailability();
+    // Only check if the mobile number is 9 digits
+    if (debouncedMobileNumber?.length === 9) {
+      checkMobileAvailability();
+    }
   }, [debouncedMobileNumber, debouncedCountryCode, mode]);
 
   const handleSubmit = async (data: UserFormData) => {
@@ -265,8 +268,10 @@ export function UserFormDialog({
 
   //Reset form when mode changes
   useEffect(() => {
-    form.reset();
-  }, [mode, form.reset]);
+    if (mode === "create") {
+      form.reset();
+    }
+  }, [mode, form]);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>

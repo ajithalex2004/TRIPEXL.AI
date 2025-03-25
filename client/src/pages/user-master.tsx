@@ -107,7 +107,7 @@ export default function UserMasterPage() {
   };
 
   const updateUserMutation = useMutation({
-    mutationFn: async ({ id, data }: { id: number; data: any }) => {
+    mutationFn: async ({ id, data }: { id: number; data: UserFormData }) => {
       console.log("Updating user:", id, "with data:", {
         ...data,
         password: '[REDACTED]'
@@ -146,7 +146,7 @@ export default function UserMasterPage() {
       console.error("Error updating user:", error);
       toast({
         title: "Error",
-        description: error.message,
+        description: error.message || "Failed to update user",
         variant: "destructive",
       });
     },
