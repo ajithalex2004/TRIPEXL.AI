@@ -62,7 +62,7 @@ export function QuickActionsFAB({
   };
 
   const actions = [
-    { icon: UserPlus, label: "Add User", onClick: onAddUser },
+    { icon: UserPlus, label: "Add Employee", onClick: onAddUser },
     { icon: RefreshCw, label: "Refresh", onClick: onRefresh },
     { icon: Download, label: "Export", onClick: onExport },
   ];
