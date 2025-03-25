@@ -37,6 +37,8 @@ const userFormSchema = z.object({
   user_code: z.string().min(1, "User code is required"),
   user_type: z.string().min(1, "User type is required"),
   email_id: z.string().email("Invalid email address"),
+  country_code: z.string().default("+971"),
+  mobile_number: z.string().min(9, "Mobile number must be at least 9 digits"),
   user_operation_type: z.string().min(1, "Operation type is required"),
   user_group: z.string().min(1, "User group is required"),
   first_name: z.string().min(1, "First name is required"),
@@ -78,6 +80,8 @@ export function UserFormDialog({
       user_code: "",
       user_type: "EMPLOYEE",
       email_id: "",
+      country_code: "+971",
+      mobile_number: "",
       user_operation_type: "EMPLOYEE",
       user_group: "DEFAULT",
       first_name: "",
@@ -275,6 +279,50 @@ export function UserFormDialog({
                   </FormItem>
                 )}
               />
+              <div className="grid grid-cols-2 gap-4">
+                <FormField
+                  control={form.control}
+                  name="country_code"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Country Code</FormLabel>
+                      <Select onValueChange={field.onChange} defaultValue={field.value || "+971"}>
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select country code" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          <SelectItem value="+971">UAE (+971)</SelectItem>
+                          <SelectItem value="+91">India (+91)</SelectItem>
+                          <SelectItem value="+1">USA (+1)</SelectItem>
+                          {/* Add more country codes as needed */}
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="mobile_number"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Mobile Number</FormLabel>
+                      <FormControl>
+                        <Input
+                          {...field}
+                          type="tel"
+                          placeholder="Enter mobile number"
+                          maxLength={15}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
               <FormField
                 control={form.control}
                 name="user_type"
