@@ -7,7 +7,6 @@ import { Card, CardHeader, CardContent } from "@/components/ui/card";
 import { Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { motion } from "framer-motion";
-import { queryClient } from "@/lib/queryClient";
 
 interface LoginFormData {
   email_id: string;
@@ -32,11 +31,10 @@ export default function LoginPage() {
       setIsLoading(true);
       setError(null);
 
-      const response = await fetch("/api/auth/login", {
+      const response = await fetch("/api/login", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          "Accept": "application/json"
         },
         body: JSON.stringify(data),
       });
@@ -48,21 +46,6 @@ export default function LoginPage() {
       }
 
       localStorage.setItem("token", responseData.token);
-
-      // Fetch user data immediately after login
-      const userResponse = await fetch("/api/auth/user", {
-        headers: {
-          Authorization: `Bearer ${responseData.token}`,
-        },
-      });
-
-      if (!userResponse.ok) {
-        throw new Error("Failed to fetch user data");
-      }
-
-      const userData = await userResponse.json();
-      queryClient.setQueryData(["/api/auth/user"], userData);
-
       window.location.href = "/new-booking";
 
     } catch (error: any) {
