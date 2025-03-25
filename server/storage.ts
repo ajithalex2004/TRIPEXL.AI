@@ -484,13 +484,22 @@ export class DatabaseStorage implements IStorage {
 
   async updateUser(userId: number, userData: Partial<User>): Promise<User> {
     try {
-      console.log('Updating user:', userId);
+      console.log('Updating user:', userId, 'with data:', {
+        ...userData,
+        password: '[REDACTED]'
+      });
+
+      // Ensure mobile number and country code are included in the update
+      const updateData = {
+        ...userData,
+        country_code: userData.country_code || "+971",
+        mobile_number: userData.mobile_number || null,
+        updated_at: new Date()
+      };
+
       const [user] = await db
         .update(schema.users)
-        .set({
-          ...userData,
-          updated_at: new Date()
-        })
+        .set(updateData)
         .where(eq(schema.users.id, userId))
         .returning();
 
@@ -498,7 +507,13 @@ export class DatabaseStorage implements IStorage {
         throw new Error(`User not found with ID: ${userId}`);
       }
 
-      console.log('User updated successfully:', { id: user.id });
+      console.log('User updated successfully:', {
+        id: user.id,
+        email: user.email_id,
+        country_code: user.country_code,
+        mobile_number: user.mobile_number
+      });
+
       return user;
     } catch (error) {
       console.error('Error updating user:', error);
