@@ -254,7 +254,7 @@ export function UserFormDialog({
         user_type: initialData.user_type,
         email_id: initialData.email_id,
         country_code: initialData.country_code || "+971",
-        mobile_number: initialData.mobile_number || "",
+        mobile_number: initialData.mobile_number,
         user_operation_type: initialData.user_operation_type,
         user_group: initialData.user_group,
         first_name: initialData.first_name,
@@ -263,7 +263,7 @@ export function UserFormDialog({
         is_active: initialData.is_active,
       });
     }
-  }, [initialData, form.reset]);
+  }, [initialData, form]);
 
   //Reset form when mode changes
   useEffect(() => {
