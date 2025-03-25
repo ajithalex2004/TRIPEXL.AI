@@ -41,29 +41,13 @@ export default function LoginPage() {
         body: JSON.stringify(data),
       });
 
-      // Debug: Log raw response before parsing
-      const responseText = await response.text();
-      console.log('Raw response:', responseText);
-
-      let responseData;
-      try {
-        responseData = JSON.parse(responseText);
-      } catch (e) {
-        console.error('Failed to parse response:', e);
-        throw new Error('Invalid response from server');
-      }
+      const responseData = await response.json();
 
       if (!response.ok) {
         throw new Error(responseData.error || "Failed to login");
       }
 
-      // Debug: Log the response data
-      console.log('Login response:', responseData);
-
       localStorage.setItem("token", responseData.token);
-
-      // Force refetch user data before redirecting
-      await queryClient.invalidateQueries({ queryKey: ["/api/auth/user"] });
 
       // Fetch user data immediately after login
       const userResponse = await fetch("/api/auth/user", {
