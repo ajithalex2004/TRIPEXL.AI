@@ -204,7 +204,10 @@ router.post("/users", async (req, res) => {
 // Update user
 router.put("/users/:id", async (req, res) => {
   try {
-    console.log('Updating user:', req.params.id, 'with data:', req.body);
+    console.log('Updating user:', req.params.id, 'with data:', {
+      ...req.body,
+      password: '[REDACTED]'
+    });
     const userId = parseInt(req.params.id);
     const userData = req.body;
 
@@ -239,6 +242,8 @@ router.put("/users/:id", async (req, res) => {
     // Update user data
     const updatedUser = await storage.updateUser(userId, {
       ...userData,
+      country_code: userData.country_code || "+971",
+      mobile_number: userData.mobile_number,
       updated_at: new Date(),
     });
 
@@ -247,7 +252,7 @@ router.put("/users/:id", async (req, res) => {
   } catch (error) {
     console.error('Error updating user:', error);
     return res.status(500).json({
-      error: "Failed to update user"
+      error: error instanceof Error ? error.message : "Failed to update user"
     });
   }
 });

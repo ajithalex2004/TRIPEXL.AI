@@ -117,7 +117,7 @@ export default function UserMasterPage() {
         password: '[REDACTED]'
       });
 
-      const response = await fetch(`${USERS_QUERY_KEY}/${id}`, {
+      const response = await fetch(`/api/auth/users/${id}`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
@@ -140,10 +140,11 @@ export default function UserMasterPage() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [USERS_QUERY_KEY] });
-      setIsFormOpen(false); // Close the dialog after successful update
+      setIsFormOpen(false);
       toast({
         title: "Success",
-        description: "User updated successfully",
+        description: "User information has been updated successfully",
+        variant: "default",
       });
     },
     onError: (error: Error) => {
