@@ -401,10 +401,14 @@ export function UserFormDialog({
                           placeholder="Enter mobile number"
                           maxLength={9}
                           onChange={(e) => {
-                            handleMobileNumberChange(e);
-                            field.onChange(e);
+                            // Remove leading zeros and non-digit characters
+                            const trimmedValue = e.target.value.replace(/^0+/, '').replace(/\D/g, '');
+                            // Only update if the value is empty or consists of digits
+                            if (trimmedValue === '' || /^\d+$/.test(trimmedValue)) {
+                              field.onChange(trimmedValue);
+                            }
                           }}
-                          value={field.value}
+                          value={field.value || ''}
                         />
                       </FormControl>
                       {mobileCheckStatus.checking ? (
