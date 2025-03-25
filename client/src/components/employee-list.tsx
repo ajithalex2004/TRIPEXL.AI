@@ -230,7 +230,7 @@ export function EmployeeList() {
                       variant="outline"
                       size="sm"
                       onClick={() => handleEdit(employee)}
-                      className="inline-flex items-center justify-center"
+                      className="inline-flex items-center justify-center hover:bg-primary/10"
                     >
                       <Pencil className="h-4 w-4" />
                     </Button>
@@ -238,7 +238,7 @@ export function EmployeeList() {
                       variant="outline"
                       size="sm"
                       onClick={() => handleDelete(employee.employee_id)}
-                      className="inline-flex items-center justify-center text-destructive hover:text-destructive"
+                      className="inline-flex items-center justify-center text-destructive hover:bg-destructive/10"
                     >
                       <Trash2 className="h-4 w-4" />
                     </Button>
