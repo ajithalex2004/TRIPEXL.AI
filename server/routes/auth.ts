@@ -225,4 +225,31 @@ router.delete("/users/:id", async (req, res) => {
   }
 });
 
+// Add the new email check endpoint after the existing routes
+router.get("/check-email/:email", async (req, res) => {
+  try {
+    const { email } = req.params;
+    console.log('Checking email availability:', email);
+
+    if (!email) {
+      return res.status(400).json({
+        error: "Email is required"
+      });
+    }
+
+    const existingUser = await storage.findUserByEmail(email);
+
+    return res.json({
+      available: !existingUser,
+      message: existingUser ? "Email is already registered" : "Email is available"
+    });
+
+  } catch (error) {
+    console.error('Error checking email:', error);
+    return res.status(500).json({
+      error: "Failed to check email availability"
+    });
+  }
+});
+
 export default router;

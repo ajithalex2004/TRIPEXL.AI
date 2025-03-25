@@ -3,6 +3,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { useToast } from "@/hooks/use-toast";
+import { useDebounce } from "@/hooks/use-debounce";
 import {
   Dialog,
   DialogContent,
@@ -17,6 +18,7 @@ import {
   FormLabel,
   FormControl,
   FormMessage,
+  FormDescription,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import {
@@ -62,6 +64,13 @@ export function UserFormDialog({
   mode,
 }: UserFormDialogProps) {
   const { toast } = useToast();
+  const [isSubmitting, setIsSubmitting] = React.useState(false);
+  const [emailCheckStatus, setEmailCheckStatus] = React.useState<{
+    checking: boolean;
+    available?: boolean;
+    message?: string;
+  }>({ checking: false });
+
   const form = useForm<UserFormData>({
     resolver: zodResolver(userFormSchema),
     defaultValues: {
@@ -79,12 +88,53 @@ export function UserFormDialog({
     },
   });
 
-  const [isSubmitting, setIsSubmitting] = React.useState(false);
+  // Get the current email value from the form
+  const currentEmail = form.watch("email_id");
+
+  // Debounce the email value
+  const debouncedEmail = useDebounce(currentEmail, 500);
+
+  // Check email availability when debounced email changes
+  React.useEffect(() => {
+    async function checkEmailAvailability() {
+      if (!debouncedEmail || mode === "edit") return;
+
+      try {
+        setEmailCheckStatus({ checking: true });
+        const response = await fetch(`/api/auth/check-email/${encodeURIComponent(debouncedEmail)}`);
+        const data = await response.json();
+
+        setEmailCheckStatus({
+          checking: false,
+          available: data.available,
+          message: data.message
+        });
+      } catch (error) {
+        console.error('Error checking email:', error);
+        setEmailCheckStatus({
+          checking: false,
+          message: "Failed to check email availability"
+        });
+      }
+    }
+
+    checkEmailAvailability();
+  }, [debouncedEmail, mode]);
 
   const handleSubmit = async (data: UserFormData) => {
     try {
       console.log('Submitting form data:', { ...data, password: '[REDACTED]' });
       setIsSubmitting(true);
+
+      // Check email availability one final time before submission
+      if (mode === "create") {
+        const response = await fetch(`/api/auth/check-email/${encodeURIComponent(data.email_id)}`);
+        const emailCheck = await response.json();
+
+        if (!emailCheck.available) {
+          throw new Error("Email is already registered");
+        }
+      }
 
       // Ensure all required fields are present
       const formattedData = {
@@ -211,6 +261,16 @@ export function UserFormDialog({
                     <FormControl>
                       <Input {...field} type="email" placeholder="Enter email" />
                     </FormControl>
+                    {emailCheckStatus.checking ? (
+                      <FormDescription>
+                        <Loader2 className="w-4 h-4 inline mr-2 animate-spin" />
+                        Checking email availability...
+                      </FormDescription>
+                    ) : emailCheckStatus.message ? (
+                      <FormDescription className={emailCheckStatus.available ? "text-green-600" : "text-red-600"}>
+                        {emailCheckStatus.message}
+                      </FormDescription>
+                    ) : null}
                     <FormMessage />
                   </FormItem>
                 )}
@@ -325,7 +385,7 @@ export function UserFormDialog({
               <Button
                 type="submit"
                 className="bg-[#004990] hover:bg-[#003870]"
-                disabled={isSubmitting}
+                disabled={isSubmitting || (mode === "create" && !emailCheckStatus.available)}
               >
                 {isSubmitting ? (
                   <>
