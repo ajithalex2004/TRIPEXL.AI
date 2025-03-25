@@ -21,16 +21,16 @@ import { Department, EmployeeType, Region } from "@shared/schema";
 import { useState } from "react";
 
 interface Employee {
-  employeeId: string;
-  employeeName: string;
-  email: string;
-  mobileNumber: string;
-  employeeType: string;
+  employee_id: string;
+  employee_name: string;
+  email_id: string;
+  mobile_number: string;
+  employee_type: string;
   designation: string;
   department: string;
   nationality: string;
   region: string;
-  communicationLanguage: string;
+  communication_language: string;
   unit: string;
 }
 
@@ -46,17 +46,17 @@ export function EmployeeList() {
 
   const filteredEmployees = employees?.filter(employee => {
     const matchesSearch = searchTerm === "" || 
-      employee.employeeName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      employee.employeeId.toString().includes(searchTerm);
-    
+      employee.employee_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      employee.employee_id.toString().includes(searchTerm);
+
     const matchesDepartment = departmentFilter === "" || 
       employee.department === departmentFilter;
-    
+
     const matchesRegion = regionFilter === "" || 
       employee.region === regionFilter;
-    
+
     const matchesType = typeFilter === "" || 
-      employee.employeeType === typeFilter;
+      employee.employee_type === typeFilter;
 
     return matchesSearch && matchesDepartment && matchesRegion && matchesType;
   });
@@ -81,7 +81,7 @@ export function EmployeeList() {
               className="w-full"
             />
           </div>
-          
+
           <Select value={departmentFilter} onValueChange={setDepartmentFilter}>
             <SelectTrigger>
               <SelectValue placeholder="Filter by Department" />
@@ -150,12 +150,12 @@ export function EmployeeList() {
               </TableRow>
             ) : (
               filteredEmployees?.map((employee) => (
-                <TableRow key={employee.employeeId}>
-                  <TableCell className="font-medium">{employee.employeeId}</TableCell>
-                  <TableCell>{employee.employeeName}</TableCell>
-                  <TableCell>{employee.email}</TableCell>
-                  <TableCell>{employee.mobileNumber}</TableCell>
-                  <TableCell>{employee.employeeType}</TableCell>
+                <TableRow key={employee.employee_id}>
+                  <TableCell className="font-medium">{employee.employee_id}</TableCell>
+                  <TableCell>{employee.employee_name}</TableCell>
+                  <TableCell>{employee.email_id}</TableCell>
+                  <TableCell>{employee.mobile_number}</TableCell>
+                  <TableCell>{employee.employee_type}</TableCell>
                   <TableCell>{employee.designation}</TableCell>
                   <TableCell>{employee.department}</TableCell>
                   <TableCell>{employee.region}</TableCell>
