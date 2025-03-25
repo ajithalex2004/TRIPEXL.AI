@@ -7,6 +7,7 @@ import { Card, CardHeader, CardContent } from "@/components/ui/card";
 import { Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { motion } from "framer-motion";
+import { queryClient } from "@/lib/queryClient";
 
 interface LoginFormData {
   email_id: string;
@@ -45,7 +46,12 @@ export default function LoginPage() {
         throw new Error(responseData.error || "Failed to login");
       }
 
+      // Debug: Log the response data
+      console.log('Login response:', responseData);
+
       localStorage.setItem("token", responseData.token);
+      // Force refetch user data
+      await queryClient.invalidateQueries({ queryKey: ["/api/auth/user"] });
       window.location.href = "/new-booking";
 
     } catch (error: any) {

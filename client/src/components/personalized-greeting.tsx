@@ -21,7 +21,13 @@ export function PersonalizedGreeting() {
     return () => clearInterval(timer);
   }, []);
 
+  // Debug: Log user data to see what we're getting
+  console.log('Current user data:', user);
+
   const Icon = greeting.icon;
+
+  // Extract user name, with fallback
+  const userName = user?.first_name || 'Guest';
 
   return (
     <motion.div
@@ -44,7 +50,7 @@ export function PersonalizedGreeting() {
           animate={{ opacity: 1 }}
           transition={{ delay: 0.2 }}
         >
-          {greeting.text}, {user?.first_name || 'Guest'}!
+          {greeting.text}, {userName}!
         </motion.h2>
         <motion.p 
           className="text-muted-foreground"
