@@ -383,6 +383,7 @@ export function UserFormDialog({
                     </FormItem>
                   )}
                 />
+                {/* Mobile number field with validation */}
                 <FormField
                   control={form.control}
                   name="mobile_number"
@@ -411,7 +412,7 @@ export function UserFormDialog({
                           <Loader2 className="w-4 h-4 inline mr-2 animate-spin" />
                           Checking mobile number availability...
                         </FormDescription>
-                      ) : mobileCheckStatus.message && mode === "create" ? (
+                      ) : mobileCheckStatus.message && field.value?.length === 9 ? (
                         <FormDescription className={mobileCheckStatus.available ? "text-green-600" : "text-red-600"}>
                           {mobileCheckStatus.message}
                         </FormDescription>

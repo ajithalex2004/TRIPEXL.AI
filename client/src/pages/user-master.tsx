@@ -48,6 +48,13 @@ export default function UserMasterPage() {
 
   const { data: users, isLoading, error } = useQuery<User[]>({
     queryKey: [USERS_QUERY_KEY],
+    queryFn: async () => {
+      const response = await fetch(USERS_QUERY_KEY);
+      if (!response.ok) {
+        throw new Error('Failed to fetch users');
+      }
+      return response.json();
+    },
     refetchOnWindowFocus: false,
     onError: (error: Error) => {
       console.error('Error fetching users:', error);
@@ -288,7 +295,11 @@ export default function UserMasterPage() {
                   <TableCell>{user.full_name}</TableCell>
                   <TableCell>{user.email_id}</TableCell>
                   <TableCell>
-                    {user.country_code} {user.mobile_number}
+                    {user.country_code && user.mobile_number ? (
+                      <span>{user.country_code} {user.mobile_number}</span>
+                    ) : (
+                      <span className="text-muted-foreground">Not provided</span>
+                    )}
                   </TableCell>
                   <TableCell>
                     <Badge variant="outline">{user.user_type}</Badge>
