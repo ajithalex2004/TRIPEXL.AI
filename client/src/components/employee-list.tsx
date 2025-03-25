@@ -7,7 +7,6 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Input } from "@/components/ui/input";
 import {
   Select,
   SelectContent,
@@ -16,12 +15,13 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Card } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent } from "@/components/ui/dialog";
+import { AddEmployeeForm } from "./add-employee-form";
 import { LoadingAnimation } from "./loading-animation";
 import { Department, EmployeeType, Region } from "@shared/schema";
 import { useState } from "react";
-import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
-import { AddEmployeeForm } from "./add-employee-form";
 import { toast } from "@/hooks/use-toast";
 import { Pencil, Trash2 } from "lucide-react";
 import {
@@ -36,6 +36,7 @@ import {
 } from "@/components/ui/alert-dialog";
 
 interface Employee {
+  id: number;
   employee_id: string;
   employee_name: string;
   email_id: string;
@@ -45,7 +46,7 @@ interface Employee {
   department: string;
   nationality: string;
   region: string;
-  communication_language: string;
+  communication_language: string | null;
   unit: string;
 }
 
@@ -202,7 +203,7 @@ export function EmployeeList() {
               <TableHead>Department</TableHead>
               <TableHead>Region</TableHead>
               <TableHead>Unit</TableHead>
-              <TableHead>Actions</TableHead>
+              <TableHead className="text-right">Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -224,18 +225,20 @@ export function EmployeeList() {
                   <TableCell>{employee.department}</TableCell>
                   <TableCell>{employee.region}</TableCell>
                   <TableCell>{employee.unit}</TableCell>
-                  <TableCell className="space-x-2">
+                  <TableCell className="text-right space-x-2">
                     <Button
                       variant="outline"
-                      size="icon"
+                      size="sm"
                       onClick={() => handleEdit(employee)}
+                      className="inline-flex items-center justify-center"
                     >
                       <Pencil className="h-4 w-4" />
                     </Button>
                     <Button
                       variant="outline"
-                      size="icon"
+                      size="sm"
                       onClick={() => handleDelete(employee.employee_id)}
+                      className="inline-flex items-center justify-center text-destructive hover:text-destructive"
                     >
                       <Trash2 className="h-4 w-4" />
                     </Button>
