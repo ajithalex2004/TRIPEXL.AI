@@ -51,7 +51,10 @@ export default function LoginPage() {
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify(data),
+        body: JSON.stringify({
+          emailId: data.email_id,
+          password: data.password,
+        }),
       });
 
       const responseData = await response.json();
@@ -60,8 +63,21 @@ export default function LoginPage() {
         throw new Error(responseData.error || "Failed to login");
       }
 
+      if (!responseData.token) {
+        throw new Error("Invalid server response: missing token");
+      }
+
+      // Store the token and navigate
       localStorage.setItem("token", responseData.token);
-      setLocation("/"); // Navigate to home page using wouter
+      toast({
+        title: "Success",
+        description: "Login successful",
+      });
+
+      // Use setTimeout to ensure the token is stored before navigation
+      setTimeout(() => {
+        setLocation("/");
+      }, 100);
 
     } catch (error: any) {
       console.error("Login error:", error);
