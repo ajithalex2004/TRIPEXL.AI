@@ -19,7 +19,8 @@ export function AddEmployeeForm({ onSuccess }: AddEmployeeFormProps) {
     resolver: zodResolver(insertEmployeeSchema),
     defaultValues: {
       employee_type: EmployeeType.PERMANENT,
-      is_active: true
+      is_active: true,
+      country_code: "+971" // Default UAE country code
     }
   });
 
@@ -95,7 +96,7 @@ export function AddEmployeeForm({ onSuccess }: AddEmployeeFormProps) {
           />
         </div>
 
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-3 gap-4"> {/* Changed to grid-cols-3 */}
           <FormField
             control={form.control}
             name="email_id"
@@ -112,12 +113,47 @@ export function AddEmployeeForm({ onSuccess }: AddEmployeeFormProps) {
 
           <FormField
             control={form.control}
+            name="country_code"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Code</FormLabel>
+                <Select onValueChange={field.onChange} defaultValue={field.value}>
+                  <FormControl>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Code" />
+                    </SelectTrigger>
+                  </FormControl>
+                  <SelectContent>
+                    <SelectItem value="+971">+971 (UAE)</SelectItem>
+                    <SelectItem value="+966">+966 (KSA)</SelectItem>
+                    <SelectItem value="+974">+974 (Qatar)</SelectItem>
+                    <SelectItem value="+973">+973 (Bahrain)</SelectItem>
+                    <SelectItem value="+968">+968 (Oman)</SelectItem>
+                    <SelectItem value="+965">+965 (Kuwait)</SelectItem>
+                  </SelectContent>
+                </Select>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          <FormField
+            control={form.control}
             name="mobile_number"
             render={({ field }) => (
               <FormItem>
                 <FormLabel>Mobile Number</FormLabel>
                 <FormControl>
-                  <Input {...field} />
+                  <Input
+                    {...field}
+                    maxLength={9}
+                    placeholder="5XXXXXXXX"
+                    onChange={(e) => {
+                      const value = e.target.value.replace(/[^0-9]/g, '');
+                      if (value.length <= 9) {
+                        field.onChange(value);
+                      }
+                    }}
+                  />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -270,8 +306,8 @@ export function AddEmployeeForm({ onSuccess }: AddEmployeeFormProps) {
           />
         </div>
 
-        <Button 
-          type="submit" 
+        <Button
+          type="submit"
           className="w-full mt-6"
           disabled={createEmployeeMutation.isPending}
         >
