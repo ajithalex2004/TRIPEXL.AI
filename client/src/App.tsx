@@ -1,7 +1,6 @@
 import * as React from "react";
 import { Switch, Route, useLocation } from "wouter";
-import { queryClient } from "./lib/queryClient";
-import { QueryClientProvider } from "@tanstack/react-query";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { AuthProvider } from "@/hooks/use-auth"; 
 import NotFound from "@/pages/not-found";
@@ -18,6 +17,16 @@ import NewBooking from "@/pages/new-booking";
 import EmployeeManagement from "@/pages/employee-management";
 import PermissionsMapPage from "@/pages/permissions-map";
 import { Layout } from "@/components/layout";
+
+// Initialize QueryClient
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      staleTime: 60 * 1000,
+      retry: 1,
+    },
+  },
+});
 
 function ProtectedRoute({ component: Component }: { component: React.ComponentType }) {
   const [, setLocation] = useLocation();
@@ -70,14 +79,16 @@ function Router() {
 
 function App() {
   return (
-    <QueryClientProvider client={queryClient}>
-      <AuthProvider> 
-        <div className="relative min-h-screen">
-          <Router />
-          <Toaster />
-        </div>
-      </AuthProvider>
-    </QueryClientProvider>
+    <React.StrictMode>
+      <QueryClientProvider client={queryClient}>
+        <AuthProvider>
+          <div className="relative min-h-screen">
+            <Router />
+            <Toaster />
+          </div>
+        </AuthProvider>
+      </QueryClientProvider>
+    </React.StrictMode>
   );
 }
 
