@@ -2,6 +2,7 @@ import { Router } from "express";
 import { storage } from "../storage";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
+import { db } from '../db'; // Import the db object
 
 const router = Router();
 
@@ -248,6 +249,37 @@ router.get("/check-email/:email", async (req, res) => {
     console.error('Error checking email:', error);
     return res.status(500).json({
       error: "Failed to check email availability"
+    });
+  }
+});
+
+// Add the mobile number check endpoint
+router.get("/check-mobile/:countryCode/:number", async (req, res) => {
+  try {
+    const { countryCode, number } = req.params;
+    console.log('Checking mobile number availability:', `${countryCode}${number}`);
+
+    if (!countryCode || !number) {
+      return res.status(400).json({
+        error: "Country code and mobile number are required"
+      });
+    }
+
+    // Query to check if mobile number exists
+    const [existingUser] = await db.raw(`
+      SELECT * FROM users 
+      WHERE country_code = ? AND mobile_number = ?
+    `, [countryCode, number]);
+
+    return res.json({
+      available: !existingUser,
+      message: existingUser ? "Mobile number is already registered" : "Mobile number is available"
+    });
+
+  } catch (error) {
+    console.error('Error checking mobile number:', error);
+    return res.status(500).json({
+      error: "Failed to check mobile number availability"
     });
   }
 });

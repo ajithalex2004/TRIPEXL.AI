@@ -73,6 +73,12 @@ export function UserFormDialog({
     message?: string;
   }>({ checking: false });
 
+  const [mobileCheckStatus, setMobileCheckStatus] = React.useState<{
+    checking: boolean;
+    available?: boolean;
+    message?: string;
+  }>({ checking: false });
+
   const form = useForm<UserFormData>({
     resolver: zodResolver(userFormSchema),
     defaultValues: {
@@ -92,11 +98,15 @@ export function UserFormDialog({
     },
   });
 
-  // Get the current email value from the form
+  // Get the current email and mobile values from the form
   const currentEmail = form.watch("email_id");
+  const currentMobileNumber = form.watch("mobile_number");
+  const currentCountryCode = form.watch("country_code");
 
-  // Debounce the email value
+  // Debounce the values
   const debouncedEmail = useDebounce(currentEmail, 500);
+  const debouncedMobileNumber = useDebounce(currentMobileNumber, 500);
+  const debouncedCountryCode = useDebounce(currentCountryCode, 500);
 
   // Check email availability when debounced email changes
   React.useEffect(() => {
@@ -125,6 +135,33 @@ export function UserFormDialog({
     checkEmailAvailability();
   }, [debouncedEmail, mode]);
 
+  // Check mobile number availability when debounced mobile number changes
+  React.useEffect(() => {
+    async function checkMobileAvailability() {
+      if (!debouncedMobileNumber || !debouncedCountryCode || mode === "edit") return;
+
+      try {
+        setMobileCheckStatus({ checking: true });
+        const response = await fetch(`/api/auth/check-mobile/${encodeURIComponent(debouncedCountryCode)}/${encodeURIComponent(debouncedMobileNumber)}`);
+        const data = await response.json();
+
+        setMobileCheckStatus({
+          checking: false,
+          available: data.available,
+          message: data.message
+        });
+      } catch (error) {
+        console.error('Error checking mobile number:', error);
+        setMobileCheckStatus({
+          checking: false,
+          message: "Failed to check mobile number availability"
+        });
+      }
+    }
+
+    checkMobileAvailability();
+  }, [debouncedMobileNumber, debouncedCountryCode, mode]);
+
   const handleSubmit = async (data: UserFormData) => {
     try {
       console.log('Submitting form data:', { ...data, password: '[REDACTED]' });
@@ -132,11 +169,19 @@ export function UserFormDialog({
 
       // Check email availability one final time before submission
       if (mode === "create") {
-        const response = await fetch(`/api/auth/check-email/${encodeURIComponent(data.email_id)}`);
-        const emailCheck = await response.json();
+        const emailResponse = await fetch(`/api/auth/check-email/${encodeURIComponent(data.email_id)}`);
+        const emailCheck = await emailResponse.json();
 
         if (!emailCheck.available) {
           throw new Error("Email is already registered");
+        }
+
+        // Check mobile number availability
+        const mobileResponse = await fetch(`/api/auth/check-mobile/${encodeURIComponent(data.country_code)}/${encodeURIComponent(data.mobile_number)}`);
+        const mobileCheck = await mobileResponse.json();
+
+        if (!mobileCheck.available) {
+          throw new Error("Mobile number is already registered");
         }
       }
 
@@ -146,7 +191,6 @@ export function UserFormDialog({
         is_active: true,
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
-        // Ensure password is set
         password: data.password || "Pass@123"
       };
 
@@ -303,7 +347,6 @@ export function UserFormDialog({
                     </FormItem>
                   )}
                 />
-
                 <FormField
                   control={form.control}
                   name="mobile_number"
@@ -318,6 +361,16 @@ export function UserFormDialog({
                           maxLength={15}
                         />
                       </FormControl>
+                      {mobileCheckStatus.checking ? (
+                        <FormDescription>
+                          <Loader2 className="w-4 h-4 inline mr-2 animate-spin" />
+                          Checking mobile number...
+                        </FormDescription>
+                      ) : mobileCheckStatus.message ? (
+                        <FormDescription className={mobileCheckStatus.available ? "text-green-600" : "text-red-600"}>
+                          {mobileCheckStatus.message}
+                        </FormDescription>
+                      ) : null}
                       <FormMessage />
                     </FormItem>
                   )}
@@ -433,7 +486,8 @@ export function UserFormDialog({
               <Button
                 type="submit"
                 className="bg-[#004990] hover:bg-[#003870]"
-                disabled={isSubmitting || (mode === "create" && !emailCheckStatus.available)}
+                disabled={isSubmitting || 
+                  (mode === "create" && (!emailCheckStatus.available || !mobileCheckStatus.available))}
               >
                 {isSubmitting ? (
                   <>
