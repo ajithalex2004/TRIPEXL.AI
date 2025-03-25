@@ -1,4 +1,6 @@
-import * as React from "react";
+"use client";
+
+import { useMemo } from "react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { cn } from "@/lib/utils";
 
@@ -22,7 +24,7 @@ const colorPalette = [
 
 export function UserAvatar({ name, image, className, size = "md" }: UserAvatarProps) {
   // Generate consistent color based on name
-  const colorIndex = React.useMemo(() => {
+  const colorIndex = useMemo(() => {
     let hash = 0;
     for (let i = 0; i < name.length; i++) {
       hash = name.charCodeAt(i) + ((hash << 5) - hash);
@@ -31,7 +33,7 @@ export function UserAvatar({ name, image, className, size = "md" }: UserAvatarPr
   }, [name]);
 
   // Get initials from name
-  const initials = React.useMemo(() => {
+  const initials = useMemo(() => {
     return name
       .split(" ")
       .map(part => part[0])
