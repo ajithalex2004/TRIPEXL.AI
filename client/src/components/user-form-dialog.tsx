@@ -173,10 +173,12 @@ export function UserFormDialog({
 
   const handleSubmit = async (data: UserFormData) => {
     try {
-      console.log('Submitting form data:', { ...data, password: '[REDACTED]' });
+      console.log('Submitting form data:', {
+        ...data,
+        password: '[REDACTED]'
+      });
       setIsSubmitting(true);
 
-      // Check email availability one final time before submission
       if (mode === "create") {
         const emailResponse = await fetch(`/api/auth/check-email/${encodeURIComponent(data.email_id)}`);
         const emailCheck = await emailResponse.json();
@@ -185,7 +187,6 @@ export function UserFormDialog({
           throw new Error("Email is already registered");
         }
 
-        // Check mobile number availability
         const mobileResponse = await fetch(`/api/auth/check-mobile/${encodeURIComponent(data.country_code)}/${encodeURIComponent(data.mobile_number)}`);
         const mobileCheck = await mobileResponse.json();
 
@@ -194,19 +195,15 @@ export function UserFormDialog({
         }
       }
 
-      // Ensure all required fields are present
       const formattedData = {
         ...data,
+        country_code: data.country_code || "+971",
+        mobile_number: data.mobile_number,
         is_active: true,
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
         password: data.password || "Pass@123"
       };
-
-      console.log('Submitting formatted data:', {
-        ...formattedData,
-        password: '[REDACTED]'
-      });
 
       await onSubmit(formattedData);
 
@@ -220,13 +217,9 @@ export function UserFormDialog({
       onOpenChange(false);
     } catch (error) {
       console.error('Error submitting form:', error);
-
-      // Show error toast with specific message
       toast({
         title: "Error",
-        description: error instanceof Error
-          ? error.message
-          : "Failed to process user. Please check your input and try again.",
+        description: error instanceof Error ? error.message : "Failed to process user",
         variant: "destructive",
       });
     } finally {
@@ -250,18 +243,9 @@ export function UserFormDialog({
   useEffect(() => {
     if (initialData) {
       form.reset({
-        user_name: initialData.user_name,
-        user_code: initialData.user_code,
-        user_type: initialData.user_type,
-        email_id: initialData.email_id,
+        ...initialData,
         country_code: initialData.country_code || "+971",
-        mobile_number: initialData.mobile_number,
-        user_operation_type: initialData.user_operation_type,
-        user_group: initialData.user_group,
-        first_name: initialData.first_name,
-        last_name: initialData.last_name,
-        full_name: initialData.full_name,
-        is_active: initialData.is_active,
+        mobile_number: initialData.mobile_number || "",
       });
     }
   }, [initialData, form]);
@@ -366,7 +350,7 @@ export function UserFormDialog({
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>Country Code</FormLabel>
-                      <Select onValueChange={field.onChange} defaultValue={field.value || "+971"}>
+                      <Select onValueChange={field.onChange} defaultValue={field.value}>
                         <FormControl>
                           <SelectTrigger>
                             <SelectValue placeholder="Select country code" />
@@ -383,7 +367,7 @@ export function UserFormDialog({
                     </FormItem>
                   )}
                 />
-                {/* Mobile number field with validation */}
+
                 <FormField
                   control={form.control}
                   name="mobile_number"

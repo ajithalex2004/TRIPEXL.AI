@@ -18,7 +18,6 @@ import { queryClient } from "@/lib/queryClient";
 import { Table, TableBody, TableCell, TableHeader, TableRow, TableHead } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 
-
 interface User {
   id: number;
   user_name: string;
@@ -55,20 +54,15 @@ export default function UserMasterPage() {
       }
       return response.json();
     },
-    refetchOnWindowFocus: false,
-    onError: (error: Error) => {
-      console.error('Error fetching users:', error);
-      toast({
-        title: "Error",
-        description: "Failed to fetch users",
-        variant: "destructive",
-      });
-    }
   });
 
   const createUserMutation = useMutation({
-    mutationFn: async (userData: any) => {
-      console.log("Creating user with data:", { ...userData, password: '[REDACTED]' });
+    mutationFn: async (userData: UserFormData) => {
+      console.log("Creating user with data:", {
+        ...userData,
+        password: '[REDACTED]'
+      });
+
       const response = await fetch("/api/auth/users", {
         method: "POST",
         headers: {
@@ -103,9 +97,12 @@ export default function UserMasterPage() {
     },
   });
 
-  const handleCreateUser = async (data: any) => {
+  const handleCreateUser = async (data: UserFormData) => {
     try {
-      console.log('Submitting user data:', { ...data, password: '[REDACTED]' });
+      console.log('Submitting user data:', {
+        ...data,
+        password: '[REDACTED]'
+      });
       await createUserMutation.mutateAsync(data);
     } catch (error) {
       console.error("Error in handleCreateUser:", error);
@@ -164,12 +161,7 @@ export default function UserMasterPage() {
     try {
       await updateUserMutation.mutateAsync({
         id: selectedUser.id,
-        data: {
-          ...data,
-          country_code: data.country_code || "+971",
-          mobile_number: data.mobile_number,
-          updated_at: new Date().toISOString()
-        }
+        data
       });
     } catch (error) {
       console.error("Error in handleUpdateUser:", error);
