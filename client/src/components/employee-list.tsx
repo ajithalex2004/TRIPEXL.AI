@@ -64,14 +64,15 @@ export function EmployeeList() {
   const [editingEmployee, setEditingEmployee] = useState<Employee | null>(null);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
-  const [employeeToDelete, setEmployeeToDelete] = useState<string | null>(null);
+  const [employeeToDelete, setEmployeeToDelete] = useState<number | null>(null);
 
   const { data: employees, isLoading } = useQuery<Employee[]>({
     queryKey: ['/api/employees'],
   });
 
   const deleteEmployeeMutation = useMutation({
-    mutationFn: async (employeeId: string) => {
+    mutationFn: async (employeeId: number) => {
+      console.log("Deleting employee with ID:", employeeId);
       const response = await fetch(`/api/employees/${employeeId}`, {
         method: 'DELETE',
         headers: {
@@ -80,7 +81,7 @@ export function EmployeeList() {
       });
 
       if (!response.ok) {
-        const error = await response.json();
+        const error = await response.json().catch(() => ({ message: 'Failed to delete employee' }));
         throw new Error(error.message || 'Failed to delete employee');
       }
 
@@ -96,6 +97,7 @@ export function EmployeeList() {
       setEmployeeToDelete(null);
     },
     onError: (error: Error) => {
+      console.error('Delete error:', error);
       toast({
         title: "Error",
         description: error.message,
@@ -104,13 +106,15 @@ export function EmployeeList() {
     },
   });
 
-  const handleDelete = (employeeId: string) => {
-    setEmployeeToDelete(employeeId);
+  const handleDelete = (id: number) => {
+    console.log("Handling delete for employee ID:", id);
+    setEmployeeToDelete(id);
     setDeleteConfirmOpen(true);
   };
 
   const confirmDelete = () => {
     if (employeeToDelete) {
+      console.log("Confirming delete for employee ID:", employeeToDelete);
       deleteEmployeeMutation.mutate(employeeToDelete);
     }
   };
@@ -228,7 +232,7 @@ export function EmployeeList() {
               </TableRow>
             ) : (
               filteredEmployees?.map((employee) => (
-                <TableRow key={employee.employee_id}>
+                <TableRow key={employee.id}>
                   <TableCell className="font-medium">{employee.employee_id}</TableCell>
                   <TableCell>{employee.employee_name}</TableCell>
                   <TableCell>{employee.email_id}</TableCell>
@@ -255,7 +259,7 @@ export function EmployeeList() {
                       <Button
                         variant="outline"
                         size="sm"
-                        onClick={() => handleDelete(employee.employee_id)}
+                        onClick={() => handleDelete(employee.id)}
                         className="flex items-center gap-1 text-destructive hover:bg-destructive/10"
                       >
                         <Trash2 className="h-4 w-4" />
