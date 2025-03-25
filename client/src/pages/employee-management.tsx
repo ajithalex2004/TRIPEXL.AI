@@ -1,7 +1,7 @@
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { AddEmployeeForm } from "@/components/add-employee-form";
-import { EmployeeMasterTable } from "@/components/employee-master-table";
+import { EmployeeList } from "@/components/employee-list";
 import { useState } from "react";
 import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
 
@@ -24,8 +24,8 @@ export default function EmployeeManagement() {
         </Dialog>
       </div>
 
-      <Card className="overflow-hidden">
-        <EmployeeMasterTable />
+      <Card className="overflow-hidden p-6">
+        <EmployeeList />
       </Card>
     </div>
   );
