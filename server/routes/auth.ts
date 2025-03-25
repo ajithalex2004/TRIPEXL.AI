@@ -2,7 +2,8 @@ import { Router } from "express";
 import { storage } from "../storage";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
-import { db } from '../db'; // Import the db object
+import { db, schema } from '../db'; // Import the db object and schema
+import { sql } from 'drizzle-orm';
 
 const router = Router();
 
@@ -172,6 +173,23 @@ router.post("/users", async (req, res) => {
       });
     }
 
+    // Check if mobile number already exists (if provided)
+    if (userData.mobile_number) {
+      const [existingUserMobile] = await db
+        .select()
+        .from(schema.users)
+        .where(sql`
+          country_code = ${userData.country_code || "+971"} 
+          AND mobile_number = ${userData.mobile_number}
+        `);
+
+      if (existingUserMobile) {
+        return res.status(400).json({
+          error: "Mobile number is already registered"
+        });
+      }
+    }
+
     // Hash password
     const salt = await bcrypt.genSalt(10);
     const hashedPassword = password
@@ -229,6 +247,24 @@ router.put("/users/:id", async (req, res) => {
       }
     }
 
+    // Check mobile number uniqueness only if it's being updated
+    if (userData.mobile_number && userData.mobile_number !== existingUser.mobile_number) {
+      const [existingUserMobile] = await db
+        .select()
+        .from(schema.users)
+        .where(sql`
+          country_code = ${userData.country_code || "+971"} 
+          AND mobile_number = ${userData.mobile_number}
+          AND id != ${userId}
+        `);
+
+      if (existingUserMobile) {
+        return res.status(400).json({
+          error: "Mobile number already exists"
+        });
+      }
+    }
+
     // Check username uniqueness if username is being updated
     if (userData.user_name && userData.user_name !== existingUser.user_name) {
       const existingUserName = await storage.getUserByUserName(userData.user_name);
@@ -247,7 +283,7 @@ router.put("/users/:id", async (req, res) => {
       updated_at: new Date(),
     });
 
-    console.log('User updated successfully:', { id: updatedUser.id });
+    console.log('User updated successfully:', { id: updatedUser.id, email: updatedUser.email_id, mobile: updatedUser.mobile_number });
     return res.status(200).json(updatedUser);
   } catch (error) {
     console.error('Error updating user:', error);
@@ -312,11 +348,11 @@ router.get("/check-mobile/:countryCode/:number", async (req, res) => {
       });
     }
 
-    // Query to check if mobile number exists
-    const [existingUser] = await db.raw(`
-      SELECT * FROM users 
-      WHERE country_code = ? AND mobile_number = ?
-    `, [countryCode, number]);
+    // Query to check if mobile number exists using Drizzle
+    const [existingUser] = await db
+      .select()
+      .from(schema.users)
+      .where(sql`country_code = ${countryCode} AND mobile_number = ${number}`);
 
     return res.json({
       available: !existingUser,
