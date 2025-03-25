@@ -54,24 +54,22 @@ const userFormSchema = z.object({
   is_active: z.boolean().default(true),
 });
 
-type UserFormData = z.infer<typeof userFormSchema>;
+export type UserFormData = z.infer<typeof userFormSchema>;
 
 interface UserFormDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onSubmit: (data: UserFormData) => Promise<void>;
-  defaultValues?: Partial<UserFormData>;
   mode: "create" | "edit";
-  initialData?: Partial<UserFormData>; // Added initialData prop
+  initialData?: Partial<UserFormData>;
 }
 
 export function UserFormDialog({
   open,
   onOpenChange,
   onSubmit,
-  defaultValues,
   mode,
-  initialData, // Use initialData prop
+  initialData,
 }: UserFormDialogProps) {
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = React.useState(false);
@@ -102,7 +100,7 @@ export function UserFormDialog({
       last_name: "",
       full_name: "",
       is_active: true,
-      ...defaultValues,
+      ...initialData,
     },
   });
 
@@ -146,7 +144,7 @@ export function UserFormDialog({
   // Check mobile number availability when debounced mobile number changes
   React.useEffect(() => {
     async function checkMobileAvailability() {
-      if (!debouncedMobileNumber || !debouncedCountryCode || mode === "edit") return;
+      if (!debouncedMobileNumber || !debouncedCountryCode || mode === "edit" || debouncedMobileNumber.length < 9) return;
 
       try {
         setMobileCheckStatus({ checking: true });
@@ -156,7 +154,7 @@ export function UserFormDialog({
         setMobileCheckStatus({
           checking: false,
           available: data.available,
-          message: data.message
+          message: data.available ? "Mobile number is available" : "Mobile number already exists"
         });
       } catch (error) {
         console.error('Error checking mobile number:', error);
@@ -269,14 +267,6 @@ export function UserFormDialog({
   useEffect(() => {
     form.reset();
   }, [mode, form.reset]);
-
-
-  const handleMobileNumberChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    // Remove leading zeros and non-digit characters
-    const trimmedValue = e.target.value.replace(/^0+/, '').replace(/\D/g, '');
-    // Update the form with trimmed value
-    form.setValue('mobile_number', trimmedValue);
-  };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -414,9 +404,9 @@ export function UserFormDialog({
                       {mobileCheckStatus.checking ? (
                         <FormDescription>
                           <Loader2 className="w-4 h-4 inline mr-2 animate-spin" />
-                          Checking mobile number...
+                          Checking mobile number availability...
                         </FormDescription>
-                      ) : mobileCheckStatus.message ? (
+                      ) : mobileCheckStatus.message && mode === "create" ? (
                         <FormDescription className={mobileCheckStatus.available ? "text-green-600" : "text-red-600"}>
                           {mobileCheckStatus.message}
                         </FormDescription>
