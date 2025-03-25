@@ -1,4 +1,4 @@
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   Table,
   TableBody,
@@ -19,6 +19,21 @@ import { Card } from "@/components/ui/card";
 import { LoadingAnimation } from "./loading-animation";
 import { Department, EmployeeType, Region } from "@shared/schema";
 import { useState } from "react";
+import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
+import { AddEmployeeForm } from "./add-employee-form";
+import { toast } from "@/hooks/use-toast";
+import { Pencil, Trash2 } from "lucide-react";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 interface Employee {
   employee_id: string;
@@ -35,14 +50,62 @@ interface Employee {
 }
 
 export function EmployeeList() {
+  const queryClient = useQueryClient();
   const [searchTerm, setSearchTerm] = useState("");
   const [departmentFilter, setDepartmentFilter] = useState<string>("all");
   const [regionFilter, setRegionFilter] = useState<string>("all");
   const [typeFilter, setTypeFilter] = useState<string>("all");
+  const [editingEmployee, setEditingEmployee] = useState<Employee | null>(null);
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
+  const [employeeToDelete, setEmployeeToDelete] = useState<string | null>(null);
 
   const { data: employees, isLoading } = useQuery<Employee[]>({
     queryKey: ['/api/employees'],
   });
+
+  const deleteEmployeeMutation = useMutation({
+    mutationFn: async (employeeId: string) => {
+      const response = await fetch(`/api/employees/${employeeId}`, {
+        method: 'DELETE',
+      });
+      if (!response.ok) {
+        throw new Error('Failed to delete employee');
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/employees'] });
+      toast({
+        title: "Success",
+        description: "Employee deleted successfully",
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
+  const handleDelete = (employeeId: string) => {
+    setEmployeeToDelete(employeeId);
+    setDeleteConfirmOpen(true);
+  };
+
+  const confirmDelete = () => {
+    if (employeeToDelete) {
+      deleteEmployeeMutation.mutate(employeeToDelete);
+      setDeleteConfirmOpen(false);
+      setEmployeeToDelete(null);
+    }
+  };
+
+  const handleEdit = (employee: Employee) => {
+    setEditingEmployee(employee);
+    setIsEditDialogOpen(true);
+  };
 
   const filteredEmployees = employees?.filter(employee => {
     const matchesSearch = searchTerm === "" || 
@@ -139,12 +202,13 @@ export function EmployeeList() {
               <TableHead>Department</TableHead>
               <TableHead>Region</TableHead>
               <TableHead>Unit</TableHead>
+              <TableHead>Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {filteredEmployees?.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={9} className="text-center py-8">
+                <TableCell colSpan={10} className="text-center py-8">
                   No employees found matching the filters
                 </TableCell>
               </TableRow>
@@ -160,12 +224,58 @@ export function EmployeeList() {
                   <TableCell>{employee.department}</TableCell>
                   <TableCell>{employee.region}</TableCell>
                   <TableCell>{employee.unit}</TableCell>
+                  <TableCell className="space-x-2">
+                    <Button
+                      variant="outline"
+                      size="icon"
+                      onClick={() => handleEdit(employee)}
+                    >
+                      <Pencil className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="icon"
+                      onClick={() => handleDelete(employee.employee_id)}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </TableCell>
                 </TableRow>
               ))
             )}
           </TableBody>
         </Table>
       </div>
+
+      {/* Edit Dialog */}
+      <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+        <DialogContent className="sm:max-w-[700px] max-h-[90vh] overflow-hidden flex flex-col">
+          <div className="flex-1 overflow-auto px-6">
+            {editingEmployee && (
+              <AddEmployeeForm
+                initialData={editingEmployee}
+                onSuccess={() => setIsEditDialogOpen(false)}
+              />
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={deleteConfirmOpen} onOpenChange={setDeleteConfirmOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This action cannot be undone. This will permanently delete the employee record.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmDelete}>Delete</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

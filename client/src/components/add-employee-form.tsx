@@ -1,6 +1,6 @@
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { insertEmployeeSchema, type InsertEmployee } from "@shared/schema";
+import { insertEmployeeSchema, type InsertEmployee, type Employee } from "@shared/schema";
 import { Button } from "@/components/ui/button";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
@@ -11,23 +11,32 @@ import { Department, EmployeeDesignation, EmployeeType, HierarchyLevel, Region }
 
 interface AddEmployeeFormProps {
   onSuccess?: () => void;
+  initialData?: Employee; // For edit mode
 }
 
-export function AddEmployeeForm({ onSuccess }: AddEmployeeFormProps) {
+export function AddEmployeeForm({ onSuccess, initialData }: AddEmployeeFormProps) {
   const queryClient = useQueryClient();
   const form = useForm<InsertEmployee>({
     resolver: zodResolver(insertEmployeeSchema),
     defaultValues: {
-      employee_type: EmployeeType.PERMANENT,
+      employee_type: initialData?.employee_type || EmployeeType.PERMANENT,
       is_active: true,
-      country_code: "+971" // Default UAE country code
+      country_code: initialData?.country_code || "+971",
+      employee_id: initialData?.employee_id || undefined,
+      employee_name: initialData?.employee_name || "",
+      email_id: initialData?.email_id || "",
+      mobile_number: initialData?.mobile_number || "",
+      designation: initialData?.designation || "",
+      department: initialData?.department || "",
+      region: initialData?.region || "",
+      unit: initialData?.unit || "",
     }
   });
 
-  const createEmployeeMutation = useMutation({
+  const mutation = useMutation({
     mutationFn: async (data: InsertEmployee) => {
-      const response = await fetch('/api/employees', {
-        method: 'POST',
+      const response = await fetch(initialData ? `/api/employees/${initialData.employee_id}` : '/api/employees', {
+        method: initialData ? 'PUT' : 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
@@ -36,7 +45,7 @@ export function AddEmployeeForm({ onSuccess }: AddEmployeeFormProps) {
 
       if (!response.ok) {
         const error = await response.json();
-        throw new Error(error.message || 'Failed to create employee');
+        throw new Error(error.message || `Failed to ${initialData ? 'update' : 'create'} employee`);
       }
 
       return response.json();
@@ -45,7 +54,7 @@ export function AddEmployeeForm({ onSuccess }: AddEmployeeFormProps) {
       queryClient.invalidateQueries({ queryKey: ['/api/employees'] });
       toast({
         title: "Success",
-        description: "Employee created successfully",
+        description: `Employee ${initialData ? 'updated' : 'created'} successfully`,
       });
       form.reset();
       onSuccess?.();
@@ -60,7 +69,7 @@ export function AddEmployeeForm({ onSuccess }: AddEmployeeFormProps) {
   });
 
   const onSubmit = (data: InsertEmployee) => {
-    createEmployeeMutation.mutate(data);
+    mutation.mutate(data);
   };
 
   return (
@@ -309,9 +318,9 @@ export function AddEmployeeForm({ onSuccess }: AddEmployeeFormProps) {
         <Button
           type="submit"
           className="w-full mt-6"
-          disabled={createEmployeeMutation.isPending}
+          disabled={mutation.isPending}
         >
-          {createEmployeeMutation.isPending ? "Creating..." : "Create Employee"}
+          {mutation.isPending ? "Saving..." : initialData ? "Update Employee" : "Create Employee"}
         </Button>
       </form>
     </Form>
