@@ -39,7 +39,12 @@ const userFormSchema = z.object({
   user_type: z.string().min(1, "User type is required"),
   email_id: z.string().email("Invalid email address"),
   country_code: z.string().default("+971"),
-  mobile_number: z.string().min(9, "Mobile number must be at least 9 digits"),
+  mobile_number: z.string()
+    .transform(val => val.replace(/^0+/, '')) // Remove leading zeros
+    .refine(
+      (val) => /^\d{9}$/.test(val),
+      "Mobile number must be exactly 9 digits without leading zeros"
+    ),
   user_operation_type: z.string().min(1, "Operation type is required"),
   user_group: z.string().min(1, "User group is required"),
   first_name: z.string().min(1, "First name is required"),
@@ -260,12 +265,18 @@ export function UserFormDialog({
     }
   }, [initialData, form.reset]);
 
-
   //Reset form when mode changes
   useEffect(() => {
     form.reset();
   }, [mode, form.reset]);
 
+
+  const handleMobileNumberChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    // Remove leading zeros and non-digit characters
+    const trimmedValue = e.target.value.replace(/^0+/, '').replace(/\D/g, '');
+    // Update the form with trimmed value
+    form.setValue('mobile_number', trimmedValue);
+  };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -388,7 +399,12 @@ export function UserFormDialog({
                           {...field}
                           type="tel"
                           placeholder="Enter mobile number"
-                          maxLength={15}
+                          maxLength={9}
+                          onChange={(e) => {
+                            handleMobileNumberChange(e);
+                            field.onChange(e);
+                          }}
+                          value={field.value}
                         />
                       </FormControl>
                       {mobileCheckStatus.checking ? (
