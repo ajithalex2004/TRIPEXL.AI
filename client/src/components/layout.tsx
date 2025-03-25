@@ -27,6 +27,7 @@ import {
   Network
 } from "lucide-react";
 import { motion } from "framer-motion";
+import { PersonalizedGreeting } from "@/components/personalized-greeting"; // Added import
 
 const AnimatedIcon = ({ children, className = "" }: { children: React.ReactNode; className?: string }) => (
   <motion.div
@@ -201,7 +202,10 @@ export function Layout({ children }: { children: React.ReactNode }) {
           </Sidebar>
           <div className="flex-1 flex flex-col overflow-auto">
             <main className="flex-1 p-6">
-              {children}
+              <PersonalizedGreeting /> {/* Added PersonalizedGreeting */}
+              <div className="mt-6"> {/* Added div for spacing */}
+                {children}
+              </div>
             </main>
           </div>
         </div>
