@@ -22,8 +22,8 @@ export default function LoginPage() {
 
   const form = useForm<LoginFormData>({
     defaultValues: {
-      email_id: "athomas@exlsolutions.ae",
-      password: "Pass@123",
+      email_id: "",
+      password: "",
     },
   });
 
