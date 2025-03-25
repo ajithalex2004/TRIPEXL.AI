@@ -31,7 +31,6 @@ import {
 import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
 import { Loader2 } from "lucide-react";
-import {useEffect} from "react";
 
 const userFormSchema = z.object({
   user_name: z.string().min(1, "Username is required"),
@@ -100,21 +99,17 @@ export function UserFormDialog({
       last_name: "",
       full_name: "",
       is_active: true,
-      ...initialData,
     },
   });
 
-  // Get the current email and mobile values from the form
   const currentEmail = form.watch("email_id");
   const currentMobileNumber = form.watch("mobile_number");
   const currentCountryCode = form.watch("country_code");
 
-  // Debounce the values
   const debouncedEmail = useDebounce(currentEmail, 500);
   const debouncedMobileNumber = useDebounce(currentMobileNumber, 500);
   const debouncedCountryCode = useDebounce(currentCountryCode, 500);
 
-  // Check email availability when debounced email changes
   React.useEffect(() => {
     async function checkEmailAvailability() {
       if (!debouncedEmail || mode === "edit") return;
@@ -141,10 +136,9 @@ export function UserFormDialog({
     checkEmailAvailability();
   }, [debouncedEmail, mode]);
 
-  // Check mobile number availability when debounced mobile number changes
   React.useEffect(() => {
     async function checkMobileAvailability() {
-      if (!debouncedMobileNumber || mode === "edit") return;
+      if (!debouncedMobileNumber || !debouncedCountryCode || mode === "edit") return;
 
       try {
         setMobileCheckStatus({ checking: true });
@@ -165,7 +159,6 @@ export function UserFormDialog({
       }
     }
 
-    // Only check if the mobile number is 9 digits
     if (debouncedMobileNumber?.length === 9) {
       checkMobileAvailability();
     }
@@ -173,27 +166,7 @@ export function UserFormDialog({
 
   const handleSubmit = async (data: UserFormData) => {
     try {
-      console.log('Submitting form data:', {
-        ...data,
-        password: '[REDACTED]'
-      });
       setIsSubmitting(true);
-
-      if (mode === "create") {
-        const emailResponse = await fetch(`/api/auth/check-email/${encodeURIComponent(data.email_id)}`);
-        const emailCheck = await emailResponse.json();
-
-        if (!emailCheck.available) {
-          throw new Error("Email is already registered");
-        }
-
-        const mobileResponse = await fetch(`/api/auth/check-mobile/${encodeURIComponent(data.country_code)}/${encodeURIComponent(data.mobile_number)}`);
-        const mobileCheck = await mobileResponse.json();
-
-        if (!mobileCheck.available) {
-          throw new Error("Mobile number is already registered");
-        }
-      }
 
       const formattedData = {
         ...data,
@@ -208,11 +181,12 @@ export function UserFormDialog({
       await onSubmit(formattedData);
 
       toast({
-        title: "Success",
-        description: `User ${mode === "create" ? "created" : "updated"} successfully`,
+        title: mode === "create" ? "User Created" : "User Updated",
+        description: `User has been ${mode === "create" ? "created" : "updated"} successfully.`,
         variant: "default",
       });
 
+      // Reset form and close dialog
       form.reset();
       onOpenChange(false);
     } catch (error) {
@@ -250,7 +224,7 @@ export function UserFormDialog({
     }
   }, [initialData, mode, form]);
 
-  //Reset form when mode changes
+  // Reset form when mode changes
   useEffect(() => {
     if (mode === "create") {
       form.reset({
@@ -376,7 +350,6 @@ export function UserFormDialog({
                           <SelectItem value="+971">UAE (+971)</SelectItem>
                           <SelectItem value="+91">India (+91)</SelectItem>
                           <SelectItem value="+1">USA (+1)</SelectItem>
-                          {/* Add more country codes as needed */}
                         </SelectContent>
                       </Select>
                       <FormMessage />
@@ -397,9 +370,7 @@ export function UserFormDialog({
                           placeholder="Enter mobile number"
                           maxLength={9}
                           onChange={(e) => {
-                            // Remove leading zeros and non-digit characters
                             const trimmedValue = e.target.value.replace(/^0+/, '').replace(/\D/g, '');
-                            // Only update if the value is empty or consists of digits
                             if (trimmedValue === '' || /^\d+$/.test(trimmedValue)) {
                               field.onChange(trimmedValue);
                             }
