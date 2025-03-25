@@ -74,10 +74,17 @@ export function EmployeeList() {
     mutationFn: async (employeeId: string) => {
       const response = await fetch(`/api/employees/${employeeId}`, {
         method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+        },
       });
+
       if (!response.ok) {
-        throw new Error('Failed to delete employee');
+        const error = await response.json();
+        throw new Error(error.message || 'Failed to delete employee');
       }
+
+      return response.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/employees'] });
@@ -85,8 +92,10 @@ export function EmployeeList() {
         title: "Success",
         description: "Employee deleted successfully",
       });
+      setDeleteConfirmOpen(false);
+      setEmployeeToDelete(null);
     },
-    onError: (error) => {
+    onError: (error: Error) => {
       toast({
         title: "Error",
         description: error.message,
@@ -103,8 +112,6 @@ export function EmployeeList() {
   const confirmDelete = () => {
     if (employeeToDelete) {
       deleteEmployeeMutation.mutate(employeeToDelete);
-      setDeleteConfirmOpen(false);
-      setEmployeeToDelete(null);
     }
   };
 
