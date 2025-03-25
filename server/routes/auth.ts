@@ -340,7 +340,7 @@ router.get("/check-email/:email", async (req, res) => {
 router.get("/check-mobile/:countryCode/:number", async (req, res) => {
   try {
     const { countryCode, number } = req.params;
-    console.log('Checking mobile number availability:', `${countryCode}${number}`);
+    console.log('Checking mobile number:', `${countryCode}${number}`);
 
     if (!countryCode || !number) {
       return res.status(400).json({
@@ -356,7 +356,7 @@ router.get("/check-mobile/:countryCode/:number", async (req, res) => {
 
     return res.json({
       available: !existingUser,
-      message: existingUser ? "Mobile number is already registered" : "Mobile number is available"
+      message: existingUser ? "Mobile number is already registered" : ""
     });
 
   } catch (error) {

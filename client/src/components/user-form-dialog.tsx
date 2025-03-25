@@ -151,7 +151,7 @@ export function UserFormDialog({
         setMobileCheckStatus({
           checking: false,
           available: data.available,
-          message: data.available ? "Mobile number is available" : "Mobile number already exists"
+          message: data.message || "" 
         });
       } catch (error) {
         console.error('Error checking mobile number:', error);
@@ -376,10 +376,10 @@ export function UserFormDialog({
                       {mobileCheckStatus.checking ? (
                         <FormDescription>
                           <Loader2 className="w-4 h-4 inline mr-2 animate-spin" />
-                          Checking mobile number availability...
+                          Checking mobile number...
                         </FormDescription>
-                      ) : mobileCheckStatus.message && field.value?.length === 9 ? (
-                        <FormDescription className={mobileCheckStatus.available ? "text-green-600" : "text-red-600"}>
+                      ) : mobileCheckStatus.message ? (
+                        <FormDescription className="text-red-600">
                           {mobileCheckStatus.message}
                         </FormDescription>
                       ) : null}
