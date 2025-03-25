@@ -13,6 +13,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { UserFormDialog } from "@/components/user-form-dialog";
+import { QuickActionsFAB } from "@/components/quick-actions-fab";
 import { queryClient } from "@/lib/queryClient";
 
 interface User {
@@ -98,8 +99,7 @@ export default function UserMasterPage() {
       await createUserMutation.mutateAsync(data);
     } catch (error) {
       console.error("Error in handleCreateUser:", error);
-      // Error will be handled by mutation's onError callback
-      throw error; // Re-throw to trigger the form's error handling
+      throw error; 
     }
   };
 
@@ -204,6 +204,21 @@ export default function UserMasterPage() {
     setIsFormOpen(true);
   };
 
+  const handleExportUsers = () => {
+    toast({
+      title: "Coming Soon",
+      description: "Export functionality will be available soon!",
+    });
+  };
+
+  const handleRefresh = () => {
+    queryClient.invalidateQueries({ queryKey: [USERS_QUERY_KEY] });
+    toast({
+      title: "Success",
+      description: "User list refreshed",
+    });
+  };
+
   if (isLoading) {
     return (
       <div className="flex items-center justify-center p-8">
@@ -224,13 +239,6 @@ export default function UserMasterPage() {
     <div className="space-y-6 p-6">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold">User Master</h1>
-        <Button
-          className="bg-[#004990] hover:bg-[#003870]"
-          onClick={openCreateDialog}
-        >
-          <Plus className="h-4 w-4 mr-2" />
-          Add New User
-        </Button>
       </div>
 
       <Card>
@@ -347,6 +355,12 @@ export default function UserMasterPage() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <QuickActionsFAB
+        onAddUser={openCreateDialog}
+        onRefresh={handleRefresh}
+        onExport={handleExportUsers}
+      />
     </div>
   );
 }
