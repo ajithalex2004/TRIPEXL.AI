@@ -81,11 +81,17 @@ export function EmployeeList() {
       });
 
       if (!response.ok) {
-        const error = await response.json().catch(() => ({ message: 'Failed to delete employee' }));
-        throw new Error(error.message || 'Failed to delete employee');
+        const error = await response.text();
+        console.error('Delete error response:', error);
+        throw new Error('Failed to delete employee');
       }
 
-      return response.json();
+      try {
+        return await response.json();
+      } catch (e) {
+        // If the response is not JSON, return a default success response
+        return { success: true };
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/employees'] });
