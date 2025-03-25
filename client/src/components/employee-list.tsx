@@ -225,23 +225,27 @@ export function EmployeeList() {
                   <TableCell>{employee.department}</TableCell>
                   <TableCell>{employee.region}</TableCell>
                   <TableCell>{employee.unit}</TableCell>
-                  <TableCell className="text-right space-x-2">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => handleEdit(employee)}
-                      className="inline-flex items-center justify-center hover:bg-primary/10"
-                    >
-                      <Pencil className="h-4 w-4" />
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => handleDelete(employee.employee_id)}
-                      className="inline-flex items-center justify-center text-destructive hover:bg-destructive/10"
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
+                  <TableCell className="text-right">
+                    <div className="flex justify-end gap-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleEdit(employee)}
+                        className="flex items-center gap-1 hover:bg-primary/10"
+                      >
+                        <Pencil className="h-4 w-4" />
+                        <span>Edit</span>
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleDelete(employee.employee_id)}
+                        className="flex items-center gap-1 text-destructive hover:bg-destructive/10"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                        <span>Delete</span>
+                      </Button>
+                    </div>
                   </TableCell>
                 </TableRow>
               ))
