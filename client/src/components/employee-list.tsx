@@ -69,6 +69,13 @@ export function EmployeeList() {
 
   const { data: employees, isLoading, error } = useQuery<Employee[]>({
     queryKey: ['/api/employees'],
+    queryFn: async () => {
+      const response = await fetch('/api/employees');
+      if (!response.ok) {
+        throw new Error('Failed to fetch employees');
+      }
+      return response.json();
+    },
     retry: 3,
     staleTime: 30000,
   });
