@@ -1143,7 +1143,6 @@ If you didn't request this reset, please ignore this email.
       res.json(currentPrices);
     });
 
-    log("All routes registered successfully");
     // Add employee delete endpoint
     app.delete("/api/employees/:id", async (req, res) => {
       try {
@@ -1154,24 +1153,33 @@ If you didn't request this reset, please ignore this email.
           return res.status(400).json({ error: "Invalid employee ID" });
         }
 
-        const result = await db
-          .delete(employees)
+        // First check if the employee exists
+        const existingEmployee = await db
+          .select()
+          .from(employees)
           .where(eq(employees.id, employeeId))
-          .returning();
+          .limit(1);
 
-        if (!result || result.length === 0) {
+        if (!existingEmployee || existingEmployee.length === 0) {
           console.log("No employee found with ID:", employeeId);
           return res.status(404).json({ error: "Employee not found" });
         }
 
-        console.log("Successfully deleted employee:", result[0]);
+        // Perform the delete operation
+        await db
+          .delete(employees)
+          .where(eq(employees.id, employeeId))
+          .execute();
+
+        console.log("Successfully deleted employee with ID:", employeeId);
         res.json({ success: true, message: "Employee deleted successfully" });
       } catch (error: any) {
         console.error("Error deleting employee:", error);
-        res.status(500).json({ error: "Failed to delete employee" });
+        res.status(500).json({ error: "Failed to delete employee", details: error.message });
       }
     });
 
+    log("All routes registered successfully");
     return httpServer;
   } catch (error) {
     console.error("Error registering routes:", error);
