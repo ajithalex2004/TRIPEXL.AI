@@ -31,6 +31,7 @@ import {
 import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
 import { Loader2 } from "lucide-react";
+import {useEffect} from "react";
 
 const userFormSchema = z.object({
   user_name: z.string().min(1, "Username is required"),
@@ -56,6 +57,7 @@ interface UserFormDialogProps {
   onSubmit: (data: UserFormData) => Promise<void>;
   defaultValues?: Partial<UserFormData>;
   mode: "create" | "edit";
+  initialData?: Partial<UserFormData>; // Added initialData prop
 }
 
 export function UserFormDialog({
@@ -64,6 +66,7 @@ export function UserFormDialog({
   onSubmit,
   defaultValues,
   mode,
+  initialData, // Use initialData prop
 }: UserFormDialogProps) {
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = React.useState(false);
@@ -215,8 +218,8 @@ export function UserFormDialog({
       // Show error toast with specific message
       toast({
         title: "Error",
-        description: error instanceof Error 
-          ? error.message 
+        description: error instanceof Error
+          ? error.message
           : "Failed to process user. Please check your input and try again.",
         variant: "destructive",
       });
@@ -236,6 +239,33 @@ export function UserFormDialog({
     });
     return () => subscription.unsubscribe();
   }, [form]);
+
+  // Update form values when initialData changes
+  useEffect(() => {
+    if (initialData) {
+      form.reset({
+        user_name: initialData.user_name,
+        user_code: initialData.user_code,
+        user_type: initialData.user_type,
+        email_id: initialData.email_id,
+        country_code: initialData.country_code || "+971",
+        mobile_number: initialData.mobile_number || "",
+        user_operation_type: initialData.user_operation_type,
+        user_group: initialData.user_group,
+        first_name: initialData.first_name,
+        last_name: initialData.last_name,
+        full_name: initialData.full_name,
+        is_active: initialData.is_active,
+      });
+    }
+  }, [initialData, form.reset]);
+
+
+  //Reset form when mode changes
+  useEffect(() => {
+    form.reset();
+  }, [mode, form.reset]);
+
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -486,7 +516,7 @@ export function UserFormDialog({
               <Button
                 type="submit"
                 className="bg-[#004990] hover:bg-[#003870]"
-                disabled={isSubmitting || 
+                disabled={isSubmitting ||
                   (mode === "create" && (!emailCheckStatus.available || !mobileCheckStatus.available))}
               >
                 {isSubmitting ? (
