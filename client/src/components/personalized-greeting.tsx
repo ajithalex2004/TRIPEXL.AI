@@ -27,7 +27,7 @@ export function PersonalizedGreeting() {
   const Icon = greeting.icon;
 
   // Extract user name, with fallback
-  const userName = user?.first_name || 'Guest';
+  const userName = user?.user_name || 'Guest';
 
   return (
     <motion.div

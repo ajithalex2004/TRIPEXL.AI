@@ -50,8 +50,24 @@ export default function LoginPage() {
       console.log('Login response:', responseData);
 
       localStorage.setItem("token", responseData.token);
-      // Force refetch user data
+
+      // Force refetch user data before redirecting
       await queryClient.invalidateQueries({ queryKey: ["/api/auth/user"] });
+
+      // Fetch user data immediately after login
+      const userResponse = await fetch("/api/auth/user", {
+        headers: {
+          Authorization: `Bearer ${responseData.token}`,
+        },
+      });
+
+      if (!userResponse.ok) {
+        throw new Error("Failed to fetch user data");
+      }
+
+      const userData = await userResponse.json();
+      queryClient.setQueryData(["/api/auth/user"], userData);
+
       window.location.href = "/new-booking";
 
     } catch (error: any) {
