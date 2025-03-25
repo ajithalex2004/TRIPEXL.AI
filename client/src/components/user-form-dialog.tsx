@@ -32,6 +32,9 @@ import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
 import { Loader2 } from "lucide-react";
 
+// Import React hooks properly
+const { useState, useEffect } = React;
+
 const userFormSchema = z.object({
   user_name: z.string().min(1, "Username is required"),
   user_code: z.string().min(1, "User code is required"),
@@ -71,14 +74,14 @@ export function UserFormDialog({
   initialData,
 }: UserFormDialogProps) {
   const { toast } = useToast();
-  const [isSubmitting, setIsSubmitting] = React.useState(false);
-  const [emailCheckStatus, setEmailCheckStatus] = React.useState<{
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [emailCheckStatus, setEmailCheckStatus] = useState<{
     checking: boolean;
     available?: boolean;
     message?: string;
   }>({ checking: false });
 
-  const [mobileCheckStatus, setMobileCheckStatus] = React.useState<{
+  const [mobileCheckStatus, setMobileCheckStatus] = useState<{
     checking: boolean;
     available?: boolean;
     message?: string;
@@ -110,7 +113,7 @@ export function UserFormDialog({
   const debouncedMobileNumber = useDebounce(currentMobileNumber, 500);
   const debouncedCountryCode = useDebounce(currentCountryCode, 500);
 
-  React.useEffect(() => {
+  useEffect(() => {
     async function checkEmailAvailability() {
       if (!debouncedEmail || mode === "edit") return;
 
@@ -136,7 +139,7 @@ export function UserFormDialog({
     checkEmailAvailability();
   }, [debouncedEmail, mode]);
 
-  React.useEffect(() => {
+  useEffect(() => {
     async function checkMobileAvailability() {
       if (!debouncedMobileNumber || !debouncedCountryCode || mode === "edit") return;
 
@@ -202,7 +205,7 @@ export function UserFormDialog({
   };
 
   // Update full name when first or last name changes
-  React.useEffect(() => {
+  useEffect(() => {
     const subscription = form.watch((value, { name }) => {
       if (name === "first_name" || name === "last_name") {
         const firstName = value.first_name || "";
