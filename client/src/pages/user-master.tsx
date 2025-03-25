@@ -12,7 +12,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { UserFormDialog } from "@/components/user-form-dialog";
+import { UserFormDialog, UserFormData } from "@/components/user-form-dialog";
 import { QuickActionsFAB } from "@/components/quick-actions-fab";
 import { queryClient } from "@/lib/queryClient";
 import { Table, TableBody, TableCell, TableHeader, TableRow, TableHead } from "@/components/ui/table";
@@ -108,7 +108,11 @@ export default function UserMasterPage() {
 
   const updateUserMutation = useMutation({
     mutationFn: async ({ id, data }: { id: number; data: any }) => {
-      console.log("Updating user:", id, "with data:", data);
+      console.log("Updating user:", id, "with data:", {
+        ...data,
+        password: '[REDACTED]'
+      });
+
       const response = await fetch(`${USERS_QUERY_KEY}/${id}`, {
         method: "PUT",
         headers: {
@@ -117,6 +121,8 @@ export default function UserMasterPage() {
         },
         body: JSON.stringify({
           ...data,
+          country_code: data.country_code || "+971",
+          mobile_number: data.mobile_number,
           updated_at: new Date().toISOString()
         }),
       });
@@ -146,7 +152,7 @@ export default function UserMasterPage() {
     },
   });
 
-  const handleUpdateUser = async (data: any) => {
+  const handleUpdateUser = async (data: UserFormData) => {
     if (!selectedUser) return;
     try {
       await updateUserMutation.mutateAsync({
@@ -160,6 +166,7 @@ export default function UserMasterPage() {
       });
     } catch (error) {
       console.error("Error in handleUpdateUser:", error);
+      throw error;
     }
   };
 
