@@ -13,10 +13,18 @@ const AuthContext = createContext<AuthContextType | null>(null);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const { data: user, error, isLoading } = useQuery<User | null>({
-    queryKey: ["/api/user"],
+    queryKey: ["/api/auth/user"],
     queryFn: async () => {
       try {
-        const res = await apiRequest("GET", "/api/user");
+        const token = localStorage.getItem("token");
+        if (!token) return null;
+
+        const res = await fetch("/api/auth/user", {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
+
         if (!res.ok) {
           if (res.status === 401) return null;
           throw new Error("Failed to fetch user");

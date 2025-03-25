@@ -44,7 +44,7 @@ export function PersonalizedGreeting() {
           animate={{ opacity: 1 }}
           transition={{ delay: 0.2 }}
         >
-          {greeting.text}, {user?.first_name} {user?.last_name}!
+          {greeting.text}, {user?.first_name || 'Guest'}!
         </motion.h2>
         <motion.p 
           className="text-muted-foreground"
