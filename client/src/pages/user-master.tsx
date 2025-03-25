@@ -15,6 +15,9 @@ import {
 import { UserFormDialog } from "@/components/user-form-dialog";
 import { QuickActionsFAB } from "@/components/quick-actions-fab";
 import { queryClient } from "@/lib/queryClient";
+import { Table, TableBody, TableCell, TableHeader, TableRow, TableHead } from "@/components/ui/table";
+import { Badge } from "@/components/ui/badge";
+
 
 interface User {
   id: number;
@@ -61,7 +64,7 @@ export default function UserMasterPage() {
       console.log("Creating user with data:", { ...userData, password: '[REDACTED]' });
       const response = await fetch("/api/auth/users", {
         method: "POST",
-        headers: { 
+        headers: {
           "Content-Type": "application/json",
           "Accept": "application/json"
         },
@@ -99,7 +102,7 @@ export default function UserMasterPage() {
       await createUserMutation.mutateAsync(data);
     } catch (error) {
       console.error("Error in handleCreateUser:", error);
-      throw error; 
+      throw error;
     }
   };
 
@@ -108,7 +111,7 @@ export default function UserMasterPage() {
       console.log("Updating user:", id, "with data:", data);
       const response = await fetch(`${USERS_QUERY_KEY}/${id}`, {
         method: "PUT",
-        headers: { 
+        headers: {
           "Content-Type": "application/json",
           "Accept": "application/json"
         },
@@ -254,71 +257,92 @@ export default function UserMasterPage() {
           <h2 className="text-lg font-semibold">User List</h2>
         </CardHeader>
         <CardContent>
-          <div className="rounded-md border overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50">
-                <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">User Code</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Username</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Full Name</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Email</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Type</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Operation Type</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Group</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Created At</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
-                </tr>
-              </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
-                {users?.map((user) => (
-                  <tr key={user.id}>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm">{user.user_code}</td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm">{user.user_name}</td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm">{user.full_name}</td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm">{user.email_id}</td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm">{user.user_type}</td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm">{user.user_operation_type}</td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm">{user.user_group}</td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm">
-                      <span
-                        className={`px-2 py-1 text-xs rounded-full ${
-                          user.is_active
-                            ? "bg-green-100 text-green-800"
-                            : "bg-red-100 text-red-800"
-                        }`}
-                      >
-                        {user.is_active ? "Active" : "Inactive"}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm">
-                      {new Date(user.created_at).toLocaleDateString()}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm space-x-2">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => openEditDialog(user)}
-                      >
-                        <Pencil className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="text-red-600 hover:text-red-700"
-                        onClick={() => {
-                          setSelectedUser(user);
-                          setIsDeleteDialogOpen(true);
-                        }}
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>User Code</TableHead>
+                <TableHead>Username</TableHead>
+                <TableHead>Full Name</TableHead>
+                <TableHead>Email</TableHead>
+                <TableHead>Mobile Number</TableHead>
+                <TableHead>Type</TableHead>
+                <TableHead>Operation Type</TableHead>
+                <TableHead>Group</TableHead>
+                <TableHead>Status</TableHead>
+                <TableHead>Created At</TableHead>
+                <TableHead>Actions</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {users?.map((user) => (
+                <TableRow key={user.id}>
+                  <TableCell>{user.user_code}</TableCell>
+                  <TableCell>{user.user_name}</TableCell>
+                  <TableCell>{user.full_name}</TableCell>
+                  <TableCell>{user.email_id}</TableCell>
+                  <TableCell>
+                    {user.country_code} {user.mobile_number}
+                  </TableCell>
+                  <TableCell>
+                    <Badge variant="outline">{user.user_type}</Badge>
+                  </TableCell>
+                  <TableCell>
+                    <Badge
+                      variant="outline"
+                      className={
+                        user.user_operation_type === "ADMIN"
+                          ? "bg-blue-100 text-blue-800"
+                          : user.user_operation_type === "MANAGEMENT"
+                          ? "bg-purple-100 text-purple-800"
+                          : user.user_operation_type === "SUPERVISOR"
+                          ? "bg-green-100 text-green-800"
+                          : user.user_operation_type === "EMPLOYEE"
+                          ? "bg-yellow-100 text-yellow-800"
+                          : "bg-gray-100 text-gray-800"
+                      }
+                    >
+                      {user.user_operation_type}
+                    </Badge>
+                  </TableCell>
+                  <TableCell>{user.user_group}</TableCell>
+                  <TableCell>
+                    <span
+                      className={`px-2 py-1 text-xs rounded-full ${
+                        user.is_active
+                          ? "bg-green-100 text-green-800"
+                          : "bg-red-100 text-red-800"
+                      }`}
+                    >
+                      {user.is_active ? "Active" : "Inactive"}
+                    </span>
+                  </TableCell>
+                  <TableCell>
+                    {new Date(user.created_at).toLocaleDateString()}
+                  </TableCell>
+                  <TableCell className="space-x-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => openEditDialog(user)}
+                    >
+                      <Pencil className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="text-red-600 hover:text-red-700"
+                      onClick={() => {
+                        setSelectedUser(user);
+                        setIsDeleteDialogOpen(true);
+                      }}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
         </CardContent>
       </Card>
 
