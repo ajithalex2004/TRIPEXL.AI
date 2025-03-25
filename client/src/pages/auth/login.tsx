@@ -120,11 +120,6 @@ export default function LoginPage() {
             <Card className="backdrop-blur-sm bg-white/90 dark:bg-black/50 border border-white/20 px-3 py-2">
               <CardHeader className="space-y-1 pb-2">
                 <h2 className="text-base font-semibold text-center">Sign In</h2>
-                <p className="text-xs text-muted-foreground text-center">
-                  Use these credentials to log in:<br />
-                  Email: athomas@exlsolutions.ae<br />
-                  Password: Pass@123
-                </p>
                 {error && (
                   <p className="text-sm text-red-500 text-center">{error}</p>
                 )}
