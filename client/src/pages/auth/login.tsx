@@ -41,13 +41,17 @@ export default function LoginPage() {
         body: JSON.stringify(data),
       });
 
-      // Check if response is JSON
-      const contentType = response.headers.get("content-type");
-      if (!contentType || !contentType.includes("application/json")) {
-        throw new Error("Invalid server response format");
-      }
+      // Debug: Log raw response before parsing
+      const responseText = await response.text();
+      console.log('Raw response:', responseText);
 
-      const responseData = await response.json();
+      let responseData;
+      try {
+        responseData = JSON.parse(responseText);
+      } catch (e) {
+        console.error('Failed to parse response:', e);
+        throw new Error('Invalid response from server');
+      }
 
       if (!response.ok) {
         throw new Error(responseData.error || "Failed to login");
