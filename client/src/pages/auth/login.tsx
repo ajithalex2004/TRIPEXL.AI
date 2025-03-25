@@ -7,11 +7,15 @@ import { Card, CardHeader, CardContent } from "@/components/ui/card";
 import { Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { motion } from "framer-motion";
+import { z } from "zod";
+import { zodResolver } from "@hookform/resolvers/zod";
 
-interface LoginFormData {
-  email_id: string;
-  password: string;
-}
+const loginSchema = z.object({
+  email_id: z.string().min(1, "Email is required").email("Invalid email format"),
+  password: z.string().min(1, "Password is required"),
+});
+
+type LoginFormData = z.infer<typeof loginSchema>;
 
 export default function LoginPage() {
   const { toast } = useToast();
@@ -20,6 +24,7 @@ export default function LoginPage() {
   const [showPassword, setShowPassword] = React.useState(false);
 
   const form = useForm<LoginFormData>({
+    resolver: zodResolver(loginSchema),
     defaultValues: {
       email_id: "",
       password: "",
