@@ -35,7 +35,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { StatusBadge } from "./status-badge";
-import { UserAvatar } from "./user-avatar"; // Added import
+import { UserAvatar } from "./user-avatar";
 
 interface Employee {
   id: number;
@@ -67,8 +67,10 @@ export function EmployeeList() {
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   const [employeeToDelete, setEmployeeToDelete] = useState<number | null>(null);
 
-  const { data: employees, isLoading } = useQuery<Employee[]>({
+  const { data: employees, isLoading, error } = useQuery<Employee[]>({
     queryKey: ['/api/employees'],
+    retry: 3,
+    staleTime: 30000,
   });
 
   const deleteEmployeeMutation = useMutation({
@@ -130,6 +132,17 @@ export function EmployeeList() {
     setEditingEmployee(employee);
     setIsEditDialogOpen(true);
   };
+
+  if (error) {
+    return (
+      <div className="flex justify-center items-center min-h-[400px]">
+        <div className="text-center text-red-500">
+          <p>Error loading employees</p>
+          <p className="text-sm">{error.toString()}</p>
+        </div>
+      </div>
+    );
+  }
 
   const filteredEmployees = employees?.filter(employee => {
     const matchesSearch = searchTerm === "" || 
@@ -231,10 +244,10 @@ export function EmployeeList() {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {filteredEmployees?.length === 0 ? (
+            {!employees || filteredEmployees?.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={11} className="text-center py-8">
-                  No employees found matching the filters
+                  {!employees ? "No employees found" : "No employees found matching the filters"}
                 </TableCell>
               </TableRow>
             ) : (
