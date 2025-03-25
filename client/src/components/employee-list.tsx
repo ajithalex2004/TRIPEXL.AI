@@ -48,6 +48,10 @@ interface Employee {
   region: string;
   communication_language: string | null;
   unit: string;
+  date_of_birth?: string;
+  hierarchy_level?: string;
+  supervisor_id?: number | null;
+  is_active?: boolean;
 }
 
 export function EmployeeList() {
