@@ -10,7 +10,7 @@ import { motion } from "framer-motion";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useLocation } from "wouter";
-import { PersonalizedGreeting } from "@/components/personalized-greeting"; // Added import
+import { PersonalizedGreeting } from "@/components/personalized-greeting";
 
 const loginSchema = z.object({
   email_id: z.string().min(1, "Email is required").email("Invalid email format"),
@@ -68,14 +68,12 @@ export default function LoginPage() {
         throw new Error("Invalid server response: missing token");
       }
 
-      // Store the token and navigate
       localStorage.setItem("token", responseData.token);
       toast({
         title: "Success",
         description: "Login successful",
       });
 
-      // Use setTimeout to ensure the token is stored before navigation
       setTimeout(() => {
         setLocation("/");
       }, 100);
@@ -94,7 +92,16 @@ export default function LoginPage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-[#004990] via-[#0066cc] to-[#ffffff] relative overflow-hidden">
-      <div className="container mx-auto h-screen flex flex-col items-center justify-center p-4">
+      <div className="container mx-auto h-screen flex flex-col items-center pt-8">
+        <motion.div
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.2 }}
+          className="w-full max-w-[700px] mb-8"
+        >
+          <PersonalizedGreeting />
+        </motion.div>
+
         <div className="flex items-center space-x-16 max-w-5xl">
           <motion.div
             className="flex-1 pl-8 flex flex-col justify-center min-w-[350px]"
@@ -102,9 +109,8 @@ export default function LoginPage() {
             animate={{ opacity: 1, x: 0 }}
             transition={{ delay: 0.3 }}
           >
-            <PersonalizedGreeting />
             <motion.h1
-              className="text-base font-bold text-white tracking-wider whitespace-nowrap mt-6"
+              className="text-base font-bold text-white tracking-wider whitespace-nowrap"
               initial={{ opacity: 0, y: -20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.3 }}
