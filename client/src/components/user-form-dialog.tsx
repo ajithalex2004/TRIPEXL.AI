@@ -239,21 +239,37 @@ export function UserFormDialog({
     return () => subscription.unsubscribe();
   }, [form]);
 
-  // Update form values when initialData changes
+  // Update form values when initialData changes (for edit mode)
   useEffect(() => {
-    if (initialData) {
+    if (initialData && mode === "edit") {
       form.reset({
         ...initialData,
         country_code: initialData.country_code || "+971",
         mobile_number: initialData.mobile_number || "",
       });
     }
-  }, [initialData, form]);
+  }, [initialData, mode, form]);
 
   //Reset form when mode changes
   useEffect(() => {
     if (mode === "create") {
-      form.reset();
+      form.reset({
+        user_name: "",
+        user_code: "",
+        user_type: "EMPLOYEE",
+        email_id: "",
+        country_code: "+971",
+        mobile_number: "",
+        user_operation_type: "EMPLOYEE",
+        user_group: "DEFAULT",
+        first_name: "",
+        last_name: "",
+        full_name: "",
+        is_active: true,
+      });
+      // Also reset the validation states
+      setEmailCheckStatus({ checking: false });
+      setMobileCheckStatus({ checking: false });
     }
   }, [mode, form]);
 
