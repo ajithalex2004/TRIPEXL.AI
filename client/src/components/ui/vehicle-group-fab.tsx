@@ -140,7 +140,7 @@ export function VehicleGroupFAB({
               <Button
                 variant="outline"
                 size="sm"
-                className="flex items-center gap-2 bg-background/80 backdrop-blur-sm bg-gradient-to-br from-red-500/80 to-red-600/80 hover:from-red-500 hover:to-red-600 text-white border-0"
+                className="flex items-center gap-2 bg-background/80 backdrop-blur-sm bg-gradient-to-br from-emerald-800/90 to-green-900/90 hover:from-emerald-800 hover:to-green-900 text-white border-0"
                 onClick={() => {
                   onAddClick();
                   setIsOpen(false);
