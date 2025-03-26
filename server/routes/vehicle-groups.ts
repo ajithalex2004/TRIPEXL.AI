@@ -1,6 +1,5 @@
 import { Router } from "express";
-import { storage } from "../storage";
-import { insertVehicleGroupSchema, vehicleGroups } from "@shared/schema";
+import { vehicleGroups, insertVehicleGroupSchema } from "@shared/schema";
 import { db } from "../db";
 import { eq } from "drizzle-orm";
 
@@ -10,7 +9,6 @@ const router = Router();
 router.get("/api/vehicle-groups", async (req, res) => {
   try {
     const groups = await db.select().from(vehicleGroups);
-    console.log("Fetched vehicle groups:", groups);
     res.json(groups);
   } catch (error: any) {
     console.error("Error fetching vehicle groups:", error);
@@ -21,11 +19,8 @@ router.get("/api/vehicle-groups", async (req, res) => {
 // Create new vehicle group
 router.post("/api/vehicle-groups", async (req, res) => {
   try {
-    console.log("Received vehicle group data:", req.body);
-
     // Validate the request data
     const validatedData = insertVehicleGroupSchema.parse(req.body);
-    console.log("Validated data:", validatedData);
 
     // Insert into database
     const [newGroup] = await db.insert(vehicleGroups).values({
@@ -41,7 +36,6 @@ router.post("/api/vehicle-groups", async (req, res) => {
       updated_at: new Date()
     }).returning();
 
-    console.log("Created vehicle group:", newGroup);
     res.status(201).json(newGroup);
   } catch (error: any) {
     console.error("Error creating vehicle group:", error);
@@ -59,8 +53,6 @@ router.post("/api/vehicle-groups", async (req, res) => {
 router.patch("/api/vehicle-groups/:id", async (req, res) => {
   try {
     const id = parseInt(req.params.id);
-    console.log("Updating vehicle group:", id, "with data:", req.body);
-
     const data = insertVehicleGroupSchema.partial().parse(req.body);
 
     const [updatedGroup] = await db
@@ -76,7 +68,6 @@ router.patch("/api/vehicle-groups/:id", async (req, res) => {
       return res.status(404).json({ message: "Vehicle group not found" });
     }
 
-    console.log("Updated vehicle group:", updatedGroup);
     res.json(updatedGroup);
   } catch (error: any) {
     console.error("Error updating vehicle group:", error);

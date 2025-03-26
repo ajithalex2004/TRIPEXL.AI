@@ -20,18 +20,15 @@ import {
 } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
-import { useQueryClient } from "@tanstack/react-query";
-import { apiRequest } from "@/lib/queryClient";
 
 interface VehicleGroupFormProps {
   onSubmit: (data: InsertVehicleGroup) => void;
-  initialData?: VehicleGroup;
+  initialData?: VehicleGroup | null;
   isEditing?: boolean;
 }
 
 export function VehicleGroupForm({ onSubmit, initialData, isEditing }: VehicleGroupFormProps) {
   const { toast } = useToast();
-  const queryClient = useQueryClient();
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const form = useForm<InsertVehicleGroup>({
@@ -43,14 +40,12 @@ export function VehicleGroupForm({ onSubmit, initialData, isEditing }: VehicleGr
       type: "",
       department: "",
       image_url: "",
-      description: ""
+      description: "",
     }
   });
 
-  // Update form values when initialData changes
   useEffect(() => {
     if (initialData) {
-      console.log("Setting initial form data:", initialData);
       form.reset({
         group_code: initialData.group_code,
         region: initialData.region,
@@ -64,34 +59,14 @@ export function VehicleGroupForm({ onSubmit, initialData, isEditing }: VehicleGr
   }, [initialData, form]);
 
   const handleSubmit = async (data: InsertVehicleGroup) => {
-    console.log("Form submitted with data:", data);
     setIsSubmitting(true);
     try {
-      const response = await apiRequest(
-        isEditing ? "PATCH" : "POST",
-        isEditing ? `/api/vehicle-groups/${initialData?.id}` : "/api/vehicle-groups",
-        data
-      );
-
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.message || "Failed to submit form");
-      }
-
-      const result = await response.json();
-      queryClient.invalidateQueries({ queryKey: ["/api/vehicle-groups"] });
-
-      toast({
-        title: "Success",
-        description: isEditing ? "Vehicle group updated successfully" : "Vehicle group created successfully"
-      });
-
-      onSubmit(result);
+      await onSubmit(data);
       if (!isEditing) {
         form.reset();
       }
     } catch (error: any) {
-      console.error("Submit error:", error);
+      console.error("Form submission error:", error);
       toast({
         title: "Error",
         description: error.message || "Failed to submit form",
