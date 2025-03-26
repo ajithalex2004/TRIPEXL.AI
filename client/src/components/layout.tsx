@@ -24,7 +24,8 @@ import {
   LayoutDashboard,
   Users,
   UserCog,
-  Network
+  Network,
+  GitFork // Add this import for workflow icon
 } from "lucide-react";
 import { motion } from "framer-motion";
 
@@ -182,6 +183,14 @@ export function Layout({ children }: { children: React.ReactNode }) {
                         <SidebarMenuButton className="w-full text-white hover:bg-white/10 text-[15px] font-bold pl-8">
                           <Network className="w-4 h-4" />
                           <span>User Permissions Map</span>
+                        </SidebarMenuButton>
+                      </Link>
+                    </SidebarMenuItem>
+                    <SidebarMenuItem>
+                      <Link href="/workflows">
+                        <SidebarMenuButton className="w-full text-white hover:bg-white/10 text-[15px] font-bold pl-8">
+                          <GitFork className="w-4 h-4" />
+                          <span>Workflow Management</span>
                         </SidebarMenuButton>
                       </Link>
                     </SidebarMenuItem>

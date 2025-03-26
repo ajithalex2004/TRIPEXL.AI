@@ -40,8 +40,8 @@ export function WorkflowManagementForm({ onSuccess, initialData }: WorkflowManag
       region: initialData?.region || "",
       department: initialData?.department || "",
       unit: initialData?.unit || "",
-      level_1_approver_id: initialData?.level_1_approver_id,
-      level_2_approver_id: initialData?.level_2_approver_id,
+      level_1_approver_id: initialData?.level_1_approver_id || undefined,
+      level_2_approver_id: initialData?.level_2_approver_id || undefined,
       is_active: initialData?.is_active ?? true,
     },
   });
@@ -49,13 +49,6 @@ export function WorkflowManagementForm({ onSuccess, initialData }: WorkflowManag
   // Query to fetch available approvers (Level 1 and Level 2 employees)
   const { data: approvers } = useQuery({
     queryKey: ['/api/employees'],
-    queryFn: async () => {
-      const response = await fetch('/api/employees');
-      if (!response.ok) {
-        throw new Error('Failed to fetch employees');
-      }
-      return response.json();
-    },
   });
 
   const mutation = useMutation({
@@ -186,7 +179,7 @@ export function WorkflowManagementForm({ onSuccess, initialData }: WorkflowManag
                     </SelectTrigger>
                   </FormControl>
                   <SelectContent>
-                    {approvers?.filter(e => e.hierarchy_level === "Level 1").map((employee) => (
+                    {approvers?.filter(e => e.hierarchy_level === "Level 1" && e.is_active).map((employee) => (
                       <SelectItem key={employee.id} value={employee.id.toString()}>
                         {employee.employee_name}
                       </SelectItem>
@@ -214,7 +207,7 @@ export function WorkflowManagementForm({ onSuccess, initialData }: WorkflowManag
                     </SelectTrigger>
                   </FormControl>
                   <SelectContent>
-                    {approvers?.filter(e => e.hierarchy_level === "Level 2").map((employee) => (
+                    {approvers?.filter(e => e.hierarchy_level === "Level 2" && e.is_active).map((employee) => (
                       <SelectItem key={employee.id} value={employee.id.toString()}>
                         {employee.employee_name}
                       </SelectItem>
@@ -229,7 +222,7 @@ export function WorkflowManagementForm({ onSuccess, initialData }: WorkflowManag
 
         <Button
           type="submit"
-          className="w-full"
+          className="w-full bg-gradient-to-r from-[#004990] to-[#0066cc]"
           disabled={mutation.isPending}
         >
           {mutation.isPending
