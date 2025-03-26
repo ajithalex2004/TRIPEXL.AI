@@ -520,7 +520,7 @@ export function VehicleTypeForm({ onSubmit, initialData, isEditing }: VehicleTyp
 
   // Update cost per km when fuel efficiency or price changes
   const calculateCostPerKm = (fuelPrice: number, fuelEfficiency: number) => {
-    if (fuelEfficiency <= 0) return 0;
+    if (!fuelPrice || !fuelEfficiency || fuelEfficiency <= 0) return 0;
     return Number((fuelPrice / fuelEfficiency).toFixed(2));
   };
 
@@ -983,7 +983,7 @@ export function VehicleTypeForm({ onSubmit, initialData, isEditing }: VehicleTyp
                     type="number"
                     placeholder="Enter alert before (optional)"
                     {...field}
-                    onChange={e => field.onChange(e.target.value ? Number(e.target.value) : undefined)}
+                    onChange={e => field.onChange(e.target.value ? Number`.target.value) : undefined)}
                   />
                 </FormControl>
                 <FormMessage />
