@@ -49,6 +49,7 @@ export function VehicleGroupForm({ onSubmit, initialData, isEditing }: VehicleGr
   // Create mutation
   const createMutation = useMutation({
     mutationFn: async (data: InsertVehicleGroup) => {
+      console.log("Submitting form data:", data);
       const response = await apiRequest("POST", "/api/vehicle-groups", data);
       if (!response.ok) {
         const error = await response.json();
@@ -66,6 +67,7 @@ export function VehicleGroupForm({ onSubmit, initialData, isEditing }: VehicleGr
       onSubmit(form.getValues());
     },
     onError: (error: Error) => {
+      console.error("Mutation error:", error);
       toast({
         title: "Error",
         description: error.message,
@@ -77,6 +79,7 @@ export function VehicleGroupForm({ onSubmit, initialData, isEditing }: VehicleGr
   // Update form values when initialData changes
   useEffect(() => {
     if (initialData) {
+      console.log("Setting initial form data:", initialData);
       form.reset({
         group_code: initialData.group_code,
         region: initialData.region,
@@ -90,12 +93,14 @@ export function VehicleGroupForm({ onSubmit, initialData, isEditing }: VehicleGr
   }, [initialData, form]);
 
   const handleSubmit = async (data: InsertVehicleGroup) => {
+    console.log("Form submitted with data:", data);
     try {
       await createMutation.mutateAsync(data);
     } catch (error: any) {
+      console.error("Submit error:", error);
       toast({
         title: "Error",
-        description: error.message,
+        description: error.message || "Failed to submit form",
         variant: "destructive"
       });
     }
