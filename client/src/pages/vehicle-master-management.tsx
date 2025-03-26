@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo, useCallback } from "react";
 import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query";
 import { DataTable } from "@/components/ui/data-table";
 import {
@@ -25,89 +25,6 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { apiRequest } from "@/lib/queryClient";
-
-const columns = [
-  {
-    header: "Vehicle ID",
-    accessorKey: "vehicleId",
-  },
-  {
-    header: "Emirate",
-    accessorKey: "emirate",
-  },
-  {
-    header: "Registration",
-    accessorKey: "registrationNumber",
-  },
-  {
-    header: "Plate Code",
-    accessorKey: "plateCode",
-  },
-  {
-    header: "Plate Number",
-    accessorKey: "plateNumber",
-  },
-  {
-    header: "Vehicle Type Code",
-    accessorKey: "vehicleTypeCode",
-  },
-  {
-    header: "Vehicle Type Name",
-    accessorKey: "vehicleTypeName",
-  },
-  {
-    header: "Model",
-    accessorKey: "vehicleModel",
-  },
-  {
-    header: "Manufacturer",
-    accessorKey: "manufacturer",
-  },
-  {
-    header: "Fuel Type",
-    accessorKey: "fuelType",
-  },
-  {
-    header: "Department",
-    accessorKey: "department",
-  },
-  {
-    header: "Status",
-    accessorKey: "isValid",
-    cell: ({ row }) => (
-      <span className={row.original.isValid ? "text-green-600" : "text-red-600"}>
-        {row.original.isValid ? "Active" : "Inactive"}
-      </span>
-    ),
-  },
-  {
-    header: "Actions",
-    id: "actions",
-    cell: ({ row }) => {
-      const vehicle = row.original;
-      return (
-        <div className="flex items-center gap-2">
-          <Button
-            variant="outline"
-            size="icon"
-            onClick={() => row.handleEdit(vehicle)}
-            className="h-8 w-8 p-0"
-          >
-            <Pen className="h-4 w-4" />
-          </Button>
-          <Button
-            variant="outline"
-            size="icon"
-            onClick={() => row.handleDelete(vehicle)}
-            className="h-8 w-8 p-0 text-red-600 hover:text-red-700"
-          >
-            <Trash2 className="h-4 w-4" />
-          </Button>
-        </div>
-      );
-    },
-  },
-];
 
 export default function VehicleMasterManagement() {
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
@@ -148,36 +65,122 @@ export default function VehicleMasterManagement() {
     },
   });
 
-  const handleRefresh = () => {
+  const handleRefresh = useCallback(() => {
     queryClient.invalidateQueries({ queryKey: ["/api/vehicle-master"] });
     toast({
       title: "Refreshed",
       description: "Vehicle list has been refreshed",
     });
-  };
+  }, [queryClient, toast]);
 
-  const handleEdit = (vehicle: VehicleMaster) => {
+  const handleEdit = useCallback((vehicle: VehicleMaster) => {
     setSelectedVehicle(vehicle);
     setIsAddModalOpen(true);
-  };
+  }, []);
 
-  const handleDelete = (vehicle: VehicleMaster) => {
+  const handleDelete = useCallback((vehicle: VehicleMaster) => {
     setDeleteVehicle(vehicle);
-  };
+  }, []);
 
-  const confirmDelete = () => {
+  const confirmDelete = useCallback(() => {
     if (deleteVehicle) {
       deleteMutation.mutate(deleteVehicle.id);
     }
-  };
+  }, [deleteVehicle, deleteMutation]);
 
-  // Add handleEdit and handleDelete to each row
-  const columnsWithHandlers = columns.map(col => ({
-    ...col,
-    cell: col.cell
-      ? (props: any) => col.cell?.({ ...props, row: { ...props.row, handleEdit, handleDelete } })
-      : undefined,
-  }));
+  const handleCloseModal = useCallback(() => {
+    setIsAddModalOpen(false);
+    setSelectedVehicle(null);
+  }, []);
+
+  const handleOpenAddModal = useCallback(() => {
+    setSelectedVehicle(null);
+    setIsAddModalOpen(true);
+  }, []);
+
+  // Memoize columns definition
+  const columns = useMemo(() => [
+    {
+      header: "Vehicle ID",
+      accessorKey: "vehicleId",
+    },
+    {
+      header: "Emirate",
+      accessorKey: "emirate",
+    },
+    {
+      header: "Registration",
+      accessorKey: "registrationNumber",
+    },
+    {
+      header: "Plate Code",
+      accessorKey: "plateCode",
+    },
+    {
+      header: "Plate Number",
+      accessorKey: "plateNumber",
+    },
+    {
+      header: "Vehicle Type Code",
+      accessorKey: "vehicleTypeCode",
+    },
+    {
+      header: "Vehicle Type Name",
+      accessorKey: "vehicleTypeName",
+    },
+    {
+      header: "Model",
+      accessorKey: "vehicleModel",
+    },
+    {
+      header: "Manufacturer",
+      accessorKey: "manufacturer",
+    },
+    {
+      header: "Fuel Type",
+      accessorKey: "fuelType",
+    },
+    {
+      header: "Department",
+      accessorKey: "department",
+    },
+    {
+      header: "Status",
+      accessorKey: "isValid",
+      cell: ({ row }) => (
+        <span className={row.original.isValid ? "text-green-600" : "text-red-600"}>
+          {row.original.isValid ? "Active" : "Inactive"}
+        </span>
+      ),
+    },
+    {
+      header: "Actions",
+      id: "actions",
+      cell: ({ row }) => {
+        const vehicle = row.original;
+        return (
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="icon"
+              onClick={() => handleEdit(vehicle)}
+              className="h-8 w-8 p-0"
+            >
+              <Pen className="h-4 w-4" />
+            </Button>
+            <Button
+              variant="outline"
+              size="icon"
+              onClick={() => handleDelete(vehicle)}
+              className="h-8 w-8 p-0 text-red-600 hover:text-red-700"
+            >
+              <Trash2 className="h-4 w-4" />
+            </Button>
+          </div>
+        );
+      },
+    },
+  ], [handleEdit, handleDelete]);
 
   return (
     <div className="container mx-auto py-6 space-y-8">
@@ -204,7 +207,7 @@ export default function VehicleMasterManagement() {
             </div>
           ) : (
             <DataTable
-              columns={columnsWithHandlers}
+              columns={columns}
               data={vehicles || []}
               filterColumn="vehicleId"
               filterPlaceholder="Filter by Vehicle ID..."
@@ -215,20 +218,14 @@ export default function VehicleMasterManagement() {
 
       {/* Vehicle Management FAB */}
       <VehicleManagementFAB
-        onAddVehicle={() => {
-          setSelectedVehicle(null);
-          setIsAddModalOpen(true);
-        }}
+        onAddVehicle={handleOpenAddModal}
         onRefresh={handleRefresh}
       />
 
       {/* Add/Edit Vehicle Form Modal */}
       <VehicleMasterForm 
         isOpen={isAddModalOpen}
-        onClose={() => {
-          setIsAddModalOpen(false);
-          setSelectedVehicle(null);
-        }}
+        onClose={handleCloseModal}
         initialData={selectedVehicle}
       />
 
