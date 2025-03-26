@@ -4,18 +4,6 @@ import { insertVehicleTypeMasterSchema } from "@shared/schema";
 import multer from "multer";
 import XLSX from "xlsx";
 
-const router = Router();
-
-// Add default fuel prices
-const currentFuelPrices = {
-  petrol: 2.99,
-  diesel: 2.89,
-  electric: 0.45, // Cost per kWh
-  hybrid: 2.85,
-  cng: 2.10,
-  lpg: 2.25
-};
-
 // Configure multer for handling file uploads
 const upload = multer({
   storage: multer.memoryStorage(),
@@ -34,9 +22,22 @@ const upload = multer({
   },
 });
 
-// Add fuel prices endpoint
+const router = Router();
+
+// Add default fuel prices
+const currentFuelPrices = {
+  petrol: 2.99,
+  diesel: 2.89,
+  electric: 0.45, // Cost per kWh
+  hybrid: 2.85,
+  cng: 2.10,
+  lpg: 2.25
+};
+
+// Add fuel prices endpoint with logging
 router.get("/api/fuel-prices", (_req, res) => {
   try {
+    console.log("Sending fuel prices:", currentFuelPrices);
     res.json(currentFuelPrices);
   } catch (error: any) {
     console.error("Error fetching fuel prices:", error);

@@ -517,7 +517,7 @@ export function VehicleTypeForm({ onSubmit, initialData, isEditing }: VehicleTyp
       region: "",
       fuelEfficiency: 0,
       fuelPricePerLitre: 0,
-      fuelType: "Petrol", // Set default fuel type
+      fuelType: initialData?.fuelType || "Petrol",
       servicePlan: "",
       costPerKm: 0,
       vehicleType: "",
@@ -559,25 +559,15 @@ export function VehicleTypeForm({ onSubmit, initialData, isEditing }: VehicleTyp
     }
   }, [initialData, form]);
 
-  // Update fuel price when fuel type changes
+  // Set initial fuel price when prices are loaded
   useEffect(() => {
     if (fuelPrices && selectedFuelType) {
-      const normalizedType = selectedFuelType.toLowerCase();
-      const price = fuelPrices[normalizedType];
-
+      const price = fuelPrices[selectedFuelType.toLowerCase()];
       if (price !== undefined) {
         form.setValue("fuelPricePerLitre", price);
-
-        // Recalculate cost per km
-        const efficiency = form.getValues("fuelEfficiency");
-        if (efficiency > 0) {
-          const costPerKm = calculateCostPerKm(price, efficiency);
-          form.setValue("costPerKm", costPerKm);
-        }
       }
     }
-  }, [selectedFuelType, fuelPrices, form]);
-
+  }, [fuelPrices, selectedFuelType, form]);
 
   // Update vehicle details when vehicle type changes
   useEffect(() => {
@@ -883,10 +873,18 @@ export function VehicleTypeForm({ onSubmit, initialData, isEditing }: VehicleTyp
                 <Select
                   onValueChange={(value) => {
                     field.onChange(value);
-                    // This will trigger the useEffect to update fuel price
-                    const price = fuelPrices?.[value.toLowerCase()];
-                    if (price !== undefined) {
-                      form.setValue("fuelPricePerLitre", price);
+                    if (fuelPrices) {
+                      const price = fuelPrices[value.toLowerCase()];
+                      if (price !== undefined) {
+                        form.setValue("fuelPricePerLitre", price);
+
+                        // Recalculate cost per km
+                        const efficiency = form.getValues("fuelEfficiency");
+                        if (efficiency > 0) {
+                          const costPerKm = calculateCostPerKm(price, efficiency);
+                          form.setValue("costPerKm", costPerKm);
+                        }
+                      }
                     }
                   }}
                   value={field.value}
@@ -897,31 +895,13 @@ export function VehicleTypeForm({ onSubmit, initialData, isEditing }: VehicleTyp
                     </SelectTrigger>
                   </FormControl>
                   <SelectContent>
-                    {Object.values(VehicleFuelType).map((type) => (
+                    {Object.keys(VehicleFuelType).map((type) => (
                       <SelectItem key={type} value={type}>
                         {type}
                       </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-          <FormField
-            control={form.control}
-            name="fuelEfficiency"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Fuel Efficiency (KM/L) *</FormLabel>
-                <FormControl>
-                  <Input
-                    type="number"
-                    placeholder="Enter fuel efficiency"
-                    {...field}
-                    onChange={e => field.onChange(Number(e.target.value))}
-                  />
-                </FormControl>
                 <FormMessage />
               </FormItem>
             )}
@@ -938,7 +918,7 @@ export function VehicleTypeForm({ onSubmit, initialData, isEditing }: VehicleTyp
                     placeholder="Current fuel price will be loaded"
                     {...field}
                     disabled
-                    value={field.value}
+                    value={field.value || ""}
                   />
                 </FormControl>
                 <FormMessage />
@@ -1003,7 +983,7 @@ export function VehicleTypeForm({ onSubmit, initialData, isEditing }: VehicleTyp
             name="numberOfPassengers"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Number of Passengers *</FormLabel>
+                <FormLabel>Number ofPassengers *</FormLabel>
                 <FormControl>
                   <Input
                     type="number"
