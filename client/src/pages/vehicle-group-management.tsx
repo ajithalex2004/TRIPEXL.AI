@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo, useCallback } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import {
   Card,
@@ -118,20 +118,19 @@ export default function VehicleGroupManagement() {
     },
   });
 
-  const handleSubmit = async (data: InsertVehicleGroup) => {
+  const handleSubmit = useCallback(async (data: InsertVehicleGroup) => {
     try {
       if (selectedGroup) {
         await updateMutation.mutateAsync({ ...data, id: selectedGroup.id });
-        setSelectedGroup(null);
       } else {
         await createMutation.mutateAsync(data);
       }
     } catch (error) {
       console.error("Submit error:", error);
     }
-  };
+  }, [selectedGroup, updateMutation, createMutation]);
 
-  const handleExport = async () => {
+  const handleExport = useCallback(async () => {
     try {
       const response = await fetch("/api/vehicle-groups/export");
       if (!response.ok) {
@@ -160,9 +159,9 @@ export default function VehicleGroupManagement() {
         variant: "destructive",
       });
     }
-  };
+  }, [toast]);
 
-  const handleDownloadTemplate = async () => {
+  const handleDownloadTemplate = useCallback(async () => {
     try {
       const response = await fetch("/api/vehicle-groups/template");
       if (!response.ok) {
@@ -191,9 +190,9 @@ export default function VehicleGroupManagement() {
         variant: "destructive",
       });
     }
-  };
+  }, [toast]);
 
-  const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileChange = useCallback(async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
 
@@ -202,7 +201,7 @@ export default function VehicleGroupManagement() {
     } catch (error) {
       console.error("File upload error:", error);
     }
-  };
+  }, [importMutation]);
 
   if (error) {
     console.error("Query error:", error);
