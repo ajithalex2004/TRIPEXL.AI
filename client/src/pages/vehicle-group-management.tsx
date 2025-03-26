@@ -23,17 +23,41 @@ import { VehicleGroupForm } from "@/components/ui/vehicle-group-form";
 import { Download } from "lucide-react";
 
 export default function VehicleGroupManagement() {
+  console.log("Rendering VehicleGroupManagement component");
   const [selectedGroup, setSelectedGroup] = useState<VehicleGroup | null>(null);
   const { toast } = useToast();
 
-  const { data: vehicleGroups, isLoading } = useQuery<VehicleGroup[]>({
+  // Query for fetching vehicle groups
+  const { data: vehicleGroups, isLoading, error } = useQuery<VehicleGroup[]>({
     queryKey: ["/api/vehicle-groups"],
+    queryFn: async () => {
+      console.log("Fetching vehicle groups");
+      const response = await apiRequest("GET", "/api/vehicle-groups");
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || "Failed to fetch vehicle groups");
+      }
+      const data = await response.json();
+      console.log("Fetched vehicle groups:", data);
+      return data;
+    },
     staleTime: 0,
     retry: 3,
   });
 
+  // Handle any query errors
+  if (error) {
+    console.error("Query error:", error);
+    toast({
+      title: "Error",
+      description: "Failed to fetch vehicle groups",
+      variant: "destructive",
+    });
+  }
+
   const createMutation = useMutation({
     mutationFn: async (data: InsertVehicleGroup) => {
+      console.log("Creating vehicle group:", data);
       const response = await apiRequest("POST", "/api/vehicle-groups", data);
       if (!response.ok) {
         const error = await response.json();
@@ -42,6 +66,7 @@ export default function VehicleGroupManagement() {
       return response.json();
     },
     onSuccess: () => {
+      console.log("Vehicle group created successfully");
       queryClient.invalidateQueries({ queryKey: ["/api/vehicle-groups"] });
       setSelectedGroup(null);
       toast({
@@ -50,32 +75,7 @@ export default function VehicleGroupManagement() {
       });
     },
     onError: (error: Error) => {
-      toast({
-        title: "Error",
-        description: error.message,
-        variant: "destructive",
-      });
-    },
-  });
-
-  const updateMutation = useMutation({
-    mutationFn: async ({ id, ...data }: InsertVehicleGroup & { id: number }) => {
-      const response = await apiRequest("PATCH", `/api/vehicle-groups/${id}`, data);
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.message || "Failed to update vehicle group");
-      }
-      return response.json();
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/vehicle-groups"] });
-      setSelectedGroup(null);
-      toast({
-        title: "Success",
-        description: "Vehicle group updated successfully",
-      });
-    },
-    onError: (error: Error) => {
+      console.error("Create error:", error);
       toast({
         title: "Error",
         description: error.message,
@@ -85,16 +85,31 @@ export default function VehicleGroupManagement() {
   });
 
   const handleSubmit = useCallback(async (data: InsertVehicleGroup) => {
+    console.log("Handling form submission:", data);
     try {
       if (selectedGroup) {
-        await updateMutation.mutateAsync({ ...data, id: selectedGroup.id });
+        // Handle update
+        console.log("Updating vehicle group:", selectedGroup.id, data);
+        await apiRequest("PATCH", `/api/vehicle-groups/${selectedGroup.id}`, data);
+        queryClient.invalidateQueries({ queryKey: ["/api/vehicle-groups"] });
+        setSelectedGroup(null);
+        toast({
+          title: "Success",
+          description: "Vehicle group updated successfully",
+        });
       } else {
+        // Handle create
         await createMutation.mutateAsync(data);
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error("Submit error:", error);
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      });
     }
-  }, [selectedGroup, updateMutation, createMutation]);
+  }, [selectedGroup, createMutation, toast]);
 
   const handleExport = useCallback(async () => {
     try {
@@ -162,75 +177,69 @@ export default function VehicleGroupManagement() {
             </div>
           </CardHeader>
           <CardContent>
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ delay: 0.4, duration: 0.5 }}
-            >
-              <Table>
-                <TableHeader>
-                  <TableRow className="border-white/10 hover:bg-background/40">
-                    <TableHead className="text-primary/80">Group Code</TableHead>
-                    <TableHead className="text-primary/80">Name</TableHead>
-                    <TableHead className="text-primary/80">Region</TableHead>
-                    <TableHead className="text-primary/80">Type</TableHead>
-                    <TableHead className="text-primary/80">Department</TableHead>
-                    <TableHead className="text-primary/80">Actions</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  <AnimatePresence mode="wait">
-                    {isLoading ? (
-                      <TableRow>
-                        <TableCell colSpan={6} className="text-center py-8">
-                          <motion.div
-                            initial={{ opacity: 0, scale: 0.8 }}
-                            animate={{ opacity: 1, scale: 1 }}
-                            exit={{ opacity: 0, scale: 0.8 }}
-                            transition={{ duration: 0.5 }}
-                            className="flex justify-center"
-                          >
-                            Loading...
-                          </motion.div>
-                        </TableCell>
-                      </TableRow>
-                    ) : !vehicleGroups?.length ? (
-                      <TableRow>
-                        <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
-                          No vehicle groups found
-                        </TableCell>
-                      </TableRow>
-                    ) : (
-                      vehicleGroups.map((group) => (
-                        <motion.tr
-                          key={group.id}
-                          initial={{ opacity: 0, x: -20 }}
-                          animate={{ opacity: 1, x: 0 }}
-                          exit={{ opacity: 0, x: 20 }}
-                          transition={{ duration: 0.2 }}
-                          className="border-white/10 backdrop-blur-sm transition-all duration-200 hover:bg-background/40"
+            <Table>
+              <TableHeader>
+                <TableRow className="border-white/10 hover:bg-background/40">
+                  <TableHead className="text-primary/80">Group Code</TableHead>
+                  <TableHead className="text-primary/80">Name</TableHead>
+                  <TableHead className="text-primary/80">Region</TableHead>
+                  <TableHead className="text-primary/80">Type</TableHead>
+                  <TableHead className="text-primary/80">Department</TableHead>
+                  <TableHead className="text-primary/80">Actions</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                <AnimatePresence mode="wait">
+                  {isLoading ? (
+                    <TableRow>
+                      <TableCell colSpan={6} className="text-center py-8">
+                        <motion.div
+                          initial={{ opacity: 0, scale: 0.8 }}
+                          animate={{ opacity: 1, scale: 1 }}
+                          exit={{ opacity: 0, scale: 0.8 }}
+                          transition={{ duration: 0.5 }}
+                          className="flex justify-center"
                         >
-                          <TableCell className="font-medium">{group.group_code}</TableCell>
-                          <TableCell>{group.name}</TableCell>
-                          <TableCell>{group.region}</TableCell>
-                          <TableCell>{group.type}</TableCell>
-                          <TableCell>{group.department}</TableCell>
-                          <TableCell>
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => setSelectedGroup(group)}
-                            >
-                              Edit
-                            </Button>
-                          </TableCell>
-                        </motion.tr>
-                      ))
-                    )}
-                  </AnimatePresence>
-                </TableBody>
-              </Table>
-            </motion.div>
+                          Loading...
+                        </motion.div>
+                      </TableCell>
+                    </TableRow>
+                  ) : !vehicleGroups?.length ? (
+                    <TableRow>
+                      <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
+                        No vehicle groups found
+                      </TableCell>
+                    </TableRow>
+                  ) : (
+                    vehicleGroups.map((group) => (
+                      <motion.tr
+                        key={group.id}
+                        initial={{ opacity: 0, x: -20 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        exit={{ opacity: 0, x: 20 }}
+                        transition={{ duration: 0.2 }}
+                        className="border-white/10 backdrop-blur-sm transition-all duration-200 hover:bg-background/40"
+                      >
+                        <TableCell className="font-medium">{group.group_code}</TableCell>
+                        <TableCell>{group.name}</TableCell>
+                        <TableCell>{group.region}</TableCell>
+                        <TableCell>{group.type}</TableCell>
+                        <TableCell>{group.department}</TableCell>
+                        <TableCell>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => setSelectedGroup(group)}
+                          >
+                            Edit
+                          </Button>
+                        </TableCell>
+                      </motion.tr>
+                    ))
+                  )}
+                </AnimatePresence>
+              </TableBody>
+            </Table>
           </CardContent>
         </Card>
       </motion.div>
