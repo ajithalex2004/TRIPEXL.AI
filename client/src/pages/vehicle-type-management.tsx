@@ -1,7 +1,7 @@
 import { useState } from "react";
-import { useMutation, useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { VehicleTypeMaster, InsertVehicleTypeMaster } from "@shared/schema";
-import { apiRequest, queryClient } from "@/lib/queryClient";
+import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { VehicleTypeForm } from "@/components/ui/vehicle-type-form";
 import { VehicleTypeFAB } from "@/components/ui/vehicle-type-fab";
@@ -31,6 +31,7 @@ export default function VehicleTypeManagement() {
   const [selectedType, setSelectedType] = useState<VehicleTypeMaster | null>(null);
   const [isFormOpen, setIsFormOpen] = useState(false);
   const { toast } = useToast();
+  const queryClient = useQueryClient();
 
   const { data: vehicleTypes, isLoading } = useQuery<VehicleTypeMaster[]>({
     queryKey: ["/api/vehicle-types"],
@@ -42,8 +43,6 @@ export default function VehicleTypeManagement() {
       }
       return response.json();
     },
-    staleTime: 0,
-    retry: 3,
   });
 
   const createMutation = useMutation({
@@ -54,7 +53,9 @@ export default function VehicleTypeManagement() {
         const error = await response.json();
         throw new Error(error.message || "Failed to create vehicle type");
       }
-      return response.json();
+      const result = await response.json();
+      console.log("Create response:", result);
+      return result;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/vehicle-types"] });
@@ -68,7 +69,7 @@ export default function VehicleTypeManagement() {
       console.error("Error creating vehicle type:", error);
       toast({
         title: "Error",
-        description: error.message,
+        description: error.message || "Failed to create vehicle type",
         variant: "destructive",
       });
     },
@@ -97,7 +98,7 @@ export default function VehicleTypeManagement() {
       console.error("Error updating vehicle type:", error);
       toast({
         title: "Error",
-        description: error.message,
+        description: error.message || "Failed to update vehicle type",
         variant: "destructive",
       });
     },
@@ -105,7 +106,9 @@ export default function VehicleTypeManagement() {
 
   const handleSubmit = async (data: InsertVehicleTypeMaster) => {
     try {
-      // Convert string values to numbers where needed
+      console.log("Form submitted with data:", data);
+
+      // Ensure all number fields are properly typed
       const formattedData = {
         ...data,
         group_id: Number(data.group_id),
@@ -119,7 +122,7 @@ export default function VehicleTypeManagement() {
         co2_emission_factor: Number(data.co2_emission_factor)
       };
 
-      console.log("Submitting formatted data:", formattedData);
+      console.log("Formatted data:", formattedData);
 
       if (selectedType) {
         await updateMutation.mutateAsync({ ...formattedData, id: selectedType.id });
@@ -128,6 +131,11 @@ export default function VehicleTypeManagement() {
       }
     } catch (error) {
       console.error("Submit error:", error);
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to submit form",
+        variant: "destructive",
+      });
     }
   };
 
