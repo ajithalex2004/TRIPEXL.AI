@@ -18,6 +18,8 @@ import EmployeeManagement from "@/pages/employee-management";
 import PermissionsMapPage from "@/pages/permissions-map";
 import WorkflowManagementPage from "@/pages/workflow-management";
 import { Layout } from "@/components/layout";
+import PerformanceSnapshotPage from "@/pages/performance-snapshot"; //Added import
+
 
 // Initialize QueryClient
 const queryClient = new QueryClient({
@@ -70,6 +72,7 @@ function Router() {
       <Route path="/employees" component={() => <ProtectedRoute component={EmployeeManagement} />} />
       <Route path="/permissions-map" component={() => <ProtectedRoute component={PermissionsMapPage} />} />
       <Route path="/workflows" component={() => <ProtectedRoute component={WorkflowManagementPage} />} />
+      <Route path="/performance" component={() => <ProtectedRoute component={PerformanceSnapshotPage} />} />
 
       {/* 404 Route */}
       <Route component={NotFound} />
