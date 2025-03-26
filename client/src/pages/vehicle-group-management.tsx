@@ -6,7 +6,6 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
 import {
   Table,
   TableBody,
@@ -20,7 +19,7 @@ import { VehicleGroup, InsertVehicleGroup } from "@shared/schema";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { VehicleGroupForm } from "@/components/ui/vehicle-group-form";
-import { Download } from "lucide-react";
+import { VehicleGroupFAB } from "@/components/ui/vehicle-group-fab";
 
 export default function VehicleGroupManagement() {
   console.log("Rendering VehicleGroupManagement component");
@@ -111,6 +110,34 @@ export default function VehicleGroupManagement() {
     }
   }, [selectedGroup, createMutation, toast]);
 
+  const handleImport = useCallback(async (file: File) => {
+    const formData = new FormData();
+    formData.append('file', file);
+
+    try {
+      const response = await fetch('/api/vehicle-groups/import', {
+        method: 'POST',
+        body: formData
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to import vehicle groups');
+      }
+
+      queryClient.invalidateQueries({ queryKey: ['/api/vehicle-groups'] });
+      toast({
+        title: 'Success',
+        description: 'Vehicle groups imported successfully'
+      });
+    } catch (error: any) {
+      toast({
+        title: 'Error',
+        description: error.message,
+        variant: 'destructive'
+      });
+    }
+  }, [toast]);
+
   const handleExport = useCallback(async () => {
     try {
       const response = await apiRequest("GET", "/api/vehicle-groups/export");
@@ -141,6 +168,40 @@ export default function VehicleGroupManagement() {
     }
   }, [toast]);
 
+  const handleDownloadTemplate = useCallback(async () => {
+    try {
+      const response = await apiRequest("GET", "/api/vehicle-groups/template");
+      if (!response.ok) {
+        throw new Error("Failed to download template");
+      }
+
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "vehicle-groups-template.xlsx";
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+
+      toast({
+        title: "Success",
+        description: "Template downloaded successfully",
+      });
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      });
+    }
+  }, [toast]);
+
+  const handleRefresh = useCallback(() => {
+    queryClient.invalidateQueries({ queryKey: ["/api/vehicle-groups"] });
+  }, []);
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-background/50 via-background to-background/90 p-6">
       <motion.div
@@ -162,19 +223,8 @@ export default function VehicleGroupManagement() {
         </Card>
 
         <Card className="mt-6 backdrop-blur-xl bg-background/60 border border-white/10 shadow-2xl">
-          <CardHeader className="flex flex-row items-center justify-between">
+          <CardHeader>
             <CardTitle>Vehicle Groups List</CardTitle>
-            <div className="flex items-center gap-4">
-              <Button
-                onClick={handleExport}
-                variant="outline"
-                className="flex items-center gap-2"
-                disabled={!vehicleGroups?.length}
-              >
-                <Download className="w-4 h-4" />
-                Export to Excel
-              </Button>
-            </div>
           </CardHeader>
           <CardContent>
             <Table>
@@ -242,6 +292,14 @@ export default function VehicleGroupManagement() {
             </Table>
           </CardContent>
         </Card>
+
+        <VehicleGroupFAB
+          onAddClick={() => setSelectedGroup(null)}
+          onImport={handleImport}
+          onExport={handleExport}
+          onDownloadTemplate={handleDownloadTemplate}
+          onRefresh={handleRefresh}
+        />
       </motion.div>
     </div>
   );

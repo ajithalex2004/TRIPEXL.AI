@@ -2,8 +2,11 @@ import { Router } from "express";
 import { vehicleGroups, insertVehicleGroupSchema, type VehicleGroup } from "@shared/schema";
 import { db } from "../db";
 import { eq } from "drizzle-orm";
+import multer from "multer";
+import XLSX from "xlsx";
 
 const router = Router();
+const upload = multer({ storage: multer.memoryStorage() });
 
 // Get all vehicle groups
 router.get("/api/vehicle-groups", async (_req, res) => {
@@ -107,6 +110,104 @@ router.patch("/api/vehicle-groups/:id", async (req, res) => {
     }
 
     res.status(500).json({ error: "Failed to update vehicle group" });
+  }
+});
+
+// Download template
+router.get("/api/vehicle-groups/template", (_req, res) => {
+  try {
+    const template = {
+      group_code: "",
+      name: "",
+      region: "",
+      type: "",
+      department: "",
+      image_url: "",
+      description: ""
+    };
+
+    const ws = XLSX.utils.json_to_sheet([template]);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Template");
+
+    const buf = XLSX.write(wb, { type: "buffer", bookType: "xlsx" });
+
+    res.setHeader("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+    res.setHeader("Content-Disposition", "attachment; filename=vehicle-groups-template.xlsx");
+    res.send(buf);
+  } catch (error: any) {
+    console.error("Error generating template:", error);
+    res.status(500).json({ error: "Failed to generate template" });
+  }
+});
+
+// Export vehicle groups
+router.get("/api/vehicle-groups/export", async (_req, res) => {
+  try {
+    const groups = await db.select().from(vehicleGroups);
+
+    const ws = XLSX.utils.json_to_sheet(groups);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Vehicle Groups");
+
+    const buf = XLSX.write(wb, { type: "buffer", bookType: "xlsx" });
+
+    res.setHeader("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+    res.setHeader("Content-Disposition", "attachment; filename=vehicle-groups.xlsx");
+    res.send(buf);
+  } catch (error: any) {
+    console.error("Error exporting vehicle groups:", error);
+    res.status(500).json({ error: "Failed to export vehicle groups" });
+  }
+});
+
+// Import vehicle groups
+router.post("/api/vehicle-groups/import", upload.single("file"), async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ error: "No file uploaded" });
+    }
+
+    const workbook = XLSX.read(req.file.buffer);
+    const sheet = workbook.Sheets[workbook.SheetNames[0]];
+    const data = XLSX.utils.sheet_to_json(sheet);
+
+    const results = await Promise.all(
+      data.map(async (row: any) => {
+        try {
+          const validatedData = insertVehicleGroupSchema.parse(row);
+          const [group] = await db.insert(vehicleGroups).values({
+            ...validatedData,
+            is_active: true,
+            created_at: new Date(),
+            updated_at: new Date()
+          }).returning();
+          return { success: true, data: group };
+        } catch (error: any) {
+          return { 
+            success: false, 
+            error: error.name === 'ZodError' ? 'Validation error' : error.message,
+            data: row 
+          };
+        }
+      })
+    );
+
+    const failures = results.filter(r => !r.success);
+    if (failures.length > 0) {
+      return res.status(400).json({
+        error: "Some records failed to import",
+        failures
+      });
+    }
+
+    res.status(201).json({
+      message: "All records imported successfully",
+      count: results.length
+    });
+  } catch (error: any) {
+    console.error("Error importing vehicle groups:", error);
+    res.status(500).json({ error: "Failed to import vehicle groups" });
   }
 });
 
