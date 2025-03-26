@@ -692,9 +692,7 @@ export function VehicleTypeForm({ onSubmit, initialData, isEditing }: VehicleTyp
                           !field.value && "text-muted-foreground"
                         )}
                       >
-                        {field.value
-                          ? field.value
-                          : "Select or type model year"}
+                        {field.value || "Select or type model year"}
                         <ChevronDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                       </Button>
                     </FormControl>
@@ -702,23 +700,32 @@ export function VehicleTypeForm({ onSubmit, initialData, isEditing }: VehicleTyp
                   <PopoverContent className="w-full p-0">
                     <Command>
                       <CommandInput
-                        placeholder="Search model year..."
-                        className="h-9"
-                        value={field.value?.toString() || ""}
-                        onValueChange={(value) => {
-                          const year = parseInt(value);
+                        placeholder="Search or enter year..."
+                        onValueChange={(search) => {
+                          // Allow empty input for deletion
+                          if (!search) {
+                            field.onChange(undefined);
+                            return;
+                          }
+
+                          // Convert to number and validate
+                          const year = parseInt(search);
                           if (!isNaN(year) && year >= 1900 && year <= currentYear) {
                             field.onChange(year);
-                            // Update vehicle type code when all fields are available
+
+                            // Update vehicle type code if all required fields are present
                             const currentManufacturer = form.getValues("manufacturer");
                             const currentType = form.getValues("vehicleType");
-                            if (currentManufacturer && currentType && year) {
-                              form.setValue("vehicleTypeCode", `${currentManufacturer.toUpperCase()}-${currentType.toUpperCase()}-${year}`);
+                            if (currentManufacturer && currentType) {
+                              form.setValue(
+                                "vehicleTypeCode",
+                                `${currentManufacturer.toUpperCase()}-${currentType.toUpperCase()}-${year}`
+                              );
                             }
                           }
                         }}
                       />
-                      <CommandEmpty>No model year found.</CommandEmpty>
+                      <CommandEmpty>No matching year found.</CommandEmpty>
                       <CommandGroup className="max-h-60 overflow-auto">
                         {modelYears.map((year) => (
                           <CommandItem
@@ -726,11 +733,15 @@ export function VehicleTypeForm({ onSubmit, initialData, isEditing }: VehicleTyp
                             key={year}
                             onSelect={() => {
                               field.onChange(year);
-                              // Update vehicle type code when all fields are available
+
+                              // Update vehicle type code if all required fields are present
                               const currentManufacturer = form.getValues("manufacturer");
                               const currentType = form.getValues("vehicleType");
-                              if (currentManufacturer && currentType && year) {
-                                form.setValue("vehicleTypeCode", `${currentManufacturer.toUpperCase()}-${currentType.toUpperCase()}-${year}`);
+                              if (currentManufacturer && currentType) {
+                                form.setValue(
+                                  "vehicleTypeCode",
+                                  `${currentManufacturer.toUpperCase()}-${currentType.toUpperCase()}-${year}`
+                                );
                               }
                             }}
                           >
