@@ -53,9 +53,9 @@ export default function VehicleGroupManagement() {
   const [groupToDelete, setGroupToDelete] = useState<VehicleGroup | null>(null);
   const [formDialogOpen, setFormDialogOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
-  const [selectedRegion, setSelectedRegion] = useState<string>("");
-  const [selectedType, setSelectedType] = useState<string>("");
-  const [selectedDepartment, setSelectedDepartment] = useState<string>("");
+  const [selectedRegion, setSelectedRegion] = useState<string>("all");
+  const [selectedType, setSelectedType] = useState<string>("all");
+  const [selectedDepartment, setSelectedDepartment] = useState<string>("all");
   const { toast } = useToast();
 
   // Query for fetching vehicle groups
@@ -86,9 +86,9 @@ export default function VehicleGroupManagement() {
         group.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
         group.description?.toLowerCase().includes(searchTerm.toLowerCase());
 
-      const matchesRegion = selectedRegion === "" || group.region === selectedRegion;
-      const matchesType = selectedType === "" || group.type === selectedType;
-      const matchesDepartment = selectedDepartment === "" || group.department === selectedDepartment;
+      const matchesRegion = selectedRegion === "all" || group.region === selectedRegion;
+      const matchesType = selectedType === "all" || group.type === selectedType;
+      const matchesDepartment = selectedDepartment === "all" || group.department === selectedDepartment;
 
       return matchesSearch && matchesRegion && matchesType && matchesDepartment;
     });
@@ -314,7 +314,7 @@ export default function VehicleGroupManagement() {
                     <SelectValue placeholder="Filter by Region" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">All Regions</SelectItem>
+                    <SelectItem value="all">All Regions</SelectItem>
                     {Object.values(Region).map((region) => (
                       <SelectItem key={region} value={region}>
                         {region}
@@ -327,7 +327,7 @@ export default function VehicleGroupManagement() {
                     <SelectValue placeholder="Filter by Type" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">All Types</SelectItem>
+                    <SelectItem value="all">All Types</SelectItem>
                     {Object.values(VehicleGroupType).map((type) => (
                       <SelectItem key={type} value={type}>
                         {type}
@@ -340,7 +340,7 @@ export default function VehicleGroupManagement() {
                     <SelectValue placeholder="Filter by Department" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">All Departments</SelectItem>
+                    <SelectItem value="all">All Departments</SelectItem>
                     {Object.values(Department).map((dept) => (
                       <SelectItem key={dept} value={dept}>
                         {dept}
@@ -352,9 +352,9 @@ export default function VehicleGroupManagement() {
                   variant="outline"
                   onClick={() => {
                     setSearchTerm("");
-                    setSelectedRegion("");
-                    setSelectedType("");
-                    setSelectedDepartment("");
+                    setSelectedRegion("all");
+                    setSelectedType("all");
+                    setSelectedDepartment("all");
                   }}
                 >
                   Clear Filters
