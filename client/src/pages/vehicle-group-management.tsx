@@ -32,12 +32,19 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 
 export default function VehicleGroupManagement() {
   console.log("Rendering VehicleGroupManagement component");
   const [selectedGroup, setSelectedGroup] = useState<VehicleGroup | null>(null);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [groupToDelete, setGroupToDelete] = useState<VehicleGroup | null>(null);
+  const [formDialogOpen, setFormDialogOpen] = useState(false);
   const { toast } = useToast();
 
   // Query for fetching vehicle groups
@@ -82,6 +89,7 @@ export default function VehicleGroupManagement() {
       console.log("Vehicle group created successfully");
       queryClient.invalidateQueries({ queryKey: ["/api/vehicle-groups"] });
       setSelectedGroup(null);
+      setFormDialogOpen(false);
       toast({
         title: "Success",
         description: "Vehicle group created successfully",
@@ -144,6 +152,7 @@ export default function VehicleGroupManagement() {
         await apiRequest("PATCH", `/api/vehicle-groups/${selectedGroup.id}`, data);
         queryClient.invalidateQueries({ queryKey: ["/api/vehicle-groups"] });
         setSelectedGroup(null);
+        setFormDialogOpen(false);
         toast({
           title: "Success",
           description: "Vehicle group updated successfully",
@@ -254,6 +263,11 @@ export default function VehicleGroupManagement() {
     queryClient.invalidateQueries({ queryKey: ["/api/vehicle-groups"] });
   }, []);
 
+  const handleEdit = useCallback((group: VehicleGroup) => {
+    setSelectedGroup(group);
+    setFormDialogOpen(true);
+  }, []);
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-background/50 via-background to-background/90 p-6">
       <motion.div
@@ -262,19 +276,6 @@ export default function VehicleGroupManagement() {
         transition={{ duration: 0.5 }}
       >
         <Card className="backdrop-blur-xl bg-background/60 border border-white/10 shadow-2xl">
-          <CardHeader>
-            <CardTitle>{selectedGroup ? "Edit Vehicle Group" : "Create Vehicle Group"}</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <VehicleGroupForm
-              onSubmit={handleSubmit}
-              initialData={selectedGroup}
-              isEditing={!!selectedGroup}
-            />
-          </CardContent>
-        </Card>
-
-        <Card className="mt-6 backdrop-blur-xl bg-background/60 border border-white/10 shadow-2xl">
           <CardHeader>
             <CardTitle>Vehicle Groups List</CardTitle>
           </CardHeader>
@@ -332,7 +333,7 @@ export default function VehicleGroupManagement() {
                             <Button
                               variant="outline"
                               size="sm"
-                              onClick={() => setSelectedGroup(group)}
+                              onClick={() => handleEdit(group)}
                               className="flex items-center gap-1"
                             >
                               <Edit className="w-4 h-4" />
@@ -359,12 +360,28 @@ export default function VehicleGroupManagement() {
         </Card>
 
         <VehicleGroupFAB
-          onAddClick={() => setSelectedGroup(null)}
+          onAddClick={() => {
+            setSelectedGroup(null);
+            setFormDialogOpen(true);
+          }}
           onImport={handleImport}
           onExport={handleExport}
           onDownloadTemplate={handleDownloadTemplate}
           onRefresh={handleRefresh}
         />
+
+        <Dialog open={formDialogOpen} onOpenChange={setFormDialogOpen}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>{selectedGroup ? "Edit Vehicle Group" : "Create Vehicle Group"}</DialogTitle>
+            </DialogHeader>
+            <VehicleGroupForm
+              onSubmit={handleSubmit}
+              initialData={selectedGroup}
+              isEditing={!!selectedGroup}
+            />
+          </DialogContent>
+        </Dialog>
 
         <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
           <AlertDialogContent>
