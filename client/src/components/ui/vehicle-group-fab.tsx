@@ -21,11 +21,11 @@ export function VehicleGroupFAB({
 }: VehicleGroupFABProps) {
   const [isOpen, setIsOpen] = useState(false);
   const { toast } = useToast();
-  
+
   const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
-    
+
     try {
       await onImport(file);
       setIsOpen(false);
@@ -160,14 +160,14 @@ export function VehicleGroupFAB({
       >
         <Button
           size="lg"
-          className="rounded-full h-14 w-14 bg-primary shadow-lg hover:shadow-xl transition-shadow"
+          className="rounded-full h-14 w-14 bg-primary/90 shadow-lg hover:shadow-xl transition-shadow duration-200 hover:bg-primary"
           onClick={() => setIsOpen(!isOpen)}
         >
           <motion.div
             animate={{ rotate: isOpen ? 45 : 0 }}
             transition={{ duration: 0.2 }}
           >
-            <Plus className="h-6 w-6" />
+            <Plus className="h-6 w-6 text-primary-foreground" />
           </motion.div>
         </Button>
       </motion.div>
