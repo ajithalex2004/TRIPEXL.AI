@@ -3,6 +3,7 @@ import { useForm } from "react-hook-form";
 import { useQuery } from "@tanstack/react-query";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { InsertVehicleTypeMaster, Department, insertVehicleTypeMasterSchema, VehicleTypeMaster, VehicleGroup, VehicleFuelType, Region } from "@shared/schema"; 
+import { apiRequest } from "@/lib/queryClient";
 import {
   Form,
   FormControl,
@@ -476,14 +477,23 @@ interface VehicleTypeFormProps {
 export function VehicleTypeForm({ onSubmit, initialData, isEditing }: VehicleTypeFormProps) {
   const { toast } = useToast();
 
-  // Fetch vehicle groups for the dropdown
+  // Fetch vehicle groups with proper error handling
   const { data: vehicleGroups, isLoading: loadingGroups } = useQuery<VehicleGroup[]>({
     queryKey: ["/api/vehicle-groups"],
+    queryFn: async () => {
+      const response = await apiRequest("GET", "/api/vehicle-groups");
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || "Failed to fetch vehicle groups");
+      }
+      return response.json();
+    },
     enabled: true,
     retry: 3,
-    staleTime: 30000, // Cache for 30 seconds
-    cacheTime: 60000, // Keep in cache for 1 minute
+    staleTime: 30000,
+    cacheTime: 60000,
     onError: (error: any) => {
+      console.error("Error fetching vehicle groups:", error);
       toast({
         title: "Error fetching vehicle groups",
         description: error.message || "Failed to load vehicle groups",
@@ -492,7 +502,6 @@ export function VehicleTypeForm({ onSubmit, initialData, isEditing }: VehicleTyp
     }
   });
 
-  // Update fuel prices query and handling
   const { data: fuelPrices, isLoading: loadingFuelPrices } = useQuery({
     queryKey: ["/api/fuel-prices"],
     enabled: true,
@@ -530,14 +539,12 @@ export function VehicleTypeForm({ onSubmit, initialData, isEditing }: VehicleTyp
     }
   });
 
-  // Watch form values
   const selectedFuelType = form.watch("fuelType");
   const fuelEfficiency = form.watch("fuelEfficiency");
   const fuelPricePerLitre = form.watch("fuelPricePerLitre");
   const vehicleType = form.watch("vehicleType");
   const selectedManufacturer = form.watch("manufacturer");
 
-  // Update cost per km when fuel efficiency or price changes
   const calculateCostPerKm = (fuelPrice: number, fuelEfficiency: number) => {
     if (!fuelPrice || !fuelEfficiency || fuelEfficiency <= 0) return 0;
     return Number((fuelPrice / fuelEfficiency).toFixed(2));
@@ -548,7 +555,6 @@ export function VehicleTypeForm({ onSubmit, initialData, isEditing }: VehicleTyp
     form.setValue("costPerKm", costPerKm);
   }, [fuelEfficiency, fuelPricePerLitre, form]);
 
-  // Set initial data
   useEffect(() => {
     if (initialData) {
       form.reset({
@@ -559,7 +565,6 @@ export function VehicleTypeForm({ onSubmit, initialData, isEditing }: VehicleTyp
     }
   }, [initialData, form]);
 
-  // Set initial fuel price when prices are loaded
   useEffect(() => {
     if (fuelPrices && selectedFuelType) {
       const price = fuelPrices[selectedFuelType.toLowerCase()];
@@ -569,7 +574,6 @@ export function VehicleTypeForm({ onSubmit, initialData, isEditing }: VehicleTyp
     }
   }, [fuelPrices, selectedFuelType, form]);
 
-  // Update vehicle details when vehicle type changes
   useEffect(() => {
     if (vehicleType && selectedManufacturer) {
       const modelYear = form.getValues("modelYear");
@@ -592,7 +596,6 @@ export function VehicleTypeForm({ onSubmit, initialData, isEditing }: VehicleTyp
     }
   }, [vehicleType, form, selectedManufacturer]);
 
-  // Update useEffect for fuel type changes
   useEffect(() => {
     const selectedFuelType = form.watch("fuelType");
     if (selectedFuelType && vehicleType && selectedManufacturer) {
@@ -602,7 +605,6 @@ export function VehicleTypeForm({ onSubmit, initialData, isEditing }: VehicleTyp
     }
   }, [form.watch("fuelType"), vehicleType, selectedManufacturer]);
 
-  // Update fuel efficiency when model year or fuel type changes
   useEffect(() => {
     const modelYear = form.watch("modelYear");
     const currentType = form.getValues("vehicleType");
@@ -617,7 +619,6 @@ export function VehicleTypeForm({ onSubmit, initialData, isEditing }: VehicleTyp
     }
   }, [form.watch("modelYear"), form.watch("fuelType"), selectedManufacturer]);
 
-  // Add effect to update CO2 emission factor when fuel type changes
   useEffect(() => {
     const selectedFuelType = form.watch("fuelType");
     if (selectedFuelType) {
@@ -630,7 +631,6 @@ export function VehicleTypeForm({ onSubmit, initialData, isEditing }: VehicleTyp
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
         <div className="grid grid-cols-3 gap-4">
-          {/* Vehicle Group */}
           <FormField
             control={form.control}
             name="groupId"
@@ -639,7 +639,7 @@ export function VehicleTypeForm({ onSubmit, initialData, isEditing }: VehicleTyp
                 <FormLabel>Vehicle Group *</FormLabel>
                 <Select
                   onValueChange={(value) => field.onChange(parseInt(value))}
-                  value={field.value?.toString()}
+                  value={field.value ? field.value.toString() : undefined}
                   disabled={loadingGroups}
                 >
                   <FormControl>
@@ -669,8 +669,6 @@ export function VehicleTypeForm({ onSubmit, initialData, isEditing }: VehicleTyp
               </FormItem>
             )}
           />
-
-          {/* Manufacturer/Make field */}
           <FormField
             control={form.control}
             name="manufacturer"
@@ -703,8 +701,6 @@ export function VehicleTypeForm({ onSubmit, initialData, isEditing }: VehicleTyp
               </FormItem>
             )}
           />
-
-          {/* Model Year field */}
           <FormField
             control={form.control}
             name="modelYear"
@@ -792,8 +788,6 @@ export function VehicleTypeForm({ onSubmit, initialData, isEditing }: VehicleTyp
               </FormItem>
             )}
           />
-
-          {/* Vehicle Type field */}
           <FormField
             control={form.control}
             name="vehicleType"
@@ -843,8 +837,6 @@ export function VehicleTypeForm({ onSubmit, initialData, isEditing }: VehicleTyp
               </FormItem>
             )}
           />
-
-          {/* Vehicle Type Code field */}
           <FormField
             control={form.control}
             name="vehicleTypeCode"
@@ -862,8 +854,6 @@ export function VehicleTypeForm({ onSubmit, initialData, isEditing }: VehicleTyp
               </FormItem>
             )}
           />
-
-          {/* Fuel-related fields */}
           <FormField
             control={form.control}
             name="fuelType"
@@ -925,8 +915,6 @@ export function VehicleTypeForm({ onSubmit, initialData, isEditing }: VehicleTyp
               </FormItem>
             )}
           />
-
-          {/* CO2 Emission Factor field */}
           <FormField
             control={form.control}
             name="co2EmissionFactor"
@@ -946,8 +934,6 @@ export function VehicleTypeForm({ onSubmit, initialData, isEditing }: VehicleTyp
               </FormItem>
             )}
           />
-
-          {/* Service Plan field */}
           <FormField
             control={form.control}
             name="servicePlan"
@@ -997,8 +983,6 @@ export function VehicleTypeForm({ onSubmit, initialData, isEditing }: VehicleTyp
               </FormItem>
             )}
           />
-
-          {/* Alert Before field */}
           <FormField
             control={form.control}
             name="alertBefore"
@@ -1036,8 +1020,6 @@ export function VehicleTypeForm({ onSubmit, initialData, isEditing }: VehicleTyp
               </FormItem>
             )}
           />
-
-          {/* Region, Department, Unit at the bottom */}
           <FormField
             control={form.control}
             name="region"
@@ -1089,7 +1071,6 @@ export function VehicleTypeForm({ onSubmit, initialData, isEditing }: VehicleTyp
               </FormItem>
             )}
           />
-
           <FormField
             control={form.control}
             name="unit"
@@ -1107,7 +1088,6 @@ export function VehicleTypeForm({ onSubmit, initialData, isEditing }: VehicleTyp
               </FormItem>
             )}
           />
-          {/* Added Vehicle Capacity Field */}
           <FormField
             control={form.control}
             name="vehicleCapacity"
@@ -1127,7 +1107,6 @@ export function VehicleTypeForm({ onSubmit, initialData, isEditing }: VehicleTyp
             )}
           />
         </div>
-
         <Button type="submit" className="w-full">
           {isEditing ? "Update Vehicle Type" : "Create Vehicle Type"}
         </Button>
