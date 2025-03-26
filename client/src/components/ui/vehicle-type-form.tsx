@@ -480,13 +480,13 @@ export function VehicleTypeForm({ onSubmit, initialData, isEditing }: VehicleTyp
   const { data: vehicleGroups, isLoading: loadingGroups } = useQuery<VehicleGroup[]>({
     queryKey: ["/api/vehicle-groups"],
     enabled: true,
+    retry: 3,
     staleTime: 30000, // Cache for 30 seconds
     cacheTime: 60000, // Keep in cache for 1 minute
-    retry: 3,
-    onError: (error) => {
+    onError: (error: any) => {
       toast({
         title: "Error fetching vehicle groups",
-        description: "Failed to load vehicle groups",
+        description: error.message || "Failed to load vehicle groups",
         variant: "destructive",
       });
     }
@@ -497,10 +497,10 @@ export function VehicleTypeForm({ onSubmit, initialData, isEditing }: VehicleTyp
     queryKey: ["/api/fuel-prices"],
     enabled: true,
     retry: 3,
-    onError: (error) => {
+    onError: (error: any) => {
       toast({
         title: "Error fetching fuel prices",
-        description: "Failed to load current fuel prices",
+        description: error.message || "Failed to load current fuel prices",
         variant: "destructive",
       });
     }
@@ -962,7 +962,8 @@ export function VehicleTypeForm({ onSubmit, initialData, isEditing }: VehicleTyp
             )}
           />
           <FormField
-            control={form.control}            name="costPerKm"
+            control={form.control}            
+            name="costPerKm"
             render={({ field }) => (
               <FormItem>
                 <FormLabel>Cost Per KM (Calculated) *</FormLabel>
