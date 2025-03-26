@@ -160,14 +160,14 @@ export function VehicleGroupFAB({
       >
         <Button
           size="lg"
-          className="rounded-full h-14 w-14 bg-primary/90 shadow-lg hover:shadow-xl transition-shadow duration-200 hover:bg-primary"
+          className="rounded-full h-14 w-14 bg-gradient-to-br from-primary to-primary/80 shadow-lg hover:shadow-xl transition-all duration-300 hover:from-primary/90 hover:to-primary border-2 border-primary/20"
           onClick={() => setIsOpen(!isOpen)}
         >
           <motion.div
             animate={{ rotate: isOpen ? 45 : 0 }}
             transition={{ duration: 0.2 }}
           >
-            <Plus className="h-6 w-6 text-primary-foreground" />
+            <Plus className="h-6 w-6 text-white" />
           </motion.div>
         </Button>
       </motion.div>
