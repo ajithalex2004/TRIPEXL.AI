@@ -392,6 +392,7 @@ export const users = pgTable("users", {
   reset_token_expiry: timestamp("reset_token_expiry")
 });
 
+// Update the vehicle groups table definition
 export const vehicleGroups = pgTable("vehicle_groups", {
   id: serial("id").primaryKey(),
   group_code: text("group_code").notNull().unique(),
@@ -760,7 +761,10 @@ export const insertVehicleGroupSchema = createInsertSchema(vehicleGroups)
     name: z.string().min(1, "Vehicle group name is required")
       .max(100, "Vehicle group name cannot exceed 100 characters"),
     image_url: z.string().optional().nullable(),
-    description: z.string().optional().nullable()
+    description: z.string().optional().nullable(),
+    is_active: z.boolean().optional(),
+    created_at: z.date().optional(),
+    updated_at: z.date().optional()
   });
 
 // Update the insertApprovalWorkflowSchema with proper validations
