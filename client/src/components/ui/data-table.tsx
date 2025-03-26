@@ -2,7 +2,6 @@ import * as React from "react";
 import {
   flexRender,
   getCoreRowModel,
-  getFilteredRowModel,
   getPaginationRowModel,
   getSortedRowModel,
   useReactTable,
@@ -17,23 +16,17 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 
 interface DataTableProps<TData> {
   columns: ColumnDef<TData, any>[];
   data: TData[];
-  filterColumn?: string;
-  filterPlaceholder?: string;
 }
 
 export function DataTable<TData>({
   columns,
   data,
-  filterColumn,
-  filterPlaceholder,
 }: DataTableProps<TData>) {
   const [sorting, setSorting] = React.useState([]);
-  const [filtering, setFiltering] = React.useState("");
 
   const table = useReactTable({
     data,
@@ -41,27 +34,14 @@ export function DataTable<TData>({
     getCoreRowModel: getCoreRowModel(),
     getPaginationRowModel: getPaginationRowModel(),
     getSortedRowModel: getSortedRowModel(),
-    getFilteredRowModel: getFilteredRowModel(),
     state: {
       sorting,
-      globalFilter: filtering,
     },
     onSortingChange: setSorting,
-    onGlobalFilterChange: setFiltering,
   });
 
   return (
     <div className="space-y-4">
-      {filterColumn && (
-        <div className="flex items-center py-4">
-          <Input
-            placeholder={filterPlaceholder || "Filter..."}
-            value={filtering}
-            onChange={(event) => setFiltering(event.target.value)}
-            className="max-w-sm"
-          />
-        </div>
-      )}
       <div className="rounded-md border">
         <Table>
           <TableHeader>

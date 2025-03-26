@@ -25,11 +25,15 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { apiRequest } from "@/lib/queryClient";
+import { QuickFilter, type FilterOption } from "@/components/ui/quick-filter";
 
 export default function VehicleMasterManagement() {
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [selectedVehicle, setSelectedVehicle] = useState<VehicleMaster | null>(null);
   const [deleteVehicle, setDeleteVehicle] = useState<VehicleMaster | null>(null);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [activeFilters, setActiveFilters] = useState<Record<string, string>>({});
+
   const queryClient = useQueryClient();
   const { toast } = useToast();
 
@@ -38,7 +42,60 @@ export default function VehicleMasterManagement() {
     queryKey: ["/api/vehicle-master"],
   });
 
-  // Delete mutation
+  // Filter options for quick filter
+  const filterOptions: FilterOption[] = [
+    {
+      label: "Department",
+      value: "department",
+      options: [
+        { label: "Operations", value: "Operations" },
+        { label: "Maintenance", value: "Maintenance" },
+        { label: "Administration", value: "Administration" },
+      ]
+    },
+    {
+      label: "Status",
+      value: "status",
+      options: [
+        { label: "Active", value: "active" },
+        { label: "Inactive", value: "inactive" },
+      ]
+    },
+    {
+      label: "Fuel Type",
+      value: "fuelType",
+      options: [
+        { label: "Petrol", value: "Petrol" },
+        { label: "Diesel", value: "Diesel" },
+        { label: "Electric", value: "Electric" },
+        { label: "Hybrid", value: "Hybrid" },
+      ]
+    }
+  ];
+
+  // Filter vehicles based on search term and active filters
+  const filteredVehicles = useMemo(() => {
+    if (!vehicles) return [];
+
+    return vehicles.filter(vehicle => {
+      // Search term filter
+      const matchesSearch = !searchTerm || 
+        vehicle.vehicleId.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        vehicle.registrationNumber.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        vehicle.manufacturer.toLowerCase().includes(searchTerm.toLowerCase());
+
+      // Active filters
+      const matchesDepartment = !activeFilters.department || 
+        vehicle.department === activeFilters.department;
+      const matchesStatus = !activeFilters.status || 
+        (activeFilters.status === "active" ? vehicle.isValid : !vehicle.isValid);
+      const matchesFuelType = !activeFilters.fuelType || 
+        vehicle.fuelType === activeFilters.fuelType;
+
+      return matchesSearch && matchesDepartment && matchesStatus && matchesFuelType;
+    });
+  }, [vehicles, searchTerm, activeFilters]);
+
   const deleteMutation = useMutation({
     mutationFn: async (id: number) => {
       const response = await apiRequest("DELETE", `/api/vehicle-master/${id}`);
@@ -193,6 +250,14 @@ export default function VehicleMasterManagement() {
         </div>
       </div>
 
+      <QuickFilter
+        searchPlaceholder="Search by ID, registration number, or manufacturer..."
+        filterOptions={filterOptions}
+        onSearchChange={setSearchTerm}
+        onFilterChange={setActiveFilters}
+        className="mb-6"
+      />
+
       <Card>
         <CardHeader>
           <CardTitle>Vehicle Master Records</CardTitle>
@@ -208,9 +273,7 @@ export default function VehicleMasterManagement() {
           ) : (
             <DataTable
               columns={columns}
-              data={vehicles || []}
-              filterColumn="vehicleId"
-              filterPlaceholder="Filter by Vehicle ID..."
+              data={filteredVehicles}
             />
           )}
         </CardContent>
