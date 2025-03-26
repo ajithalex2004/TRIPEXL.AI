@@ -21,6 +21,21 @@ import {
 } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import {
+  Command,
+  CommandInput,
+  CommandEmpty,
+  CommandGroup,
+  CommandItem,
+} from "@/components/ui/command";
+import { ChevronDown, Check } from "lucide-react";
+import { cn } from "@/lib/utils";
+
 
 const currentYear = new Date().getFullYear();
 const modelYears = Array.from(
@@ -591,7 +606,6 @@ export function VehicleTypeForm({ onSubmit, initialData, isEditing }: VehicleTyp
     }
   }, [form.watch("fuelType")]);
 
-
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
@@ -665,34 +679,74 @@ export function VehicleTypeForm({ onSubmit, initialData, isEditing }: VehicleTyp
             control={form.control}
             name="modelYear"
             render={({ field }) => (
-              <FormItem>
+              <FormItem className="flex flex-col">
                 <FormLabel>Model Year *</FormLabel>
-                <Select
-                  onValueChange={(value) => {
-                    const year = Number(value);
-                    field.onChange(year);
-                    // Update vehicle type code when all fields are available
-                    const currentManufacturer = form.getValues("manufacturer");
-                    const currentType = form.getValues("vehicleType");
-                    if (currentManufacturer && currentType && year) {
-                      form.setValue("vehicleTypeCode", `${currentManufacturer.toUpperCase()}-${currentType.toUpperCase()}-${year}`);
-                    }
-                  }}
-                  value={field.value?.toString()}
-                >
-                  <FormControl>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select model year" />
-                    </SelectTrigger>
-                  </FormControl>
-                  <SelectContent>
-                    {modelYears.map((year) => (
-                      <SelectItem key={year} value={year.toString()}>
-                        {year}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <FormControl>
+                      <Button
+                        variant="outline"
+                        role="combobox"
+                        className={cn(
+                          "w-full justify-between",
+                          !field.value && "text-muted-foreground"
+                        )}
+                      >
+                        {field.value
+                          ? field.value
+                          : "Select or type model year"}
+                        <ChevronDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                      </Button>
+                    </FormControl>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-full p-0">
+                    <Command>
+                      <CommandInput
+                        placeholder="Search model year..."
+                        className="h-9"
+                        value={field.value?.toString() || ""}
+                        onValueChange={(value) => {
+                          const year = parseInt(value);
+                          if (!isNaN(year) && year >= 1900 && year <= currentYear) {
+                            field.onChange(year);
+                            // Update vehicle type code when all fields are available
+                            const currentManufacturer = form.getValues("manufacturer");
+                            const currentType = form.getValues("vehicleType");
+                            if (currentManufacturer && currentType && year) {
+                              form.setValue("vehicleTypeCode", `${currentManufacturer.toUpperCase()}-${currentType.toUpperCase()}-${year}`);
+                            }
+                          }
+                        }}
+                      />
+                      <CommandEmpty>No model year found.</CommandEmpty>
+                      <CommandGroup className="max-h-60 overflow-auto">
+                        {modelYears.map((year) => (
+                          <CommandItem
+                            value={year.toString()}
+                            key={year}
+                            onSelect={() => {
+                              field.onChange(year);
+                              // Update vehicle type code when all fields are available
+                              const currentManufacturer = form.getValues("manufacturer");
+                              const currentType = form.getValues("vehicleType");
+                              if (currentManufacturer && currentType && year) {
+                                form.setValue("vehicleTypeCode", `${currentManufacturer.toUpperCase()}-${currentType.toUpperCase()}-${year}`);
+                              }
+                            }}
+                          >
+                            <Check
+                              className={cn(
+                                "mr-2 h-4 w-4",
+                                field.value === year ? "opacity-100" : "opacity-0"
+                              )}
+                            />
+                            {year}
+                          </CommandItem>
+                        ))}
+                      </CommandGroup>
+                    </Command>
+                  </PopoverContent>
+                </Popover>
                 <FormMessage />
               </FormItem>
             )}
