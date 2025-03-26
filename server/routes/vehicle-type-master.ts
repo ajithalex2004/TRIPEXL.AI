@@ -60,6 +60,65 @@ router.get("/api/fuel-prices", (_req, res) => {
   }
 });
 
+// Create new vehicle type
+router.post("/api/vehicle-types", async (req, res) => {
+  try {
+    console.log("Received vehicle type data:", req.body);
+
+    const result = insertVehicleTypeMasterSchema.safeParse(req.body);
+
+    if (!result.success) {
+      console.error("Validation failed:", result.error.issues);
+      return res.status(400).json({
+        error: "Invalid vehicle type data",
+        details: result.error.issues
+      });
+    }
+
+    // Convert string values to proper types
+    const vehicleData = {
+      ...result.data,
+      model_year: Number(result.data.model_year),
+      number_of_passengers: Number(result.data.number_of_passengers),
+      fuel_efficiency: Number(result.data.fuel_efficiency).toString(),
+      fuel_price_per_litre: Number(result.data.fuel_price_per_litre).toString(),
+      cost_per_km: Number(result.data.cost_per_km).toString(),
+      alert_before: Number(result.data.alert_before),
+      idle_fuel_consumption: Number(result.data.idle_fuel_consumption).toString(),
+      vehicle_capacity: Number(result.data.vehicle_capacity),
+      co2_emission_factor: Number(result.data.co2_emission_factor).toString(),
+      is_active: true,
+      created_at: new Date(),
+      updated_at: new Date()
+    };
+
+    console.log("Formatted data for insertion:", vehicleData);
+
+    const [newType] = await db
+      .insert(vehicleTypeMaster)
+      .values(vehicleData)
+      .returning();
+
+    console.log("Successfully created vehicle type:", newType);
+    res.status(201).json(newType);
+  } catch (error: any) {
+    console.error("Error creating vehicle type:", error);
+
+    if (error.code === '23505') {
+      return res.status(400).json({ 
+        error: "Vehicle type with this code already exists",
+        details: error.detail
+      });
+    }
+
+    res.status(500).json({ 
+      error: "Failed to create vehicle type",
+      message: error.message,
+      details: error.stack
+    });
+  }
+});
+
 // Get all vehicle types
 router.get("/api/vehicle-types", async (_req, res) => {
   try {
@@ -70,54 +129,6 @@ router.get("/api/vehicle-types", async (_req, res) => {
   } catch (error: any) {
     console.error("Error fetching vehicle types:", error);
     res.status(500).json({ error: error.message });
-  }
-});
-
-// Create new vehicle type
-router.post("/api/vehicle-types", async (req, res) => {
-  try {
-    console.log("Creating vehicle type with data:", req.body);
-
-    const result = insertVehicleTypeMasterSchema.safeParse(req.body);
-
-    if (!result.success) {
-      console.error("Invalid vehicle type data:", result.error.issues);
-      return res.status(400).json({
-        error: "Invalid vehicle type data",
-        details: result.error.issues
-      });
-    }
-
-    // Log the validated data before insertion
-    console.log("Validated data for insertion:", result.data);
-
-    // Insert into database
-    const [newType] = await db
-      .insert(vehicleTypeMaster)
-      .values({
-        ...result.data,
-        is_active: true,
-        created_at: new Date(),
-        updated_at: new Date()
-      })
-      .returning();
-
-    console.log("Created new vehicle type:", newType);
-    res.status(201).json(newType);
-  } catch (error: any) {
-    console.error("Error creating vehicle type:", error);
-
-    if (error.code === '23505') { // Unique constraint violation
-      return res.status(400).json({ 
-        error: "Vehicle type with this code already exists",
-        details: error.detail
-      });
-    }
-
-    res.status(500).json({ 
-      error: "Failed to create vehicle type",
-      message: error.message 
-    });
   }
 });
 
