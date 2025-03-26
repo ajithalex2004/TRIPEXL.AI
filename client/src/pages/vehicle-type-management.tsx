@@ -19,13 +19,20 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { motion, AnimatePresence } from "framer-motion";
 
 export default function VehicleTypeManagement() {
   const [selectedType, setSelectedType] = useState<VehicleTypeMaster | null>(null);
+  const [isFormOpen, setIsFormOpen] = useState(false);
   const { toast } = useToast();
 
-  const { data: vehicleTypes, isLoading, error } = useQuery<VehicleTypeMaster[]>({
+  const { data: vehicleTypes, isLoading } = useQuery<VehicleTypeMaster[]>({
     queryKey: ["/api/vehicle-types"],
     staleTime: 0,
     retry: 3,
@@ -46,6 +53,7 @@ export default function VehicleTypeManagement() {
         title: "Success",
         description: "Vehicle type created successfully",
       });
+      setIsFormOpen(false);
     },
     onError: (error: Error) => {
       toast({
@@ -71,6 +79,8 @@ export default function VehicleTypeManagement() {
         title: "Success",
         description: "Vehicle type updated successfully",
       });
+      setIsFormOpen(false);
+      setSelectedType(null);
     },
     onError: (error: Error) => {
       toast({
@@ -85,7 +95,6 @@ export default function VehicleTypeManagement() {
     try {
       if (selectedType) {
         await updateMutation.mutateAsync({ ...data, id: selectedType.id });
-        setSelectedType(null);
       } else {
         await createMutation.mutateAsync(data);
       }
@@ -174,19 +183,6 @@ export default function VehicleTypeManagement() {
       <div className="max-w-7xl mx-auto space-y-6">
         <Card className="backdrop-blur-xl bg-background/60 border border-white/10 shadow-2xl">
           <CardHeader>
-            <CardTitle>{selectedType ? "Update Vehicle Type" : "Create Vehicle Type"}</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <VehicleTypeForm
-              onSubmit={handleSubmit}
-              initialData={selectedType}
-              isEditing={!!selectedType}
-            />
-          </CardContent>
-        </Card>
-
-        <Card className="mt-6 backdrop-blur-xl bg-background/60 border border-white/10 shadow-2xl">
-          <CardHeader>
             <CardTitle>Vehicle Types List</CardTitle>
           </CardHeader>
           <CardContent>
@@ -203,27 +199,24 @@ export default function VehicleTypeManagement() {
                     <TableHead>Vehicle Type</TableHead>
                     <TableHead>Region</TableHead>
                     <TableHead>Department</TableHead>
-                    <TableHead>Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   <AnimatePresence>
                     {vehicleTypes?.map((type) => (
-                      <TableRow key={type.id}>
+                      <TableRow 
+                        key={type.id}
+                        className="cursor-pointer hover:bg-accent/50"
+                        onClick={() => {
+                          setSelectedType(type);
+                          setIsFormOpen(true);
+                        }}
+                      >
                         <TableCell>{type.vehicleGroup}</TableCell>
                         <TableCell>{type.vehicleTypeCode}</TableCell>
                         <TableCell>{type.vehicleType}</TableCell>
                         <TableCell>{type.region}</TableCell>
                         <TableCell>{type.department}</TableCell>
-                        <TableCell>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => setSelectedType(type)}
-                          >
-                            Edit
-                          </Button>
-                        </TableCell>
                       </TableRow>
                     ))}
                   </AnimatePresence>
@@ -234,8 +227,26 @@ export default function VehicleTypeManagement() {
         </Card>
       </div>
 
+      <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
+        <DialogContent className="max-w-3xl">
+          <DialogHeader>
+            <DialogTitle>
+              {selectedType ? "Edit Vehicle Type" : "Add Vehicle Type"}
+            </DialogTitle>
+          </DialogHeader>
+          <VehicleTypeForm
+            onSubmit={handleSubmit}
+            initialData={selectedType}
+            isEditing={!!selectedType}
+          />
+        </DialogContent>
+      </Dialog>
+
       <VehicleTypeFAB
-        onAddClick={() => setSelectedType(null)}
+        onAddClick={() => {
+          setSelectedType(null);
+          setIsFormOpen(true);
+        }}
         onImport={handleImport}
         onExport={handleExport}
         onDownloadTemplate={handleDownloadTemplate}
