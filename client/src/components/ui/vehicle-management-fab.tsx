@@ -130,31 +130,33 @@ export function VehicleManagementFAB({ onAddVehicle, onRefresh }: VehicleManagem
           >
             <Button
               variant="outline"
-              size="icon"
-              className="bg-white shadow-lg hover:bg-gray-100 dark:bg-gray-800 dark:hover:bg-gray-700"
+              className="bg-white shadow-lg hover:bg-gray-100 dark:bg-gray-800 dark:hover:bg-gray-700 w-40 justify-start"
               onClick={onAddVehicle}
             >
               <motion.div
-                whileHover={{ scale: 1.1 }}
-                whileTap={{ scale: 0.9 }}
+                className="flex items-center space-x-2"
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
               >
                 <Car className="h-5 w-5" />
+                <span>Add Vehicle</span>
               </motion.div>
             </Button>
 
             <Button
               variant="outline"
-              size="icon"
-              className="bg-white shadow-lg hover:bg-gray-100 dark:bg-gray-800 dark:hover:bg-gray-700"
+              className="bg-white shadow-lg hover:bg-gray-100 dark:bg-gray-800 dark:hover:bg-gray-700 w-40 justify-start"
               onClick={onRefresh}
             >
               <motion.div
-                whileHover={{ scale: 1.1 }}
-                whileTap={{ scale: 0.9 }}
+                className="flex items-center space-x-2"
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
                 animate={{ rotate: isOpen ? 360 : 0 }}
                 transition={{ duration: 0.5 }}
               >
                 <RefreshCw className="h-5 w-5" />
+                <span>Refresh</span>
               </motion.div>
             </Button>
 
@@ -167,29 +169,31 @@ export function VehicleManagementFAB({ onAddVehicle, onRefresh }: VehicleManagem
               />
               <Button
                 variant="outline"
-                size="icon"
-                className="bg-white shadow-lg hover:bg-gray-100 dark:bg-gray-800 dark:hover:bg-gray-700 w-full"
+                className="bg-white shadow-lg hover:bg-gray-100 dark:bg-gray-800 dark:hover:bg-gray-700 w-40 justify-start"
               >
                 <motion.div
-                  whileHover={{ scale: 1.1 }}
-                  whileTap={{ scale: 0.9 }}
+                  className="flex items-center space-x-2"
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
                 >
                   <Upload className="h-5 w-5" />
+                  <span>Import</span>
                 </motion.div>
               </Button>
             </div>
 
             <Button
               variant="outline"
-              size="icon"
-              className="bg-white shadow-lg hover:bg-gray-100 dark:bg-gray-800 dark:hover:bg-gray-700"
+              className="bg-white shadow-lg hover:bg-gray-100 dark:bg-gray-800 dark:hover:bg-gray-700 w-40 justify-start"
               onClick={handleExport}
             >
               <motion.div
-                whileHover={{ scale: 1.1 }}
-                whileTap={{ scale: 0.9 }}
+                className="flex items-center space-x-2"
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
               >
                 <Download className="h-5 w-5" />
+                <span>Export</span>
               </motion.div>
             </Button>
           </motion.div>
@@ -202,7 +206,7 @@ export function VehicleManagementFAB({ onAddVehicle, onRefresh }: VehicleManagem
       >
         <Button
           variant="default"
-          size="icon"
+          size="lg"
           className="h-12 w-12 rounded-full shadow-xl"
           onClick={() => setIsOpen(!isOpen)}
         >
