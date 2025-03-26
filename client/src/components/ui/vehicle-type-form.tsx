@@ -480,6 +480,8 @@ export function VehicleTypeForm({ onSubmit, initialData, isEditing }: VehicleTyp
   const { data: vehicleGroups, isLoading: loadingGroups } = useQuery<VehicleGroup[]>({
     queryKey: ["/api/vehicle-groups"],
     enabled: true,
+    staleTime: 30000, // Cache for 30 seconds
+    cacheTime: 60000, // Keep in cache for 1 minute
     retry: 3,
     onError: (error) => {
       toast({
@@ -507,7 +509,7 @@ export function VehicleTypeForm({ onSubmit, initialData, isEditing }: VehicleTyp
   const form = useForm<InsertVehicleTypeMaster>({
     resolver: zodResolver(insertVehicleTypeMasterSchema),
     defaultValues: {
-      groupId: 0,
+      groupId: initialData?.groupId || 0,
       vehicleTypeCode: "",
       manufacturer: "",
       modelYear: 0,
@@ -551,6 +553,7 @@ export function VehicleTypeForm({ onSubmit, initialData, isEditing }: VehicleTyp
     if (initialData) {
       form.reset({
         ...initialData,
+        groupId: initialData.groupId || 0,
         fuelType: initialData.fuelType || "Petrol"
       });
     }
@@ -658,15 +661,25 @@ export function VehicleTypeForm({ onSubmit, initialData, isEditing }: VehicleTyp
                 >
                   <FormControl>
                     <SelectTrigger>
-                      <SelectValue placeholder="Select vehicle group" />
+                      <SelectValue placeholder={loadingGroups ? "Loading groups..." : "Select vehicle group"} />
                     </SelectTrigger>
                   </FormControl>
                   <SelectContent>
-                    {vehicleGroups?.map((group) => (
-                      <SelectItem key={group.id} value={group.id.toString()}>
-                        {group.name}
+                    {loadingGroups ? (
+                      <SelectItem value="loading" disabled>
+                        Loading vehicle groups...
                       </SelectItem>
-                    ))}
+                    ) : vehicleGroups?.length ? (
+                      vehicleGroups.map((group) => (
+                        <SelectItem key={group.id} value={group.id.toString()}>
+                          {group.name}
+                        </SelectItem>
+                      ))
+                    ) : (
+                      <SelectItem value="none" disabled>
+                        No vehicle groups available
+                      </SelectItem>
+                    )}
                   </SelectContent>
                 </Select>
                 <FormMessage />
