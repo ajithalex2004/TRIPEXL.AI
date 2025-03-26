@@ -280,6 +280,62 @@ export const contactInfo = z.object({
 });
 
 
+export const EmployeeDesignation = {
+  // Regional Level
+  REGIONAL_DIRECTOR: "Regional Director",
+  REGIONAL_MANAGER: "Regional Manager",
+
+  // Department Level
+  DEPARTMENT_HEAD: "Department Head",
+  DEPARTMENT_MANAGER: "Department Manager",
+
+  // Unit Level
+  UNIT_HEAD: "Unit Head",
+  UNIT_SUPERVISOR: "Unit Supervisor",
+
+  // Staff Level
+  SENIOR_STAFF: "Senior Staff",
+  STAFF: "Staff",
+  JUNIOR_STAFF: "Junior Staff"
+} as const;
+
+// Update the HierarchyLevel enum
+export const HierarchyLevel = {
+  LEVEL_1: "Level 1", // Immediate Approval Authority/Dept Head
+  LEVEL_2: "Level 2"  // Senior Management
+} as const;
+
+export const employees = pgTable("employees", {
+  id: serial("id").primaryKey(),
+  employee_id: integer("employee_id").notNull().unique(),
+  employee_name: varchar("employee_name", { length: 100 }).notNull(),
+  email_id: varchar("email_id", { length: 50 }).notNull(),
+  mobile_number: varchar("mobile_number", { length: 15 }).notNull(),
+  designation: text("designation").notNull(),
+  hierarchy_level: text("hierarchy_level").notNull(),
+  employee_type: varchar("employee_type", { length: 50 }),
+  region: varchar("region", { length: 50 }).notNull(),
+  department: varchar("department", { length: 50 }).notNull(),
+  unit: varchar("unit", { length: 50 }).notNull(),
+  date_of_birth: date("date_of_birth"),
+  nationality: text("nationality"),
+  password: varchar("password", { length: 50 }),
+  communication_language: varchar("communication_language", { length: 50 }),
+  supervisor_id: integer("supervisor_id").references(() => employees.id),
+  is_active: boolean("is_active").notNull().default(true),
+  created_at: timestamp("created_at").notNull().defaultNow(),
+  updated_at: timestamp("updated_at").notNull().defaultNow()
+});
+
+export const employeesRelations = relations(employees, ({ one, many }) => ({
+  supervisor: one(employees, {
+    fields: [employees.supervisor_id],
+    references: [employees.id],
+  }),
+  subordinates: many(employees),
+  bookings: many(bookings)
+}));
+
 export const users = pgTable("users", {
   id: serial("id").primaryKey(),
   user_name: text("user_name").notNull().unique(),
@@ -424,65 +480,6 @@ export const locationsMaster = pgTable("locations_master", {
   created_at: timestamp("created_at").notNull().defaultNow(),
   updated_at: timestamp("updated_at").notNull().defaultNow()
 });
-
-// Add these enums after the existing ones, before the table definitions
-export const EmployeeDesignation = {
-  // Regional Level
-  REGIONAL_DIRECTOR: "Regional Director",
-  REGIONAL_MANAGER: "Regional Manager",
-
-  // Department Level
-  DEPARTMENT_HEAD: "Department Head",
-  DEPARTMENT_MANAGER: "Department Manager",
-
-  // Unit Level
-  UNIT_HEAD: "Unit Head",
-  UNIT_SUPERVISOR: "Unit Supervisor",
-
-  // Staff Level
-  SENIOR_STAFF: "Senior Staff",
-  STAFF: "Staff",
-  JUNIOR_STAFF: "Junior Staff"
-} as const;
-
-export const HierarchyLevel = {
-  REGIONAL: "Regional",
-  DEPARTMENT: "Department",
-  UNIT: "Unit",
-  STAFF: "Staff"
-} as const;
-
-// Update the employees table definition
-export const employees = pgTable("employees", {
-  id: serial("id").primaryKey(),
-  employee_id: integer("employee_id").notNull().unique(),
-  employee_name: varchar("employee_name", { length: 100 }).notNull(),
-  email_id: varchar("email_id", { length: 50 }).notNull(),
-  mobile_number: varchar("mobile_number", { length: 15 }).notNull(),
-  designation: text("designation").notNull(),
-  hierarchy_level: text("hierarchy_level").notNull(),
-  employee_type: varchar("employee_type", { length: 50 }),
-  region: varchar("region", { length: 50 }).notNull(),
-  department: varchar("department", { length: 50 }).notNull(),
-  unit: varchar("unit", { length: 50 }).notNull(),
-  date_of_birth: date("date_of_birth"),
-  nationality: text("nationality"),
-  password: varchar("password", { length: 50 }),
-  communication_language: varchar("communication_language", { length: 50 }),
-  supervisor_id: integer("supervisor_id").references(() => employees.id),
-  is_active: boolean("is_active").notNull().default(true),
-  created_at: timestamp("created_at").notNull().defaultNow(),
-  updated_at: timestamp("updated_at").notNull().defaultNow()
-});
-
-export const employeesRelations = relations(employees, ({ one, many }) => ({
-  supervisor: one(employees, {
-    fields: [employees.supervisor_id],
-    references: [employees.id],
-  }),
-  subordinates: many(employees),
-  bookings: many(bookings)
-}));
 
 export const bookings = pgTable("bookings", {
   id: serial("id").primaryKey(),
@@ -730,7 +727,7 @@ export const insertVehicleTypeMasterSchema = createInsertSchema(vehicleTypeMaste
     fuel_type: z.enum(Object.values(VehicleFuelType) as [string, ...string[]]),
     service_plan: z.string().optional(),
     cost_per_km: z.number().min(0, "Cost per KM must be positive"),
-    vehicle_type: z.string().min(1, "Vehicle type is required"),
+vehicle_type: z.string().min(1, "Vehicle type is required"),
     department: z.enum(Object.values(Department) as [string, ...string[]]),
     unit: z.string().optional(),
     alert_before: z.number().min(0, "Alert before must be positive").optional(),

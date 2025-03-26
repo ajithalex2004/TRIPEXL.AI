@@ -233,11 +233,12 @@ export function AddEmployeeForm({ onSuccess, initialData }: AddEmployeeFormProps
                     </SelectTrigger>
                   </FormControl>
                   <SelectContent>
-                    {Object.values(HierarchyLevel).map((level) => (
-                      <SelectItem key={level} value={level}>
-                        {level}
-                      </SelectItem>
-                    ))}
+                    <SelectItem value={HierarchyLevel.LEVEL_1}>
+                      Level 1 - Immediate Approval Authority/Dept Head
+                    </SelectItem>
+                    <SelectItem value={HierarchyLevel.LEVEL_2}>
+                      Level 2 - Senior Management
+                    </SelectItem>
                   </SelectContent>
                 </Select>
                 <FormMessage />
