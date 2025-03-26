@@ -443,9 +443,73 @@ export const vehicleTypeMasterRelations = relations(vehicleTypeMaster, ({ one })
   })
 }));
 
-// Add after the vehicleTypeMaster table definition
-const vehicleMaster = pgTable("vehicle_master", {});
-export const insertVehicleMasterSchema = createInsertSchema(vehicleMaster);
+// Added Vehicle Master table definition here
+export const vehicleMaster = pgTable("vehicle_master", {
+  id: serial("id").primaryKey(),
+  vehicle_id: text("vehicle_id").notNull().unique(),
+  emirate: text("emirate").notNull(),
+  registration_number: text("registration_number").notNull(),
+  plate_code: text("plate_code").notNull(),
+  plate_number: text("plate_number").notNull(),
+  current_odometer: decimal("current_odometer", { precision: 10, scale: 2 }).notNull(),
+  plate_category: text("plate_category").notNull(),
+  vehicle_type_code: text("vehicle_type_code").references(() => vehicleTypeMaster.vehicle_type_code).notNull(),
+  vehicle_type_name: text("vehicle_type_name").notNull(),
+  stop_run_mode_comm_freq: decimal("stop_run_mode_comm_freq", { precision: 10, scale: 2 }),
+  max_speed: decimal("max_speed", { precision: 10, scale: 2 }),
+  vehicle_model: text("vehicle_model").notNull(),
+  fuel_type: text("fuel_type").notNull(),
+  transmission_type: text("transmission_type").notNull(),
+  region: text("region").notNull(),
+  department: text("department").notNull(),
+  chassis_number: text("chassis_number").notNull(),
+  engine_number: text("engine_number").notNull(),
+  unit: text("unit").notNull(),
+  model_year: integer("model_year").notNull(),
+  asset_type: text("asset_type").notNull(),
+  tyre_size: text("tyre_size"),
+  manufacturer: text("manufacturer").notNull(),
+  number_of_passengers: integer("number_of_passengers"),
+  vehicle_color: text("vehicle_color"),
+  salik_tag_number: text("salik_tag_number"),
+  salik_account_number: text("salik_account_number"),
+  device_id: text("device_id"),
+  sim_card_number: text("sim_card_number"),
+  vehicle_usage: text("vehicle_usage").notNull(),
+  is_can_connected: text("is_can_connected").notNull(),
+  is_weight_sensor_connected: text("is_weight_sensor_connected").notNull(),
+  is_temperature_sensor_connected: text("is_temperature_sensor_connected").notNull(),
+  is_pto_connected: text("is_pto_connected").notNull(),
+  document_no: text("document_no"),
+  issued_on: timestamp("issued_on"),
+  expires_on: timestamp("expires_on"),
+  attachment: text("attachment"),
+  is_valid: boolean("is_valid").default(true),
+  created_at: timestamp("created_at").notNull().defaultNow(),
+  updated_at: timestamp("updated_at").notNull().defaultNow()
+});
+
+export const vehicleMasterRelations = relations(vehicleMaster, ({ one }) => ({
+  vehicleType: one(vehicleTypeMaster, {
+    fields: [vehicleMaster.vehicle_type_code],
+    references: [vehicleTypeMaster.vehicle_type_code],
+  }),
+}));
+
+export const insertVehicleMasterSchema = createInsertSchema(vehicleMaster)
+  .extend({
+    plate_category: z.enum(Object.values(PlateCategory) as [string, ...string[]]),
+    transmission_type: z.enum(Object.values(TransmissionType) as [string, ...string[]]),
+    fuel_type: z.enum(Object.values(VehicleFuelType) as [string, ...string[]]),
+    emirate: z.enum(Object.values(Emirates) as [string, ...string[]]),
+    region: z.enum(Object.values(Region) as [string, ...string[]]),
+    department: z.enum(Object.values(Department) as [string, ...string[]]),
+    asset_type: z.enum(Object.values(AssetType) as [string, ...string[]]),
+    is_can_connected: z.enum(Object.values(YesNo) as [string, ...string[]]),
+    is_weight_sensor_connected: z.enum(Object.values(YesNo) as [string, ...string[]]),
+    is_temperature_sensor_connected: z.enum(Object.values(YesNo) as [string, ...string[]]),
+    is_pto_connected: z.enum(Object.values(YesNo) as [string, ...string[]]),
+  });
 
 export const vehicles = pgTable("vehicles", {
   id: serial("id").primaryKey(),
@@ -662,7 +726,7 @@ export const insertUserSchema = createInsertSchema(users)
     user_code: z.string().min(3, "User code must be at least 3 characters long"),
     user_type: z.enum(Object.values(UserType) as [string, ...string[]]),
     email_id: z.string().email("Invalid email address"),
-    user_operation_type: z.enum(Object.values(UserOperationType) as [string, ...string[]]),
+    user_operation_type: z.enum(Object.values(UserOperationType) as [string,...string[]]),
     user_group: z.enum(Object.values(UserGroup) as [string, ...string[]]),
     full_name: z.string().min(3, "Full name is required"),
     first_name: z.string().min(2, "First name must be at least 2 characters long"),
@@ -786,5 +850,6 @@ export type Employee = typeof employees.$inferSelect;
 export type InsertEmployee = z.infer<typeof insertEmployeeSchema>;
 export type ApprovalWorkflow = typeof approvalWorkflows.$inferSelect;
 export type InsertApprovalWorkflow = z.infer<typeof insertApprovalWorkflowSchema>;
+// Added Vehicle Master type exports here
 export type VehicleMaster = typeof vehicleMaster.$inferSelect;
 export type InsertVehicleMaster = z.infer<typeof insertVehicleMasterSchema>;

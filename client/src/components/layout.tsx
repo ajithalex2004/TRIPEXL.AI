@@ -24,7 +24,8 @@ import {
   Users,
   UserCog,
   Network,
-  GitFork
+  GitFork,
+  Database // Import the Database icon
 } from "lucide-react";
 import { motion } from "framer-motion";
 
@@ -127,6 +128,14 @@ export function Layout({ children }: { children: React.ReactNode }) {
                         <SidebarMenuButton className="w-full text-white hover:bg-white/10 text-[15px] font-bold pl-8">
                           <Wrench className="w-4 h-4" />
                           <span>Vehicle Types</span>
+                        </SidebarMenuButton>
+                      </Link>
+                    </SidebarMenuItem>
+                    <SidebarMenuItem>
+                      <Link href="/vehicle-master">
+                        <SidebarMenuButton className="w-full text-white hover:bg-white/10 text-[15px] font-bold pl-8">
+                          <Database className="w-4 h-4" />
+                          <span>Vehicle Master</span>
                         </SidebarMenuButton>
                       </Link>
                     </SidebarMenuItem>
