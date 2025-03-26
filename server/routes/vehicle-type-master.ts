@@ -84,9 +84,9 @@ router.post("/api/vehicle-types", async (req, res) => {
 
     if (!result.success) {
       console.error("Invalid vehicle type data:", result.error.issues);
-      return res.status(400).json({ 
-        error: "Invalid vehicle type data", 
-        details: result.error.issues 
+      return res.status(400).json({
+        error: "Invalid vehicle type data",
+        details: result.error.issues
       });
     }
 
@@ -106,9 +106,9 @@ router.patch("/api/vehicle-types/:id", async (req, res) => {
     const result = insertVehicleTypeMasterSchema.partial().safeParse(req.body);
 
     if (!result.success) {
-      return res.status(400).json({ 
-        error: "Invalid vehicle type data", 
-        details: result.error.issues 
+      return res.status(400).json({
+        error: "Invalid vehicle type data",
+        details: result.error.issues
       });
     }
 
@@ -122,36 +122,39 @@ router.patch("/api/vehicle-types/:id", async (req, res) => {
 // Get vehicle type template
 router.get("/api/vehicle-types/template", async (_req, res) => {
   try {
-    // Create template with mandatory fields
+    // Create template with mandatory fields and descriptions
     const templateData = [{
-      'Vehicle Group': '',
-      'Vehicle Type Code': '',
-      'Number of Passengers': '',
-      'Region': '',
-      'Section': '',
-      'Special Vehicle Type': '',
-      'Road Speed Threshold': '',
-      'Service Plan': '',
-      'Cost Per KM': '',
-      'Maximum Weight': '',
-      'Vehicle Type': '',
-      'Department': 'Operations, Logistics, Medical, Administration, Maintenance, or Security',
-      'Unit': '',
-      'Alert Before': '',
-      'Idle Fuel Consumption': '',
-      'Vehicle Volume': ''
+      'Vehicle Group': 'Required - Select from available vehicle groups',
+      'Vehicle Type Code': 'Required - Will be auto-generated (Manufacturer-Model-Year)',
+      'Manufacturer': 'Required - e.g., Toyota, Honda, Nissan',
+      'Model Year': 'Required - e.g., 2024',
+      'Vehicle Type': 'Required - e.g., Corolla, Land Cruiser, Patrol',
+      'Number of Passengers': 'Required - Maximum number of passengers',
+      'Region': 'Required - Operating region',
+      'Department': 'Required - Operations, Logistics, Medical, Administration, Maintenance, or Security',
+      'Fuel Type': 'Required - Petrol, Diesel, Electric, Hybrid, CNG, or LPG',
+      'Fuel Efficiency (KM/L)': 'Required - Average fuel consumption',
+      'Service Plan': 'Optional - Maintenance schedule or service plan details',
+      'Cost Per KM': 'Will be calculated automatically',
+      'Alert Before (Days)': 'Optional - Days before service notification',
+      'Idle Fuel Consumption': 'Will be calculated based on vehicle type',
+      'Vehicle Volume (m³)': 'Will be calculated based on vehicle type',
+      'CO2 Emission Factor': 'Will be calculated based on fuel type'
     }];
 
     // Create workbook and worksheet
     const wb = XLSX.utils.book_new();
-    const ws = XLSX.utils.json_to_sheet(templateData);
+    const ws = XLSX.utils.json_to_sheet(templateData, {
+      header: Object.keys(templateData[0]),
+      skipHeader: false
+    });
 
-    // Add column widths
-    const colWidths = Array(16).fill({ wch: 20 });
+    // Add column widths and styling
+    const colWidths = Object.keys(templateData[0]).map(() => ({ wch: 30 }));
     ws['!cols'] = colWidths;
 
     // Add worksheet to workbook
-    XLSX.utils.book_append_sheet(wb, ws, "Template");
+    XLSX.utils.book_append_sheet(wb, ws, "Vehicle Types Template");
 
     // Generate buffer
     const buf = XLSX.write(wb, { type: 'buffer', bookType: 'xlsx' });
@@ -162,7 +165,8 @@ router.get("/api/vehicle-types/template", async (_req, res) => {
 
     res.send(buf);
   } catch (error: any) {
-    res.status(500).json({ error: "Failed to generate template" });
+    console.error("Error generating template:", error);
+    res.status(500).json({ error: "Failed to generate template", details: error.message });
   }
 });
 
