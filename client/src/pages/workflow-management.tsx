@@ -61,9 +61,11 @@ export default function WorkflowManagementPage() {
           <Table>
             <TableHeader>
               <TableRow>
+                <TableHead>Workflow Name</TableHead>
                 <TableHead>Region</TableHead>
                 <TableHead>Department</TableHead>
                 <TableHead>Unit</TableHead>
+                <TableHead>Levels Required</TableHead>
                 <TableHead>Level 1 Approver</TableHead>
                 <TableHead>Level 2 Approver</TableHead>
                 <TableHead>Status</TableHead>
@@ -73,9 +75,11 @@ export default function WorkflowManagementPage() {
             <TableBody>
               {workflows?.map((workflow) => (
                 <TableRow key={workflow.id}>
+                  <TableCell>{workflow.workflow_name}</TableCell>
                   <TableCell>{workflow.region}</TableCell>
                   <TableCell>{workflow.department}</TableCell>
                   <TableCell>{workflow.unit}</TableCell>
+                  <TableCell>{workflow.levels_required}</TableCell>
                   <TableCell>{workflow.level1Approver?.employee_name}</TableCell>
                   <TableCell>{workflow.level2Approver?.employee_name}</TableCell>
                   <TableCell>

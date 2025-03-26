@@ -305,6 +305,12 @@ export const HierarchyLevel = {
   LEVEL_2: "Level 2"  // Senior Management
 } as const;
 
+// Add new enum for workflow levels before the approvalWorkflows definition
+export const WorkflowLevels = {
+  LEVEL_1_ONLY: "Level 1",
+  BOTH_LEVELS: "Level 1 & 2"
+} as const;
+
 // Add after the HierarchyLevel definition
 export const ApprovalLevel = {
   LEVEL_1: "Level 1", // Approval Authority/Dept Head
@@ -333,14 +339,16 @@ export const employees = pgTable("employees", {
   updated_at: timestamp("updated_at").notNull().defaultNow()
 });
 
-// Add after the employees table definition
+// Update the approvalWorkflows table definition
 export const approvalWorkflows = pgTable("approval_workflows", {
   id: serial("id").primaryKey(),
+  workflow_name: varchar("workflow_name", { length: 100 }).notNull(),
   region: varchar("region", { length: 50 }).notNull(),
   department: varchar("department", { length: 50 }).notNull(),
   unit: varchar("unit", { length: 50 }).notNull(),
   level_1_approver_id: integer("level_1_approver_id").references(() => employees.id),
   level_2_approver_id: integer("level_2_approver_id").references(() => employees.id),
+  levels_required: varchar("levels_required", { length: 20 }).notNull().default("Level 1"),
   is_active: boolean("is_active").notNull().default(true),
   created_at: timestamp("created_at").notNull().defaultNow(),
   updated_at: timestamp("updated_at").notNull().defaultNow()
@@ -728,6 +736,7 @@ export const insertVehicleSchema = createInsertSchema(vehicles);
 export const insertDriverSchema = createInsertSchema(drivers);
 export const insertLocationMasterSchema = createInsertSchema(locationsMaster);
 
+// Fix the vehicle group schema validation
 export const insertVehicleGroupSchema = createInsertSchema(vehicleGroups)
   .extend({
     type: z.enum(Object.values(VehicleGroupType) as [string, ...string[]]),
@@ -741,6 +750,19 @@ export const insertVehicleGroupSchema = createInsertSchema(vehicleGroups)
     description: z.string().optional()
   });
 
+// Update the insertApprovalWorkflowSchema with proper validations
+export const insertApprovalWorkflowSchema = createInsertSchema(approvalWorkflows)
+  .extend({
+    workflow_name: z.string().min(1, "Workflow name is required"),
+    region: z.enum(Object.values(Region) as [string, ...string[]]),
+    department: z.enum(Object.values(Department) as [string, ...string[]]),
+    unit: z.string().min(1, "Unit is required"),
+    level_1_approver_id: z.number().positive("Level 1 approver is required"),
+    level_2_approver_id: z.number().optional(),
+    levels_required: z.enum(Object.values(WorkflowLevels) as [string, ...string[]])
+  });
+
+// Add back the vehicle type master schema
 export const insertVehicleTypeMasterSchema = createInsertSchema(vehicleTypeMaster)
   .extend({
     group_id: z.number().min(1, "Vehicle group is required"),
@@ -764,22 +786,7 @@ export const insertVehicleTypeMasterSchema = createInsertSchema(vehicleTypeMaste
     co2_emission_factor: z.number().min(0, "CO2 emission factor must be positive")
   });
 
-export const insertVehicleMasterSchema = createInsertSchema(vehicleMaster)
-  .extend({
-    plate_category: z.enum(Object.values(PlateCategory) as [string, ...string[]]),
-    transmission_type: z.enum(Object.values(TransmissionType) as [string, ...string[]]),
-    fuel_type: z.enum(Object.values(VehicleFuelType) as [string, ...string[]]),
-    emirate: z.enum(Object.values(Emirates) as [string, ...string[]]),
-    region: z.enum(Object.values(Region) as [string, ...string[]]),
-    department: z.enum(Object.values(Department) as [string, ...string[]]),
-    asset_type: z.enum(Object.values(AssetType) as [string, ...string[]]),
-    is_can_connected: z.enum(Object.values(YesNo) as [string, ...string[]]),
-    is_weight_sensor_connected: z.enum(Object.values(YesNo) as [string, ...string[]]),
-    is_temperature_sensor_connected: z.enum(Object.values(YesNo) as [string, ...string[]]),
-    is_pto_connected: z.enum(Object.values(YesNo) as [string, ...string[]]),
-  });
-
-// Update the insert schema
+// Add back the employee schema
 export const insertEmployeeSchema = createInsertSchema(employees)
   .extend({
     employee_id: z.number().positive("Employee ID must be a positive number"),
@@ -798,17 +805,7 @@ export const insertEmployeeSchema = createInsertSchema(employees)
     supervisor_id: z.number().optional()
   });
 
-// Add the insert schema for approval workflows
-export const insertApprovalWorkflowSchema = createInsertSchema(approvalWorkflows)
-  .extend({
-    region: z.enum(Object.values(Region) as [string, ...string[]]),
-    department: z.enum(Object.values(Department) as [string, ...string[]]),
-    unit: z.string().min(1, "Unit is required"),
-    level_1_approver_id: z.number().positive("Level 1 approver is required"),
-    level_2_approver_id: z.number().positive("Level 2 approver is required")
-  });
-
-// Add approval workflow relations
+// Add back the approval workflow relations
 export const approvalWorkflowsRelations = relations(approvalWorkflows, ({ one }) => ({
   level1Approver: one(employees, {
     fields: [approvalWorkflows.level_1_approver_id],
@@ -820,8 +817,7 @@ export const approvalWorkflowsRelations = relations(approvalWorkflows, ({ one })
   }),
 }));
 
-
-// Add to the type exports
+// Ensure all necessary type exports are included
 export type User = typeof users.$inferSelect;
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type OtpVerification = typeof otpVerifications.$inferSelect;

@@ -5,6 +5,7 @@ import {
   ApprovalWorkflow,
   Department,
   Region,
+  WorkflowLevels,
   insertApprovalWorkflowSchema,
 } from "@shared/schema";
 import {
@@ -37,11 +38,13 @@ export function WorkflowManagementForm({ onSuccess, initialData }: WorkflowManag
   const form = useForm<InsertApprovalWorkflow>({
     resolver: zodResolver(insertApprovalWorkflowSchema),
     defaultValues: {
+      workflow_name: initialData?.workflow_name || "",
       region: initialData?.region || "",
       department: initialData?.department || "",
       unit: initialData?.unit || "",
       level_1_approver_id: initialData?.level_1_approver_id || undefined,
       level_2_approver_id: initialData?.level_2_approver_id || undefined,
+      levels_required: initialData?.levels_required || WorkflowLevels.LEVEL_1_ONLY,
       is_active: initialData?.is_active ?? true,
     },
   });
@@ -93,9 +96,25 @@ export function WorkflowManagementForm({ onSuccess, initialData }: WorkflowManag
     mutation.mutate(data);
   };
 
+  const watchLevelsRequired = form.watch("levels_required");
+
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+        <FormField
+          control={form.control}
+          name="workflow_name"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Workflow Name</FormLabel>
+              <FormControl>
+                <Input {...field} placeholder="Enter workflow name" />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
         <div className="grid grid-cols-3 gap-4">
           <FormField
             control={form.control}
@@ -162,6 +181,31 @@ export function WorkflowManagementForm({ onSuccess, initialData }: WorkflowManag
           />
         </div>
 
+        <FormField
+          control={form.control}
+          name="levels_required"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Approval Levels Required</FormLabel>
+              <Select onValueChange={field.onChange} defaultValue={field.value}>
+                <FormControl>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select required levels" />
+                  </SelectTrigger>
+                </FormControl>
+                <SelectContent>
+                  {Object.values(WorkflowLevels).map((level) => (
+                    <SelectItem key={level} value={level}>
+                      {level}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
         <div className="grid grid-cols-2 gap-4">
           <FormField
             control={form.control}
@@ -191,33 +235,35 @@ export function WorkflowManagementForm({ onSuccess, initialData }: WorkflowManag
             )}
           />
 
-          <FormField
-            control={form.control}
-            name="level_2_approver_id"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Level 2 Approver</FormLabel>
-                <Select 
-                  onValueChange={(value) => field.onChange(parseInt(value))} 
-                  defaultValue={field.value?.toString()}
-                >
-                  <FormControl>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select Level 2 approver" />
-                    </SelectTrigger>
-                  </FormControl>
-                  <SelectContent>
-                    {approvers?.filter(e => e.hierarchy_level === "Level 2" && e.is_active).map((employee) => (
-                      <SelectItem key={employee.id} value={employee.id.toString()}>
-                        {employee.employee_name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
+          {watchLevelsRequired === WorkflowLevels.BOTH_LEVELS && (
+            <FormField
+              control={form.control}
+              name="level_2_approver_id"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Level 2 Approver</FormLabel>
+                  <Select 
+                    onValueChange={(value) => field.onChange(parseInt(value))} 
+                    defaultValue={field.value?.toString()}
+                  >
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select Level 2 approver" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      {approvers?.filter(e => e.hierarchy_level === "Level 2" && e.is_active).map((employee) => (
+                        <SelectItem key={employee.id} value={employee.id.toString()}>
+                          {employee.employee_name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          )}
         </div>
 
         <Button
