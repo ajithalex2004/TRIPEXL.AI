@@ -51,10 +51,8 @@ function StandaloneRoute({ component: Component }: { component: React.ComponentT
 }
 
 function Router() {
-  const [location] = useLocation();
-
   return (
-    <Switch key={location}>
+    <Switch>
       {/* Auth Routes - Standalone */}
       <Route path="/auth/login" component={() => <StandaloneRoute component={LoginPage} />} />
       <Route path="/auth/forgot-password" component={() => <StandaloneRoute component={ForgotPasswordPage} />} />
