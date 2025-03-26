@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback, useEffect } from "react";
+import { useState, useMemo, useCallback } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import {
   Card,
@@ -32,18 +32,6 @@ export default function VehicleGroupManagement() {
     staleTime: 0,
     retry: 3,
   });
-
-  // Handle query error
-  useEffect(() => {
-    if (error) {
-      console.error("Query error:", error);
-      toast({
-        title: "Error",
-        description: "Failed to fetch vehicle groups",
-        variant: "destructive",
-      });
-    }
-  }, [error, toast]);
 
   const createMutation = useMutation({
     mutationFn: async (data: InsertVehicleGroup) => {
@@ -99,37 +87,6 @@ export default function VehicleGroupManagement() {
     },
   });
 
-  const importMutation = useMutation({
-    mutationFn: async (file: File) => {
-      const formData = new FormData();
-      formData.append('file', file);
-      const response = await fetch('/api/vehicle-groups/import', {
-        method: 'POST',
-        body: formData,
-      });
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.message || "Failed to import vehicle groups");
-      }
-      return response.json();
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/vehicle-groups"] });
-      toast({
-        title: "Success",
-        description: "Vehicle groups imported successfully",
-      });
-    },
-    onError: (error: Error) => {
-      console.error("Import error:", error);
-      toast({
-        title: "Error",
-        description: error.message,
-        variant: "destructive",
-      });
-    },
-  });
-
   const handleSubmit = useCallback(async (data: InsertVehicleGroup) => {
     try {
       if (selectedGroup) {
@@ -173,100 +130,6 @@ export default function VehicleGroupManagement() {
     }
   }, [toast]);
 
-  const handleDownloadTemplate = useCallback(async () => {
-    try {
-      const response = await fetch("/api/vehicle-groups/template");
-      if (!response.ok) {
-        throw new Error("Failed to download template");
-      }
-
-      const blob = await response.blob();
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = "vehicle-groups-template.xlsx";
-      document.body.appendChild(a);
-      a.click();
-      window.URL.revokeObjectURL(url);
-      document.body.removeChild(a);
-
-      toast({
-        title: "Success",
-        description: "Template downloaded successfully",
-      });
-    } catch (error: any) {
-      console.error("Template download error:", error);
-      toast({
-        title: "Error",
-        description: error.message,
-        variant: "destructive",
-      });
-    }
-  }, [toast]);
-
-  const handleFileChange = useCallback(async (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (!file) return;
-
-    try {
-      await importMutation.mutateAsync(file);
-    } catch (error) {
-      console.error("File upload error:", error);
-    }
-  }, [importMutation]);
-
-  const memoizedContent = useMemo(() => (
-    <AnimatePresence mode="wait">
-      {isLoading ? (
-        <TableRow>
-          <TableCell colSpan={6} className="text-center py-8">
-            <motion.div
-              initial={{ opacity: 0, scale: 0.8 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.8 }}
-              transition={{ duration: 0.5 }}
-              className="flex justify-center"
-            >
-              Loading...
-            </motion.div>
-          </TableCell>
-        </TableRow>
-      ) : !vehicleGroups?.length ? (
-        <TableRow>
-          <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
-            No vehicle groups found
-          </TableCell>
-        </TableRow>
-      ) : (
-        vehicleGroups?.map((group) => (
-          <motion.tr
-            key={group.id}
-            initial={{ opacity: 0, x: -20 }}
-            animate={{ opacity: 1, x: 0 }}
-            exit={{ opacity: 0, x: 20 }}
-            transition={{ duration: 0.2 }}
-            className="border-white/10 backdrop-blur-sm transition-all duration-200 hover:bg-background/40"
-          >
-            <TableCell className="font-medium">{group.group_code}</TableCell>
-            <TableCell>{group.name}</TableCell>
-            <TableCell>{group.region}</TableCell>
-            <TableCell>{group.type}</TableCell>
-            <TableCell>{group.department}</TableCell>
-            <TableCell>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setSelectedGroup(group)}
-              >
-                Edit
-              </Button>
-            </TableCell>
-          </motion.tr>
-        ))
-      )}
-    </AnimatePresence>
-  ), [isLoading, vehicleGroups]);
-
   return (
     <div className="min-h-screen bg-gradient-to-br from-background/50 via-background to-background/90 p-6">
       <motion.div
@@ -291,31 +154,6 @@ export default function VehicleGroupManagement() {
           <CardHeader className="flex flex-row items-center justify-between">
             <CardTitle>Vehicle Groups List</CardTitle>
             <div className="flex items-center gap-4">
-              <Button
-                onClick={handleDownloadTemplate}
-                variant="outline"
-                className="flex items-center gap-2"
-              >
-                <FileDown className="w-4 h-4" />
-                Download Template
-              </Button>
-              <div className="relative">
-                <Input
-                  type="file"
-                  accept=".xlsx,.xls"
-                  onChange={handleFileChange}
-                  className="hidden"
-                  id="excel-upload"
-                />
-                <Button
-                  variant="outline"
-                  className="flex items-center gap-2"
-                  onClick={() => document.getElementById('excel-upload')?.click()}
-                >
-                  <Upload className="w-4 h-4" />
-                  Import Excel
-                </Button>
-              </div>
               <Button
                 onClick={handleExport}
                 variant="outline"
@@ -345,7 +183,53 @@ export default function VehicleGroupManagement() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {memoizedContent}
+                  {isLoading ? (
+                    <TableRow>
+                      <TableCell colSpan={6} className="text-center py-8">
+                        <motion.div
+                          initial={{ opacity: 0, scale: 0.8 }}
+                          animate={{ opacity: 1, scale: 1 }}
+                          exit={{ opacity: 0, scale: 0.8 }}
+                          transition={{ duration: 0.5 }}
+                          className="flex justify-center"
+                        >
+                          Loading...
+                        </motion.div>
+                      </TableCell>
+                    </TableRow>
+                  ) : !vehicleGroups?.length ? (
+                    <TableRow>
+                      <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
+                        No vehicle groups found
+                      </TableCell>
+                    </TableRow>
+                  ) : (
+                    vehicleGroups?.map((group) => (
+                      <motion.tr
+                        key={group.id}
+                        initial={{ opacity: 0, x: -20 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        exit={{ opacity: 0, x: 20 }}
+                        transition={{ duration: 0.2 }}
+                        className="border-white/10 backdrop-blur-sm transition-all duration-200 hover:bg-background/40"
+                      >
+                        <TableCell className="font-medium">{group.group_code}</TableCell>
+                        <TableCell>{group.name}</TableCell>
+                        <TableCell>{group.region}</TableCell>
+                        <TableCell>{group.type}</TableCell>
+                        <TableCell>{group.department}</TableCell>
+                        <TableCell>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => setSelectedGroup(group)}
+                          >
+                            Edit
+                          </Button>
+                        </TableCell>
+                      </motion.tr>
+                    ))
+                  )}
                 </TableBody>
               </Table>
             </motion.div>

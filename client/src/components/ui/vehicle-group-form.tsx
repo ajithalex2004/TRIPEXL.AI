@@ -1,7 +1,14 @@
-import { useState, useEffect } from "react";
+import { useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { InsertVehicleGroup, Department, VehicleGroupType, insertVehicleGroupSchema, VehicleGroup, Region } from "@shared/schema";
+import {
+  InsertVehicleGroup,
+  Department,
+  VehicleGroupType,
+  insertVehicleGroupSchema,
+  VehicleGroup,
+  Region
+} from "@shared/schema";
 import {
   Form,
   FormControl,
@@ -22,14 +29,13 @@ import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 
 interface VehicleGroupFormProps {
-  onSubmit: (data: InsertVehicleGroup) => void;
+  onSubmit: (data: InsertVehicleGroup) => Promise<void>;
   initialData?: VehicleGroup | null;
   isEditing?: boolean;
 }
 
 export function VehicleGroupForm({ onSubmit, initialData, isEditing }: VehicleGroupFormProps) {
   const { toast } = useToast();
-  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const form = useForm<InsertVehicleGroup>({
     resolver: zodResolver(insertVehicleGroupSchema),
@@ -40,7 +46,7 @@ export function VehicleGroupForm({ onSubmit, initialData, isEditing }: VehicleGr
       type: "",
       department: "",
       image_url: "",
-      description: "",
+      description: ""
     }
   });
 
@@ -59,7 +65,6 @@ export function VehicleGroupForm({ onSubmit, initialData, isEditing }: VehicleGr
   }, [initialData, form]);
 
   const handleSubmit = async (data: InsertVehicleGroup) => {
-    setIsSubmitting(true);
     try {
       await onSubmit(data);
       if (!isEditing) {
@@ -72,8 +77,6 @@ export function VehicleGroupForm({ onSubmit, initialData, isEditing }: VehicleGr
         description: error.message || "Failed to submit form",
         variant: "destructive"
       });
-    } finally {
-      setIsSubmitting(false);
     }
   };
 
@@ -214,13 +217,10 @@ export function VehicleGroupForm({ onSubmit, initialData, isEditing }: VehicleGr
         />
 
         <Button 
-          type="submit" 
+          type="submit"
           className="w-full"
-          disabled={isSubmitting}
         >
-          {isSubmitting 
-            ? "Submitting..." 
-            : (isEditing ? "Update Vehicle Group" : "Create Vehicle Group")}
+          {isEditing ? "Update Vehicle Group" : "Create Vehicle Group"}
         </Button>
       </form>
     </Form>
