@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { InsertVehicleGroup, Department, VehicleGroupType, insertVehicleGroupSchema, VehicleGroup } from "@shared/schema";
+import { InsertVehicleGroup, Department, VehicleGroupType, insertVehicleGroupSchema, VehicleGroup, Region } from "@shared/schema";
 import {
   Form,
   FormControl,
@@ -55,12 +55,11 @@ export function VehicleGroupForm({ onSubmit, initialData, isEditing }: VehicleGr
         description: initialData.description || ""
       });
     }
-  }, [initialData, form.reset]);
+  }, [initialData, form]);
 
   const handleSubmit = async (data: InsertVehicleGroup) => {
     try {
       await onSubmit(data);
-      // Clear form after both create and update operations
       form.reset({
         groupCode: "",
         region: "",
@@ -103,9 +102,20 @@ export function VehicleGroupForm({ onSubmit, initialData, isEditing }: VehicleGr
             render={({ field }) => (
               <FormItem>
                 <FormLabel>Region *</FormLabel>
-                <FormControl>
-                  <Input placeholder="Enter region" {...field} />
-                </FormControl>
+                <Select onValueChange={field.onChange} value={field.value}>
+                  <FormControl>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select region" />
+                    </SelectTrigger>
+                  </FormControl>
+                  <SelectContent>
+                    {Object.values(Region).map((region) => (
+                      <SelectItem key={region} value={region}>
+                        {region}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
                 <FormMessage />
               </FormItem>
             )}
