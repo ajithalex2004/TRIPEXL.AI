@@ -51,26 +51,17 @@ interface VehicleMasterFormProps {
 export function VehicleMasterForm({ isOpen, onClose }: VehicleMasterFormProps) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
+
+  // Keep all useState hooks at the top level
   const [selectedEmirate, setSelectedEmirate] = React.useState<string>("");
   const [selectedCategory, setSelectedCategory] = React.useState<string>("");
 
+  // Query hook for vehicle types - keep this at top level
   const { data: vehicleTypes, isLoading: isLoadingVehicleTypes } = useQuery<VehicleTypeMaster[]>({
     queryKey: ["/api/vehicle-type-master"],
   });
 
-  // Show loading spinner while vehicle types are being fetched
-  if (isLoadingVehicleTypes) {
-    return (
-      <Dialog open={isOpen} onOpenChange={onClose}>
-        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-          <div className="flex items-center justify-center p-8">
-            <EmiratesSpinner size="lg" />
-          </div>
-        </DialogContent>
-      </Dialog>
-    );
-  }
-
+  // Initialize form with useForm hook - keep at top level
   const form = useForm({
     resolver: zodResolver(insertVehicleMasterSchema),
     defaultValues: {
@@ -81,8 +72,8 @@ export function VehicleMasterForm({ isOpen, onClose }: VehicleMasterFormProps) {
       plateNumber: "",
       currentOdometer: "0",
       plateCategory: "",
-      vehicleTypeName: "",
       vehicleTypeCode: "",
+      vehicleTypeName: "",
       vehicleModel: "",
       fuelType: "",
       transmissionType: "",
@@ -102,6 +93,7 @@ export function VehicleMasterForm({ isOpen, onClose }: VehicleMasterFormProps) {
     },
   });
 
+  // Mutation hook - keep at top level
   const createVehicle = useMutation({
     mutationFn: async (data: any) => {
       const response = await apiRequest("POST", "/api/vehicle-master", data);
@@ -129,52 +121,52 @@ export function VehicleMasterForm({ isOpen, onClose }: VehicleMasterFormProps) {
     },
   });
 
-  const onSubmit = (data: any) => {
+  const onSubmit = React.useCallback((data: any) => {
     createVehicle.mutate(data);
-  };
+  }, [createVehicle]);
 
   // Extract emirate code from the full emirate name (e.g., "AUH" from "Abu Dhabi (AUH)")
-  const getEmirateCode = (emirate: string): string => {
+  const getEmirateCode = React.useCallback((emirate: string): string => {
     const match = emirate.match(/\(([^)]+)\)/);
     return match ? match[1] : "";
-  };
+  }, []);
 
   // Update registration number whenever emirate, plate code, or plate number changes
-  const updateRegistrationNumber = (emirate: string, plateCode: string, plateNumber: string) => {
+  const updateRegistrationNumber = React.useCallback((emirate: string, plateCode: string, plateNumber: string) => {
     if (emirate && plateCode && plateNumber) {
       const emirateCode = getEmirateCode(emirate);
       const registrationNumber = `${emirateCode}-${plateCode}-${plateNumber}`;
       form.setValue("registrationNumber", registrationNumber);
     }
-  };
+  }, [form, getEmirateCode]);
 
-  const handleEmirateChange = (value: string) => {
+  const handleEmirateChange = React.useCallback((value: string) => {
     form.setValue("emirate", value);
     form.setValue("plateCategory", "");
     form.setValue("plateCode", "");
     setSelectedEmirate(value);
     setSelectedCategory("");
     updateRegistrationNumber(value, form.getValues("plateCode"), form.getValues("plateNumber"));
-  };
+  }, [form, updateRegistrationNumber, setSelectedEmirate, setSelectedCategory]);
 
-  const handlePlateCategoryChange = (value: string) => {
+  const handlePlateCategoryChange = React.useCallback((value: string) => {
     form.setValue("plateCategory", value);
     form.setValue("plateCode", "");
     setSelectedCategory(value);
-  };
+  }, [form, setSelectedCategory]);
 
-  const handlePlateCodeChange = (value: string) => {
+  const handlePlateCodeChange = React.useCallback((value: string) => {
     form.setValue("plateCode", value);
     updateRegistrationNumber(form.getValues("emirate"), value, form.getValues("plateNumber"));
-  };
+  }, [form, updateRegistrationNumber]);
 
-  const handlePlateNumberChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handlePlateNumberChange = React.useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
     form.setValue("plateNumber", value);
     updateRegistrationNumber(form.getValues("emirate"), form.getValues("plateCode"), value);
-  };
+  }, [form, updateRegistrationNumber]);
 
-  const handleVehicleTypeSelect = (typeCode: string) => {
+  const handleVehicleTypeSelect = React.useCallback((typeCode: string) => {
     const selectedType = vehicleTypes?.find(type => type.vehicleTypeCode === typeCode);
     if (selectedType) {
       form.setValue("vehicleTypeCode", selectedType.vehicleTypeCode);
@@ -183,13 +175,26 @@ export function VehicleMasterForm({ isOpen, onClose }: VehicleMasterFormProps) {
       form.setValue("modelYear", selectedType.modelYear);
       form.setValue("manufacturer", selectedType.manufacturer);
     }
-  };
+  }, [vehicleTypes, form]);
 
-  const getAvailablePlateCodes = () => {
+  const getAvailablePlateCodes = React.useCallback(() => {
     if (!selectedEmirate || !selectedCategory) return [];
     const emirateInfo = EmiratesPlateInfo[selectedEmirate as keyof typeof EmiratesPlateInfo];
     return emirateInfo.plateCodes[selectedCategory as keyof typeof EmiratesPlateInfo[keyof typeof EmiratesPlateInfo]['plateCodes']] || [];
-  };
+  }, [selectedEmirate, selectedCategory]);
+
+  // Show loading spinner while vehicle types are being fetched
+  if (isLoadingVehicleTypes) {
+    return (
+      <Dialog open={isOpen} onOpenChange={onClose}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <div className="flex items-center justify-center p-8">
+            <EmiratesSpinner size="lg" />
+          </div>
+        </DialogContent>
+      </Dialog>
+    );
+  }
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
