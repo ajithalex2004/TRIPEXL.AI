@@ -481,10 +481,18 @@ export function VehicleTypeForm({ onSubmit, initialData, isEditing }: VehicleTyp
     queryKey: ["/api/vehicle-groups"],
   });
 
-  // Fetch current fuel prices
-  const { data: fuelPrices } = useQuery({
+  // Update fuel prices query and handling
+  const { data: fuelPrices, isLoading: loadingFuelPrices } = useQuery({
     queryKey: ["/api/fuel-prices"],
     enabled: true,
+    retry: 3,
+    onError: (error) => {
+      toast({
+        title: "Error fetching fuel prices",
+        description: "Failed to load current fuel prices",
+        variant: "destructive",
+      });
+    }
   });
 
   const form = useForm<InsertVehicleTypeMaster>({
@@ -512,9 +520,9 @@ export function VehicleTypeForm({ onSubmit, initialData, isEditing }: VehicleTyp
   });
 
   // Watch form values
+  const selectedFuelType = form.watch("fuelType");
   const fuelEfficiency = form.watch("fuelEfficiency");
   const fuelPricePerLitre = form.watch("fuelPricePerLitre");
-  const selectedFuelType = form.watch("fuelType");
   const vehicleType = form.watch("vehicleType");
   const selectedManufacturer = form.watch("manufacturer");
 
@@ -543,11 +551,26 @@ export function VehicleTypeForm({ onSubmit, initialData, isEditing }: VehicleTyp
   useEffect(() => {
     if (fuelPrices && selectedFuelType) {
       const price = fuelPrices[selectedFuelType.toLowerCase()];
-      if (price) {
+      if (price !== undefined) {
+        console.log('Setting fuel price:', price, 'for type:', selectedFuelType);
         form.setValue("fuelPricePerLitre", price);
+
+        // Recalculate cost per km
+        const efficiency = form.getValues("fuelEfficiency");
+        if (efficiency > 0) {
+          const costPerKm = calculateCostPerKm(price, efficiency);
+          form.setValue("costPerKm", costPerKm);
+        }
       }
     }
   }, [selectedFuelType, fuelPrices, form]);
+
+  // Update cost per km when fuel efficiency changes
+  useEffect(() => {
+    const fuelPrice = form.getValues("fuelPricePerLitre");
+    const costPerKm = calculateCostPerKm(fuelPrice, fuelEfficiency);
+    form.setValue("costPerKm", costPerKm);
+  }, [fuelEfficiency, form]);
 
   // Update vehicle details when vehicle type changes
   useEffect(() => {
@@ -983,7 +1006,7 @@ export function VehicleTypeForm({ onSubmit, initialData, isEditing }: VehicleTyp
                     type="number"
                     placeholder="Enter alert before (optional)"
                     {...field}
-                    onChange={e => field.onChange(e.target.value ? Number`.target.value) : undefined)}
+                    onChange={e => field.onChange(e.target.value ? Number(e.target.value) : undefined)}
                   />
                 </FormControl>
                 <FormMessage />

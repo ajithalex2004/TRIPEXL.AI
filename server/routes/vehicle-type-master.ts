@@ -6,6 +6,16 @@ import XLSX from "xlsx";
 
 const router = Router();
 
+// Add default fuel prices
+const currentFuelPrices = {
+  petrol: 2.99,
+  diesel: 2.89,
+  electric: 0.45, // Cost per kWh
+  hybrid: 2.85,
+  cng: 2.10,
+  lpg: 2.25
+};
+
 // Configure multer for handling file uploads
 const upload = multer({
   storage: multer.memoryStorage(),
@@ -22,6 +32,16 @@ const upload = multer({
       cb(new Error('Only Excel files are allowed'));
     }
   },
+});
+
+// Add fuel prices endpoint
+router.get("/api/fuel-prices", (_req, res) => {
+  try {
+    res.json(currentFuelPrices);
+  } catch (error: any) {
+    console.error("Error fetching fuel prices:", error);
+    res.status(500).json({ message: error.message });
+  }
 });
 
 // Get all vehicle types
