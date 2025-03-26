@@ -479,6 +479,15 @@ export function VehicleTypeForm({ onSubmit, initialData, isEditing }: VehicleTyp
   // Fetch vehicle groups for the dropdown
   const { data: vehicleGroups, isLoading: loadingGroups } = useQuery<VehicleGroup[]>({
     queryKey: ["/api/vehicle-groups"],
+    enabled: true,
+    retry: 3,
+    onError: (error) => {
+      toast({
+        title: "Error fetching vehicle groups",
+        description: "Failed to load vehicle groups",
+        variant: "destructive",
+      });
+    }
   });
 
   // Update fuel prices query and handling
