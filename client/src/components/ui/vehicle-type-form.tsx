@@ -550,9 +550,10 @@ export function VehicleTypeForm({ onSubmit, initialData, isEditing }: VehicleTyp
   // Update fuel price when fuel type changes
   useEffect(() => {
     if (fuelPrices && selectedFuelType) {
-      const price = fuelPrices[selectedFuelType.toLowerCase()];
+      const normalizedType = selectedFuelType.toLowerCase();
+      const price = fuelPrices[normalizedType];
+
       if (price !== undefined) {
-        console.log('Setting fuel price:', price, 'for type:', selectedFuelType);
         form.setValue("fuelPricePerLitre", price);
 
         // Recalculate cost per km
@@ -565,12 +566,13 @@ export function VehicleTypeForm({ onSubmit, initialData, isEditing }: VehicleTyp
     }
   }, [selectedFuelType, fuelPrices, form]);
 
-  // Update cost per km when fuel efficiency changes
+  // Separate useEffect for cost per km updates
   useEffect(() => {
-    const fuelPrice = form.getValues("fuelPricePerLitre");
-    const costPerKm = calculateCostPerKm(fuelPrice, fuelEfficiency);
-    form.setValue("costPerKm", costPerKm);
-  }, [fuelEfficiency, form]);
+    if (fuelPricePerLitre && fuelEfficiency > 0) {
+      const costPerKm = calculateCostPerKm(fuelPricePerLitre, fuelEfficiency);
+      form.setValue("costPerKm", costPerKm);
+    }
+  }, [fuelPricePerLitre, fuelEfficiency, form]);
 
   // Update vehicle details when vehicle type changes
   useEffect(() => {
