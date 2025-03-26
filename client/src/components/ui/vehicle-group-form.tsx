@@ -20,7 +20,7 @@ import {
 } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 
 interface VehicleGroupFormProps {
@@ -32,6 +32,7 @@ interface VehicleGroupFormProps {
 export function VehicleGroupForm({ onSubmit, initialData, isEditing }: VehicleGroupFormProps) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const form = useForm<InsertVehicleGroup>({
     resolver: zodResolver(insertVehicleGroupSchema),
@@ -44,36 +45,6 @@ export function VehicleGroupForm({ onSubmit, initialData, isEditing }: VehicleGr
       image_url: "",
       description: ""
     }
-  });
-
-  // Create mutation
-  const createMutation = useMutation({
-    mutationFn: async (data: InsertVehicleGroup) => {
-      console.log("Submitting form data:", data);
-      const response = await apiRequest("POST", "/api/vehicle-groups", data);
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.message || "Failed to create vehicle group");
-      }
-      return response.json();
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/vehicle-groups"] });
-      toast({
-        title: "Success",
-        description: "Vehicle group created successfully",
-      });
-      form.reset();
-      onSubmit(form.getValues());
-    },
-    onError: (error: Error) => {
-      console.error("Mutation error:", error);
-      toast({
-        title: "Error",
-        description: error.message,
-        variant: "destructive",
-      });
-    },
   });
 
   // Update form values when initialData changes
@@ -94,8 +65,31 @@ export function VehicleGroupForm({ onSubmit, initialData, isEditing }: VehicleGr
 
   const handleSubmit = async (data: InsertVehicleGroup) => {
     console.log("Form submitted with data:", data);
+    setIsSubmitting(true);
     try {
-      await createMutation.mutateAsync(data);
+      const response = await apiRequest(
+        isEditing ? "PATCH" : "POST",
+        isEditing ? `/api/vehicle-groups/${initialData?.id}` : "/api/vehicle-groups",
+        data
+      );
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || "Failed to submit form");
+      }
+
+      const result = await response.json();
+      queryClient.invalidateQueries({ queryKey: ["/api/vehicle-groups"] });
+
+      toast({
+        title: "Success",
+        description: isEditing ? "Vehicle group updated successfully" : "Vehicle group created successfully"
+      });
+
+      onSubmit(result);
+      if (!isEditing) {
+        form.reset();
+      }
     } catch (error: any) {
       console.error("Submit error:", error);
       toast({
@@ -103,6 +97,8 @@ export function VehicleGroupForm({ onSubmit, initialData, isEditing }: VehicleGr
         description: error.message || "Failed to submit form",
         variant: "destructive"
       });
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -118,6 +114,20 @@ export function VehicleGroupForm({ onSubmit, initialData, isEditing }: VehicleGr
                 <FormLabel>Group Code *</FormLabel>
                 <FormControl>
                   <Input placeholder="Enter group code" {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          <FormField
+            control={form.control}
+            name="name"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Group Name *</FormLabel>
+                <FormControl>
+                  <Input placeholder="Enter group name" {...field} />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -144,20 +154,6 @@ export function VehicleGroupForm({ onSubmit, initialData, isEditing }: VehicleGr
                     ))}
                   </SelectContent>
                 </Select>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-
-          <FormField
-            control={form.control}
-            name="name"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Group Name *</FormLabel>
-                <FormControl>
-                  <Input placeholder="Enter group name" {...field} />
-                </FormControl>
                 <FormMessage />
               </FormItem>
             )}
@@ -245,9 +241,11 @@ export function VehicleGroupForm({ onSubmit, initialData, isEditing }: VehicleGr
         <Button 
           type="submit" 
           className="w-full"
-          disabled={createMutation.isPending}
+          disabled={isSubmitting}
         >
-          {createMutation.isPending ? "Creating..." : (isEditing ? "Update Vehicle Group" : "Create Vehicle Group")}
+          {isSubmitting 
+            ? "Submitting..." 
+            : (isEditing ? "Update Vehicle Group" : "Create Vehicle Group")}
         </Button>
       </form>
     </Form>

@@ -1,15 +1,15 @@
 import { Router } from "express";
 import { storage } from "../storage";
-import { insertVehicleGroupSchema } from "@shared/schema";
+import { insertVehicleGroupSchema, vehicleGroups } from "@shared/schema";
 import { db } from "../db";
-import { vehicleGroups } from "@shared/schema";
+import { eq } from "drizzle-orm";
 
 const router = Router();
 
 // Get all vehicle groups
 router.get("/api/vehicle-groups", async (req, res) => {
   try {
-    const groups = await storage.getAllVehicleGroups();
+    const groups = await db.select().from(vehicleGroups);
     console.log("Fetched vehicle groups:", groups);
     res.json(groups);
   } catch (error: any) {
@@ -34,8 +34,8 @@ router.post("/api/vehicle-groups", async (req, res) => {
       name: validatedData.name,
       type: validatedData.type,
       department: validatedData.department,
-      image_url: validatedData.image_url,
-      description: validatedData.description,
+      image_url: validatedData.image_url || null,
+      description: validatedData.description || null,
       is_active: true,
       created_at: new Date(),
       updated_at: new Date()
@@ -62,7 +62,20 @@ router.patch("/api/vehicle-groups/:id", async (req, res) => {
     console.log("Updating vehicle group:", id, "with data:", req.body);
 
     const data = insertVehicleGroupSchema.partial().parse(req.body);
-    const updatedGroup = await storage.updateVehicleGroup(id, data);
+
+    const [updatedGroup] = await db
+      .update(vehicleGroups)
+      .set({
+        ...data,
+        updated_at: new Date()
+      })
+      .where(eq(vehicleGroups.id, id))
+      .returning();
+
+    if (!updatedGroup) {
+      return res.status(404).json({ message: "Vehicle group not found" });
+    }
+
     console.log("Updated vehicle group:", updatedGroup);
     res.json(updatedGroup);
   } catch (error: any) {
@@ -75,7 +88,11 @@ router.patch("/api/vehicle-groups/:id", async (req, res) => {
 router.get("/api/vehicle-groups/:id", async (req, res) => {
   try {
     const id = parseInt(req.params.id);
-    const group = await storage.getVehicleGroup(id);
+    const [group] = await db
+      .select()
+      .from(vehicleGroups)
+      .where(eq(vehicleGroups.id, id));
+
     if (!group) {
       return res.status(404).json({ message: "Vehicle group not found" });
     }
