@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useMemo } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import {
   Card,
@@ -14,14 +14,22 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { Input } from "@/components/ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { motion, AnimatePresence } from "framer-motion";
-import { VehicleGroup, InsertVehicleGroup } from "@shared/schema";
+import { VehicleGroup, InsertVehicleGroup, Region, VehicleGroupType, Department } from "@shared/schema";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { VehicleGroupForm } from "@/components/ui/vehicle-group-form";
 import { VehicleGroupFAB } from "@/components/ui/vehicle-group-fab";
 import { Button } from "@/components/ui/button";
-import { Trash2, Edit } from "lucide-react";
+import { Trash2, Edit, Search } from "lucide-react";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -44,6 +52,10 @@ export default function VehicleGroupManagement() {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [groupToDelete, setGroupToDelete] = useState<VehicleGroup | null>(null);
   const [formDialogOpen, setFormDialogOpen] = useState(false);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [selectedRegion, setSelectedRegion] = useState<string>("");
+  const [selectedType, setSelectedType] = useState<string>("");
+  const [selectedDepartment, setSelectedDepartment] = useState<string>("");
   const { toast } = useToast();
 
   // Query for fetching vehicle groups
@@ -64,15 +76,23 @@ export default function VehicleGroupManagement() {
     retry: 3,
   });
 
-  // Handle any query errors
-  if (error) {
-    console.error("Query error:", error);
-    toast({
-      title: "Error",
-      description: "Failed to fetch vehicle groups",
-      variant: "destructive",
+  // Filter vehicle groups based on search and filters
+  const filteredGroups = useMemo(() => {
+    if (!vehicleGroups) return [];
+
+    return vehicleGroups.filter(group => {
+      const matchesSearch = searchTerm === "" || 
+        group.group_code.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        group.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        group.description?.toLowerCase().includes(searchTerm.toLowerCase());
+
+      const matchesRegion = selectedRegion === "" || group.region === selectedRegion;
+      const matchesType = selectedType === "" || group.type === selectedType;
+      const matchesDepartment = selectedDepartment === "" || group.department === selectedDepartment;
+
+      return matchesSearch && matchesRegion && matchesType && matchesDepartment;
     });
-  }
+  }, [vehicleGroups, searchTerm, selectedRegion, selectedType, selectedDepartment]);
 
   const createMutation = useMutation({
     mutationFn: async (data: InsertVehicleGroup) => {
@@ -277,6 +297,70 @@ export default function VehicleGroupManagement() {
         <Card className="backdrop-blur-xl bg-background/60 border border-white/10 shadow-2xl">
           <CardHeader>
             <CardTitle>Vehicle Groups List</CardTitle>
+            <div className="mt-4 space-y-4">
+              {/* Search and Filter Section */}
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+                <div className="relative">
+                  <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    placeholder="Search vehicle groups..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="pl-9"
+                  />
+                </div>
+                <Select value={selectedRegion} onValueChange={setSelectedRegion}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Filter by Region" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="">All Regions</SelectItem>
+                    {Object.values(Region).map((region) => (
+                      <SelectItem key={region} value={region}>
+                        {region}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <Select value={selectedType} onValueChange={setSelectedType}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Filter by Type" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="">All Types</SelectItem>
+                    {Object.values(VehicleGroupType).map((type) => (
+                      <SelectItem key={type} value={type}>
+                        {type}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <Select value={selectedDepartment} onValueChange={setSelectedDepartment}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Filter by Department" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="">All Departments</SelectItem>
+                    {Object.values(Department).map((dept) => (
+                      <SelectItem key={dept} value={dept}>
+                        {dept}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    setSearchTerm("");
+                    setSelectedRegion("");
+                    setSelectedType("");
+                    setSelectedDepartment("");
+                  }}
+                >
+                  Clear Filters
+                </Button>
+              </div>
+            </div>
           </CardHeader>
           <CardContent>
             <Table>
@@ -306,14 +390,14 @@ export default function VehicleGroupManagement() {
                         </motion.div>
                       </TableCell>
                     </TableRow>
-                  ) : !vehicleGroups?.length ? (
+                  ) : !filteredGroups.length ? (
                     <TableRow>
                       <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
                         No vehicle groups found
                       </TableCell>
                     </TableRow>
                   ) : (
-                    vehicleGroups.map((group) => (
+                    filteredGroups.map((group) => (
                       <motion.tr
                         key={group.id}
                         initial={{ opacity: 0, x: -20 }}
