@@ -105,11 +105,26 @@ export default function VehicleTypeManagement() {
 
   const handleSubmit = async (data: InsertVehicleTypeMaster) => {
     try {
-      console.log("Submitting form data:", data);
+      // Convert string values to numbers where needed
+      const formattedData = {
+        ...data,
+        group_id: Number(data.group_id),
+        model_year: Number(data.model_year),
+        number_of_passengers: Number(data.number_of_passengers),
+        fuel_price_per_litre: Number(data.fuel_price_per_litre),
+        cost_per_km: Number(data.cost_per_km),
+        alert_before: Number(data.alert_before),
+        idle_fuel_consumption: Number(data.idle_fuel_consumption),
+        vehicle_capacity: Number(data.vehicle_capacity),
+        co2_emission_factor: Number(data.co2_emission_factor)
+      };
+
+      console.log("Submitting formatted data:", formattedData);
+
       if (selectedType) {
-        await updateMutation.mutateAsync({ ...data, id: selectedType.id });
+        await updateMutation.mutateAsync({ ...formattedData, id: selectedType.id });
       } else {
-        await createMutation.mutateAsync(data);
+        await createMutation.mutateAsync(formattedData);
       }
     } catch (error) {
       console.error("Submit error:", error);
