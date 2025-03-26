@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import {
@@ -26,6 +26,8 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
+import { useToast } from "@/hooks/use-toast";
+import { Loader2 } from "lucide-react";
 
 interface VehicleGroupFormProps {
   onSubmit: (data: InsertVehicleGroup) => Promise<void>;
@@ -34,6 +36,9 @@ interface VehicleGroupFormProps {
 }
 
 export function VehicleGroupForm({ onSubmit, initialData, isEditing }: VehicleGroupFormProps) {
+  const { toast } = useToast();
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
   const form = useForm<InsertVehicleGroup>({
     resolver: zodResolver(insertVehicleGroupSchema),
     defaultValues: {
@@ -61,9 +66,44 @@ export function VehicleGroupForm({ onSubmit, initialData, isEditing }: VehicleGr
     }
   }, [initialData, form]);
 
+  const handleSubmit = async (data: InsertVehicleGroup) => {
+    setIsSubmitting(true);
+    try {
+      await onSubmit(data);
+
+      // Show success message
+      toast({
+        title: "Success",
+        description: isEditing ? "Vehicle group updated successfully" : "Vehicle group created successfully",
+      });
+
+      // Reset form if not editing
+      if (!isEditing) {
+        form.reset({
+          group_code: "",
+          region: "",
+          name: "",
+          type: "",
+          department: "",
+          image_url: "",
+          description: ""
+        });
+      }
+    } catch (error: any) {
+      // Show error message
+      toast({
+        title: "Error",
+        description: error.message || "Failed to submit form",
+        variant: "destructive"
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+      <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-4">
         <div className="grid grid-cols-2 gap-4">
           <FormField
             control={form.control}
@@ -72,7 +112,7 @@ export function VehicleGroupForm({ onSubmit, initialData, isEditing }: VehicleGr
               <FormItem>
                 <FormLabel>Group Code *</FormLabel>
                 <FormControl>
-                  <Input placeholder="Enter group code" {...field} />
+                  <Input placeholder="Enter group code" {...field} disabled={isSubmitting} />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -86,7 +126,7 @@ export function VehicleGroupForm({ onSubmit, initialData, isEditing }: VehicleGr
               <FormItem>
                 <FormLabel>Group Name *</FormLabel>
                 <FormControl>
-                  <Input placeholder="Enter group name" {...field} />
+                  <Input placeholder="Enter group name" {...field} disabled={isSubmitting} />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -99,7 +139,7 @@ export function VehicleGroupForm({ onSubmit, initialData, isEditing }: VehicleGr
             render={({ field }) => (
               <FormItem>
                 <FormLabel>Region *</FormLabel>
-                <Select onValueChange={field.onChange} value={field.value}>
+                <Select onValueChange={field.onChange} value={field.value} disabled={isSubmitting}>
                   <FormControl>
                     <SelectTrigger>
                       <SelectValue placeholder="Select region" />
@@ -124,7 +164,7 @@ export function VehicleGroupForm({ onSubmit, initialData, isEditing }: VehicleGr
             render={({ field }) => (
               <FormItem>
                 <FormLabel>Group Type *</FormLabel>
-                <Select onValueChange={field.onChange} value={field.value}>
+                <Select onValueChange={field.onChange} value={field.value} disabled={isSubmitting}>
                   <FormControl>
                     <SelectTrigger>
                       <SelectValue placeholder="Select group type" />
@@ -149,7 +189,7 @@ export function VehicleGroupForm({ onSubmit, initialData, isEditing }: VehicleGr
             render={({ field }) => (
               <FormItem>
                 <FormLabel>Department *</FormLabel>
-                <Select onValueChange={field.onChange} value={field.value}>
+                <Select onValueChange={field.onChange} value={field.value} disabled={isSubmitting}>
                   <FormControl>
                     <SelectTrigger>
                       <SelectValue placeholder="Select department" />
@@ -175,7 +215,7 @@ export function VehicleGroupForm({ onSubmit, initialData, isEditing }: VehicleGr
               <FormItem>
                 <FormLabel>Image URL</FormLabel>
                 <FormControl>
-                  <Input placeholder="Enter image URL" {...field} />
+                  <Input placeholder="Enter image URL" {...field} disabled={isSubmitting} />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -190,15 +230,26 @@ export function VehicleGroupForm({ onSubmit, initialData, isEditing }: VehicleGr
             <FormItem>
               <FormLabel>Description</FormLabel>
               <FormControl>
-                <Input placeholder="Enter description" {...field} />
+                <Input placeholder="Enter description" {...field} disabled={isSubmitting} />
               </FormControl>
               <FormMessage />
             </FormItem>
           )}
         />
 
-        <Button type="submit" className="w-full">
-          {isEditing ? "Update Vehicle Group" : "Create Vehicle Group"}
+        <Button 
+          type="submit" 
+          className="w-full"
+          disabled={isSubmitting}
+        >
+          {isSubmitting ? (
+            <>
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              {isEditing ? "Updating..." : "Creating..."}
+            </>
+          ) : (
+            isEditing ? "Update Vehicle Group" : "Create Vehicle Group"
+          )}
         </Button>
       </form>
     </Form>
