@@ -15,7 +15,7 @@ import crypto from "crypto";
 import { eq, sql } from 'drizzle-orm';
 import { db } from './db';
 import { schema } from './schema';
-import {insertVehicleGroupSchema, insertVehicleMasterSchema, insertEmployeeSchema} from "@shared/schema";
+import { insertVehicleGroupSchema, insertEmployeeSchema } from "@shared/schema";
 import { approvalWorkflowsRouter } from './routes/approval-workflows';
 
 // Configure multer for handling file uploads
@@ -910,7 +910,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             error: "User not found",
             details: "No matching user found with provided username and email"
           });
-        }
+                }
 
         // Generate reset token
         const resetToken = crypto.randomBytes(32).toString('hex');        const resetTokenExpiry = new Date(Date.now() + 3600000); // 1 hour from now
