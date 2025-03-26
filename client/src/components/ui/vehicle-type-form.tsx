@@ -528,31 +528,31 @@ export function VehicleTypeForm({ onSubmit, initialData, isEditing }: VehicleTyp
   const form = useForm<InsertVehicleTypeMaster>({
     resolver: zodResolver(insertVehicleTypeMasterSchema),
     defaultValues: {
-      groupId: initialData?.groupId || 0,
-      vehicleTypeCode: "",
-      manufacturer: "",
-      modelYear: 0,
-      numberOfPassengers: 0,
-      region: "",
-      fuelEfficiency: 0,
-      fuelPricePerLitre: 0,
-      fuelType: initialData?.fuelType || "Petrol",
-      servicePlan: "",
-      costPerKm: 0,
-      vehicleType: "",
-      department: "",
-      unit: "",
-      alertBefore: 0,
-      idleFuelConsumption: 0,
-      vehicleCapacity: 0,
-      co2EmissionFactor: 0
+      group_id: initialData?.group_id || 0,
+      vehicle_type_code: initialData?.vehicle_type_code || "",
+      manufacturer: initialData?.manufacturer || "",
+      model_year: initialData?.model_year || 0,
+      number_of_passengers: initialData?.number_of_passengers || 0,
+      region: initialData?.region || "",
+      fuel_efficiency: initialData?.fuel_efficiency || "0", //Corrected default value
+      fuel_price_per_litre: initialData?.fuel_price_per_litre || 0,
+      fuel_type: initialData?.fuel_type || "Petrol",
+      service_plan: initialData?.service_plan || "",
+      cost_per_km: initialData?.cost_per_km || 0,
+      vehicle_type: initialData?.vehicle_type || "",
+      department: initialData?.department || "",
+      unit: initialData?.unit || "",
+      alert_before: initialData?.alert_before || 0,
+      idle_fuel_consumption: initialData?.idle_fuel_consumption || 0,
+      vehicle_capacity: initialData?.vehicle_capacity || 0,
+      co2_emission_factor: initialData?.co2_emission_factor || 0 //Corrected default value
     }
   });
 
-  const selectedFuelType = form.watch("fuelType");
-  const fuelEfficiency = form.watch("fuelEfficiency");
-  const fuelPricePerLitre = form.watch("fuelPricePerLitre");
-  const vehicleType = form.watch("vehicleType");
+  const selectedFuelType = form.watch("fuel_type");
+  const fuelEfficiency = form.watch("fuel_efficiency");
+  const fuelPricePerLitre = form.watch("fuel_price_per_litre");
+  const vehicleType = form.watch("vehicle_type");
   const selectedManufacturer = form.watch("manufacturer");
 
   const calculateCostPerKm = (fuelPrice: number, fuelEfficiency: number) => {
@@ -561,16 +561,27 @@ export function VehicleTypeForm({ onSubmit, initialData, isEditing }: VehicleTyp
   };
 
   useEffect(() => {
-    const costPerKm = calculateCostPerKm(fuelPricePerLitre, fuelEfficiency);
-    form.setValue("costPerKm", costPerKm);
+    const costPerKm = calculateCostPerKm(fuelPricePerLitre, parseFloat(fuelEfficiency));
+    form.setValue("cost_per_km", costPerKm);
   }, [fuelEfficiency, fuelPricePerLitre, form]);
 
   useEffect(() => {
     if (initialData) {
       form.reset({
         ...initialData,
-        groupId: initialData.groupId || 0,
-        fuelType: initialData.fuelType || "Petrol"
+        group_id: initialData.group_id || 0,
+        fuel_type: initialData.fuel_type || "Petrol",
+        fuel_efficiency: initialData.fuel_efficiency || "0",
+        vehicle_type_code: initialData.vehicle_type_code || "",
+        vehicle_type: initialData.vehicle_type || "",
+        number_of_passengers: initialData.number_of_passengers || 0,
+        fuel_price_per_litre: initialData.fuel_price_per_litre || 0,
+        cost_per_km: initialData.cost_per_km || 0,
+        service_plan: initialData.service_plan || "",
+        alert_before: initialData.alert_before || 0,
+        idle_fuel_consumption: initialData.idle_fuel_consumption || 0,
+        vehicle_capacity: initialData.vehicle_capacity || 0,
+        co2_emission_factor: initialData.co2_emission_factor || "0"
       });
     }
   }, [initialData, form]);
@@ -582,13 +593,13 @@ export function VehicleTypeForm({ onSubmit, initialData, isEditing }: VehicleTyp
       console.log("Found price:", price);
 
       if (price !== undefined) {
-        form.setValue("fuelPricePerLitre", price);
+        form.setValue("fuel_price_per_litre", price);
 
         // Recalculate cost per km if we have both price and efficiency
-        const efficiency = form.getValues("fuelEfficiency");
-        if (efficiency > 0) {
-          const costPerKm = calculateCostPerKm(price, efficiency);
-          form.setValue("costPerKm", costPerKm);
+        const efficiency = form.getValues("fuel_efficiency"); 
+        if (efficiency) {
+          const costPerKm = calculateCostPerKm(price, parseFloat(efficiency));
+          form.setValue("cost_per_km", costPerKm);
         }
       }
     }
@@ -596,8 +607,8 @@ export function VehicleTypeForm({ onSubmit, initialData, isEditing }: VehicleTyp
 
   useEffect(() => {
     if (vehicleType && selectedManufacturer) {
-      const modelYear = form.getValues("modelYear");
-      const currentFuelType = form.getValues("fuelType");
+      const modelYear = form.getValues("model_year");
+      const currentFuelType = form.getValues("fuel_type");
       const typeCode = `${selectedManufacturer}-${vehicleType}`;
 
       const efficiency = findVehicleEfficiency(
@@ -609,43 +620,42 @@ export function VehicleTypeForm({ onSubmit, initialData, isEditing }: VehicleTyp
       const passengerCapacity = getPassengerCapacityFromCode(typeCode);
       const idleConsumption = calculateIdleFuelConsumption(typeCode, currentFuelType);
 
-      form.setValue("fuelEfficiency", efficiency);
-      form.setValue("numberOfPassengers", passengerCapacity);
-      form.setValue("vehicleCapacity", vehicleCapacity);
-      form.setValue("idleFuelConsumption", idleConsumption);
+      form.setValue("fuel_efficiency", efficiency); 
+      form.setValue("number_of_passengers", passengerCapacity);
+      form.setValue("vehicle_capacity", vehicleCapacity);
+      form.setValue("idle_fuel_consumption", idleConsumption);
     }
   }, [vehicleType, form, selectedManufacturer]);
 
   useEffect(() => {
-    const selectedFuelType = form.watch("fuelType");
     if (selectedFuelType && vehicleType && selectedManufacturer) {
       const typeCode = `${selectedManufacturer}-${vehicleType}`;
       const idleConsumption = calculateIdleFuelConsumption(typeCode, selectedFuelType);
-      form.setValue("idleFuelConsumption", idleConsumption);
+      form.setValue("idle_fuel_consumption", idleConsumption);
     }
-  }, [form.watch("fuelType"), vehicleType, selectedManufacturer]);
+  }, [form.watch("fuel_type"), vehicleType, selectedManufacturer]);
 
   useEffect(() => {
-    const modelYear = form.watch("modelYear");
-    const currentType = form.getValues("vehicleType");
-    const currentFuelType = form.getValues("fuelType");
+    const modelYear = form.watch("model_year");
+    const currentType = form.getValues("vehicle_type");
+    const currentFuelType = form.getValues("fuel_type");
     if (modelYear && currentType && selectedManufacturer && currentFuelType) {
       const efficiency = findVehicleEfficiency(
         `${selectedManufacturer}-${currentType}`,
         modelYear,
         currentFuelType
       );
-      form.setValue("fuelEfficiency", efficiency);
+      form.setValue("fuel_efficiency", efficiency); 
     }
-  }, [form.watch("modelYear"), form.watch("fuelType"), selectedManufacturer]);
+  }, [form.watch("model_year"), form.watch("fuel_type"), selectedManufacturer]);
 
   useEffect(() => {
-    const selectedFuelType = form.watch("fuelType");
+    const selectedFuelType = form.watch("fuel_type");
     if (selectedFuelType) {
       const co2Factor = calculateCO2EmissionFactor(selectedFuelType);
-      form.setValue("co2EmissionFactor", co2Factor);
+      form.setValue("co2_emission_factor", co2Factor);
     }
-  }, [form.watch("fuelType")]);
+  }, [form.watch("fuel_type")]);
 
   return (
     <Form {...form}>
@@ -653,7 +663,7 @@ export function VehicleTypeForm({ onSubmit, initialData, isEditing }: VehicleTyp
         <div className="grid grid-cols-3 gap-4">
           <FormField
             control={form.control}
-            name="groupId"
+            name="group_id"
             render={({ field }) => (
               <FormItem>
                 <FormLabel>Vehicle Group *</FormLabel>
@@ -699,8 +709,8 @@ export function VehicleTypeForm({ onSubmit, initialData, isEditing }: VehicleTyp
                   onValueChange={(value) => {
                     field.onChange(value);
                     // Clear vehicle type when manufacturer changes
-                    form.setValue("vehicleType", "");
-                    form.setValue("vehicleTypeCode", "");
+                    form.setValue("vehicle_type", "");
+                    form.setValue("vehicle_type_code", "");
                   }}
                   value={field.value}
                 >
@@ -723,7 +733,7 @@ export function VehicleTypeForm({ onSubmit, initialData, isEditing }: VehicleTyp
           />
           <FormField
             control={form.control}
-            name="modelYear"
+            name="model_year"
             render={({ field }) => (
               <FormItem className="flex flex-col">
                 <FormLabel>Model Year *</FormLabel>
@@ -761,10 +771,10 @@ export function VehicleTypeForm({ onSubmit, initialData, isEditing }: VehicleTyp
 
                             // Update vehicle type code if all required fields are present
                             const currentManufacturer = form.getValues("manufacturer");
-                            const currentType = form.getValues("vehicleType");
+                            const currentType = form.getValues("vehicle_type");
                             if (currentManufacturer && currentType) {
                               form.setValue(
-                                "vehicleTypeCode",
+                                "vehicle_type_code",
                                 `${currentManufacturer.toUpperCase()}-${currentType.toUpperCase()}-${year}`
                               );
                             }
@@ -782,10 +792,10 @@ export function VehicleTypeForm({ onSubmit, initialData, isEditing }: VehicleTyp
 
                               // Update vehicle type code if all required fields are present
                               const currentManufacturer = form.getValues("manufacturer");
-                              const currentType = form.getValues("vehicleType");
+                              const currentType = form.getValues("vehicle_type");
                               if (currentManufacturer && currentType) {
                                 form.setValue(
-                                  "vehicleTypeCode",
+                                  "vehicle_type_code",
                                   `${currentManufacturer.toUpperCase()}-${currentType.toUpperCase()}-${year}`
                                 );
                               }
@@ -810,30 +820,30 @@ export function VehicleTypeForm({ onSubmit, initialData, isEditing }: VehicleTyp
           />
           <FormField
             control={form.control}
-            name="vehicleType"
+            name="vehicle_type"
             render={({ field }) => (
               <FormItem>
                 <FormLabel>Vehicle Type *</FormLabel>
                 <Select
                   onValueChange={(value) => {
                     field.onChange(value);
-                    const modelYear = form.getValues("modelYear");
-                    const fuelType = form.getValues("fuelType"); 
+                    const modelYear = form.getValues("model_year");
+                    const fuelType = form.getValues("fuel_type"); 
                     const efficiency = findVehicleEfficiency(value, modelYear, fuelType); 
                     const currentManufacturer = form.getValues("manufacturer");
 
                     // Update vehicle type code and capacities
                     if (currentManufacturer && value && modelYear) {
                       const typeCode = `${currentManufacturer.toUpperCase()}-${value.toUpperCase()}-${modelYear}`;
-                      form.setValue("vehicleTypeCode", typeCode);
+                      form.setValue("vehicle_type_code", typeCode);
 
                       // Update capacities based on the new type code
                       const passengerCapacity = getPassengerCapacityFromCode(typeCode);
                       const vehicleCapacity = getVehicleCapacityFromCode(typeCode);
 
-                      form.setValue("numberOfPassengers", passengerCapacity);
-                      form.setValue("vehicleCapacity", vehicleCapacity);
-                      form.setValue("fuelEfficiency", efficiency);
+                      form.setValue("number_of_passengers", passengerCapacity);
+                      form.setValue("vehicle_capacity", vehicleCapacity);
+                      form.setValue("fuel_efficiency", efficiency); 
                     }
                   }}
                   value={field.value}
@@ -859,7 +869,7 @@ export function VehicleTypeForm({ onSubmit, initialData, isEditing }: VehicleTyp
           />
           <FormField
             control={form.control}
-            name="vehicleTypeCode"
+            name="vehicle_type_code"
             render={({ field }) => (
               <FormItem>
                 <FormLabel>Vehicle Type Code *</FormLabel>
@@ -877,7 +887,7 @@ export function VehicleTypeForm({ onSubmit, initialData, isEditing }: VehicleTyp
           {/* Update the fuel type field */}
           <FormField
             control={form.control}
-            name="fuelType"
+            name="fuel_type"
             render={({ field }) => (
               <FormItem>
                 <FormLabel>Fuel Type *</FormLabel>
@@ -888,13 +898,13 @@ export function VehicleTypeForm({ onSubmit, initialData, isEditing }: VehicleTyp
                     if (fuelPrices) {
                       const price = fuelPrices[value.toLowerCase()];
                       if (price !== undefined) {
-                        form.setValue("fuelPricePerLitre", price);
+                        form.setValue("fuel_price_per_litre", price);
 
-                        // Recalculate cost per km
-                        const efficiency = form.getValues("fuelEfficiency");
-                        if (efficiency > 0) {
-                          const costPerKm = calculateCostPerKm(price, efficiency);
-                          form.setValue("costPerKm", costPerKm);
+                        // Recalculate cost perkm
+                        const efficiency = form.getValues("fuel_efficiency"); 
+                        if (efficiency) {
+                          const costPerKm = calculateCostPerKm(price, parseFloat(efficiency));
+                          form.setValue("cost_per_km", costPerKm);
                         }
                       }
                     }
@@ -922,7 +932,7 @@ export function VehicleTypeForm({ onSubmit, initialData, isEditing }: VehicleTyp
           {/* Update the fuel price per litre field */}
           <FormField
             control={form.control}
-            name="fuelPricePerLitre"
+            name="fuel_price_per_litre"
             render={({ field }) => (
               <FormItem>
                 <FormLabel>Fuel Price Per Litre *</FormLabel>
@@ -939,19 +949,31 @@ export function VehicleTypeForm({ onSubmit, initialData, isEditing }: VehicleTyp
               </FormItem>
             )}
           />
+          {/* Add Fuel Efficiency field */}
           <FormField
             control={form.control}
-            name="co2EmissionFactor"
+            name="fuel_efficiency"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>CO2 Emission Factor (kg/L) *</FormLabel>
+                <FormLabel>Fuel Efficiency (KM/L) *</FormLabel>
                 <FormControl>
                   <Input
                     type="number"
-                    placeholder="Auto-calculated from fuel type"
+                    step="0.01"
+                    placeholder="Enter fuel efficiency"
                     {...field}
-                    disabled
-                    value={field.value}
+                    value={field.value || ''}
+                    onChange={(e) => {
+                      const value = parseFloat(e.target.value);
+                      field.onChange(isNaN(value) ? '' : value);
+
+                      // Recalculate cost per km if we have both efficiency and fuel price
+                      const fuelPrice = form.getValues("fuel_price_per_litre");
+                      if (value && fuelPrice) {
+                        const costPerKm = calculateCostPerKm(fuelPrice, value);
+                        form.setValue("cost_per_km", costPerKm);
+                      }
+                    }}
                   />
                 </FormControl>
                 <FormMessage />
@@ -960,7 +982,7 @@ export function VehicleTypeForm({ onSubmit, initialData, isEditing }: VehicleTyp
           />
           <FormField
             control={form.control}
-            name="servicePlan"
+            name="service_plan"
             render={({ field }) => (
               <FormItem>
                 <FormLabel>Service Plan</FormLabel>
@@ -973,7 +995,7 @@ export function VehicleTypeForm({ onSubmit, initialData, isEditing }: VehicleTyp
           />
           <FormField
             control={form.control}            
-            name="costPerKm"
+            name="cost_per_km"
             render={({ field }) => (
               <FormItem>
                 <FormLabel>Cost Per KM (Calculated) *</FormLabel>
@@ -992,7 +1014,7 @@ export function VehicleTypeForm({ onSubmit, initialData, isEditing }: VehicleTyp
           />
           <FormField
             control={form.control}
-            name="numberOfPassengers"
+            name="number_of_passengers"
             render={({ field }) => (
               <FormItem>
                 <FormLabel>Number ofPassengers *</FormLabel>
@@ -1010,7 +1032,7 @@ export function VehicleTypeForm({ onSubmit, initialData, isEditing }: VehicleTyp
           />
           <FormField
             control={form.control}
-            name="alertBefore"
+            name="alert_before"
             render={({ field }) => (
               <FormItem>
                 <FormLabel>Alert Before</FormLabel>
@@ -1028,7 +1050,7 @@ export function VehicleTypeForm({ onSubmit, initialData, isEditing }: VehicleTyp
           />
           <FormField
             control={form.control}
-            name="idleFuelConsumption"
+            name="idle_fuel_consumption"
             render={({ field }) => (
               <FormItem>
                 <FormLabel>Idle Fuel Consumption (L/H) *</FormLabel>
@@ -1115,7 +1137,7 @@ export function VehicleTypeForm({ onSubmit, initialData, isEditing }: VehicleTyp
           />
           <FormField
             control={form.control}
-            name="vehicleCapacity"
+            name="vehicle_capacity"
             render={({ field }) => (
               <FormItem>
                 <FormLabel>Vehicle Capacity (cubic feet) *</FormLabel>
@@ -1125,6 +1147,27 @@ export function VehicleTypeForm({ onSubmit, initialData, isEditing }: VehicleTyp
                     placeholder="Enter vehicle capacity"
                     {...field}
                     onChange={e => field.onChange(Number(e.target.value))}
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          {/* Add CO2 Emission Factor field */}
+          <FormField
+            control={form.control}
+            name="co2_emission_factor"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>CO2 Emission Factor (kg/L) *</FormLabel>
+                <FormControl>
+                  <Input
+                    type="number"
+                    step="0.01"
+                    placeholder="Auto-calculated from fuel type"
+                    {...field}
+                    disabled
+                    value={field.value || ''}
                   />
                 </FormControl>
                 <FormMessage />
