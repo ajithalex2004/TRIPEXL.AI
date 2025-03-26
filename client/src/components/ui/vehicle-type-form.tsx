@@ -954,7 +954,7 @@ export function VehicleTypeForm({ onSubmit, initialData, isEditing }: VehicleTyp
                     value={field.value}
                   />
                 </FormControl>
-                <<FormMessage />
+                <FormMessage />
               </FormItem>
             )}
           />
