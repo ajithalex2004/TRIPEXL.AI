@@ -35,27 +35,16 @@ export default function VehicleTypeManagement() {
 
   const { data: vehicleTypes, isLoading } = useQuery<VehicleTypeMaster[]>({
     queryKey: ["/api/vehicle-types"],
-    queryFn: async () => {
-      const response = await apiRequest("GET", "/api/vehicle-types");
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.message || "Failed to fetch vehicle types");
-      }
-      return response.json();
-    },
   });
 
   const createMutation = useMutation({
     mutationFn: async (data: InsertVehicleTypeMaster) => {
-      console.log("Creating vehicle type with data:", data);
       const response = await apiRequest("POST", "/api/vehicle-types", data);
       if (!response.ok) {
         const error = await response.json();
         throw new Error(error.message || "Failed to create vehicle type");
       }
-      const result = await response.json();
-      console.log("Create response:", result);
-      return result;
+      return response.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/vehicle-types"] });
@@ -77,7 +66,6 @@ export default function VehicleTypeManagement() {
 
   const updateMutation = useMutation({
     mutationFn: async ({ id, ...data }: InsertVehicleTypeMaster & { id: number }) => {
-      console.log("Updating vehicle type:", id, "with data:", data);
       const response = await apiRequest("PATCH", `/api/vehicle-types/${id}`, data);
       if (!response.ok) {
         const error = await response.json();
@@ -219,7 +207,7 @@ export default function VehicleTypeManagement() {
       <div className="max-w-7xl mx-auto space-y-6">
         <Card className="backdrop-blur-xl bg-background/60 border border-white/10 shadow-2xl">
           <CardHeader>
-            <CardTitle>Vehicle Types List</CardTitle>
+            <CardTitle>Vehicle Types</CardTitle>
           </CardHeader>
           <CardContent>
             <motion.div
