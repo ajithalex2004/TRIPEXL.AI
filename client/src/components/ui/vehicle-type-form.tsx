@@ -517,7 +517,7 @@ export function VehicleTypeForm({ onSubmit, initialData, isEditing }: VehicleTyp
       region: "",
       fuelEfficiency: 0,
       fuelPricePerLitre: 0,
-      fuelType: "Petrol",
+      fuelType: "Petrol", // Set default fuel type
       servicePlan: "",
       costPerKm: 0,
       vehicleType: "",
@@ -578,13 +578,6 @@ export function VehicleTypeForm({ onSubmit, initialData, isEditing }: VehicleTyp
     }
   }, [selectedFuelType, fuelPrices, form]);
 
-  // Separate useEffect for cost per km updates
-  useEffect(() => {
-    if (fuelPricePerLitre && fuelEfficiency > 0) {
-      const costPerKm = calculateCostPerKm(fuelPricePerLitre, fuelEfficiency);
-      form.setValue("costPerKm", costPerKm);
-    }
-  }, [fuelPricePerLitre, fuelEfficiency, form]);
 
   // Update vehicle details when vehicle type changes
   useEffect(() => {
@@ -989,8 +982,7 @@ export function VehicleTypeForm({ onSubmit, initialData, isEditing }: VehicleTyp
             )}
           />
           <FormField
-            control={form.control}
-            name="costPerKm"
+            control={form.control}            name="costPerKm"
             render={({ field }) => (
               <FormItem>
                 <FormLabel>Cost Per KM (Calculated) *</FormLabel>
