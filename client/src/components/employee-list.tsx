@@ -35,7 +35,6 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { StatusBadge } from "./status-badge";
-import { UserAvatar } from "./user-avatar";
 
 interface Employee {
   id: number;
@@ -260,12 +259,7 @@ export function EmployeeList() {
             ) : (
               filteredEmployees?.map((employee) => (
                 <TableRow key={employee.id}>
-                  <TableCell className="font-medium">
-                    <div className="flex items-center gap-2">
-                      <UserAvatar name={employee.employee_name} size="sm" />
-                      {employee.employee_id}
-                    </div>
-                  </TableCell>
+                  <TableCell className="font-medium">{employee.employee_id}</TableCell>
                   <TableCell>{employee.employee_name}</TableCell>
                   <TableCell>{employee.email_id}</TableCell>
                   <TableCell>{employee.mobile_number}</TableCell>
