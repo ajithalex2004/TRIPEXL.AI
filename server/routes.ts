@@ -16,6 +16,7 @@ import { eq, sql } from 'drizzle-orm';
 import { db } from './db';
 import { schema } from './schema';
 import {insertVehicleGroupSchema, insertVehicleMasterSchema, insertEmployeeSchema} from "@shared/schema";
+import { approvalWorkflowsRouter } from './routes/approval-workflows';
 
 // Configure multer for handling file uploads
 const upload = multer({
@@ -1180,6 +1181,7 @@ If you didn't request this reset, please ignore this email.
     });
 
     log("All routes registered successfully");
+    app.use(approvalWorkflowsRouter);
     return httpServer;
   } catch (error) {
     console.error("Error registering routes:", error);

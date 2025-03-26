@@ -1,4 +1,4 @@
-import { pgTable, text, serial, integer, timestamp, json, boolean, index, decimal, varchar, date } from "drizzle-orm/pg-core";
+import { pgTable, text, serial, integer, timestamp, json, boolean, index, decimal, varchar, date, unique } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 import { relations } from "drizzle-orm";
@@ -305,6 +305,12 @@ export const HierarchyLevel = {
   LEVEL_2: "Level 2"  // Senior Management
 } as const;
 
+// Add after the HierarchyLevel definition
+export const ApprovalLevel = {
+  LEVEL_1: "Level 1", // Approval Authority/Dept Head
+  LEVEL_2: "Level 2"  // Senior Management
+} as const;
+
 export const employees = pgTable("employees", {
   id: serial("id").primaryKey(),
   employee_id: integer("employee_id").notNull().unique(),
@@ -325,6 +331,28 @@ export const employees = pgTable("employees", {
   is_active: boolean("is_active").notNull().default(true),
   created_at: timestamp("created_at").notNull().defaultNow(),
   updated_at: timestamp("updated_at").notNull().defaultNow()
+});
+
+// Add after the employees table definition
+export const approvalWorkflows = pgTable("approval_workflows", {
+  id: serial("id").primaryKey(),
+  region: varchar("region", { length: 50 }).notNull(),
+  department: varchar("department", { length: 50 }).notNull(),
+  unit: varchar("unit", { length: 50 }).notNull(),
+  level_1_approver_id: integer("level_1_approver_id").references(() => employees.id),
+  level_2_approver_id: integer("level_2_approver_id").references(() => employees.id),
+  is_active: boolean("is_active").notNull().default(true),
+  created_at: timestamp("created_at").notNull().defaultNow(),
+  updated_at: timestamp("updated_at").notNull().defaultNow()
+}, (table) => {
+  return {
+    // Create a unique constraint on region, department, and unit combination
+    unique_workflow_idx: unique("unique_workflow_idx").on(
+      table.region,
+      table.department,
+      table.unit
+    )
+  };
 });
 
 export const employeesRelations = relations(employees, ({ one, many }) => ({
@@ -727,7 +755,7 @@ export const insertVehicleTypeMasterSchema = createInsertSchema(vehicleTypeMaste
     fuel_type: z.enum(Object.values(VehicleFuelType) as [string, ...string[]]),
     service_plan: z.string().optional(),
     cost_per_km: z.number().min(0, "Cost per KM must be positive"),
-vehicle_type: z.string().min(1, "Vehicle type is required"),
+    vehicle_type: z.string().min(1, "Vehicle type is required"),
     department: z.enum(Object.values(Department) as [string, ...string[]]),
     unit: z.string().optional(),
     alert_before: z.number().min(0, "Alert before must be positive").optional(),
@@ -770,6 +798,29 @@ export const insertEmployeeSchema = createInsertSchema(employees)
     supervisor_id: z.number().optional()
   });
 
+// Add the insert schema for approval workflows
+export const insertApprovalWorkflowSchema = createInsertSchema(approvalWorkflows)
+  .extend({
+    region: z.enum(Object.values(Region) as [string, ...string[]]),
+    department: z.enum(Object.values(Department) as [string, ...string[]]),
+    unit: z.string().min(1, "Unit is required"),
+    level_1_approver_id: z.number().positive("Level 1 approver is required"),
+    level_2_approver_id: z.number().positive("Level 2 approver is required")
+  });
+
+// Add approval workflow relations
+export const approvalWorkflowsRelations = relations(approvalWorkflows, ({ one }) => ({
+  level1Approver: one(employees, {
+    fields: [approvalWorkflows.level_1_approver_id],
+    references: [employees.id],
+  }),
+  level2Approver: one(employees, {
+    fields: [approvalWorkflows.level_2_approver_id],
+    references: [employees.id],
+  }),
+}));
+
+
 // Add to the type exports
 export type User = typeof users.$inferSelect;
 export type InsertUser = z.infer<typeof insertUserSchema>;
@@ -789,3 +840,5 @@ export type VehicleTypeMaster = typeof vehicleTypeMaster.$inferSelect;
 export type InsertVehicleTypeMaster = z.infer<typeof insertVehicleTypeMasterSchema>;
 export type Employee = typeof employees.$inferSelect;
 export type InsertEmployee = z.infer<typeof insertEmployeeSchema>;
+export type ApprovalWorkflow = typeof approvalWorkflows.$inferSelect;
+export type InsertApprovalWorkflow = z.infer<typeof insertApprovalWorkflowSchema>;
