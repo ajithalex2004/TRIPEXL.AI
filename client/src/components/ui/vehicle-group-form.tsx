@@ -20,6 +20,8 @@ import {
 } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { apiRequest } from "@/lib/queryClient";
 
 interface VehicleGroupFormProps {
   onSubmit: (data: InsertVehicleGroup) => void;
@@ -29,29 +31,59 @@ interface VehicleGroupFormProps {
 
 export function VehicleGroupForm({ onSubmit, initialData, isEditing }: VehicleGroupFormProps) {
   const { toast } = useToast();
+  const queryClient = useQueryClient();
+
   const form = useForm<InsertVehicleGroup>({
     resolver: zodResolver(insertVehicleGroupSchema),
     defaultValues: {
-      groupCode: "",
+      group_code: "",
       region: "",
       name: "",
       type: "",
       department: "",
-      imageUrl: "",
+      image_url: "",
       description: ""
     }
+  });
+
+  // Create mutation
+  const createMutation = useMutation({
+    mutationFn: async (data: InsertVehicleGroup) => {
+      const response = await apiRequest("POST", "/api/vehicle-groups", data);
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || "Failed to create vehicle group");
+      }
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/vehicle-groups"] });
+      toast({
+        title: "Success",
+        description: "Vehicle group created successfully",
+      });
+      form.reset();
+      onSubmit(form.getValues());
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
   });
 
   // Update form values when initialData changes
   useEffect(() => {
     if (initialData) {
       form.reset({
-        groupCode: initialData.groupCode,
+        group_code: initialData.group_code,
         region: initialData.region,
         name: initialData.name,
         type: initialData.type,
         department: initialData.department,
-        imageUrl: initialData.imageUrl || "",
+        image_url: initialData.image_url || "",
         description: initialData.description || ""
       });
     }
@@ -59,16 +91,7 @@ export function VehicleGroupForm({ onSubmit, initialData, isEditing }: VehicleGr
 
   const handleSubmit = async (data: InsertVehicleGroup) => {
     try {
-      await onSubmit(data);
-      form.reset({
-        groupCode: "",
-        region: "",
-        name: "",
-        type: "",
-        department: "",
-        imageUrl: "",
-        description: ""
-      });
+      await createMutation.mutateAsync(data);
     } catch (error: any) {
       toast({
         title: "Error",
@@ -84,7 +107,7 @@ export function VehicleGroupForm({ onSubmit, initialData, isEditing }: VehicleGr
         <div className="grid grid-cols-2 gap-4">
           <FormField
             control={form.control}
-            name="groupCode"
+            name="group_code"
             render={({ field }) => (
               <FormItem>
                 <FormLabel>Group Code *</FormLabel>
@@ -187,7 +210,7 @@ export function VehicleGroupForm({ onSubmit, initialData, isEditing }: VehicleGr
 
           <FormField
             control={form.control}
-            name="imageUrl"
+            name="image_url"
             render={({ field }) => (
               <FormItem>
                 <FormLabel>Image URL</FormLabel>
@@ -214,8 +237,12 @@ export function VehicleGroupForm({ onSubmit, initialData, isEditing }: VehicleGr
           )}
         />
 
-        <Button type="submit" className="w-full">
-          {isEditing ? "Update Vehicle Group" : "Create Vehicle Group"}
+        <Button 
+          type="submit" 
+          className="w-full"
+          disabled={createMutation.isPending}
+        >
+          {createMutation.isPending ? "Creating..." : (isEditing ? "Update Vehicle Group" : "Create Vehicle Group")}
         </Button>
       </form>
     </Form>

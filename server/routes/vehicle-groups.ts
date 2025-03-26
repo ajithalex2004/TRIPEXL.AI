@@ -10,6 +10,7 @@ router.get("/api/vehicle-groups", async (req, res) => {
     const groups = await storage.getAllVehicleGroups();
     res.json(groups);
   } catch (error: any) {
+    console.error("Error fetching vehicle groups:", error);
     res.status(500).json({ message: error.message });
   }
 });
@@ -17,10 +18,13 @@ router.get("/api/vehicle-groups", async (req, res) => {
 // Create new vehicle group
 router.post("/api/vehicle-groups", async (req, res) => {
   try {
+    console.log("Received vehicle group data:", req.body);
     const data = insertVehicleGroupSchema.parse(req.body);
     const newGroup = await storage.createVehicleGroup(data);
+    console.log("Created vehicle group:", newGroup);
     res.status(201).json(newGroup);
   } catch (error: any) {
+    console.error("Error creating vehicle group:", error);
     res.status(400).json({ message: error.message });
   }
 });
@@ -33,6 +37,7 @@ router.patch("/api/vehicle-groups/:id", async (req, res) => {
     const updatedGroup = await storage.updateVehicleGroup(id, data);
     res.json(updatedGroup);
   } catch (error: any) {
+    console.error("Error updating vehicle group:", error);
     res.status(400).json({ message: error.message });
   }
 });
@@ -47,6 +52,7 @@ router.get("/api/vehicle-groups/:id", async (req, res) => {
     }
     res.json(group);
   } catch (error: any) {
+    console.error("Error fetching vehicle group:", error);
     res.status(500).json({ message: error.message });
   }
 });
