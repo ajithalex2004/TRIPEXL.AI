@@ -68,7 +68,7 @@ export function VehicleGroupFAB({
               <Button
                 variant="outline"
                 size="sm"
-                className="flex items-center gap-2 bg-background/80 backdrop-blur-sm"
+                className="flex items-center gap-2 bg-background/80 backdrop-blur-sm bg-gradient-to-br from-blue-500/80 to-blue-600/80 hover:from-blue-500 hover:to-blue-600 text-white border-0"
                 onClick={() => handleAction(onDownloadTemplate)}
               >
                 <FileDown className="h-4 w-4" />
@@ -83,7 +83,7 @@ export function VehicleGroupFAB({
               <Button
                 variant="outline"
                 size="sm"
-                className="flex items-center gap-2 bg-background/80 backdrop-blur-sm"
+                className="flex items-center gap-2 bg-background/80 backdrop-blur-sm bg-gradient-to-br from-green-500/80 to-green-600/80 hover:from-green-500 hover:to-green-600 text-white border-0"
                 onClick={() => handleAction(onExport)}
               >
                 <Download className="h-4 w-4" />
@@ -99,7 +99,7 @@ export function VehicleGroupFAB({
                 <Button
                   variant="outline"
                   size="sm"
-                  className="flex items-center gap-2 bg-background/80 backdrop-blur-sm"
+                  className="flex items-center gap-2 bg-background/80 backdrop-blur-sm bg-gradient-to-br from-purple-500/80 to-purple-600/80 hover:from-purple-500 hover:to-purple-600 text-white border-0"
                   onClick={() => document.getElementById('file-upload')?.click()}
                 >
                   <Upload className="h-4 w-4" />
@@ -122,7 +122,7 @@ export function VehicleGroupFAB({
               <Button
                 variant="outline"
                 size="sm"
-                className="flex items-center gap-2 bg-background/80 backdrop-blur-sm"
+                className="flex items-center gap-2 bg-background/80 backdrop-blur-sm bg-gradient-to-br from-amber-500/80 to-amber-600/80 hover:from-amber-500 hover:to-amber-600 text-white border-0"
                 onClick={() => {
                   onRefresh();
                   setIsOpen(false);
@@ -140,7 +140,7 @@ export function VehicleGroupFAB({
               <Button
                 variant="outline"
                 size="sm"
-                className="flex items-center gap-2 bg-background/80 backdrop-blur-sm"
+                className="flex items-center gap-2 bg-background/80 backdrop-blur-sm bg-gradient-to-br from-red-500/80 to-red-600/80 hover:from-red-500 hover:to-red-600 text-white border-0"
                 onClick={() => {
                   onAddClick();
                   setIsOpen(false);
