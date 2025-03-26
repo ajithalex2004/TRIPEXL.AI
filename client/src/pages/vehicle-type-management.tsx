@@ -26,6 +26,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { motion, AnimatePresence } from "framer-motion";
+import { Loader2 } from "lucide-react";
 
 export default function VehicleTypeManagement() {
   const [selectedType, setSelectedType] = useState<VehicleTypeMaster | null>(null);
@@ -33,12 +34,15 @@ export default function VehicleTypeManagement() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
+  // Query vehicle types
   const { data: vehicleTypes, isLoading } = useQuery<VehicleTypeMaster[]>({
     queryKey: ["/api/vehicle-types"],
   });
 
+  // Create mutation
   const createMutation = useMutation({
     mutationFn: async (data: InsertVehicleTypeMaster) => {
+      console.log("Creating vehicle type with data:", data);
       const response = await apiRequest("POST", "/api/vehicle-types", data);
       if (!response.ok) {
         const error = await response.json();
@@ -64,8 +68,10 @@ export default function VehicleTypeManagement() {
     },
   });
 
+  // Update mutation
   const updateMutation = useMutation({
     mutationFn: async ({ id, ...data }: InsertVehicleTypeMaster & { id: number }) => {
+      console.log("Updating vehicle type:", id, "with data:", data);
       const response = await apiRequest("PATCH", `/api/vehicle-types/${id}`, data);
       if (!response.ok) {
         const error = await response.json();
@@ -94,111 +100,13 @@ export default function VehicleTypeManagement() {
 
   const handleSubmit = async (data: InsertVehicleTypeMaster) => {
     try {
-      console.log("Form submitted with data:", data);
-
-      // Ensure all number fields are properly typed
-      const formattedData = {
-        ...data,
-        group_id: Number(data.group_id),
-        model_year: Number(data.model_year),
-        number_of_passengers: Number(data.number_of_passengers),
-        fuel_price_per_litre: Number(data.fuel_price_per_litre),
-        cost_per_km: Number(data.cost_per_km),
-        alert_before: Number(data.alert_before),
-        idle_fuel_consumption: Number(data.idle_fuel_consumption),
-        vehicle_capacity: Number(data.vehicle_capacity),
-        co2_emission_factor: Number(data.co2_emission_factor)
-      };
-
-      console.log("Formatted data:", formattedData);
-
       if (selectedType) {
-        await updateMutation.mutateAsync({ ...formattedData, id: selectedType.id });
+        await updateMutation.mutateAsync({ ...data, id: selectedType.id });
       } else {
-        await createMutation.mutateAsync(formattedData);
+        await createMutation.mutateAsync(data);
       }
     } catch (error) {
       console.error("Submit error:", error);
-      toast({
-        title: "Error",
-        description: error instanceof Error ? error.message : "Failed to submit form",
-        variant: "destructive",
-      });
-    }
-  };
-
-  const handleDownloadTemplate = async () => {
-    try {
-      const response = await apiRequest("GET", "/api/vehicle-types/template");
-      if (!response.ok) throw new Error("Failed to download template");
-
-      const blob = await response.blob();
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = "vehicle-types-template.xlsx";
-      document.body.appendChild(a);
-      a.click();
-      window.URL.revokeObjectURL(url);
-      document.body.removeChild(a);
-    } catch (error: any) {
-      toast({
-        title: "Error",
-        description: error.message || "Failed to download template",
-        variant: "destructive",
-      });
-    }
-  };
-
-  const handleImport = async (file: File) => {
-    try {
-      const formData = new FormData();
-      formData.append("file", file);
-
-      const response = await fetch("/api/vehicle-types/import", {
-        method: "POST",
-        body: formData,
-      });
-
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.message || "Failed to import file");
-      }
-
-      queryClient.invalidateQueries({ queryKey: ["/api/vehicle-types"] });
-      toast({
-        title: "Success",
-        description: "Vehicle types imported successfully",
-      });
-    } catch (error: any) {
-      toast({
-        title: "Error",
-        description: error.message || "Failed to import file",
-        variant: "destructive",
-      });
-    }
-  };
-
-  const handleExport = async () => {
-    try {
-      const response = await apiRequest("GET", "/api/vehicle-types/export");
-      if (!response.ok) throw new Error("Failed to export vehicle types");
-
-      const blob = await response.blob();
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = "vehicle-types.xlsx";
-      document.body.appendChild(a);
-      a.click();
-      window.URL.revokeObjectURL(url);
-      document.body.removeChild(a);
-    } catch (error: any) {
-      toast({
-        title: "Error",
-        description: error.message || "Failed to export vehicle types",
-        variant: "destructive",
-      });
     }
   };
 
@@ -210,48 +118,60 @@ export default function VehicleTypeManagement() {
             <CardTitle>Vehicle Types</CardTitle>
           </CardHeader>
           <CardContent>
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-            >
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Vehicle Group</TableHead>
-                    <TableHead>Type Code</TableHead>
-                    <TableHead>Vehicle Type</TableHead>
-                    <TableHead>Region</TableHead>
-                    <TableHead>Department</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  <AnimatePresence>
-                    {vehicleTypes?.map((type) => (
-                      <TableRow
-                        key={type.id}
-                        className="cursor-pointer hover:bg-accent/50"
-                        onClick={() => {
-                          setSelectedType(type);
-                          setIsFormOpen(true);
-                        }}
-                      >
-                        <TableCell>{type.group_id}</TableCell>
-                        <TableCell>{type.vehicle_type_code}</TableCell>
-                        <TableCell>{type.vehicle_type}</TableCell>
-                        <TableCell>{type.region}</TableCell>
-                        <TableCell>{type.department}</TableCell>
-                      </TableRow>
-                    ))}
-                  </AnimatePresence>
-                </TableBody>
-              </Table>
-            </motion.div>
+            {isLoading ? (
+              <div className="flex items-center justify-center h-32">
+                <Loader2 className="h-8 w-8 animate-spin text-border" />
+              </div>
+            ) : (
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+              >
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Vehicle Group</TableHead>
+                      <TableHead>Type Code</TableHead>
+                      <TableHead>Vehicle Type</TableHead>
+                      <TableHead>Region</TableHead>
+                      <TableHead>Department</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    <AnimatePresence>
+                      {vehicleTypes?.map((type) => (
+                        <TableRow
+                          key={type.id}
+                          className="cursor-pointer hover:bg-accent/50"
+                          onClick={() => {
+                            setSelectedType(type);
+                            setIsFormOpen(true);
+                          }}
+                        >
+                          <TableCell>{type.group_id}</TableCell>
+                          <TableCell>{type.vehicle_type_code}</TableCell>
+                          <TableCell>{type.vehicle_type}</TableCell>
+                          <TableCell>{type.region}</TableCell>
+                          <TableCell>{type.department}</TableCell>
+                        </TableRow>
+                      ))}
+                    </AnimatePresence>
+                  </TableBody>
+                </Table>
+              </motion.div>
+            )}
           </CardContent>
         </Card>
       </div>
 
-      <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
+      <Dialog 
+        open={isFormOpen} 
+        onOpenChange={(open) => {
+          setIsFormOpen(open);
+          if (!open) setSelectedType(null);
+        }}
+      >
         <DialogContent className="max-w-3xl">
           <DialogHeader>
             <DialogTitle>
@@ -271,10 +191,6 @@ export default function VehicleTypeManagement() {
           setSelectedType(null);
           setIsFormOpen(true);
         }}
-        onImport={handleImport}
-        onExport={handleExport}
-        onDownloadTemplate={handleDownloadTemplate}
-        onRefresh={() => queryClient.invalidateQueries({ queryKey: ["/api/vehicle-types"] })}
       />
     </div>
   );

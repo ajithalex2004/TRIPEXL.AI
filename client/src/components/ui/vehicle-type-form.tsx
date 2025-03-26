@@ -2,7 +2,7 @@ import { useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { useQuery } from "@tanstack/react-query";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { InsertVehicleTypeMaster, Department, insertVehicleTypeMasterSchema, VehicleTypeMaster, VehicleGroup, VehicleFuelType, Region } from "@shared/schema"; 
+import { InsertVehicleTypeMaster, Department, insertVehicleTypeMasterSchema, VehicleTypeMaster, VehicleFuelType, Region } from "@shared/schema"; 
 import { apiRequest } from "@/lib/queryClient";
 import {
   Form,
@@ -27,6 +27,8 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
+import { ChevronDown, Check } from "lucide-react";
+import { cn } from "@/lib/utils";
 import {
   Command,
   CommandInput,
@@ -34,8 +36,6 @@ import {
   CommandGroup,
   CommandItem,
 } from "@/components/ui/command";
-import { ChevronDown, Check } from "lucide-react";
-import { cn } from "@/lib/utils";
 
 
 const currentYear = new Date().getFullYear();
@@ -469,7 +469,7 @@ function calculateIdleFuelConsumption(vehicleTypeCode: string, fuelType: string)
 }
 
 interface VehicleTypeFormProps {
-  onSubmit: (data: InsertVehicleTypeMaster) => void;
+  onSubmit: (data: InsertVehicleTypeMaster) => Promise<void>;
   initialData?: VehicleTypeMaster;
   isEditing?: boolean;
 }
@@ -531,21 +531,21 @@ export function VehicleTypeForm({ onSubmit, initialData, isEditing }: VehicleTyp
       group_id: initialData?.group_id || 0,
       vehicle_type_code: initialData?.vehicle_type_code || "",
       manufacturer: initialData?.manufacturer || "",
-      model_year: initialData?.model_year || 0,
+      model_year: initialData?.model_year || new Date().getFullYear(),
       number_of_passengers: initialData?.number_of_passengers || 0,
-      region: initialData?.region || "",
-      fuel_efficiency: initialData?.fuel_efficiency || "0", //Corrected default value
-      fuel_price_per_litre: initialData?.fuel_price_per_litre || 0,
-      fuel_type: initialData?.fuel_type || "Petrol",
+      region: initialData?.region || Region.UAE,
+      fuel_efficiency: initialData?.fuel_efficiency || "0",
+      fuel_price_per_litre: initialData?.fuel_price_per_litre || "0",
+      fuel_type: initialData?.fuel_type || VehicleFuelType.PETROL,
       service_plan: initialData?.service_plan || "",
-      cost_per_km: initialData?.cost_per_km || 0,
+      cost_per_km: initialData?.cost_per_km || "0",
       vehicle_type: initialData?.vehicle_type || "",
-      department: initialData?.department || "",
+      department: initialData?.department || Department.OPERATIONS,
       unit: initialData?.unit || "",
       alert_before: initialData?.alert_before || 0,
-      idle_fuel_consumption: initialData?.idle_fuel_consumption || 0,
+      idle_fuel_consumption: initialData?.idle_fuel_consumption || "0",
       vehicle_capacity: initialData?.vehicle_capacity || 0,
-      co2_emission_factor: initialData?.co2_emission_factor || 0 //Corrected default value
+      co2_emission_factor: initialData?.co2_emission_factor || "0"
     }
   });
 
@@ -657,9 +657,48 @@ export function VehicleTypeForm({ onSubmit, initialData, isEditing }: VehicleTyp
     }
   }, [form.watch("fuel_type")]);
 
+  const handleSubmit = async (data: InsertVehicleTypeMaster) => {
+    try {
+      console.log("Raw form data:", data);
+
+      // Transform numeric fields
+      const formattedData = {
+        ...data,
+        group_id: Number(data.group_id),
+        model_year: Number(data.model_year),
+        number_of_passengers: Number(data.number_of_passengers),
+        vehicle_capacity: Number(data.vehicle_capacity),
+        alert_before: Number(data.alert_before),
+        // Keep string fields as they are
+        fuel_efficiency: data.fuel_efficiency.toString(),
+        fuel_price_per_litre: data.fuel_price_per_litre.toString(),
+        cost_per_km: data.cost_per_km.toString(),
+        idle_fuel_consumption: data.idle_fuel_consumption.toString(),
+        co2_emission_factor: data.co2_emission_factor.toString()
+      };
+
+      console.log("Formatted data before submission:", formattedData);
+      await onSubmit(formattedData);
+
+      toast({
+        title: "Success",
+        description: isEditing ? "Vehicle type updated successfully" : "Vehicle type created successfully",
+      });
+
+      form.reset();
+    } catch (error) {
+      console.error("Form submission error:", error);
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to save vehicle type",
+        variant: "destructive",
+      });
+    }
+  };
+
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+      <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-4">
         <div className="grid grid-cols-3 gap-4">
           <FormField
             control={form.control}
@@ -856,7 +895,7 @@ export function VehicleTypeForm({ onSubmit, initialData, isEditing }: VehicleTyp
                   </FormControl>
                   <SelectContent>
                     {selectedManufacturer &&
-                      uaeVehicleModels[selectedManufacturer]?.map((model) => (
+                                            uaeVehicleModels[selectedManufacturer]?.map((model) => (
                         <SelectItem key={model} value={model}>
                           {model}
                         </SelectItem>

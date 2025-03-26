@@ -731,7 +731,7 @@ export const insertUserSchema = createInsertSchema(users)
     user_operation_type: z.enum(Object.values(UserOperationType) as [string,...string[]]),
     user_group: z.enum(Object.values(UserGroup) as [string, ...string[]]),
     full_name: z.string().min(3, "Full name is required"),
-    first_name: z.string().min(2, "First name must be at least 2 characters long"),
+    first_name: z.string().min(2,"First name must be at least 2 characters long"),
     last_name: z.string().min(2, "Last name must be at least 2 characters long"),
     password: z.string().min(6, "Password must be at least 6 characters long"),
     is_active: z.boolean().optional(),
@@ -779,28 +779,31 @@ export const insertApprovalWorkflowSchema = createInsertSchema(approvalWorkflows
     levels_required: z.enum(Object.values(WorkflowLevels) as [string, ...string[]])
   });
 
-// Add back the vehicle type master schema
+// Update the vehicle type master schema
 export const insertVehicleTypeMasterSchema = createInsertSchema(vehicleTypeMaster)
   .extend({
-    group_id: z.number().min(1, "Vehicle group is required"),
+    group_id: z.number().positive("Vehicle group is required"),
     vehicle_type_code: z.string().min(1, "Vehicle type code is required"),
     vehicle_type_name: z.string().min(1, "Vehicle type name is required"),
     manufacturer: z.string().min(1, "Manufacturer is required"),
     model_year: z.number().min(1900, "Invalid model year").max(new Date().getFullYear() + 1, "Future model year not allowed"),
-    number_of_passengers: z.number().min(0, "Number of passengers must be positive"),
+    number_of_passengers: z.number().min(0, "Number of passengers must be non-negative"),
     region: z.enum(Object.values(Region) as [string, ...string[]]),
-    fuel_efficiency: z.number().min(0, "Fuel efficiency must be positive"),
-    fuel_price_per_litre: z.number().min(0, "Fuel price per litre must be positive"),
+    fuel_efficiency: z.string().transform((val) => val.toString()),
+    fuel_price_per_litre: z.string().transform((val) => val.toString()),
     fuel_type: z.enum(Object.values(VehicleFuelType) as [string, ...string[]]),
     service_plan: z.string().optional(),
-    cost_per_km: z.number().min(0, "Cost per KM must be positive"),
+    cost_per_km: z.string().transform((val) => val.toString()),
     vehicle_type: z.string().min(1, "Vehicle type is required"),
     department: z.enum(Object.values(Department) as [string, ...string[]]),
     unit: z.string().optional(),
-    alert_before: z.number().min(0, "Alert before must be positive").optional(),
-    idle_fuel_consumption: z.number().min(0, "Idle fuel consumption must be positive"),
-    vehicle_capacity: z.number().min(0, "Vehicle capacity must be positive"),
-    co2_emission_factor: z.number().min(0,"CO2 emission factor must be positive")
+    alert_before: z.number().min(0, "Alert before must be non-negative"),
+    idle_fuel_consumption: z.string().transform((val) => val.toString()),
+    vehicle_capacity: z.number().min(0, "Vehicle capacity must be non-negative"),
+    co2_emission_factor: z.string().transform((val) => val.toString()),
+    is_active: z.boolean().optional(),
+    created_at: z.date().optional(),
+    updated_at: z.date().optional()
   });
 
 // Add back the employee schema

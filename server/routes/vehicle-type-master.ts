@@ -60,7 +60,20 @@ router.get("/api/fuel-prices", (_req, res) => {
   }
 });
 
-// Create new vehicle type
+// Get all vehicle types
+router.get("/api/vehicle-types", async (_req, res) => {
+  try {
+    console.log("Fetching all vehicle types");
+    const types = await db.select().from(vehicleTypeMaster);
+    console.log("Retrieved vehicle types:", types);
+    res.json(types);
+  } catch (error: any) {
+    console.error("Error fetching vehicle types:", error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Create new vehicle type with proper type handling
 router.post("/api/vehicle-types", async (req, res) => {
   try {
     console.log("Received vehicle type data:", req.body);
@@ -75,18 +88,9 @@ router.post("/api/vehicle-types", async (req, res) => {
       });
     }
 
-    // Convert string values to proper types
+    // Format the data for database insertion
     const vehicleData = {
       ...result.data,
-      model_year: Number(result.data.model_year),
-      number_of_passengers: Number(result.data.number_of_passengers),
-      fuel_efficiency: Number(result.data.fuel_efficiency).toString(),
-      fuel_price_per_litre: Number(result.data.fuel_price_per_litre).toString(),
-      cost_per_km: Number(result.data.cost_per_km).toString(),
-      alert_before: Number(result.data.alert_before),
-      idle_fuel_consumption: Number(result.data.idle_fuel_consumption).toString(),
-      vehicle_capacity: Number(result.data.vehicle_capacity),
-      co2_emission_factor: Number(result.data.co2_emission_factor).toString(),
       is_active: true,
       created_at: new Date(),
       updated_at: new Date()
@@ -96,7 +100,7 @@ router.post("/api/vehicle-types", async (req, res) => {
 
     const [newType] = await db
       .insert(vehicleTypeMaster)
-      .values(vehicleData)
+      .values([vehicleData])
       .returning();
 
     console.log("Successfully created vehicle type:", newType);
@@ -119,15 +123,29 @@ router.post("/api/vehicle-types", async (req, res) => {
   }
 });
 
-// Get all vehicle types
-router.get("/api/vehicle-types", async (_req, res) => {
+// Get single vehicle type
+router.get("/api/vehicle-types/:id", async (req, res) => {
   try {
-    console.log("Fetching all vehicle types");
-    const types = await db.select().from(vehicleTypeMaster);
-    console.log("Retrieved vehicle types:", types);
-    res.json(types);
+    const id = parseInt(req.params.id);
+    if (isNaN(id)) {
+      return res.status(400).json({ error: "Invalid ID format" });
+    }
+
+    console.log("Fetching vehicle type with ID:", id);
+    const [type] = await db
+      .select()
+      .from(vehicleTypeMaster)
+      .where(eq(vehicleTypeMaster.id, id));
+
+    if (!type) {
+      console.log("Vehicle type not found with ID:", id);
+      return res.status(404).json({ error: "Vehicle type not found" });
+    }
+
+    console.log("Retrieved vehicle type:", type);
+    res.json(type);
   } catch (error: any) {
-    console.error("Error fetching vehicle types:", error);
+    console.error("Error fetching vehicle type:", error);
     res.status(500).json({ error: error.message });
   }
 });
@@ -167,33 +185,6 @@ router.patch("/api/vehicle-types/:id", async (req, res) => {
     res.json(updatedType);
   } catch (error: any) {
     console.error("Error updating vehicle type:", error);
-    res.status(500).json({ error: error.message });
-  }
-});
-
-// Get single vehicle type
-router.get("/api/vehicle-types/:id", async (req, res) => {
-  try {
-    const id = parseInt(req.params.id);
-    if (isNaN(id)) {
-      return res.status(400).json({ error: "Invalid ID format" });
-    }
-
-    console.log("Fetching vehicle type with ID:", id);
-    const [type] = await db
-      .select()
-      .from(vehicleTypeMaster)
-      .where(eq(vehicleTypeMaster.id, id));
-
-    if (!type) {
-      console.log("Vehicle type not found with ID:", id);
-      return res.status(404).json({ error: "Vehicle type not found" });
-    }
-
-    console.log("Retrieved vehicle type:", type);
-    res.json(type);
-  } catch (error: any) {
-    console.error("Error fetching vehicle type:", error);
     res.status(500).json({ error: error.message });
   }
 });
