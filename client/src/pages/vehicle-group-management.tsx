@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback } from "react";
+import { useState, useCallback } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import {
   Card,
@@ -20,14 +20,13 @@ import { VehicleGroup, InsertVehicleGroup } from "@shared/schema";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { VehicleGroupForm } from "@/components/ui/vehicle-group-form";
-import { Download, Upload, FileDown } from "lucide-react";
-import { Input } from "@/components/ui/input";
+import { Download } from "lucide-react";
 
 export default function VehicleGroupManagement() {
   const [selectedGroup, setSelectedGroup] = useState<VehicleGroup | null>(null);
   const { toast } = useToast();
 
-  const { data: vehicleGroups, isLoading, error } = useQuery<VehicleGroup[]>({
+  const { data: vehicleGroups, isLoading } = useQuery<VehicleGroup[]>({
     queryKey: ["/api/vehicle-groups"],
     staleTime: 0,
     retry: 3,
@@ -51,7 +50,6 @@ export default function VehicleGroupManagement() {
       });
     },
     onError: (error: Error) => {
-      console.error("Create error:", error);
       toast({
         title: "Error",
         description: error.message,
@@ -78,7 +76,6 @@ export default function VehicleGroupManagement() {
       });
     },
     onError: (error: Error) => {
-      console.error("Update error:", error);
       toast({
         title: "Error",
         description: error.message,
@@ -101,7 +98,7 @@ export default function VehicleGroupManagement() {
 
   const handleExport = useCallback(async () => {
     try {
-      const response = await fetch("/api/vehicle-groups/export");
+      const response = await apiRequest("GET", "/api/vehicle-groups/export");
       if (!response.ok) {
         throw new Error("Failed to export vehicle groups");
       }
@@ -121,7 +118,6 @@ export default function VehicleGroupManagement() {
         description: "Vehicle groups exported successfully",
       });
     } catch (error: any) {
-      console.error("Export error:", error);
       toast({
         title: "Error",
         description: error.message,
@@ -183,53 +179,55 @@ export default function VehicleGroupManagement() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {isLoading ? (
-                    <TableRow>
-                      <TableCell colSpan={6} className="text-center py-8">
-                        <motion.div
-                          initial={{ opacity: 0, scale: 0.8 }}
-                          animate={{ opacity: 1, scale: 1 }}
-                          exit={{ opacity: 0, scale: 0.8 }}
-                          transition={{ duration: 0.5 }}
-                          className="flex justify-center"
-                        >
-                          Loading...
-                        </motion.div>
-                      </TableCell>
-                    </TableRow>
-                  ) : !vehicleGroups?.length ? (
-                    <TableRow>
-                      <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
-                        No vehicle groups found
-                      </TableCell>
-                    </TableRow>
-                  ) : (
-                    vehicleGroups?.map((group) => (
-                      <motion.tr
-                        key={group.id}
-                        initial={{ opacity: 0, x: -20 }}
-                        animate={{ opacity: 1, x: 0 }}
-                        exit={{ opacity: 0, x: 20 }}
-                        transition={{ duration: 0.2 }}
-                        className="border-white/10 backdrop-blur-sm transition-all duration-200 hover:bg-background/40"
-                      >
-                        <TableCell className="font-medium">{group.group_code}</TableCell>
-                        <TableCell>{group.name}</TableCell>
-                        <TableCell>{group.region}</TableCell>
-                        <TableCell>{group.type}</TableCell>
-                        <TableCell>{group.department}</TableCell>
-                        <TableCell>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => setSelectedGroup(group)}
+                  <AnimatePresence mode="wait">
+                    {isLoading ? (
+                      <TableRow>
+                        <TableCell colSpan={6} className="text-center py-8">
+                          <motion.div
+                            initial={{ opacity: 0, scale: 0.8 }}
+                            animate={{ opacity: 1, scale: 1 }}
+                            exit={{ opacity: 0, scale: 0.8 }}
+                            transition={{ duration: 0.5 }}
+                            className="flex justify-center"
                           >
-                            Edit
-                          </Button>
+                            Loading...
+                          </motion.div>
                         </TableCell>
-                      </motion.tr>
-                    ))
-                  )}
+                      </TableRow>
+                    ) : !vehicleGroups?.length ? (
+                      <TableRow>
+                        <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
+                          No vehicle groups found
+                        </TableCell>
+                      </TableRow>
+                    ) : (
+                      vehicleGroups.map((group) => (
+                        <motion.tr
+                          key={group.id}
+                          initial={{ opacity: 0, x: -20 }}
+                          animate={{ opacity: 1, x: 0 }}
+                          exit={{ opacity: 0, x: 20 }}
+                          transition={{ duration: 0.2 }}
+                          className="border-white/10 backdrop-blur-sm transition-all duration-200 hover:bg-background/40"
+                        >
+                          <TableCell className="font-medium">{group.group_code}</TableCell>
+                          <TableCell>{group.name}</TableCell>
+                          <TableCell>{group.region}</TableCell>
+                          <TableCell>{group.type}</TableCell>
+                          <TableCell>{group.department}</TableCell>
+                          <TableCell>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => setSelectedGroup(group)}
+                            >
+                              Edit
+                            </Button>
+                          </TableCell>
+                        </motion.tr>
+                      ))
+                    )}
+                  </AnimatePresence>
                 </TableBody>
               </Table>
             </motion.div>

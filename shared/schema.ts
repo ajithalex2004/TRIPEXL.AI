@@ -749,18 +749,18 @@ export const insertVehicleSchema = createInsertSchema(vehicles);
 export const insertDriverSchema = createInsertSchema(drivers);
 export const insertLocationMasterSchema = createInsertSchema(locationsMaster);
 
-// Fix the vehicle group schema validation
+// Update the vehicle group schema validation
 export const insertVehicleGroupSchema = createInsertSchema(vehicleGroups)
   .extend({
     type: z.enum(Object.values(VehicleGroupType) as [string, ...string[]]),
     department: z.enum(Object.values(Department) as [string, ...string[]]),
     group_code: z.string().min(1, "Vehicle group code is required")
       .max(20, "Vehicle group code cannot exceed 20 characters"),
-    region: z.string().min(1, "Region is required"),
+    region: z.enum(Object.values(Region) as [string, ...string[]]),
     name: z.string().min(1, "Vehicle group name is required")
       .max(100, "Vehicle group name cannot exceed 100 characters"),
-    image_url: z.string().optional(),
-    description: z.string().optional()
+    image_url: z.string().optional().nullable(),
+    description: z.string().optional().nullable()
   });
 
 // Update the insertApprovalWorkflowSchema with proper validations

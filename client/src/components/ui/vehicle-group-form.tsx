@@ -26,7 +26,6 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
-import { useToast } from "@/hooks/use-toast";
 
 interface VehicleGroupFormProps {
   onSubmit: (data: InsertVehicleGroup) => Promise<void>;
@@ -35,8 +34,6 @@ interface VehicleGroupFormProps {
 }
 
 export function VehicleGroupForm({ onSubmit, initialData, isEditing }: VehicleGroupFormProps) {
-  const { toast } = useToast();
-
   const form = useForm<InsertVehicleGroup>({
     resolver: zodResolver(insertVehicleGroupSchema),
     defaultValues: {
@@ -64,25 +61,9 @@ export function VehicleGroupForm({ onSubmit, initialData, isEditing }: VehicleGr
     }
   }, [initialData, form]);
 
-  const handleSubmit = async (data: InsertVehicleGroup) => {
-    try {
-      await onSubmit(data);
-      if (!isEditing) {
-        form.reset();
-      }
-    } catch (error: any) {
-      console.error("Form submission error:", error);
-      toast({
-        title: "Error",
-        description: error.message || "Failed to submit form",
-        variant: "destructive"
-      });
-    }
-  };
-
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-4">
+      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
         <div className="grid grid-cols-2 gap-4">
           <FormField
             control={form.control}
@@ -216,10 +197,7 @@ export function VehicleGroupForm({ onSubmit, initialData, isEditing }: VehicleGr
           )}
         />
 
-        <Button 
-          type="submit"
-          className="w-full"
-        >
+        <Button type="submit" className="w-full">
           {isEditing ? "Update Vehicle Group" : "Create Vehicle Group"}
         </Button>
       </form>
