@@ -138,7 +138,8 @@ export const Department = {
   MEDICAL: "Medical",
   ADMINISTRATION: "Administration",
   MAINTENANCE: "Maintenance",
-  SECURITY: "Security"
+  SECURITY: "Security",
+  FLEET: "Fleet"
 } as const;
 
 export const VehicleGroupType = {
