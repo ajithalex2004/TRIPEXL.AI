@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { DataTable } from "@/components/ui/data-table";
 import { Button } from "@/components/ui/button";
 import { Plus } from "lucide-react";
@@ -12,8 +12,9 @@ import {
 } from "@/components/ui/card";
 import { VehicleMaster } from "@shared/schema";
 import { VehicleMasterForm } from "@/components/ui/vehicle-master-form";
+import { VehicleManagementFAB } from "@/components/ui/vehicle-management-fab";
+import { useToast } from "@/hooks/use-toast";
 
-// Update the columns array to include plateNumber
 const columns = [
   {
     header: "Vehicle ID",
@@ -72,11 +73,21 @@ const columns = [
 
 export default function VehicleMasterManagement() {
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
 
   // Fetch vehicle master data
   const { data: vehicles, isLoading } = useQuery<VehicleMaster[]>({
     queryKey: ["/api/vehicle-master"],
   });
+
+  const handleRefresh = () => {
+    queryClient.invalidateQueries({ queryKey: ["/api/vehicle-master"] });
+    toast({
+      title: "Refreshed",
+      description: "Vehicle list has been refreshed",
+    });
+  };
 
   return (
     <div className="container mx-auto py-6 space-y-8">
@@ -87,10 +98,6 @@ export default function VehicleMasterManagement() {
             Manage and view all vehicle master records
           </p>
         </div>
-        <Button onClick={() => setIsAddModalOpen(true)}>
-          <Plus className="w-4 h-4 mr-2" />
-          Add Vehicle
-        </Button>
       </div>
 
       <Card>
@@ -115,6 +122,12 @@ export default function VehicleMasterManagement() {
           )}
         </CardContent>
       </Card>
+
+      {/* Vehicle Management FAB */}
+      <VehicleManagementFAB
+        onAddVehicle={() => setIsAddModalOpen(true)}
+        onRefresh={handleRefresh}
+      />
 
       {/* Add Vehicle Form Modal */}
       <VehicleMasterForm 
