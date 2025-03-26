@@ -34,12 +34,21 @@ export default function VehicleTypeManagement() {
 
   const { data: vehicleTypes, isLoading } = useQuery<VehicleTypeMaster[]>({
     queryKey: ["/api/vehicle-types"],
+    queryFn: async () => {
+      const response = await apiRequest("GET", "/api/vehicle-types");
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || "Failed to fetch vehicle types");
+      }
+      return response.json();
+    },
     staleTime: 0,
     retry: 3,
   });
 
   const createMutation = useMutation({
     mutationFn: async (data: InsertVehicleTypeMaster) => {
+      console.log("Creating vehicle type with data:", data);
       const response = await apiRequest("POST", "/api/vehicle-types", data);
       if (!response.ok) {
         const error = await response.json();
@@ -56,6 +65,7 @@ export default function VehicleTypeManagement() {
       setIsFormOpen(false);
     },
     onError: (error: Error) => {
+      console.error("Error creating vehicle type:", error);
       toast({
         title: "Error",
         description: error.message,
@@ -66,6 +76,7 @@ export default function VehicleTypeManagement() {
 
   const updateMutation = useMutation({
     mutationFn: async ({ id, ...data }: InsertVehicleTypeMaster & { id: number }) => {
+      console.log("Updating vehicle type:", id, "with data:", data);
       const response = await apiRequest("PATCH", `/api/vehicle-types/${id}`, data);
       if (!response.ok) {
         const error = await response.json();
@@ -83,6 +94,7 @@ export default function VehicleTypeManagement() {
       setSelectedType(null);
     },
     onError: (error: Error) => {
+      console.error("Error updating vehicle type:", error);
       toast({
         title: "Error",
         description: error.message,
@@ -93,6 +105,7 @@ export default function VehicleTypeManagement() {
 
   const handleSubmit = async (data: InsertVehicleTypeMaster) => {
     try {
+      console.log("Submitting form data:", data);
       if (selectedType) {
         await updateMutation.mutateAsync({ ...data, id: selectedType.id });
       } else {
@@ -204,7 +217,7 @@ export default function VehicleTypeManagement() {
                 <TableBody>
                   <AnimatePresence>
                     {vehicleTypes?.map((type) => (
-                      <TableRow 
+                      <TableRow
                         key={type.id}
                         className="cursor-pointer hover:bg-accent/50"
                         onClick={() => {
@@ -212,9 +225,9 @@ export default function VehicleTypeManagement() {
                           setIsFormOpen(true);
                         }}
                       >
-                        <TableCell>{type.vehicleGroup}</TableCell>
-                        <TableCell>{type.vehicleTypeCode}</TableCell>
-                        <TableCell>{type.vehicleType}</TableCell>
+                        <TableCell>{type.group_id}</TableCell>
+                        <TableCell>{type.vehicle_type_code}</TableCell>
+                        <TableCell>{type.vehicle_type}</TableCell>
                         <TableCell>{type.region}</TableCell>
                         <TableCell>{type.department}</TableCell>
                       </TableRow>

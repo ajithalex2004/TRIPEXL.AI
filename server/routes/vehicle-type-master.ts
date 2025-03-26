@@ -1,8 +1,10 @@
 import { Router } from "express";
 import { storage } from "../storage";
-import { insertVehicleTypeMasterSchema, VehicleFuelType } from "@shared/schema";
+import { insertVehicleTypeMasterSchema, vehicleTypeMaster, VehicleFuelType } from "@shared/schema";
 import multer from "multer";
 import XLSX from "xlsx";
+import { db } from "../db";
+import { eq } from "drizzle-orm";
 
 // Configure multer for handling file uploads
 const upload = multer({
@@ -62,30 +64,12 @@ router.get("/api/fuel-prices", (_req, res) => {
 router.get("/api/vehicle-types", async (_req, res) => {
   try {
     console.log("Fetching all vehicle types");
-    const types = await storage.getAllVehicleTypes();
+    const types = await db.select().from(vehicleTypeMaster);
     console.log("Retrieved vehicle types:", types);
     res.json(types);
   } catch (error: any) {
     console.error("Error fetching vehicle types:", error);
-    res.status(500).json({ message: error.message });
-  }
-});
-
-// Get single vehicle type
-router.get("/api/vehicle-types/:id", async (req, res) => {
-  try {
-    const id = parseInt(req.params.id);
-    console.log("Fetching vehicle type with ID:", id);
-    const type = await storage.getVehicleType(id);
-    if (!type) {
-      console.log("Vehicle type not found with ID:", id);
-      return res.status(404).json({ message: "Vehicle type not found" });
-    }
-    console.log("Retrieved vehicle type:", type);
-    res.json(type);
-  } catch (error: any) {
-    console.error("Error fetching vehicle type:", error);
-    res.status(500).json({ message: error.message });
+    res.status(500).json({ error: error.message });
   }
 });
 
@@ -93,6 +77,7 @@ router.get("/api/vehicle-types/:id", async (req, res) => {
 router.post("/api/vehicle-types", async (req, res) => {
   try {
     console.log("Creating vehicle type with data:", req.body);
+
     const result = insertVehicleTypeMasterSchema.safeParse(req.body);
 
     if (!result.success) {
@@ -103,12 +88,36 @@ router.post("/api/vehicle-types", async (req, res) => {
       });
     }
 
-    const type = await storage.createVehicleType(result.data);
-    console.log("Created vehicle type:", type);
-    res.status(201).json(type);
+    // Log the validated data before insertion
+    console.log("Validated data for insertion:", result.data);
+
+    // Insert into database
+    const [newType] = await db
+      .insert(vehicleTypeMaster)
+      .values({
+        ...result.data,
+        is_active: true,
+        created_at: new Date(),
+        updated_at: new Date()
+      })
+      .returning();
+
+    console.log("Created new vehicle type:", newType);
+    res.status(201).json(newType);
   } catch (error: any) {
     console.error("Error creating vehicle type:", error);
-    res.status(400).json({ message: error.message });
+
+    if (error.code === '23505') { // Unique constraint violation
+      return res.status(400).json({ 
+        error: "Vehicle type with this code already exists",
+        details: error.detail
+      });
+    }
+
+    res.status(500).json({ 
+      error: "Failed to create vehicle type",
+      message: error.message 
+    });
   }
 });
 
@@ -116,6 +125,11 @@ router.post("/api/vehicle-types", async (req, res) => {
 router.patch("/api/vehicle-types/:id", async (req, res) => {
   try {
     const id = parseInt(req.params.id);
+    if (isNaN(id)) {
+      return res.status(400).json({ error: "Invalid ID format" });
+    }
+
+    console.log("Updating vehicle type:", id, "with data:", req.body);
     const result = insertVehicleTypeMasterSchema.partial().safeParse(req.body);
 
     if (!result.success) {
@@ -125,10 +139,150 @@ router.patch("/api/vehicle-types/:id", async (req, res) => {
       });
     }
 
-    const updatedType = await storage.updateVehicleType(id, result.data);
+    const [updatedType] = await db
+      .update(vehicleTypeMaster)
+      .set({
+        ...result.data,
+        updated_at: new Date()
+      })
+      .where(eq(vehicleTypeMaster.id, id))
+      .returning();
+
+    if (!updatedType) {
+      return res.status(404).json({ error: "Vehicle type not found" });
+    }
+
+    console.log("Updated vehicle type:", updatedType);
     res.json(updatedType);
   } catch (error: any) {
-    res.status(400).json({ message: error.message });
+    console.error("Error updating vehicle type:", error);
+    res.status(500).json({ error: "Failed to update vehicle type" });
+  }
+});
+
+// Get single vehicle type
+router.get("/api/vehicle-types/:id", async (req, res) => {
+  try {
+    const id = parseInt(req.params.id);
+    if (isNaN(id)) {
+      return res.status(400).json({ error: "Invalid ID format" });
+    }
+
+    console.log("Fetching vehicle type with ID:", id);
+    const [type] = await db
+      .select()
+      .from(vehicleTypeMaster)
+      .where(eq(vehicleTypeMaster.id, id));
+
+    if (!type) {
+      console.log("Vehicle type not found with ID:", id);
+      return res.status(404).json({ error: "Vehicle type not found" });
+    }
+
+    console.log("Retrieved vehicle type:", type);
+    res.json(type);
+  } catch (error: any) {
+    console.error("Error fetching vehicle type:", error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Export vehicle types
+router.get("/api/vehicle-types/export", async (_req, res) => {
+  try {
+    const types = await db.select().from(vehicleTypeMaster);
+
+    // Create workbook and worksheet
+    const wb = XLSX.utils.book_new();
+    const ws = XLSX.utils.json_to_sheet(types);
+
+    // Add worksheet to workbook
+    XLSX.utils.book_append_sheet(wb, ws, "Vehicle Types");
+
+    // Generate buffer
+    const buf = XLSX.write(wb, { type: 'buffer', bookType: 'xlsx' });
+
+    // Set headers for file download
+    res.setHeader('Content-Disposition', 'attachment; filename=vehicle-types.xlsx');
+    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+
+    res.send(buf);
+  } catch (error: any) {
+    console.error("Error exporting vehicle types:", error);
+    res.status(500).json({ error: "Failed to export vehicle types" });
+  }
+});
+
+// Import vehicle types
+router.post("/api/vehicle-types/import", upload.single('file'), async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ error: "No file uploaded" });
+    }
+
+    // Read Excel file
+    const workbook = XLSX.read(req.file.buffer);
+    const worksheet = workbook.Sheets[workbook.SheetNames[0]];
+    const data = XLSX.utils.sheet_to_json(worksheet);
+
+    // Track import results
+    const results = {
+      success: 0,
+      failed: 0,
+      errors: [] as string[],
+    };
+
+    for (const row of data) {
+      try {
+        const vehicleType = {
+          group_id: Number(row['Group ID']),
+          vehicle_type_code: String(row['Vehicle Type Code']),
+          manufacturer: String(row['Manufacturer']),
+          model_year: Number(row['Model Year']),
+          vehicle_type: String(row['Vehicle Type']),
+          number_of_passengers: Number(row['Number of Passengers']),
+          region: String(row['Region']),
+          department: String(row['Department']),
+          fuel_type: String(row['Fuel Type']),
+          fuel_efficiency: String(row['Fuel Efficiency']),
+          service_plan: String(row['Service Plan']) || null,
+          cost_per_km: Number(row['Cost Per KM']),
+          alert_before: Number(row['Alert Before']) || null,
+          idle_fuel_consumption: Number(row['Idle Fuel Consumption']),
+          vehicle_capacity: Number(row['Vehicle Capacity']),
+          co2_emission_factor: String(row['CO2 Emission Factor'])
+        };
+
+        const validationResult = insertVehicleTypeMasterSchema.safeParse(vehicleType);
+
+        if (validationResult.success) {
+          await db.insert(vehicleTypeMaster).values({
+            ...validationResult.data,
+            is_active: true,
+            created_at: new Date(),
+            updated_at: new Date()
+          });
+          results.success++;
+        } else {
+          results.failed++;
+          results.errors.push(`Row failed: ${JSON.stringify(row)} - ${validationResult.error.message}`);
+        }
+      } catch (error: any) {
+        results.failed++;
+        results.errors.push(`Error processing row: ${JSON.stringify(row)} - ${error.message}`);
+      }
+    }
+
+    res.json({
+      message: "Import completed",
+      results
+    });
+  } catch (error: any) {
+    console.error("Error importing vehicle types:", error);
+    res.status(500).json({ 
+      error: "Failed to import vehicle types",
+      message: error.message
+    });
   }
 });
 
@@ -183,10 +337,11 @@ router.get("/api/vehicle-types/template", async (_req, res) => {
   }
 });
 
+
 // Export vehicle types
 router.get("/api/vehicle-types/export", async (_req, res) => {
   try {
-    const types = await storage.getAllVehicleTypes();
+    const types = await db.select().from(vehicleTypeMaster);
 
     // Transform data for Excel export
     const exportData = types.map(type => ({
@@ -273,7 +428,7 @@ router.post("/api/vehicle-types/import", upload.single('file'), async (req, res)
         const validationResult = insertVehicleTypeMasterSchema.safeParse(vehicleType);
 
         if (validationResult.success) {
-          await storage.createVehicleType(validationResult.data);
+          await db.insert(vehicleTypeMaster).values({...validationResult.data, is_active: true, created_at: new Date(), updated_at: new Date()});
           results.success++;
         } else {
           results.failed++;
