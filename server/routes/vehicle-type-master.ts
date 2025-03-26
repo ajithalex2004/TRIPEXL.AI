@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { storage } from "../storage";
-import { insertVehicleTypeMasterSchema } from "@shared/schema";
+import { insertVehicleTypeMasterSchema, VehicleFuelType } from "@shared/schema";
 import multer from "multer";
 import XLSX from "xlsx";
 
@@ -24,24 +24,37 @@ const upload = multer({
 
 const router = Router();
 
-// Add default fuel prices
-const currentFuelPrices = {
-  petrol: 2.99,
-  diesel: 2.89,
-  electric: 0.45, // Cost per kWh
-  hybrid: 2.85,
-  cng: 2.10,
-  lpg: 2.25
+// Updated fuel prices with proper types
+const currentFuelPrices: Record<string, number> = {
+  'PETROL': 2.99,
+  'DIESEL': 2.89,
+  'ELECTRIC': 0.45,
+  'HYBRID': 2.85,
+  'CNG': 2.10,
+  'LPG': 2.25
 };
 
-// Add fuel prices endpoint with logging
+// Enhanced fuel prices endpoint with better error handling
 router.get("/api/fuel-prices", (_req, res) => {
   try {
-    console.log("Sending fuel prices:", currentFuelPrices);
-    res.json(currentFuelPrices);
+    console.log("Fetching current fuel prices...");
+    console.log("Available fuel types:", Object.keys(currentFuelPrices));
+
+    // Convert response to lowercase keys for consistency
+    const formattedPrices = Object.entries(currentFuelPrices).reduce((acc, [key, value]) => {
+      acc[key.toLowerCase()] = value;
+      return acc;
+    }, {} as Record<string, number>);
+
+    console.log("Sending formatted fuel prices:", formattedPrices);
+    res.json(formattedPrices);
   } catch (error: any) {
     console.error("Error fetching fuel prices:", error);
-    res.status(500).json({ message: error.message });
+    res.status(500).json({ 
+      error: "Failed to fetch fuel prices",
+      message: error.message,
+      details: error.stack
+    });
   }
 });
 

@@ -502,11 +502,21 @@ export function VehicleTypeForm({ onSubmit, initialData, isEditing }: VehicleTyp
     }
   });
 
+  // Update the fuel prices query and handling
   const { data: fuelPrices, isLoading: loadingFuelPrices } = useQuery({
     queryKey: ["/api/fuel-prices"],
+    queryFn: async () => {
+      const response = await apiRequest("GET", "/api/fuel-prices");
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || "Failed to fetch fuel prices");
+      }
+      return response.json();
+    },
     enabled: true,
     retry: 3,
     onError: (error: any) => {
+      console.error("Error fetching fuel prices:", error);
       toast({
         title: "Error fetching fuel prices",
         description: error.message || "Failed to load current fuel prices",
@@ -567,9 +577,19 @@ export function VehicleTypeForm({ onSubmit, initialData, isEditing }: VehicleTyp
 
   useEffect(() => {
     if (fuelPrices && selectedFuelType) {
+      console.log("Updating fuel price for type:", selectedFuelType);
       const price = fuelPrices[selectedFuelType.toLowerCase()];
+      console.log("Found price:", price);
+
       if (price !== undefined) {
         form.setValue("fuelPricePerLitre", price);
+
+        // Recalculate cost per km if we have both price and efficiency
+        const efficiency = form.getValues("fuelEfficiency");
+        if (efficiency > 0) {
+          const costPerKm = calculateCostPerKm(price, efficiency);
+          form.setValue("costPerKm", costPerKm);
+        }
       }
     }
   }, [fuelPrices, selectedFuelType, form]);
@@ -854,6 +874,7 @@ export function VehicleTypeForm({ onSubmit, initialData, isEditing }: VehicleTyp
               </FormItem>
             )}
           />
+          {/* Update the fuel type field */}
           <FormField
             control={form.control}
             name="fuelType"
@@ -862,6 +883,7 @@ export function VehicleTypeForm({ onSubmit, initialData, isEditing }: VehicleTyp
                 <FormLabel>Fuel Type *</FormLabel>
                 <Select
                   onValueChange={(value) => {
+                    console.log("Selected fuel type:", value);
                     field.onChange(value);
                     if (fuelPrices) {
                       const price = fuelPrices[value.toLowerCase()];
@@ -878,14 +900,15 @@ export function VehicleTypeForm({ onSubmit, initialData, isEditing }: VehicleTyp
                     }
                   }}
                   value={field.value}
+                  disabled={loadingFuelPrices}
                 >
                   <FormControl>
                     <SelectTrigger>
-                      <SelectValue placeholder="Select fuel type" />
+                      <SelectValue placeholder={loadingFuelPrices ? "Loading fuel types..." : "Select fuel type"} />
                     </SelectTrigger>
                   </FormControl>
                   <SelectContent>
-                    {Object.keys(VehicleFuelType).map((type) => (
+                    {Object.values(VehicleFuelType).map((type) => (
                       <SelectItem key={type} value={type}>
                         {type}
                       </SelectItem>
@@ -896,6 +919,7 @@ export function VehicleTypeForm({ onSubmit, initialData, isEditing }: VehicleTyp
               </FormItem>
             )}
           />
+          {/* Update the fuel price per litre field */}
           <FormField
             control={form.control}
             name="fuelPricePerLitre"
@@ -905,7 +929,7 @@ export function VehicleTypeForm({ onSubmit, initialData, isEditing }: VehicleTyp
                 <FormControl>
                   <Input
                     type="number"
-                    placeholder="Current fuel price will be loaded"
+                    placeholder={loadingFuelPrices ? "Loading fuel prices..." : "Select a fuel type"}
                     {...field}
                     disabled
                     value={field.value || ""}
