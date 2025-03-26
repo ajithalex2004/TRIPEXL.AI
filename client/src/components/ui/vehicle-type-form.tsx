@@ -888,7 +888,14 @@ export function VehicleTypeForm({ onSubmit, initialData, isEditing }: VehicleTyp
               <FormItem>
                 <FormLabel>Fuel Type *</FormLabel>
                 <Select
-                  onValueChange={field.onChange}
+                  onValueChange={(value) => {
+                    field.onChange(value);
+                    // This will trigger the useEffect to update fuel price
+                    const price = fuelPrices?.[value.toLowerCase()];
+                    if (price !== undefined) {
+                      form.setValue("fuelPricePerLitre", price);
+                    }
+                  }}
                   value={field.value}
                 >
                   <FormControl>
