@@ -443,6 +443,10 @@ export const vehicleTypeMasterRelations = relations(vehicleTypeMaster, ({ one })
   })
 }));
 
+// Add after the vehicleTypeMaster table definition
+const vehicleMaster = pgTable("vehicle_master", {});
+export const insertVehicleMasterSchema = createInsertSchema(vehicleMaster);
+
 export const vehicles = pgTable("vehicles", {
   id: serial("id").primaryKey(),
   group_id: integer("group_id").references(() => vehicleGroups.id),
@@ -600,62 +604,6 @@ export const bookingsRelations = relations(bookings, ({ one }) => ({
   })
 }));
 
-export const vehicleMaster = pgTable("vehicle_master", {
-  id: serial("id").primaryKey(),
-  vehicle_id: text("vehicle_id").notNull().unique(),
-  emirate: text("emirate").notNull(),
-  registration_number: text("registration_number").notNull(),
-  plate_code: text("plate_code").notNull(),
-  plate_number: text("plate_number").notNull(),
-  current_odometer: decimal("current_odometer", { precision: 10, scale: 2 }).notNull(),
-  plate_category: text("plate_category").notNull(),
-  vehicle_type_code: text("vehicle_type_code").references(() => vehicleTypeMaster.vehicle_type_code).notNull(),
-  vehicle_type_name: text("vehicle_type_name").notNull(),
-  stop_run_mode_comm_freq: decimal("stop_run_mode_comm_freq", { precision: 10, scale: 2 }),
-  max_speed: decimal("max_speed", { precision: 10, scale: 2 }),
-  vehicle_model: text("vehicle_model").notNull(),
-  fuel_type: text("fuel_type").notNull(),
-  transmission_type: text("transmission_type").notNull(),
-  region: text("region").notNull(),
-  department: text("department").notNull(),
-  chassis_number: text("chassis_number").notNull(),
-  engine_number: text("engine_number").notNull(),
-  unit: text("unit").notNull(),
-  model_year: integer("model_year").notNull(),
-  asset_type: text("asset_type").notNull(),
-  tyre_size: text("tyre_size"),
-  manufacturer: text("manufacturer").notNull(),
-  number_of_passengers: integer("number_of_passengers"),
-  vehicle_color: text("vehicle_color"),
-  salik_tag_number: text("salik_tag_number"),
-  salik_account_number: text("salik_account_number"),
-  device_id: text("device_id"),
-  sim_card_number: text("sim_card_number"),
-  vehicle_usage: text("vehicle_usage").notNull(),
-
-  // Yellow/Blue highlighted fields as YES/NO text fields
-  is_can_connected: text("is_can_connected").notNull(),
-  is_weight_sensor_connected: text("is_weight_sensor_connected").notNull(),
-  is_temperature_sensor_connected: text("is_temperature_sensor_connected").notNull(),
-  is_pto_connected: text("is_pto_connected").notNull(),
-
-  // Document tracking
-  document_no: text("document_no"),
-  issued_on: timestamp("issued_on"),
-  expires_on: timestamp("expires_on"),
-  attachment: text("attachment"),
-  is_valid: boolean("is_valid").default(true),
-
-  created_at: timestamp("created_at").notNull().defaultNow(),
-  updated_at: timestamp("updated_at").notNull().defaultNow()
-});
-
-export const vehicleMasterRelations = relations(vehicleMaster, ({ one }) => ({
-  vehicleType: one(vehicleTypeMaster, {
-    fields: [vehicleMaster.vehicle_type_code],
-    references: [vehicleTypeMaster.vehicle_type_code],
-  }),
-}));
 
 export const insertBookingSchema = createInsertSchema(bookings)
   .extend({
@@ -783,7 +731,7 @@ export const insertVehicleTypeMasterSchema = createInsertSchema(vehicleTypeMaste
     alert_before: z.number().min(0, "Alert before must be positive").optional(),
     idle_fuel_consumption: z.number().min(0, "Idle fuel consumption must be positive"),
     vehicle_capacity: z.number().min(0, "Vehicle capacity must be positive"),
-    co2_emission_factor: z.number().min(0, "CO2 emission factor must be positive")
+    co2_emission_factor: z.number().min(0,"CO2 emission factor must be positive")
   });
 
 // Add back the employee schema
@@ -817,7 +765,7 @@ export const approvalWorkflowsRelations = relations(approvalWorkflows, ({ one })
   }),
 }));
 
-// Ensure all necessary type exports are included
+// Keep existing schema exports
 export type User = typeof users.$inferSelect;
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type OtpVerification = typeof otpVerifications.$inferSelect;
@@ -838,3 +786,5 @@ export type Employee = typeof employees.$inferSelect;
 export type InsertEmployee = z.infer<typeof insertEmployeeSchema>;
 export type ApprovalWorkflow = typeof approvalWorkflows.$inferSelect;
 export type InsertApprovalWorkflow = z.infer<typeof insertApprovalWorkflowSchema>;
+export type VehicleMaster = typeof vehicleMaster.$inferSelect;
+export type InsertVehicleMaster = z.infer<typeof insertVehicleMasterSchema>;

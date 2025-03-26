@@ -1,7 +1,7 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import { insertBookingSchema, insertUserSchema, employees, bookings } from "@shared/schema";
+import { insertBookingSchema, insertUserSchema, employees, bookings, insertEmployeeSchema, insertApprovalWorkflowSchema } from "@shared/schema";
 import { authService } from "./services/auth";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
@@ -15,7 +15,6 @@ import crypto from "crypto";
 import { eq, sql } from 'drizzle-orm';
 import { db } from './db';
 import { schema } from './schema';
-import { insertVehicleGroupSchema, insertEmployeeSchema } from "@shared/schema";
 import { approvalWorkflowsRouter } from './routes/approval-workflows';
 
 // Configure multer for handling file uploads
@@ -38,7 +37,6 @@ const upload = multer({
 
 export async function registerRoutes(app: Express): Promise<Server> {
   log("Starting route registration...");
-
   const httpServer = createServer(app);
 
   try {
@@ -57,19 +55,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
     log("Registering vehicle type master routes...");
     app.use(vehicleTypeMasterRouter);
     log("Vehicle type master routes registered");
-
-    // Add this route with the existing vehicle master routes
-    app.get("/api/vehicle-type-master", async (_req, res) => {
-      try {
-        console.log("Fetching all vehicle type master records");
-        const vehicleTypes = await storage.getAllVehicleTypes();
-        console.log("Retrieved vehicle type master records:", vehicleTypes);
-        res.json(vehicleTypes);
-      } catch (error: any) {
-        console.error("Error fetching vehicle type master records:", error);
-        res.status(500).json({ error: "Failed to fetch vehicle type master records" });
-      }
-    });
 
 
     // Auth routes
@@ -677,7 +662,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
     });
 
-    // Add after other employee routes
+
     app.get("/api/employees/validate/:employeeId", async (req, res) => {
       try {
         const { employeeId } = req.params;
@@ -910,10 +895,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
             error: "User not found",
             details: "No matching user found with provided username and email"
           });
-                }
+        }
 
         // Generate reset token
-        const resetToken = crypto.randomBytes(32).toString('hex');        const resetTokenExpiry = new Date(Date.now() + 3600000); // 1 hour from now
+        const resetToken = crypto.randomBytes(32).toString('hex');
+        const resetTokenExpiry = new Date(Date.now() + 3600000); // 1 hour from now
 
         try {
           // Update user with reset token
@@ -1058,130 +1044,334 @@ If you didn't request this reset, please ignore this email.
       }
     });
 
-    // Vehicle Master routes
-    app.get("/api/vehicle-master", async (_req, res) => {
+
+    // Add approval workflows routes
+    app.use('/api/approval-workflows', approvalWorkflowsRouter);
+
+    // Add employee routes for workflow management
+    app.get("/api/employees/approvers", async (_req, res) => {
       try {
-        console.log("Fetching all vehicle master records");
-        const vehicles = await storage.getAllVehicleMaster();
-        console.log("Retrieved vehicle master records:", vehicles);
-        res.json(vehicles);
-      } catch (error: any) {
-        console.error("Error fetching vehicle master records:", error);
-        res.status(500).json({ error: "Failed to fetch vehicle master records" });
-      }
-    });
-
-    app.get("/api/vehicle-master/:id", async (req, res) => {
-      try {
-        const id = parseInt(req.params.id);
-        console.log("Fetching vehicle master record with ID:", id);
-        const vehicle = await storage.getVehicleMaster(id);
-        if (!vehicle) {
-          console.log("Vehicle master record not found with ID:", id);
-          return res.status(404).json({ message: "Vehicle master record not found" });
-        }
-        console.log("Retrieved vehicle master record:", vehicle);
-        res.json(vehicle);
-      } catch (error: any) {
-        console.error("Error fetching vehicle master record:", error);
-        res.status(500).json({ message: error.message });
-      }
-    });
-
-    app.post("/api/vehicle-master", async (req, res) => {
-      try {
-        console.log("Creating vehicle master record with data:", req.body);
-        const result = insertVehicleMasterSchema.safeParse(req.body);
-        if (!result.success) {
-          console.error("Invalid vehicle master data:", result.error.issues);
-          return res.status(40).json({
-            error: "Invalid vehicle master data",
-            details: result.error.issues
-          });
-        }
-
-        const vehicle = await storage.createVehicleMaster(result.data);
-        console.log("Created vehicle master record:", vehicle);
-        res.status(201).json(vehicle);
-      } catch (error: any) {
-        console.error("Error creating vehicle master record:", error);
-        res.status(400).json({ message: error.message });
-      }
-    });
-
-    app.patch("/api/vehicle-master/:id", async (req, res) => {
-      try {
-        const id = parseInt(req.params.id);
-        const result = insertVehicleMasterSchema.partial().safeParse(req.body);
-
-        if (!result.success) {
-          return res.status(400).json({
-            error: "Invalid vehicle master data",
-            details: result.error.issues
-          });
-        }
-
-        const updatedVehicle = await storage.updateVehicleMaster(id, result.data);
-        res.json(updatedVehicle);
-      } catch (error: any) {
-        res.status(400).json({ message: error.message });
-      }
-    });
-
-    // Add this new endpoint after the other vehicle-groups routes
-    app.get("/api/fuel-prices", (_req, res) => {
-      // These would typically come from a database or external API
-      // Using static values for demonstration
-      const currentPrices = {
-        petrol: 3.15,
-        diesel: 2.95,
-        electric: 0.50, // Cost per kWh
-        hybrid: 3.00,
-        cng: 2.25,
-        lpg: 2.45
-      };
-
-      res.json(currentPrices);
-    });
-
-    // Add employee delete endpoint
-    app.delete("/api/employees/:id", async (req, res) => {
-      try {
-        const employeeId = parseInt(req.params.id);
-        console.log("Attempting to delete employee with ID:", employeeId);
-
-        if (isNaN(employeeId)) {
-          return res.status(400).json({ error: "Invalid employee ID" });
-        }
-
-        // First check if the employee exists
-        const existingEmployee = await db
+        const approvers = await db
           .select()
           .from(employees)
-          .where(eq(employees.id, employeeId))
-          .limit(1);
+          .where(
+            sql`${employees.hierarchy_level} IN ('Level 1', 'Level 2') AND ${employees.is_active} = true`
+          );
+        res.json(approvers);
+      } catch (error: any) {
+        console.error("Error fetching approvers:", error);
+        res.status(500).json({ error: "Failed to fetch approvers" });
+      }
+    });
 
-        if (!existingEmployee || existingEmployee.length === 0) {
-          console.log("No employee found with ID:", employeeId);
-          return res.status(404).json({ error: "Employee not found" });
+    // Add workflow management routes
+    app.post("/api/workflows", async (req, res) => {
+      try {
+        const result = insertApprovalWorkflowSchema.safeParse(req.body);
+        if (!result.success) {
+          return res.status(400).json({
+            error: "Invalid workflow data",
+            details: result.error.issues
+          });
         }
 
-        // Perform the delete operation
-        await db
-          .delete(employees)
-          .where(eq(employees.id, employeeId))
-          .execute();
-
-        console.log("Successfully deleted employee with ID:", employeeId);
-        res.json({ success: true, message: "Employee deleted successfully" });
+        const workflow = await storage.createWorkflow(result.data);
+        res.status(201).json(workflow);
       } catch (error: any) {
-        console.error("Error deleting employee:", error);
-        res.status(500).json({ error: "Failed to delete employee", details: error.message });
+        console.error("Error creating workflow:", error);
+        res.status(500).json({ error: "Failed to create workflow" });
+      }
+    });
+
+    app.get("/api/workflows", async (_req, res) => {
+      try {
+        const workflows = await storage.getWorkflows();
+        res.json(workflows);
+      } catch (error: any) {
+        console.error("Error fetching workflows:", error);
+        res.status(500).json({ error: "Failed to fetch workflows" });
+      }
+    });
+
+    app.patch("/api/workflows/:id", async (req, res) => {
+      try {
+        const id = parseInt(req.params.id);
+        if (isNaN(id)) {
+          return res.status(400).json({ error: "Invalid workflow ID" });
+        }
+
+        const result = insertApprovalWorkflowSchema.partial().safeParse(req.body);
+        if (!result.success) {
+          return res.status(400).json({
+            error: "Invalid workflow data",
+            details: result.error.issues
+          });
+        }
+
+        const workflow = await storage.updateWorkflow(id, result.data);
+        res.json(workflow);
+      } catch (error: any) {
+        console.error("Error updating workflow:", error);
+        res.status(500).json({ error: "Failed to update workflow" });
+      }
+    });
+
+    // Keep existing route registrations and error handlers
+    app.get("/api/employees/:id/team-bookings", async (req, res) => {
+      try {
+        const supervisorId = parseInt(req.params.id);
+        console.log("Fetching team bookings for supervisor ID:", supervisorId);
+
+        // Get all bookings for the supervisor's team
+        const teamBookings = await db
+          .select({
+            id: bookings.id,
+            referenceNo: bookings.referenceNo,
+            purpose: bookings.purpose,
+            status: bookings.status,
+            employee: {
+              id: employees.id,
+              name: employees.employeeName,
+              designation: employees.designation
+            }
+          })
+          .from(bookings)
+          .leftJoin(employees, eq(bookings.employeeId, employees.id))
+          .where(eq(employees.supervisorId, supervisorId));
+
+        console.log("Found team bookings:", teamBookings);
+        res.json(teamBookings);
+      } catch (error: any) {
+        console.error("Error fetching team bookings:", error);
+        res.status(500).json({ error: "Failed to fetch team bookings" });
+      }
+    });
+
+    // Add user management routes
+    app.get("/api/users", async (_req, res) => {
+      try {
+        console.log("Fetching all users");
+        const users = await storage.getAllUsers();
+
+        // Remove sensitive information before sending
+        const sanitizedUsers = users.map(user => {
+          const { password, ...userWithoutPassword } = user;
+          return userWithoutPassword;
+        });
+
+        res.json(sanitizedUsers);
+      } catch (error: any) {
+        console.error("Error fetching users:", error);
+        res.status(500).json({ error: "Failed to fetch users" });
+      }
+    });
+
+    app.post("/api/users", async (req, res) => {
+      try {
+        console.log("Creating user with data:", req.body);
+        const result = insertUserSchema.safeParse(req.body);
+
+        if (!result.success) {
+          console.error("Invalid user data:", result.error.issues);
+          return res.status(400).json({
+            error: "Invalid user data",
+            details: result.error.issues
+          });
+        }
+
+        // Hash the password before storing
+        const hashedPassword = await bcrypt.hash(result.data.password, 10);
+
+        // Create user with hashed password
+        const userData = {
+          ...result.data,
+          password: hashedPassword,
+          fullName: `${result.data.firstName} ${result.data.lastName}`
+        };
+
+        const user = await storage.createUser(userData);
+        console.log("Created user:", user);
+
+        // Remove password from response
+        const { password, ...userResponse } = user;
+        res.status(201).json(userResponse);
+      } catch (error: any) {
+        console.error("Error creating user:", error);
+        res.status(500).json({ error: "Failed to create user" });
+      }
+    });
+
+    // Add this inside registerRoutes function, after the auth routes
+    app.post("/api/auth/forgot-password", async (req, res) => {
+      const { userName, emailId } = req.body;
+      console.log('Password reset requested for:', { userName, emailId });
+
+      try {
+        // Validate input
+        if (!userName || !emailId) {
+          return res.status(400).json({
+            error: "Missing required fields",
+            details: "Both username and email are required"
+          });
+        }
+
+        // Find user
+        const user = await storage.findUserByEmail(emailId);
+        if (!user || user.user_name !== userName) {
+          return res.status(404).json({
+            error: "User not found",
+            details: "No matching user found with provided username and email"
+          });
+        }
+
+        // Generate reset token
+        const resetToken = crypto.randomBytes(32).toString('hex');
+        const resetTokenExpiry = new Date(Date.now() + 3600000); // 1 hour from now
+
+        try {
+          // Update user with reset token
+          await storage.updateUserResetToken(user.id, resetToken, resetTokenExpiry);
+        } catch (dbError) {
+          console.error('Database error updating reset token:', dbError);
+          throw new Error('Failed to update reset token');
+        }
+
+        // Ensure APP_URL is available
+        if (!process.env.APP_URL) {
+          throw new Error('APP_URL environment variable is not configured');
+        }
+
+        // Create reset URL
+        const baseUrl = process.env.APP_URL.replace(/\/$/, '');
+        const resetUrl = `${baseUrl}/auth/reset-password?token=${resetToken}`;
+
+        console.log('Reset URL generated:', {
+          baseUrl,
+          resetUrl,
+          userName: user.user_name,
+          email: user.email_id
+        });
+
+        // Setup email transporter
+        const transporter = nodemailer.createTransport({
+          host: process.env.SMTP_HOST,
+          port: parseInt(process.env.SMTP_PORT || '465'),
+          secure: true,
+          auth: {
+            user: process.env.SMTP_USER,
+            pass: process.env.SMTP_PASS
+          }
+        });
+
+        // Send email
+        await transporter.sendMail({
+          from: process.env.SMTP_FROM || '"TripXL Support" <support@tripxl.com>',
+          to: emailId,
+          subject: 'Reset Your TripXL Password',
+          html: `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+          <div style="background-color: #004990; padding: 20px; text-align: center;">
+            <h1 style="color: white; margin: 0;">Reset Your Password</h1>
+          </div>
+          <div style="padding: 20px; background-color: #ffffff; border: 1px solid #e0e0e0;">
+            <p>Hello ${user.full_name},</p>
+            <p>You have requested to reset your password.</p>
+            <div style="text-align: center; margin: 30px 0;">
+              <table cellpadding="0" cellspacing="0" style="margin: 0 auto;">
+                <tr>
+                  <td style="background-color: #004990; border-radius: 4px; padding: 0;">
+                    <a href="${resetUrl}" 
+                       target="_blank"
+                       style="color: white;
+                              padding: 12px 24px;
+                              text-decoration: none;
+                              display: inline-block;
+                              font-weight: bold;">
+                      Reset Password
+                    </a>
+                  </td>
+                </tr>
+              </table>
+            </div>
+            <p style="background-color: #f5f5f5; padding: 15px; margin-top: 20px;">
+              If the button doesn't work, copy and paste this link into your browser:<br>
+              <a href="${resetUrl}" style="color: #004990; word-break: break-all;">${resetUrl}</a>
+            </p>
+            <p style="color: #666; font-size: 14px; margin-top: 20px;">
+              This link will expire in 1 hour for security reasons.
+            </p>
+          </div>
+        </div>
+      `,
+          text: `
+Reset Your Password
+
+Hello ${user.full_name},
+
+You have requested to reset your password. Click the link below:
+
+${resetUrl}
+
+This link will expire in 1 hour.
+
+If you didn't request this reset, please ignore this email.
+      `
+        });
+
+        console.log('Password reset email sent successfully');
+
+        res.json({
+          message: "If an account exists with that email, you will receive password reset instructions."
+        });
+
+      } catch (error: any) {
+        console.error('Error in forgot password flow:', error);
+        res.status(500).json({
+          error: "Failed to process password reset request",
+          details: error.message
+        });
+      }
+    });
+
+    // Update the reset password endpoint
+    app.post("/api/auth/reset-password", async (req, res) => {
+      try {
+        const { token, newPassword } = req.body;
+
+        if (!token || !newPassword) {
+          return res.status(400).json({
+            error: "Missing required fields"
+          });
+        }
+
+        // Find user by reset token
+        const user = await storage.findUserByResetToken(token);
+        if (!user || !user.reset_token_expiry || user.reset_token_expiry < new Date()) {
+          return res.status(400).json({
+            error: "Invalid or expired reset token"
+          });
+        }
+
+        // Hash new password
+        const hashedPassword = await bcrypt.hash(newPassword, 10);
+
+        // Update user's password and clear reset token
+        await storage.updateUserPassword(user.id, hashedPassword);
+
+        res.json({
+          message: "Password reset successful"
+        });
+
+      } catch (error: any) {
+        console.error('Error resetting password:', error);
+        res.status(500).json({
+          error: "Failed to reset password",
+          details: error.message
+        });
       }
     });
 
     log("All routes registered successfully");
-    app.use(approvalWorkflowsRouter);
     return httpServer;
   } catch (error) {
     console.error("Error registering routes:", error);
