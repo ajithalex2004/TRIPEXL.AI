@@ -3,7 +3,7 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { motion, AnimatePresence } from "framer-motion";
 import { Battery, Fuel, MapPin, AlertTriangle } from "lucide-react";
-import { VehicleMaster } from "@shared/schema";
+import { VehicleType } from "@shared/schema";
 
 // Status indicator components with animations
 const StatusIndicator = ({ status }: { status: string }) => {
@@ -33,7 +33,7 @@ const StatusIndicator = ({ status }: { status: string }) => {
 };
 
 // Vehicle status card with live updates
-const VehicleStatusCard = ({ vehicle }: { vehicle: VehicleMaster }) => {
+const VehicleStatusCard = ({ vehicle }: { vehicle: VehicleType }) => {
   return (
     <Card className="overflow-hidden">
       <CardHeader className="pb-2">
@@ -43,7 +43,7 @@ const VehicleStatusCard = ({ vehicle }: { vehicle: VehicleMaster }) => {
               {vehicle.vehicleTypeName}
             </CardTitle>
             <p className="text-sm text-muted-foreground">
-              {vehicle.plateNumber}
+              {vehicle.vehicleTypeCode}
             </p>
           </div>
           <StatusIndicator status={vehicle.isActive ? "Active" : "Inactive"} />
@@ -78,9 +78,9 @@ const VehicleStatusCard = ({ vehicle }: { vehicle: VehicleMaster }) => {
 };
 
 export function FleetDashboard() {
-  // Fetch vehicle data
-  const { data: vehicles, isLoading } = useQuery<VehicleMaster[]>({
-    queryKey: ["/api/vehicles"],
+  // Fetch vehicle type data instead of vehicle master
+  const { data: vehicles, isLoading } = useQuery<VehicleType[]>({
+    queryKey: ["/api/vehicle-types"],
   });
 
   if (isLoading) {
