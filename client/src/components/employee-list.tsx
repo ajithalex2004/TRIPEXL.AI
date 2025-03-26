@@ -34,7 +34,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { StatusBadge } from "./status-badge";
+import { Badge } from "@/components/ui/badge";
 
 interface Employee {
   id: number;
@@ -45,14 +45,9 @@ interface Employee {
   employee_type: string;
   designation: string;
   department: string;
-  nationality: string;
   region: string;
-  communication_language: string | null;
   unit: string;
-  date_of_birth?: string;
-  hierarchy_level?: string;
-  supervisor_id?: number | null;
-  is_active?: boolean;
+  is_active: boolean;
 }
 
 export function EmployeeList() {
@@ -61,6 +56,7 @@ export function EmployeeList() {
   const [departmentFilter, setDepartmentFilter] = useState<string>("all");
   const [regionFilter, setRegionFilter] = useState<string>("all");
   const [typeFilter, setTypeFilter] = useState<string>("all");
+  const [statusFilter, setStatusFilter] = useState<string>("all");
   const [editingEmployee, setEditingEmployee] = useState<Employee | null>(null);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
@@ -177,22 +173,22 @@ export function EmployeeList() {
     const matchesType = typeFilter === "all" || 
       employee.employee_type === typeFilter;
 
-    return matchesSearch && matchesDepartment && matchesRegion && matchesType;
-  });
+    const matchesStatus = statusFilter === "all" || 
+      (statusFilter === "active" ? employee.is_active : !employee.is_active);
 
+    return matchesSearch && matchesDepartment && matchesRegion && matchesType && matchesStatus;
+  });
 
   return (
     <div className="space-y-4">
       <Card className="p-4">
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          <div>
-            <Input
-              placeholder="Search by name or ID..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full"
-            />
-          </div>
+        <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+          <Input
+            placeholder="Search by name or ID..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="w-full"
+          />
 
           <Select value={departmentFilter} onValueChange={setDepartmentFilter}>
             <SelectTrigger>
@@ -235,6 +231,17 @@ export function EmployeeList() {
               ))}
             </SelectContent>
           </Select>
+
+          <Select value={statusFilter} onValueChange={setStatusFilter}>
+            <SelectTrigger>
+              <SelectValue placeholder="Filter by Status" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Status</SelectItem>
+              <SelectItem value="active">Active</SelectItem>
+              <SelectItem value="inactive">Inactive</SelectItem>
+            </SelectContent>
+          </Select>
         </div>
       </Card>
 
@@ -275,7 +282,12 @@ export function EmployeeList() {
                   <TableCell>{employee.region}</TableCell>
                   <TableCell>{employee.unit}</TableCell>
                   <TableCell>
-                    <StatusBadge status={employee.is_active ? "active" : "inactive"} />
+                    <Badge 
+                      variant={employee.is_active ? "default" : "secondary"}
+                      className={employee.is_active ? "bg-green-100 text-green-800" : "bg-red-100 text-red-800"}
+                    >
+                      {employee.is_active ? "Active" : "Inactive"}
+                    </Badge>
                   </TableCell>
                   <TableCell className="text-right">
                     <div className="flex justify-end gap-2">
@@ -283,7 +295,7 @@ export function EmployeeList() {
                         variant="outline"
                         size="sm"
                         onClick={() => handleEdit(employee)}
-                        className="flex items-center gap-1 hover:bg-primary/10"
+                        className="flex items-center gap-1"
                       >
                         <Pencil className="h-4 w-4" />
                         <span>Edit</span>

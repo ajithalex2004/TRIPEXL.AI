@@ -5,13 +5,14 @@ import { Button } from "@/components/ui/button";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Switch } from "@/components/ui/switch"; // Added Switch import
 import { toast } from "@/hooks/use-toast";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Department, EmployeeDesignation, EmployeeType, HierarchyLevel, Region } from "@shared/schema";
 
 interface AddEmployeeFormProps {
   onSuccess?: () => void;
-  initialData?: Employee; // For edit mode
+  initialData?: Employee;
 }
 
 export function AddEmployeeForm({ onSuccess, initialData }: AddEmployeeFormProps) {
@@ -20,7 +21,7 @@ export function AddEmployeeForm({ onSuccess, initialData }: AddEmployeeFormProps
     resolver: zodResolver(insertEmployeeSchema),
     defaultValues: {
       employee_type: initialData?.employee_type || EmployeeType.PERMANENT,
-      is_active: true,
+      is_active: initialData?.is_active ?? true, // Default to true for new employees
       country_code: initialData?.country_code || "+971",
       employee_id: initialData?.employee_id || undefined,
       employee_name: initialData?.employee_name || "",
@@ -30,6 +31,7 @@ export function AddEmployeeForm({ onSuccess, initialData }: AddEmployeeFormProps
       department: initialData?.department || "",
       region: initialData?.region || "",
       unit: initialData?.unit || "",
+      hierarchy_level: initialData?.hierarchy_level || "",
     }
   });
 
@@ -75,6 +77,28 @@ export function AddEmployeeForm({ onSuccess, initialData }: AddEmployeeFormProps
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 min-w-[600px] pb-6">
+        {/* Add is_active switch at the top */}
+        <FormField
+          control={form.control}
+          name="is_active"
+          render={({ field }) => (
+            <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
+              <div className="space-y-0.5">
+                <FormLabel className="text-base">Employee Status</FormLabel>
+                <div className="text-sm text-muted-foreground">
+                  {field.value ? "Active" : "Inactive"}
+                </div>
+              </div>
+              <FormControl>
+                <Switch
+                  checked={field.value}
+                  onCheckedChange={field.onChange}
+                />
+              </FormControl>
+            </FormItem>
+          )}
+        />
+
         <div className="grid grid-cols-2 gap-4">
           <FormField
             control={form.control}
