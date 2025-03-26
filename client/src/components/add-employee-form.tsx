@@ -234,7 +234,7 @@ export function AddEmployeeForm({ onSuccess, initialData }: AddEmployeeFormProps
                   </FormControl>
                   <SelectContent>
                     <SelectItem value={HierarchyLevel.LEVEL_1}>
-                      Level 1 - Immediate Approval Authority/Dept Head
+                      Level 1 - Approval Authority/Dept Head
                     </SelectItem>
                     <SelectItem value={HierarchyLevel.LEVEL_2}>
                       Level 2 - Senior Management
