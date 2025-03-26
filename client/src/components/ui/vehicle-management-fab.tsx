@@ -129,8 +129,8 @@ export function VehicleManagementFAB({ onAddVehicle, onRefresh }: VehicleManagem
             transition={{ duration: 0.2 }}
           >
             <Button
-              variant="outline"
-              className="bg-white shadow-lg hover:bg-gray-100 dark:bg-gray-800 dark:hover:bg-gray-700 w-40 justify-start"
+              variant="default"
+              className="bg-primary text-white shadow-lg hover:bg-primary/90 w-40 justify-start"
               onClick={onAddVehicle}
             >
               <motion.div
@@ -144,8 +144,8 @@ export function VehicleManagementFAB({ onAddVehicle, onRefresh }: VehicleManagem
             </Button>
 
             <Button
-              variant="outline"
-              className="bg-white shadow-lg hover:bg-gray-100 dark:bg-gray-800 dark:hover:bg-gray-700 w-40 justify-start"
+              variant="secondary"
+              className="shadow-lg w-40 justify-start"
               onClick={onRefresh}
             >
               <motion.div
@@ -168,8 +168,8 @@ export function VehicleManagementFAB({ onAddVehicle, onRefresh }: VehicleManagem
                 className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
               />
               <Button
-                variant="outline"
-                className="bg-white shadow-lg hover:bg-gray-100 dark:bg-gray-800 dark:hover:bg-gray-700 w-40 justify-start"
+                variant="default"
+                className="bg-green-600 hover:bg-green-700 text-white shadow-lg w-40 justify-start"
               >
                 <motion.div
                   className="flex items-center space-x-2"
@@ -183,8 +183,8 @@ export function VehicleManagementFAB({ onAddVehicle, onRefresh }: VehicleManagem
             </div>
 
             <Button
-              variant="outline"
-              className="bg-white shadow-lg hover:bg-gray-100 dark:bg-gray-800 dark:hover:bg-gray-700 w-40 justify-start"
+              variant="default"
+              className="bg-blue-600 hover:bg-blue-700 text-white shadow-lg w-40 justify-start"
               onClick={handleExport}
             >
               <motion.div
