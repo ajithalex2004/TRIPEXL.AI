@@ -1,21 +1,22 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
+import { db } from "./db";
+import { schema } from "./db";
+import { log } from "./vite";
+import vehicleGroupRouter from "./routes/vehicle-groups";
+import vehicleTypeMasterRouter from "./routes/vehicle-type-master";
+import { ecoRoutesRouter } from "./routes/eco-routes";
+import multer from "multer";
+import { approvalWorkflowsRouter } from './routes/approval-workflows';
 import { insertBookingSchema, insertUserSchema, employees, bookings, insertEmployeeSchema, insertApprovalWorkflowSchema } from "@shared/schema";
-import { authService } from "./services/auth";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import XLSX from "xlsx";
-import multer from "multer";
-import vehicleTypeMasterRouter from "./routes/vehicle-type-master";
-import { ecoRoutesRouter } from "./routes/eco-routes";
-import { log } from "./vite";
 import nodemailer from "nodemailer";
 import crypto from "crypto";
 import { eq, sql } from 'drizzle-orm';
-import { db } from './db';
-import { schema } from './schema';
-import { approvalWorkflowsRouter } from './routes/approval-workflows';
+
 
 // Configure multer for handling file uploads
 const upload = multer({
@@ -48,8 +49,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
     // Initialize default user
     log("Initializing default user...");
-    await authService.initializeDefaultUser();
+    await storage.initializeDefaultUser();
     log("Default user initialized");
+
+    // Register vehicle group routes
+    log("Registering vehicle group routes...");
+    app.use(vehicleGroupRouter);
+    log("Vehicle group routes registered");
 
     // Add vehicle type master routes
     log("Registering vehicle type master routes...");
@@ -1043,7 +1049,6 @@ If you didn't request this reset, please ignore this email.
         });
       }
     });
-
 
     // Add approval workflows routes
     app.use('/api/approval-workflows', approvalWorkflowsRouter);

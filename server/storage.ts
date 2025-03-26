@@ -81,6 +81,7 @@ export interface IStorage {
   findUserByResetToken(resetToken: string): Promise<User | null>;
   getAllEmployees(): Promise<Employee[]>;
   updateUserPassword(userId: number, hashedPassword: string): Promise<User>;
+  initializeDefaultUser(): Promise<void>; // Added method
 }
 
 export class DatabaseStorage implements IStorage {
@@ -797,6 +798,44 @@ export class DatabaseStorage implements IStorage {
     } catch (error) {
       console.error('Error updating user password:', error);
       throw new Error(`Failed to update password: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
+  }
+
+  async initializeDefaultUser(): Promise<void> {
+    try {
+      console.log("Checking for default user existence...");
+      const defaultUser = await this.findUserByEmail("admin@tripxl.com");
+
+      if (defaultUser) {
+        console.log("Default user already exists");
+        return;
+      }
+
+      console.log("Creating default admin user...");
+      const hashedPassword = await bcrypt.hash("Admin@123", 10);
+
+      const userData = {
+        email_id: "admin@tripxl.com",
+        password: hashedPassword,
+        user_name: "admin",
+        user_code: "ADM001",
+        user_type: "ADMIN",
+        user_operation_type: "ADMIN",
+        user_group: "ADMIN",
+        first_name: "System",
+        last_name: "Admin",
+        full_name: "System Admin",
+        is_active: true,
+        created_at: new Date(),
+        updated_at: new Date()
+      };
+
+      await this.createUser(userData);
+      console.log("Default admin user created successfully");
+    } catch (error) {
+      console.error("Error initializing default user:", error);
+      // Don't throw the error to prevent app crash
+      // Just log it and continue
     }
   }
 }
