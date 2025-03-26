@@ -46,15 +46,16 @@ import { EmiratesSpinner } from "@/components/ui/emirates-spinner";
 interface VehicleMasterFormProps {
   isOpen: boolean;
   onClose: () => void;
+  initialData?: VehicleMaster | null;
 }
 
-export function VehicleMasterForm({ isOpen, onClose }: VehicleMasterFormProps) {
+export function VehicleMasterForm({ isOpen, onClose, initialData }: VehicleMasterFormProps) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
   // Keep all useState hooks at the top level
-  const [selectedEmirate, setSelectedEmirate] = React.useState<string>("");
-  const [selectedCategory, setSelectedCategory] = React.useState<string>("");
+  const [selectedEmirate, setSelectedEmirate] = React.useState<string>(initialData?.emirate || "");
+  const [selectedCategory, setSelectedCategory] = React.useState<string>(initialData?.plateCategory || "");
 
   // Query hook for vehicle types - keep this at top level
   const { data: vehicleTypes, isLoading: isLoadingVehicleTypes } = useQuery<VehicleTypeMaster[]>({
@@ -65,36 +66,63 @@ export function VehicleMasterForm({ isOpen, onClose }: VehicleMasterFormProps) {
   const form = useForm({
     resolver: zodResolver(insertVehicleMasterSchema),
     defaultValues: {
-      vehicleId: "",
-      emirate: "",
-      registrationNumber: "",
-      plateCode: "",
-      plateNumber: "",
-      currentOdometer: "0",
-      plateCategory: "",
-      vehicleTypeCode: "",
-      vehicleTypeName: "",
-      vehicleModel: "",
-      fuelType: "",
-      transmissionType: "",
-      region: "",
-      department: "",
-      chassisNumber: "",
-      engineNumber: "",
-      unit: "",
-      modelYear: 0,
-      assetType: "",
-      manufacturer: "",
-      vehicleUsage: "",
-      isCanConnected: YesNo.NO,
-      isWeightSensorConnected: YesNo.NO,
-      isTemperatureSensorConnected: YesNo.NO,
-      isPtoConnected: YesNo.NO,
+      vehicleId: initialData?.vehicleId || "",
+      emirate: initialData?.emirate || "",
+      registrationNumber: initialData?.registrationNumber || "",
+      plateCode: initialData?.plateCode || "",
+      plateNumber: initialData?.plateNumber || "",
+      currentOdometer: initialData?.currentOdometer?.toString() || "0",
+      plateCategory: initialData?.plateCategory || "",
+      vehicleTypeCode: initialData?.vehicleTypeCode || "",
+      vehicleTypeName: initialData?.vehicleTypeName || "",
+      vehicleModel: initialData?.vehicleModel || "",
+      fuelType: initialData?.fuelType || "",
+      transmissionType: initialData?.transmissionType || "",
+      region: initialData?.region || "",
+      department: initialData?.department || "",
+      chassisNumber: initialData?.chassisNumber || "",
+      engineNumber: initialData?.engineNumber || "",
+      unit: initialData?.unit || "",
+      modelYear: initialData?.modelYear || 0,
+      assetType: initialData?.assetType || "",
+      manufacturer: initialData?.manufacturer || "",
+      vehicleUsage: initialData?.vehicleUsage || "",
+      isCanConnected: initialData?.isCanConnected || YesNo.NO,
+      isWeightSensorConnected: initialData?.isWeightSensorConnected || YesNo.NO,
+      isTemperatureSensorConnected: initialData?.isTemperatureSensorConnected || YesNo.NO,
+      isPtoConnected: initialData?.isPtoConnected || YesNo.NO,
     },
   });
 
-  // Mutation hook - keep at top level
-  const createVehicle = useMutation({
+  // Update mutation
+  const updateMutation = useMutation({
+    mutationFn: async (data: any) => {
+      const response = await apiRequest("PATCH", `/api/vehicle-master/${initialData?.vehicleId}`, data);
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || "Failed to update vehicle");
+      }
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/vehicle-master"] });
+      toast({
+        title: "Success",
+        description: "Vehicle updated successfully",
+      });
+      onClose();
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
+  // Create mutation
+  const createMutation = useMutation({
     mutationFn: async (data: any) => {
       const response = await apiRequest("POST", "/api/vehicle-master", data);
       if (!response.ok) {
@@ -112,18 +140,22 @@ export function VehicleMasterForm({ isOpen, onClose }: VehicleMasterFormProps) {
       onClose();
       form.reset();
     },
-    onError: (error: any) => {
+    onError: (error: Error) => {
       toast({
         title: "Error",
-        description: error.message || "Failed to create vehicle",
+        description: error.message,
         variant: "destructive",
       });
     },
   });
 
   const onSubmit = React.useCallback((data: any) => {
-    createVehicle.mutate(data);
-  }, [createVehicle]);
+    if (initialData) {
+      updateMutation.mutate(data);
+    } else {
+      createMutation.mutate(data);
+    }
+  }, [initialData, updateMutation, createMutation]);
 
   // Extract emirate code from the full emirate name (e.g., "AUH" from "Abu Dhabi (AUH)")
   const getEmirateCode = React.useCallback((emirate: string): string => {
@@ -200,7 +232,7 @@ export function VehicleMasterForm({ isOpen, onClose }: VehicleMasterFormProps) {
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>Add New Vehicle</DialogTitle>
+          <DialogTitle>{initialData ? "Edit Vehicle" : "Add New Vehicle"}</DialogTitle>
         </DialogHeader>
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
@@ -633,7 +665,7 @@ export function VehicleMasterForm({ isOpen, onClose }: VehicleMasterFormProps) {
                 Cancel
               </Button>
               <Button type="submit">
-                Add Vehicle
+                {initialData ? "Update Vehicle" : "Add Vehicle"}
               </Button>
             </DialogFooter>
           </form>
@@ -641,4 +673,32 @@ export function VehicleMasterForm({ isOpen, onClose }: VehicleMasterFormProps) {
       </DialogContent>
     </Dialog>
   );
+}
+
+interface VehicleMaster {
+  vehicleId: string;
+  emirate: string;
+  registrationNumber: string;
+  plateCode: string;
+  plateNumber: string;
+  currentOdometer: number | null;
+  plateCategory: string;
+  vehicleTypeCode: string;
+  vehicleTypeName: string;
+  vehicleModel: string;
+  fuelType: string;
+  transmissionType: string;
+  region: string;
+  department: string;
+  chassisNumber: string;
+  engineNumber: string;
+  unit: string;
+  modelYear: number;
+  assetType: string;
+  manufacturer: string;
+  vehicleUsage: string;
+  isCanConnected: YesNo;
+  isWeightSensorConnected: YesNo;
+  isTemperatureSensorConnected: YesNo;
+  isPtoConnected: YesNo;
 }

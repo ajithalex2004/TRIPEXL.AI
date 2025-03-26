@@ -1,8 +1,6 @@
 import { useState } from "react";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query";
 import { DataTable } from "@/components/ui/data-table";
-import { Button } from "@/components/ui/button";
-import { Plus } from "lucide-react";
 import {
   Card,
   CardContent,
@@ -10,10 +8,23 @@ import {
   CardHeader,
   CardTitle
 } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import { VehicleMaster } from "@shared/schema";
 import { VehicleMasterForm } from "@/components/ui/vehicle-master-form";
 import { VehicleManagementFAB } from "@/components/ui/vehicle-management-fab";
 import { useToast } from "@/hooks/use-toast";
+import { Pen, Trash2 } from "lucide-react";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { apiRequest } from "@/lib/queryClient";
 
 const columns = [
   {
@@ -69,16 +80,72 @@ const columns = [
       </span>
     ),
   },
+  {
+    header: "Actions",
+    id: "actions",
+    cell: ({ row }) => {
+      const vehicle = row.original;
+      return (
+        <div className="flex items-center gap-2">
+          <Button
+            variant="outline"
+            size="icon"
+            onClick={() => row.handleEdit(vehicle)}
+            className="h-8 w-8 p-0"
+          >
+            <Pen className="h-4 w-4" />
+          </Button>
+          <Button
+            variant="outline"
+            size="icon"
+            onClick={() => row.handleDelete(vehicle)}
+            className="h-8 w-8 p-0 text-red-600 hover:text-red-700"
+          >
+            <Trash2 className="h-4 w-4" />
+          </Button>
+        </div>
+      );
+    },
+  },
 ];
 
 export default function VehicleMasterManagement() {
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  const [selectedVehicle, setSelectedVehicle] = useState<VehicleMaster | null>(null);
+  const [deleteVehicle, setDeleteVehicle] = useState<VehicleMaster | null>(null);
   const queryClient = useQueryClient();
   const { toast } = useToast();
 
   // Fetch vehicle master data
   const { data: vehicles, isLoading } = useQuery<VehicleMaster[]>({
     queryKey: ["/api/vehicle-master"],
+  });
+
+  // Delete mutation
+  const deleteMutation = useMutation({
+    mutationFn: async (id: number) => {
+      const response = await apiRequest("DELETE", `/api/vehicle-master/${id}`);
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || "Failed to delete vehicle");
+      }
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/vehicle-master"] });
+      toast({
+        title: "Success",
+        description: "Vehicle deleted successfully",
+      });
+      setDeleteVehicle(null);
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
   });
 
   const handleRefresh = () => {
@@ -88,6 +155,29 @@ export default function VehicleMasterManagement() {
       description: "Vehicle list has been refreshed",
     });
   };
+
+  const handleEdit = (vehicle: VehicleMaster) => {
+    setSelectedVehicle(vehicle);
+    setIsAddModalOpen(true);
+  };
+
+  const handleDelete = (vehicle: VehicleMaster) => {
+    setDeleteVehicle(vehicle);
+  };
+
+  const confirmDelete = () => {
+    if (deleteVehicle) {
+      deleteMutation.mutate(deleteVehicle.id);
+    }
+  };
+
+  // Add handleEdit and handleDelete to each row
+  const columnsWithHandlers = columns.map(col => ({
+    ...col,
+    cell: col.cell
+      ? (props: any) => col.cell?.({ ...props, row: { ...props.row, handleEdit, handleDelete } })
+      : undefined,
+  }));
 
   return (
     <div className="container mx-auto py-6 space-y-8">
@@ -114,7 +204,7 @@ export default function VehicleMasterManagement() {
             </div>
           ) : (
             <DataTable
-              columns={columns}
+              columns={columnsWithHandlers}
               data={vehicles || []}
               filterColumn="vehicleId"
               filterPlaceholder="Filter by Vehicle ID..."
@@ -125,15 +215,44 @@ export default function VehicleMasterManagement() {
 
       {/* Vehicle Management FAB */}
       <VehicleManagementFAB
-        onAddVehicle={() => setIsAddModalOpen(true)}
+        onAddVehicle={() => {
+          setSelectedVehicle(null);
+          setIsAddModalOpen(true);
+        }}
         onRefresh={handleRefresh}
       />
 
-      {/* Add Vehicle Form Modal */}
+      {/* Add/Edit Vehicle Form Modal */}
       <VehicleMasterForm 
         isOpen={isAddModalOpen}
-        onClose={() => setIsAddModalOpen(false)}
+        onClose={() => {
+          setIsAddModalOpen(false);
+          setSelectedVehicle(null);
+        }}
+        initialData={selectedVehicle}
       />
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={!!deleteVehicle} onOpenChange={() => setDeleteVehicle(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This action cannot be undone. This will permanently delete the vehicle
+              with ID: {deleteVehicle?.vehicleId}.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={confirmDelete}
+              className="bg-red-600 hover:bg-red-700 text-white"
+            >
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
