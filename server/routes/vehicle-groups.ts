@@ -113,6 +113,32 @@ router.patch("/api/vehicle-groups/:id", async (req, res) => {
   }
 });
 
+// Delete vehicle group
+router.delete("/api/vehicle-groups/:id", async (req, res) => {
+  try {
+    const id = parseInt(req.params.id);
+    if (isNaN(id)) {
+      return res.status(400).json({ error: "Invalid ID format" });
+    }
+
+    console.log("Deleting vehicle group:", id);
+    const [deletedGroup] = await db
+      .delete(vehicleGroups)
+      .where(eq(vehicleGroups.id, id))
+      .returning();
+
+    if (!deletedGroup) {
+      return res.status(404).json({ error: "Vehicle group not found" });
+    }
+
+    console.log("Deleted vehicle group:", deletedGroup);
+    res.json(deletedGroup);
+  } catch (error: any) {
+    console.error("Error deleting vehicle group:", error);
+    res.status(500).json({ error: "Failed to delete vehicle group" });
+  }
+});
+
 // Download template
 router.get("/api/vehicle-groups/template", (_req, res) => {
   try {

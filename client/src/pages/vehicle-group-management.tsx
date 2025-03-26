@@ -20,10 +20,24 @@ import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { VehicleGroupForm } from "@/components/ui/vehicle-group-form";
 import { VehicleGroupFAB } from "@/components/ui/vehicle-group-fab";
+import { Button } from "@/components/ui/button";
+import { Trash2, Edit } from "lucide-react";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 export default function VehicleGroupManagement() {
   console.log("Rendering VehicleGroupManagement component");
   const [selectedGroup, setSelectedGroup] = useState<VehicleGroup | null>(null);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [groupToDelete, setGroupToDelete] = useState<VehicleGroup | null>(null);
   const { toast } = useToast();
 
   // Query for fetching vehicle groups
@@ -82,6 +96,44 @@ export default function VehicleGroupManagement() {
       });
     },
   });
+
+  const deleteMutation = useMutation({
+    mutationFn: async (id: number) => {
+      const response = await apiRequest("DELETE", `/api/vehicle-groups/${id}`);
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || "Failed to delete vehicle group");
+      }
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/vehicle-groups"] });
+      toast({
+        title: "Success",
+        description: "Vehicle group deleted successfully",
+      });
+      setGroupToDelete(null);
+      setDeleteDialogOpen(false);
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
+  const handleDelete = useCallback((group: VehicleGroup) => {
+    setGroupToDelete(group);
+    setDeleteDialogOpen(true);
+  }, []);
+
+  const handleConfirmDelete = useCallback(() => {
+    if (groupToDelete) {
+      deleteMutation.mutate(groupToDelete.id);
+    }
+  }, [groupToDelete, deleteMutation]);
 
   const handleSubmit = useCallback(async (data: InsertVehicleGroup) => {
     console.log("Handling form submission:", data);
@@ -276,13 +328,26 @@ export default function VehicleGroupManagement() {
                         <TableCell>{group.type}</TableCell>
                         <TableCell>{group.department}</TableCell>
                         <TableCell>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => setSelectedGroup(group)}
-                          >
-                            Edit
-                          </Button>
+                          <div className="flex items-center gap-2">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => setSelectedGroup(group)}
+                              className="flex items-center gap-1"
+                            >
+                              <Edit className="w-4 h-4" />
+                              Edit
+                            </Button>
+                            <Button
+                              variant="destructive"
+                              size="sm"
+                              onClick={() => handleDelete(group)}
+                              className="flex items-center gap-1"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                              Delete
+                            </Button>
+                          </div>
                         </TableCell>
                       </motion.tr>
                     ))
@@ -300,6 +365,22 @@ export default function VehicleGroupManagement() {
           onDownloadTemplate={handleDownloadTemplate}
           onRefresh={handleRefresh}
         />
+
+        <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Are you sure you want to delete this vehicle group?</AlertDialogTitle>
+              <AlertDialogDescription>
+                This action cannot be undone. This will permanently delete the vehicle group
+                {groupToDelete && ` "${groupToDelete.name}"`}.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancel</AlertDialogCancel>
+              <AlertDialogAction onClick={handleConfirmDelete}>Delete</AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </motion.div>
     </div>
   );
