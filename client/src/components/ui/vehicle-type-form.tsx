@@ -954,7 +954,7 @@ export function VehicleTypeForm({ onSubmit, initialData, isEditing }: VehicleTyp
                     value={field.value}
                   />
                 </FormControl>
-                <FormMessage />
+                <<FormMessage />
               </FormItem>
             )}
           />
@@ -980,9 +980,10 @@ export function VehicleTypeForm({ onSubmit, initialData, isEditing }: VehicleTyp
                 <FormControl>
                   <Input
                     type="number"
+                    step="0.01"
                     {...field}
                     disabled
-                    value={field.value}
+                    value={typeof field.value === 'number' ? field.value.toFixed(2) : ''}
                   />
                 </FormControl>
                 <FormMessage />
