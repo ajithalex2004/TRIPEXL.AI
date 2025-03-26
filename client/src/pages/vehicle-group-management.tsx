@@ -40,7 +40,6 @@ import {
 } from "@/components/ui/dialog";
 
 export default function VehicleGroupManagement() {
-  console.log("Rendering VehicleGroupManagement component");
   const [selectedGroup, setSelectedGroup] = useState<VehicleGroup | null>(null);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [groupToDelete, setGroupToDelete] = useState<VehicleGroup | null>(null);
