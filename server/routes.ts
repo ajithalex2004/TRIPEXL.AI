@@ -633,31 +633,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
     app.get("/api/employees", async (_req, res) => {
       try {
         console.log("Fetching all employees");
-
-        const allEmployees = await db
-          .select({
-            id: employees.id,
-            employee_id: employees.employeeId,
-            employee_name: employees.employeeName,
-            email_id: employees.emailId,
-            mobile_number: employees.mobileNumber,
-            employee_type: employees.employeeType,
-            designation: employees.designation,
-            department: employees.department,
-            region: employees.region,
-            unit: employees.unit,
-            is_active: employees.isActive,
-          })
-          .from(employees);
-
-        console.log(`Retrieved ${allEmployees.length} employees`);
-        res.json(allEmployees);
+        const employees = await storage.getAllEmployees();
+        console.log("Retrieved employees:", employees);
+        res.json(employees);
       } catch (error: any) {
         console.error("Error fetching employees:", error);
-        res.status(500).json({ 
-          error: "Failed to fetch employees",
-          details: error.message 
-        });
+        res.status(500).json({ error: "Failed to fetch employees" });
       }
     });
 

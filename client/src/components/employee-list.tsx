@@ -69,14 +69,19 @@ export function EmployeeList() {
   const { data: employees, isLoading, error } = useQuery<Employee[]>({
     queryKey: ['/api/employees'],
     queryFn: async () => {
-      const response = await fetch('/api/employees');
-      if (!response.ok) {
-        throw new Error('Failed to fetch employees');
+      try {
+        const response = await fetch('/api/employees');
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(errorData.error || 'Failed to fetch employees');
+        }
+        return response.json();
+      } catch (error: any) {
+        console.error("Error fetching employees:", error);
+        throw error;
       }
-      return response.json();
     },
-    retry: 3,
-    staleTime: 30000,
+    retry: 1
   });
 
   const deleteEmployeeMutation = useMutation({
@@ -139,12 +144,20 @@ export function EmployeeList() {
     setIsEditDialogOpen(true);
   };
 
+  if (isLoading) {
+    return (
+      <div className="flex justify-center items-center min-h-[400px]">
+        <LoadingAnimation size="lg" />
+      </div>
+    );
+  }
+
   if (error) {
     return (
       <div className="flex justify-center items-center min-h-[400px]">
         <div className="text-center text-red-500">
           <p>Error loading employees</p>
-          <p className="text-sm">{error.toString()}</p>
+          <p className="text-sm">{error.message}</p>
         </div>
       </div>
     );
@@ -167,13 +180,6 @@ export function EmployeeList() {
     return matchesSearch && matchesDepartment && matchesRegion && matchesType;
   });
 
-  if (isLoading) {
-    return (
-      <div className="flex justify-center items-center min-h-[400px]">
-        <LoadingAnimation size="lg" />
-      </div>
-    );
-  }
 
   return (
     <div className="space-y-4">
