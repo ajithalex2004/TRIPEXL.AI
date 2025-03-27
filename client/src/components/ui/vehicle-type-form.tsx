@@ -53,7 +53,7 @@ export function VehicleTypeForm({ onSubmit, initialData, isEditing }: VehicleTyp
       service_plan: initialData?.service_plan || "",
       cost_per_km: initialData?.cost_per_km || 0,
       vehicle_type: initialData?.vehicle_type || "",
-      department: initialData?.department || Department.OPERATIONS,
+      department: initialData?.department || Department.FLEET,
       unit: initialData?.unit || "",
       alert_before: initialData?.alert_before || 0,
       idle_fuel_consumption: initialData?.idle_fuel_consumption || 0,
@@ -66,7 +66,7 @@ export function VehicleTypeForm({ onSubmit, initialData, isEditing }: VehicleTyp
     try {
       console.log("Raw form data:", data);
 
-      // Convert all numeric fields properly
+      // Convert numeric fields using Number()
       const formattedData = {
         ...data,
         group_id: Number(data.group_id),
@@ -106,6 +106,7 @@ export function VehicleTypeForm({ onSubmit, initialData, isEditing }: VehicleTyp
     <Form {...form}>
       <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-4">
         <div className="grid grid-cols-2 gap-4">
+          {/* Vehicle Group */}
           <FormField
             control={form.control}
             name="group_id"
@@ -134,6 +135,22 @@ export function VehicleTypeForm({ onSubmit, initialData, isEditing }: VehicleTyp
             )}
           />
 
+          {/* Vehicle Type Code */}
+          <FormField
+            control={form.control}
+            name="vehicle_type_code"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Vehicle Type Code *</FormLabel>
+                <FormControl>
+                  <Input {...field} placeholder="Enter vehicle type code" />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          {/* Vehicle Type Name */}
           <FormField
             control={form.control}
             name="vehicle_type_name"
@@ -148,6 +165,7 @@ export function VehicleTypeForm({ onSubmit, initialData, isEditing }: VehicleTyp
             )}
           />
 
+          {/* Manufacturer */}
           <FormField
             control={form.control}
             name="manufacturer"
@@ -162,6 +180,7 @@ export function VehicleTypeForm({ onSubmit, initialData, isEditing }: VehicleTyp
             )}
           />
 
+          {/* Model Year */}
           <FormField
             control={form.control}
             name="model_year"
@@ -181,20 +200,7 @@ export function VehicleTypeForm({ onSubmit, initialData, isEditing }: VehicleTyp
             )}
           />
 
-          <FormField
-            control={form.control}
-            name="vehicle_type"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Vehicle Type *</FormLabel>
-                <FormControl>
-                  <Input {...field} placeholder="Enter vehicle type" />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-
+          {/* Number of Passengers */}
           <FormField
             control={form.control}
             name="number_of_passengers"
@@ -214,6 +220,7 @@ export function VehicleTypeForm({ onSubmit, initialData, isEditing }: VehicleTyp
             )}
           />
 
+          {/* Region */}
           <FormField
             control={form.control}
             name="region"
@@ -239,31 +246,7 @@ export function VehicleTypeForm({ onSubmit, initialData, isEditing }: VehicleTyp
             )}
           />
 
-          <FormField
-            control={form.control}
-            name="department"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Department *</FormLabel>
-                <Select onValueChange={field.onChange} value={field.value}>
-                  <FormControl>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select department" />
-                    </SelectTrigger>
-                  </FormControl>
-                  <SelectContent>
-                    {Object.values(Department).map((dept) => (
-                      <SelectItem key={dept} value={dept}>
-                        {dept}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-
+          {/* Fuel Type */}
           <FormField
             control={form.control}
             name="fuel_type"
@@ -289,6 +272,48 @@ export function VehicleTypeForm({ onSubmit, initialData, isEditing }: VehicleTyp
             )}
           />
 
+          {/* Department */}
+          <FormField
+            control={form.control}
+            name="department"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Department *</FormLabel>
+                <Select onValueChange={field.onChange} value={field.value}>
+                  <FormControl>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select department" />
+                    </SelectTrigger>
+                  </FormControl>
+                  <SelectContent>
+                    {Object.values(Department).map((dept) => (
+                      <SelectItem key={dept} value={dept}>
+                        {dept}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          {/* Vehicle Type */}
+          <FormField
+            control={form.control}
+            name="vehicle_type"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Vehicle Type *</FormLabel>
+                <FormControl>
+                  <Input {...field} placeholder="Enter vehicle type" />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          {/* Fuel Efficiency */}
           <FormField
             control={form.control}
             name="fuel_efficiency"
@@ -309,6 +334,7 @@ export function VehicleTypeForm({ onSubmit, initialData, isEditing }: VehicleTyp
             )}
           />
 
+          {/* Fuel Price per Litre */}
           <FormField
             control={form.control}
             name="fuel_price_per_litre"
@@ -329,6 +355,7 @@ export function VehicleTypeForm({ onSubmit, initialData, isEditing }: VehicleTyp
             )}
           />
 
+          {/* Cost per KM */}
           <FormField
             control={form.control}
             name="cost_per_km"
@@ -349,6 +376,7 @@ export function VehicleTypeForm({ onSubmit, initialData, isEditing }: VehicleTyp
             )}
           />
 
+          {/* Vehicle Capacity */}
           <FormField
             control={form.control}
             name="vehicle_capacity"
@@ -368,6 +396,7 @@ export function VehicleTypeForm({ onSubmit, initialData, isEditing }: VehicleTyp
             )}
           />
 
+          {/* Idle Fuel Consumption */}
           <FormField
             control={form.control}
             name="idle_fuel_consumption"
@@ -388,6 +417,7 @@ export function VehicleTypeForm({ onSubmit, initialData, isEditing }: VehicleTyp
             )}
           />
 
+          {/* CO2 Emission Factor */}
           <FormField
             control={form.control}
             name="co2_emission_factor"
@@ -408,6 +438,7 @@ export function VehicleTypeForm({ onSubmit, initialData, isEditing }: VehicleTyp
             )}
           />
 
+          {/* Service Plan */}
           <FormField
             control={form.control}
             name="service_plan"
@@ -422,6 +453,7 @@ export function VehicleTypeForm({ onSubmit, initialData, isEditing }: VehicleTyp
             )}
           />
 
+          {/* Unit */}
           <FormField
             control={form.control}
             name="unit"
@@ -436,6 +468,7 @@ export function VehicleTypeForm({ onSubmit, initialData, isEditing }: VehicleTyp
             )}
           />
 
+          {/* Alert Before */}
           <FormField
             control={form.control}
             name="alert_before"
@@ -894,6 +927,6 @@ function getPassengerCapacityFromCode(vehicleTypeCode: string): number {
 }
 
 function calculateCostPerKm(fuelPrice: number, fuelEfficiency: number) {
-    if (!fuelPrice || !fuelEfficiency || fuelEfficiency <= 0) return 0;
-    return Number((fuelPrice / fuelEfficiency).toFixed(2));
-  }
+  if (!fuelPrice || !fuelEfficiency || fuelEfficiency <= 0) return 0;
+  return Number((fuelPrice / fuelEfficiency).toFixed(2));
+}
