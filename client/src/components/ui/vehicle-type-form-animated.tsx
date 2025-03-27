@@ -44,8 +44,26 @@ export function VehicleTypeFormAnimated({ onSubmit, initialData, isEditing }: Ve
 
   // Fetch master data
   const { data: masterData, isLoading: isMasterDataLoading } = useQuery({
-    queryKey: ["/api/vehicle-masters"],
+    queryKey: ["/api/vehicle-masters"]
   });
+  
+  // Fetch vehicle groups directly
+  const { data: vehicleGroups } = useQuery({
+    queryKey: ["/api/vehicle-groups"]
+  });
+  
+  // Log data for debugging
+  useEffect(() => {
+    if (masterData) {
+      console.log("Vehicle masters data:", masterData);
+    }
+  }, [masterData]);
+  
+  useEffect(() => {
+    if (vehicleGroups) {
+      console.log("Vehicle groups data:", vehicleGroups);
+    }
+  }, [vehicleGroups]);
 
   // Initialize form
   const form = useForm<InsertVehicleTypeMaster>({
@@ -216,12 +234,13 @@ export function VehicleTypeFormAnimated({ onSubmit, initialData, isEditing }: Ve
                 placeholder="Select vehicle group"
                 required
                 options={
-                  masterData?.groups?.map(group => ({
+                  vehicleGroups?.map(group => ({
                     value: group.id.toString(),
                     label: group.name
                   })) || []
                 }
                 onValueChange={(value) => {
+                  console.log("Selected vehicle group:", value);
                   form.setValue("group_id", Number(value));
                 }}
               />
