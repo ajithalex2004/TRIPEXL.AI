@@ -272,12 +272,11 @@ export function VehicleTypeForm({ onSubmit, initialData, isEditing }: VehicleTyp
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      {masterData?.vehicleModels &&
-                        Object.keys(masterData.vehicleModels).map((mfr) => (
-                          <SelectItem key={mfr} value={mfr}>
-                            {mfr}
-                          </SelectItem>
-                        ))}
+                      {masterData?.manufacturers?.map((manufacturer) => (
+                        <SelectItem key={manufacturer} value={manufacturer}>
+                          {manufacturer}
+                        </SelectItem>
+                      ))}
                     </SelectContent>
                   </Select>
                   <FormMessage />

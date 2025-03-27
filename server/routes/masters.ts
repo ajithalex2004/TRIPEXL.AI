@@ -57,15 +57,20 @@ const units = [
   "VIP Services"
 ];
 
-// Updated UAE Vehicle Models by Manufacturer with detailed info
-const vehicleModelMaster: Record<string, { models: Array<{
-  name: string;
-  efficiency: number;
-  capacity: number;
-  idleConsumption: number;
-  passengerCapacity: number;
-  categories: string[];
-}> }> = {
+const manufacturers = [
+  "Toyota",
+  "Nissan",
+  "Honda",
+  "Mitsubishi",
+  "Mercedes-Benz",
+  "BMW",
+  "Ford",
+  "Chevrolet",
+  "Hyundai",
+  "Kia"
+];
+
+const vehicleModels = {
   "Toyota": {
     models: [
       {
@@ -83,6 +88,14 @@ const vehicleModelMaster: Record<string, { models: Array<{
         idleConsumption: 1.5,
         passengerCapacity: 8,
         categories: ["SUV"]
+      },
+      {
+        name: "Camry",
+        efficiency: 13.2,
+        capacity: 15,
+        idleConsumption: 0.9,
+        passengerCapacity: 5,
+        categories: ["SEDAN"]
       }
     ]
   },
@@ -103,6 +116,26 @@ const vehicleModelMaster: Record<string, { models: Array<{
         idleConsumption: 0.9,
         passengerCapacity: 5,
         categories: ["SEDAN"]
+      }
+    ]
+  },
+  "Honda": {
+    models: [
+      {
+        name: "Civic",
+        efficiency: 14.8,
+        capacity: 13,
+        idleConsumption: 0.8,
+        passengerCapacity: 5,
+        categories: ["SEDAN"]
+      },
+      {
+        name: "CR-V",
+        efficiency: 11.2,
+        capacity: 37,
+        idleConsumption: 1.0,
+        passengerCapacity: 5,
+        categories: ["SUV"]
       }
     ]
   }
@@ -129,10 +162,12 @@ router.get("/api/vehicle-masters", async (_req, res) => {
 
     const response = {
       groups,
-      vehicleModels: vehicleModelMaster,
+      manufacturers,
+      vehicleModels,
       fuelTypes: Object.entries(currentFuelPrices).map(([type, price]) => ({
         type,
-        price
+        price,
+        co2Factor: co2EmissionFactors[type] || 0
       })),
       regions: Object.values(Region),
       departments: Object.values(Department),
