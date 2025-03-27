@@ -661,23 +661,24 @@ export function VehicleTypeForm({ onSubmit, initialData, isEditing }: VehicleTyp
     try {
       console.log("Raw form data:", data);
 
-      // Transform numeric fields
+      // Convert values to proper types
       const formattedData = {
         ...data,
+        // Integer fields
         group_id: Number(data.group_id),
         model_year: Number(data.model_year),
         number_of_passengers: Number(data.number_of_passengers),
         vehicle_capacity: Number(data.vehicle_capacity),
         alert_before: Number(data.alert_before),
-        // Keep string fields as they are
-        fuel_efficiency: data.fuel_efficiency.toString(),
-        fuel_price_per_litre: data.fuel_price_per_litre.toString(),
-        cost_per_km: data.cost_per_km.toString(),
-        idle_fuel_consumption: data.idle_fuel_consumption.toString(),
-        co2_emission_factor: data.co2_emission_factor.toString()
+        // Numeric fields
+        fuel_efficiency: Number(data.fuel_efficiency),
+        fuel_price_per_litre: Number(data.fuel_price_per_litre),
+        cost_per_km: Number(data.cost_per_km),
+        idle_fuel_consumption: Number(data.idle_fuel_consumption),
+        co2_emission_factor: Number(data.co2_emission_factor)
       };
 
-      console.log("Formatted data before submission:", formattedData);
+      console.log("Formatted data for submission:", formattedData);
       await onSubmit(formattedData);
 
       toast({
