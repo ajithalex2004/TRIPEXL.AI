@@ -1,30 +1,38 @@
 import { Router } from "express";
 import { storage } from "../storage";
 import { insertVehicleTypeMasterSchema, vehicleTypeMaster } from "@shared/schema";
-import multer from "multer";
-import XLSX from "xlsx";
 import { db } from "../db";
 import { eq } from "drizzle-orm";
 
-// Configure multer for handling file uploads
-const upload = multer({
-  storage: multer.memoryStorage(),
-  limits: {
-    fileSize: 5 * 1024 * 1024, // 5MB limit
-  },
-  fileFilter: (_req, file, cb) => {
-    if (
-      file.mimetype === 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' ||
-      file.mimetype === 'application/vnd.ms-excel'
-    ) {
-      cb(null, true);
-    } else {
-      cb(new Error('Only Excel files are allowed'));
-    }
-  },
+const router = Router();
+
+// Master data endpoints
+router.get("/api/vehicle-masters", async (_req, res) => {
+  try {
+    const manufacturers = uaeVehicleModels;
+    const fuelTypes = Object.keys(currentFuelPrices).map(type => ({
+      type,
+      price: currentFuelPrices[type]
+    }));
+    const efficiencies = defaultFuelEfficiency;
+    const capacities = defaultVehicleCapacity;
+    const idleConsumptions = defaultIdleFuelConsumption;
+    const emissions = co2EmissionFactors;
+
+    res.json({
+      manufacturers,
+      fuelTypes,
+      efficiencies,
+      capacities,
+      idleConsumptions,
+      emissions
+    });
+  } catch (error: any) {
+    console.error("Error fetching master data:", error);
+    res.status(500).json({ error: error.message });
+  }
 });
 
-const router = Router();
 
 // Updated fuel prices with proper types
 const currentFuelPrices: Record<string, number> = {
@@ -34,6 +42,68 @@ const currentFuelPrices: Record<string, number> = {
   'HYBRID': 2.85,
   'CNG': 2.10,
   'LPG': 2.25
+};
+
+const uaeVehicleModels = {
+  "Toyota": [
+    "Corolla",
+    "Camry",
+    "Land Cruiser",
+    "Prado",
+    "RAV4",
+    "Fortuner",
+    "Hiace",
+    "Yaris",
+    "Hilux",
+    "Coaster",
+    "Innova"
+  ],
+  "Nissan": [
+    "Altima",
+    "Patrol",
+    "X-Trail",
+    "Sunny",
+    "Kicks",
+    "Pathfinder",
+    "Urvan",
+    "Navara"
+  ],
+  // ... [Keep other manufacturer models]
+};
+
+const defaultFuelEfficiency = {
+  // Toyota models
+  "TOYOTA-COROLLA": 14.5,
+  "TOYOTA-CAMRY": 13.2,
+  "TOYOTA-LANDCRUISER": 8.5,
+  "TOYOTA-PRADO": 9.5,
+  "TOYOTA-RAV4": 11.8,
+  // ... [Keep other efficiency data]
+};
+
+const defaultVehicleCapacity = {
+  // Toyota models
+  "TOYOTA-COROLLA": 13,
+  "TOYOTA-CAMRY": 15,
+  "TOYOTA-LANDCRUISER": 82,
+  // ... [Keep other capacity data]
+};
+
+const defaultIdleFuelConsumption = {
+  // Toyota models
+  "TOYOTA-COROLLA": 0.8,
+  "TOYOTA-CAMRY": 0.9,
+  "TOYOTA-LANDCRUISER": 1.5,
+  // ... [Keep other consumption data]
+};
+
+const co2EmissionFactors = {
+  "Petrol": 2.31,
+  "Diesel": 2.68,
+  "Electric": 0,
+  "Hybrid": 1.85,
+  "CNG": 1.81,
+  "LPG": 1.51
 };
 
 // Enhanced fuel prices endpoint with better error handling
