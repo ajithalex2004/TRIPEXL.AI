@@ -3,35 +3,9 @@ import { storage } from "../storage";
 import { insertVehicleTypeMasterSchema, vehicleTypeMaster } from "@shared/schema";
 import { db } from "../db";
 import { eq } from "drizzle-orm";
+import masterRouter from "./masters";
 
 const router = Router();
-
-// Master data endpoints
-router.get("/api/vehicle-masters", async (_req, res) => {
-  try {
-    const manufacturers = uaeVehicleModels;
-    const fuelTypes = Object.keys(currentFuelPrices).map(type => ({
-      type,
-      price: currentFuelPrices[type]
-    }));
-    const efficiencies = defaultFuelEfficiency;
-    const capacities = defaultVehicleCapacity;
-    const idleConsumptions = defaultIdleFuelConsumption;
-    const emissions = co2EmissionFactors;
-
-    res.json({
-      manufacturers,
-      fuelTypes,
-      efficiencies,
-      capacities,
-      idleConsumptions,
-      emissions
-    });
-  } catch (error: any) {
-    console.error("Error fetching master data:", error);
-    res.status(500).json({ error: error.message });
-  }
-});
 
 // Updated fuel prices with proper types
 const currentFuelPrices: Record<string, number> = {
@@ -154,10 +128,19 @@ router.post("/api/vehicle-types", async (req, res) => {
       });
     }
 
+    // Make sure all string fields are properly formatted
+    const formattedData = {
+      ...result.data,
+      fuel_efficiency: result.data.fuel_efficiency?.toString(),
+      fuel_price_per_litre: result.data.fuel_price_per_litre?.toString(),
+      idle_fuel_consumption: result.data.idle_fuel_consumption?.toString(),
+      co2_emission_factor: result.data.co2_emission_factor?.toString()
+    };
+    
     const [newType] = await db
       .insert(vehicleTypeMaster)
       .values({
-        ...result.data,
+        ...formattedData,
         is_active: true,
         created_at: new Date(),
         updated_at: new Date()
@@ -228,10 +211,19 @@ router.patch("/api/vehicle-types/:id", async (req, res) => {
       });
     }
 
+    // Format numeric fields to string for update
+    const formattedUpdateData = {
+      ...result.data,
+      fuel_efficiency: result.data.fuel_efficiency?.toString(),
+      fuel_price_per_litre: result.data.fuel_price_per_litre?.toString(),
+      idle_fuel_consumption: result.data.idle_fuel_consumption?.toString(),
+      co2_emission_factor: result.data.co2_emission_factor?.toString()
+    };
+    
     const [updatedType] = await db
       .update(vehicleTypeMaster)
       .set({
-        ...result.data,
+        ...formattedUpdateData,
         updated_at: new Date()
       })
       .where(eq(vehicleTypeMaster.id, id))

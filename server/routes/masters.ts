@@ -11,6 +11,9 @@ import { vehicleGroups } from "@shared/schema";
 
 const router = Router();
 
+// Export this data for use in other modules
+export { vehicleModels, manufacturers, co2EmissionFactors, currentFuelPrices, servicePlans, units };
+
 // Current UAE fuel prices - Updated March 2024
 const currentFuelPrices: Record<string, number> = {
   'PETROL': 2.85,
