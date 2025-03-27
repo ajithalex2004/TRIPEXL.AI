@@ -81,10 +81,14 @@ export function VehicleTypeForm({ onSubmit, initialData, isEditing }: VehicleTyp
     }
   });
 
-  // Fetch master data
-  const { data: masterData } = useQuery({
+  // Update the query and state management section
+  const { data: masterData, isLoading: isMasterDataLoading } = useQuery({
     queryKey: ["/api/vehicle-masters"],
   });
+
+  useEffect(() => {
+    console.log("Master data received:", masterData);
+  }, [masterData]);
 
   // Watch form values after form initialization
   const selectedFuelType = form.watch("fuel_type");
@@ -260,10 +264,11 @@ export function VehicleTypeForm({ onSubmit, initialData, isEditing }: VehicleTyp
                       form.setValue("vehicle_type", "");
                     }}
                     value={field.value}
+                    disabled={isMasterDataLoading}
                   >
                     <FormControl>
                       <SelectTrigger>
-                        <SelectValue placeholder="Select manufacturer" />
+                        <SelectValue placeholder={isMasterDataLoading ? "Loading..." : "Select manufacturer"} />
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
@@ -971,8 +976,7 @@ const defaultPassengerCapacity: { [key: string]: number } = {
   "HONDA-ACCORD": 5,
   "HONDA-CRV": 5,
 
-  // Mercedes models
-  "MERCEDES-BENZ-SPRINTER": 14,
+  // Mercedes models"MERCEDES-BENZ-SPRINTER": 14,
   "MERCEDES-BENZ-GCLASS": 5,
 
   // Default values by category

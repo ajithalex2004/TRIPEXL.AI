@@ -121,16 +121,18 @@ const co2EmissionFactors: Record<string, number> = {
 // Master data endpoints
 router.get("/api/vehicle-masters", async (_req, res) => {
   try {
+    console.log("Fetching vehicle masters data...");
+
     // Fetch vehicle groups from database
     const groups = await db.select().from(vehicleGroups);
+    console.log("Retrieved vehicle groups:", groups);
 
-    res.json({
+    const response = {
       groups,
       vehicleModels: vehicleModelMaster,
       fuelTypes: Object.entries(currentFuelPrices).map(([type, price]) => ({
         type,
-        price,
-        co2Factor: co2EmissionFactors[type.toUpperCase()] || 0
+        price
       })),
       regions: Object.values(Region),
       departments: Object.values(Department),
@@ -138,7 +140,10 @@ router.get("/api/vehicle-masters", async (_req, res) => {
       units,
       plateCategories: Object.values(PlateCategory),
       transmissionTypes: Object.values(TransmissionType)
-    });
+    };
+
+    console.log("Sending master data response:", JSON.stringify(response, null, 2));
+    res.json(response);
   } catch (error: any) {
     console.error("Error fetching master data:", error);
     res.status(500).json({ error: error.message });
