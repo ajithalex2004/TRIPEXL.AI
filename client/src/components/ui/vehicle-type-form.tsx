@@ -31,7 +31,7 @@ interface VehicleTypeFormProps {
   isEditing?: boolean;
 }
 
-// Define submission steps outside component
+// Define submission steps
 const submissionSteps = [
   {
     label: "Validating Form Data",
@@ -86,22 +86,20 @@ export function VehicleTypeForm({ onSubmit, initialData, isEditing }: VehicleTyp
     queryKey: ["/api/vehicle-masters"],
   });
 
-  useEffect(() => {
-    console.log("Master data received:", masterData);
-  }, [masterData]);
-
   // Watch form values
   const selectedFuelType = form.watch("fuel_type");
   const selectedModel = form.watch("vehicle_type");
   const modelYear = form.watch("model_year");
 
+  // Auto-generate vehicle type code
   useEffect(() => {
     if (selectedManufacturer && selectedModel && modelYear) {
       const typeCode = `${selectedManufacturer}-${selectedModel}-${modelYear}`.toUpperCase();
       form.setValue("vehicle_type_code", typeCode);
     }
-  }, [selectedManufacturer, selectedModel, modelYear]);
+  }, [selectedManufacturer, selectedModel, modelYear, form]);
 
+  // Update vehicle specs when model changes
   useEffect(() => {
     if (masterData?.vehicleModels && selectedManufacturer && selectedModel) {
       const modelData = masterData.vehicleModels[selectedManufacturer]?.models.find(
@@ -115,8 +113,9 @@ export function VehicleTypeForm({ onSubmit, initialData, isEditing }: VehicleTyp
         form.setValue("number_of_passengers", modelData.passengerCapacity);
       }
     }
-  }, [selectedManufacturer, selectedModel, masterData?.vehicleModels]);
+  }, [selectedManufacturer, selectedModel, masterData?.vehicleModels, form]);
 
+  // Update fuel-related fields when fuel type changes
   useEffect(() => {
     if (masterData?.fuelTypes && selectedFuelType) {
       const fuelData = masterData.fuelTypes.find(f => f.type === selectedFuelType);
@@ -125,8 +124,9 @@ export function VehicleTypeForm({ onSubmit, initialData, isEditing }: VehicleTyp
         form.setValue("co2_emission_factor", fuelData.co2Factor.toString());
       }
     }
-  }, [selectedFuelType, masterData?.fuelTypes]);
+  }, [selectedFuelType, masterData?.fuelTypes, form]);
 
+  // Calculate cost per km
   useEffect(() => {
     const fuelPrice = Number(form.watch("fuel_price_per_litre"));
     const fuelEfficiency = Number(form.watch("fuel_efficiency"));
@@ -134,7 +134,7 @@ export function VehicleTypeForm({ onSubmit, initialData, isEditing }: VehicleTyp
       const costPerKm = Number((fuelPrice / fuelEfficiency).toFixed(2));
       form.setValue("cost_per_km", costPerKm);
     }
-  }, [form.watch("fuel_price_per_litre"), form.watch("fuel_efficiency")]);
+  }, [form.watch("fuel_price_per_litre"), form.watch("fuel_efficiency"), form]);
 
   const handleSubmit = async (data: InsertVehicleTypeMaster) => {
     try {
@@ -144,7 +144,6 @@ export function VehicleTypeForm({ onSubmit, initialData, isEditing }: VehicleTyp
 
       // Step 1: Validate form data
       setCurrentStep(0);
-      console.log("Raw form data:", data);
 
       // Step 2: Process vehicle information
       setCurrentStep(1);
@@ -157,8 +156,6 @@ export function VehicleTypeForm({ onSubmit, initialData, isEditing }: VehicleTyp
         alert_before: Number(data.alert_before),
         vehicle_capacity: Number(data.vehicle_capacity)
       };
-
-      console.log("Submitting formatted data:", formattedData);
 
       // Step 3: Save vehicle type
       setCurrentStep(2);
@@ -174,7 +171,6 @@ export function VehicleTypeForm({ onSubmit, initialData, isEditing }: VehicleTyp
         form.reset();
       }
 
-      // Hide progress after success
       setTimeout(() => {
         setShowProgress(false);
         setCurrentStep(0);
@@ -260,7 +256,7 @@ export function VehicleTypeForm({ onSubmit, initialData, isEditing }: VehicleTyp
                 )}
               />
 
-              {/* Vehicle Type */}
+              {/* Vehicle Category */}
               <FormField
                 control={form.control}
                 name="vehicle_category"
@@ -320,7 +316,7 @@ export function VehicleTypeForm({ onSubmit, initialData, isEditing }: VehicleTyp
                   <FormItem>
                     <FormLabel>Fuel Efficiency (km/l) *</FormLabel>
                     <FormControl>
-                      <Input {...field} disabled />
+                      <Input {...field} type="number" />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -333,9 +329,9 @@ export function VehicleTypeForm({ onSubmit, initialData, isEditing }: VehicleTyp
                 name="idle_fuel_consumption"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Idle Fuel Consumption *</FormLabel>
+                    <FormLabel>Idle Fuel Consumption (l/h) *</FormLabel>
                     <FormControl>
-                      <Input {...field} disabled />
+                      <Input {...field} type="number" />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -520,7 +516,7 @@ export function VehicleTypeForm({ onSubmit, initialData, isEditing }: VehicleTyp
                   <FormItem>
                     <FormLabel>Fuel Price per Litre (AED) *</FormLabel>
                     <FormControl>
-                      <Input {...field} disabled />
+                      <Input {...field} type="number" />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -535,7 +531,7 @@ export function VehicleTypeForm({ onSubmit, initialData, isEditing }: VehicleTyp
                   <FormItem>
                     <FormLabel>Cost per KM *</FormLabel>
                     <FormControl>
-                      <Input {...field} disabled />
+                      <Input {...field} type="number" />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -548,9 +544,9 @@ export function VehicleTypeForm({ onSubmit, initialData, isEditing }: VehicleTyp
                 name="co2_emission_factor"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>CO2 Emission Factor *</FormLabel>
+                    <FormLabel>CO2 Emission Factor (kg/km) *</FormLabel>
                     <FormControl>
-                      <Input {...field} disabled />
+                      <Input {...field} type="number" />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -665,11 +661,9 @@ export function VehicleTypeForm({ onSubmit, initialData, isEditing }: VehicleTyp
   );
 }
 
-const highwayEfficiencyMultiplier = 1.15; // Highway efficiency is typically 15% better
+const highwayEfficiencyMultiplier = 1.15; 
 
-// Updated fuel efficiency values with more precise data
 const defaultFuelEfficiency: { [key: string]: number } = {
-  // Toyota models
   "TOYOTA-COROLLA": 14.5,
   "TOYOTA-CAMRY": 13.2,
   "TOYOTA-LANDCRUISER": 8.5,
@@ -679,52 +673,42 @@ const defaultFuelEfficiency: { [key: string]: number } = {
   "TOYOTA-HIACE": 9.8,
   "TOYOTA-COASTER": 6.5,
   "TOYOTA-INNOVA": 11.2,
-
-  // Nissan models
   "NISSAN-PATROL": 7.8,
   "NISSAN-XTRAIL": 11.5,
   "NISSAN-URVAN": 9.2,
   "NISSAN-SUNNY": 15.2,
   "NISSAN-ALTIMA": 13.8,
-
-  // Honda models
   "HONDA-CIVIC": 14.8,
   "HONDA-ACCORD": 13.5,
   "HONDA-CRV": 11.2,
-
-  // Mercedes models
   "MERCEDES-BENZ-SPRINTER": 8.5,
   "MERCEDES-BENZ-GCLASS": 7.8,
   "MERCEDES-BENZ-CCLASS": 12.5,
   "MERCEDES-BENZ-ECLASS": 11.8
 };
 
-// Fuel type efficiency adjustments
 const fuelTypeEfficiencyFactor: { [key: string]: number } = {
-  "Petrol": 1.0,    // Base reference
-  "Diesel": 1.25,   // Diesel engines are typically 25% more efficient
-  "Electric": 3.5,  // Electric vehicles are significantly more efficient
-  "Hybrid": 1.4,    // Hybrid vehicles are about 40% more efficient
-  "CNG": 1.15,      // CNG is about 15% more efficient than petrol
-  "LPG": 1.1        // LPG is about 10% more efficient than petrol
+  "Petrol": 1.0,    
+  "Diesel": 1.25,   
+  "Electric": 3.5,  
+  "Hybrid": 1.4,    
+  "CNG": 1.15,      
+  "LPG": 1.1        
 };
 
-// Add after the fuelTypeEfficiencyFactor constant
 const co2EmissionFactors: { [key: string]: number } = {
-  "Petrol": 2.31,    // kg CO2/liter
-  "Diesel": 2.68,    // kg CO2/liter
-  "Electric": 0,     // Zero direct emissions
-  "Hybrid": 1.85,    // Assumes 20% lower than petrol
-  "CNG": 1.81,       // kg CO2/m³
-  "LPG": 1.51        // kg CO2/liter
+  "Petrol": 2.31,    
+  "Diesel": 2.68,    
+  "Electric": 0,     
+  "Hybrid": 1.85,    
+  "CNG": 1.81,       
+  "LPG": 1.51        
 };
 
-// Add function to calculate CO2 emission factor
 function calculateCO2EmissionFactor(fuelType: string): number {
   return co2EmissionFactors[fuelType] || 0;
 }
 
-// Vehicle category baseline efficiencies
 const categoryBaseEfficiency: { [key: string]: number } = {
   "SEDAN": 13.5,
   "SUV": 10.5,
@@ -738,56 +722,41 @@ function calculateAgeBasedEfficiencyAdjustment(modelYear: number): number {
   const currentYear = new Date().getFullYear();
   const vehicleAge = currentYear - modelYear;
 
-  // More granular efficiency degradation
-  if (vehicleAge <= 1) return 1;           // New vehicles
-  if (vehicleAge <= 3) return 0.98;        // 1-3 years: 2% reduction
-  if (vehicleAge <= 5) return 0.95;        // 3-5 years: 5% reduction
-  if (vehicleAge <= 7) return 0.92;        // 5-7 years: 8% reduction
-  if (vehicleAge <= 10) return 0.88;       // 7-10 years: 12% reduction
-  if (vehicleAge <= 15) return 0.85;       // 10-15 years: 15% reduction
-  return 0.80;                             // 15+ years: 20% reduction
+  if (vehicleAge <= 1) return 1;           
+  if (vehicleAge <= 3) return 0.98;        
+  if (vehicleAge <= 5) return 0.95;        
+  if (vehicleAge <= 7) return 0.92;        
+  if (vehicleAge <= 10) return 0.88;       
+  if (vehicleAge <= 15) return 0.85;       
+  return 0.80;                             
 }
 
 function findVehicleEfficiency(vehicleType: string, modelYear: number, fuelType: string): number {
   let baseEfficiency = 0;
   const vehicleCode = `${vehicleType}`.toUpperCase();
 
-  // Try exact match first
   if (defaultFuelEfficiency[vehicleCode]) {
     baseEfficiency = defaultFuelEfficiency[vehicleCode];
   } else {
-    // Find matching category
     for (const [category, efficiency] of Object.entries(categoryBaseEfficiency)) {
       if (vehicleCode.includes(category)) {
         baseEfficiency = efficiency;
         break;
       }
     }
-
-    // If still no match, use sedan as default
     if (baseEfficiency === 0) {
       baseEfficiency = categoryBaseEfficiency.SEDAN;
     }
   }
 
-  // Apply age-based adjustment
   const ageAdjustment = calculateAgeBasedEfficiencyAdjustment(modelYear);
-
-  // Apply fuel type efficiency factor
   const fuelAdjustment = fuelTypeEfficiencyFactor[fuelType] || 1.0;
-
-  // Calculate highway efficiency
   const highwayEfficiency = baseEfficiency * highwayEfficiencyMultiplier;
-
-  // Calculate final efficiency (average of normal and highway, adjusted for age and fuel type)
   const finalEfficiency = ((baseEfficiency + highwayEfficiency) / 2) * ageAdjustment * fuelAdjustment;
-
-  // Return with 1 decimal place precision
   return Number(finalEfficiency.toFixed(1));
 }
 
 
-// Vehicle categories for matching (No changes needed here)
 const vehicleCategories: { [key: string]: string[] } = {
   "Sedan": ["corolla", "civic", "camry", "accord", "altima"],
   "SUV": ["rav4", "cr-v", "x-trail", "explorer", "tucson"],
@@ -797,10 +766,7 @@ const vehicleCategories: { [key: string]: string[] } = {
   "Ambulance": ["ambulance"]
 };
 
-
-// Define default idle fuel consumption values (L/H) for different vehicle types
 const defaultIdleFuelConsumption: { [key: string]: number } = {
-  // Toyota models
   "TOYOTA-COROLLA": 0.8,
   "TOYOTA-CAMRY": 0.9,
   "TOYOTA-LANDCRUISER": 1.5,
@@ -810,26 +776,18 @@ const defaultIdleFuelConsumption: { [key: string]: number } = {
   "TOYOTA-HIACE": 1.4,
   "TOYOTA-COASTER": 2.0,
   "TOYOTA-INNOVA": 1.1,
-
-  // Nissan models
   "NISSAN-PATROL": 1.6,
   "NISSAN-XTRAIL": 1.1,
   "NISSAN-URVAN": 1.4,
   "NISSAN-SUNNY": 0.7,
   "NISSAN-ALTIMA": 0.9,
-
-  // Honda models
   "HONDA-CIVIC": 0.8,
   "HONDA-ACCORD": 0.9,
   "HONDA-CRV": 1.0,
-
-  // Mercedes models
   "MERCEDES-BENZ-SPRINTER": 1.8,
   "MERCEDES-BENZ-GCLASS": 1.7,
   "MERCEDES-BENZ-CCLASS": 1.0,
   "MERCEDES-BENZ-ECLASS": 1.1,
-
-  // Default values by category
   "SEDAN": 0.9,
   "SUV": 1.2,
   "VAN": 1.4,
@@ -838,40 +796,29 @@ const defaultIdleFuelConsumption: { [key: string]: number } = {
   "AMBULANCE": 1.5
 };
 
-// Function to calculate idle fuel consumption based on vehicle code and fuel type
 function calculateIdleFuelConsumption(vehicleTypeCode: string, fuelType: string): number {
   const code = vehicleTypeCode.toUpperCase();
   let baseConsumption = 0;
 
-  // Try exact match first
   if (defaultIdleFuelConsumption[code]) {
     baseConsumption = defaultIdleFuelConsumption[code];
   } else {
-    // Try to match by category
     for (const [category, consumption] of Object.entries(defaultIdleFuelConsumption)) {
       if (code.includes(category)) {
         baseConsumption = consumption;
         break;
       }
     }
-
-    // If still no match, use sedan as default
     if (baseConsumption === 0) {
       baseConsumption = defaultIdleFuelConsumption.SEDAN;
     }
   }
 
-  // Apply fuel type adjustment factor
   const fuelAdjustment = fuelTypeEfficiencyFactor[fuelType] || 1.0;
-
-  // Calculate final consumption (adjusted for fuel type)
   const finalConsumption = baseConsumption / fuelAdjustment;
-
-  // Return with 1 decimal place precision
   return Number(finalConsumption.toFixed(1));
 }
 
-// Updated UAE Vehicle Models by Manufacturer
 const uaeVehicleModels: { [key: string]: string[] } = {
   "Toyota": [
     "Corolla",
@@ -979,9 +926,7 @@ const uaeVehicleModels: { [key: string]: string[] } = {
 
 const uaeManufacturers = Object.keys(uaeVehicleModels);
 
-// Define default passenger capacities for common vehicle models
 const defaultPassengerCapacity: { [key: string]: number } = {
-  // Toyota models
   "TOYOTA-COROLLA": 5,
   "TOYOTA-CAMRY": 5,
   "TOYOTA-LANDCRUISER": 8,
@@ -991,21 +936,14 @@ const defaultPassengerCapacity: { [key: string]: number } = {
   "TOYOTA-HIACE": 12,
   "TOYOTA-COASTER": 23,
   "TOYOTA-INNOVA": 7,
-
-  // Nissan models
   "NISSAN-PATROL": 8,
   "NISSAN-XTRAIL": 7,
   "NISSAN-URVAN": 12,
-
-  // Honda models
   "HONDA-CIVIC": 5,
   "HONDA-ACCORD": 5,
   "HONDA-CRV": 5,
-
-  // Mercedes models"MERCEDES-BENZ-SPRINTER": 14,
+  "MERCEDES-BENZ-SPRINTER": 14,
   "MERCEDES-BENZ-GCLASS": 5,
-
-  // Default values bycategory
   "SEDAN": 5,
   "SUV": 7,
   "VAN": 12,
@@ -1014,9 +952,7 @@ const defaultPassengerCapacity: { [key: string]: number } = {
   "AMBULANCE": 4
 };
 
-// Define default vehicle capacities (in cubic feet)
 const defaultVehicleCapacity: { [key: string]: number } = {
-  // Toyota models
   "TOYOTA-COROLLA": 13,
   "TOYOTA-CAMRY": 15,
   "TOYOTA-LANDCRUISER": 82,
@@ -1026,22 +962,14 @@ const defaultVehicleCapacity: { [key: string]: number } = {
   "TOYOTA-HIACE": 280,
   "TOYOTA-COASTER": 180,
   "TOYOTA-INNOVA": 45,
-
-  // Nissan models
   "NISSAN-PATROL": 95,
   "NISSAN-XTRAIL": 40,
   "NISSAN-URVAN": 250,
-
-  // Honda models
   "HONDA-CIVIC": 14,
   "HONDA-ACCORD": 16,
   "HONDA-CRV": 39,
-
-  // Mercedes models
   "MERCEDES-BENZ-SPRINTER": 533,
   "MERCEDES-BENZ-GCLASS": 79,
-
-  // Default values by category
   "SEDAN": 15,
   "SUV": 40,
   "VAN": 300,
@@ -1051,41 +979,35 @@ const defaultVehicleCapacity: { [key: string]: number } = {
 };
 
 function getVehicleCapacityFromCode(vehicleTypeCode: string): number {
-  // Convert to uppercase for comparison
   const code = vehicleTypeCode.toUpperCase();
 
-  // Direct match
   if (defaultVehicleCapacity[code]) {
     return defaultVehicleCapacity[code];
   }
 
-  // Try to match by category
   for (const [category, capacity] of Object.entries(defaultVehicleCapacity)) {
     if (code.includes(category)) {
       return capacity;
     }
   }
 
-  return 0; // Default capacity
+  return 0; 
 }
 
 function getPassengerCapacityFromCode(vehicleTypeCode: string): number {
-  // Convert to uppercase for comparison
   const code = vehicleTypeCode.toUpperCase();
 
-  // Direct match
   if (defaultPassengerCapacity[code]) {
     return defaultPassengerCapacity[code];
   }
 
-  // Try to match by category
   for (const [category, capacity] of Object.entries(defaultPassengerCapacity)) {
     if (code.includes(category)) {
       return capacity;
     }
   }
 
-  return 4; // Default passenger capacity
+  return 4; 
 }
 
 function calculateCostPerKm(fuelPrice: number, fuelEfficiency: number) {
