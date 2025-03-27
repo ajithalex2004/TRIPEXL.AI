@@ -105,8 +105,8 @@ export function VehicleTypeForm({ onSubmit, initialData, isEditing }: VehicleTyp
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-4">
-        <div className="max-h-[70vh] overflow-y-auto pr-4 -mr-4">
-          <div className="grid grid-cols-2 gap-4 min-w-[800px] overflow-x-auto">
+        <div className="max-h-[calc(100vh-200px)] overflow-y-auto px-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {/* Vehicle Group */}
             <FormField
               control={form.control}
@@ -491,7 +491,7 @@ export function VehicleTypeForm({ onSubmit, initialData, isEditing }: VehicleTyp
           </div>
         </div>
 
-        <div className="sticky bottom-0 pt-4 bg-background flex justify-end space-x-4 border-t">
+        <div className="flex items-center justify-end gap-4 py-4 px-6 border-t bg-background">
           <Button variant="outline" type="button" onClick={() => form.reset()}>
             Reset
           </Button>
