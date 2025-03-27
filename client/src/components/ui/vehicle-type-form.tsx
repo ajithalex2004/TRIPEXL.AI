@@ -55,6 +55,11 @@ export function VehicleTypeForm({ onSubmit, initialData, isEditing }: VehicleTyp
   const [submissionError, setSubmissionError] = useState<string>();
   const [showProgress, setShowProgress] = useState(false);
 
+  // Fetch master data
+  const { data: masterData, isLoading: isMasterDataLoading } = useQuery({
+    queryKey: ["/api/vehicle-masters"],
+  });
+
   // Initialize form
   const form = useForm<InsertVehicleTypeMaster>({
     resolver: zodResolver(insertVehicleTypeMasterSchema),
@@ -79,11 +84,6 @@ export function VehicleTypeForm({ onSubmit, initialData, isEditing }: VehicleTyp
       vehicle_capacity: initialData?.vehicle_capacity || 0,
       co2_emission_factor: initialData?.co2_emission_factor || "0"
     }
-  });
-
-  // Fetch master data
-  const { data: masterData, isLoading: isMasterDataLoading } = useQuery({
-    queryKey: ["/api/vehicle-masters"],
   });
 
   // Watch form values
@@ -450,18 +450,16 @@ export function VehicleTypeForm({ onSubmit, initialData, isEditing }: VehicleTyp
                       onValueChange={(value) => {
                         field.onChange(value);
                         setSelectedManufacturer(value);
-                        form.setValue("vehicle_type", "");
                       }}
                       value={field.value}
-                      disabled={isMasterDataLoading}
                     >
                       <FormControl>
                         <SelectTrigger>
-                          <SelectValue placeholder={isMasterDataLoading ? "Loading..." : "Select manufacturer"} />
+                          <SelectValue placeholder="Select manufacturer" />
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        {!isMasterDataLoading && masterData?.manufacturers?.map((manufacturer) => (
+                        {masterData?.manufacturers?.map((manufacturer) => (
                           <SelectItem key={manufacturer} value={manufacturer}>
                             {manufacturer}
                           </SelectItem>
@@ -482,8 +480,10 @@ export function VehicleTypeForm({ onSubmit, initialData, isEditing }: VehicleTyp
                     <FormLabel>Model Year *</FormLabel>
                     <FormControl>
                       <Input
-                        type="number"
                         {...field}
+                        type="number"
+                        min={2000}
+                        max={new Date().getFullYear() + 1}
                         onChange={(e) => field.onChange(Number(e.target.value))}
                         placeholder="Enter model year"
                       />
@@ -508,30 +508,35 @@ export function VehicleTypeForm({ onSubmit, initialData, isEditing }: VehicleTyp
                 )}
               />
 
-              {/* Fuel Price per Litre */}
+              {/* Fuel Price Per Litre */}
               <FormField
                 control={form.control}
                 name="fuel_price_per_litre"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Fuel Price per Litre (AED) *</FormLabel>
+                    <FormLabel>Fuel Price Per Litre (AED) *</FormLabel>
                     <FormControl>
-                      <Input {...field} type="number" />
+                      <Input {...field} type="number" step="0.01" />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
                 )}
               />
 
-              {/* Cost per KM */}
+              {/* Cost Per KM */}
               <FormField
                 control={form.control}
                 name="cost_per_km"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Cost per KM *</FormLabel>
+                    <FormLabel>Cost Per KM *</FormLabel>
                     <FormControl>
-                      <Input {...field} type="number" />
+                      <Input
+                        {...field}
+                        readOnly
+                        className="bg-gray-50"
+                        value={field.value}
+                      />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -544,9 +549,9 @@ export function VehicleTypeForm({ onSubmit, initialData, isEditing }: VehicleTyp
                 name="co2_emission_factor"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>CO2 Emission Factor (kg/km) *</FormLabel>
+                    <FormLabel>CO2 Emission Factor *</FormLabel>
                     <FormControl>
-                      <Input {...field} type="number" />
+                      <Input {...field} type="number" step="0.01" />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -559,7 +564,7 @@ export function VehicleTypeForm({ onSubmit, initialData, isEditing }: VehicleTyp
                 name="vehicle_capacity"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Vehicle Capacity *</FormLabel>
+                    <FormLabel>Vehicle Capacity (litres) *</FormLabel>
                     <FormControl>
                       <Input
                         type="number"
@@ -573,19 +578,19 @@ export function VehicleTypeForm({ onSubmit, initialData, isEditing }: VehicleTyp
                 )}
               />
 
-              {/* Alert Before */}
+              {/* Alert Before Value */}
               <FormField
                 control={form.control}
                 name="alert_before"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Alert Before Value (KM)</FormLabel>
+                    <FormLabel>Alert Before Value (KM) *</FormLabel>
                     <FormControl>
                       <Input
                         type="number"
                         {...field}
                         onChange={(e) => field.onChange(Number(e.target.value))}
-                        placeholder="Enter alert value"
+                        placeholder="Enter alert threshold"
                       />
                     </FormControl>
                     <FormMessage />
@@ -607,9 +612,9 @@ export function VehicleTypeForm({ onSubmit, initialData, isEditing }: VehicleTyp
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        {masterData?.departments?.map((dept) => (
-                          <SelectItem key={dept} value={dept}>
-                            {dept}
+                        {masterData?.departments?.map((department) => (
+                          <SelectItem key={department} value={department}>
+                            {department}
                           </SelectItem>
                         ))}
                       </SelectContent>
@@ -627,7 +632,7 @@ export function VehicleTypeForm({ onSubmit, initialData, isEditing }: VehicleTyp
                   <FormItem>
                     <FormLabel>Vehicle Type Code *</FormLabel>
                     <FormControl>
-                      <Input {...field} placeholder="Auto-generated" disabled />
+                      <Input {...field} readOnly className="bg-gray-50" />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -637,186 +642,38 @@ export function VehicleTypeForm({ onSubmit, initialData, isEditing }: VehicleTyp
           </div>
         </div>
 
-        <div className="flex items-center justify-end gap-4 py-4 px-6 border-t bg-background">
-          <Button variant="outline" type="button" onClick={() => form.reset()}>
-            Reset
-          </Button>
-          <Button type="submit" disabled={submissionStatus === "submitting"}>
-            {isEditing ? "Update Vehicle Type" : "Create Vehicle Type"}
+        <div className="flex justify-end space-x-2 px-6 py-4 border-t">
+          <Button
+            type="submit"
+            disabled={submissionStatus === "submitting"}
+          >
+            {isEditing ? "Update" : "Save"} Vehicle Type
           </Button>
         </div>
-      </form>
 
-      <Dialog open={showProgress} onOpenChange={setShowProgress}>
-        <DialogContent className="sm:max-w-md">
-          <ProgressIndicator
-            status={submissionStatus}
-            steps={submissionSteps}
-            currentStep={currentStep}
-            error={submissionError}
-          />
-        </DialogContent>
-      </Dialog>
+        {showProgress && (
+          <Dialog open={showProgress} onOpenChange={setShowProgress}>
+            <DialogContent className="sm:max-w-md">
+              <ProgressIndicator
+                steps={submissionSteps}
+                currentStep={currentStep}
+                status={submissionStatus}
+                error={submissionError}
+              />
+            </DialogContent>
+          </Dialog>
+        )}
+      </form>
     </Form>
   );
 }
 
-const highwayEfficiencyMultiplier = 1.15; 
-
-const defaultFuelEfficiency: { [key: string]: number } = {
-  "TOYOTA-COROLLA": 14.5,
-  "TOYOTA-CAMRY": 13.2,
-  "TOYOTA-LANDCRUISER": 8.5,
-  "TOYOTA-PRADO": 9.5,
-  "TOYOTA-RAV4": 11.8,
-  "TOYOTA-FORTUNER": 10.2,
-  "TOYOTA-HIACE": 9.8,
-  "TOYOTA-COASTER": 6.5,
-  "TOYOTA-INNOVA": 11.2,
-  "NISSAN-PATROL": 7.8,
-  "NISSAN-XTRAIL": 11.5,
-  "NISSAN-URVAN": 9.2,
-  "NISSAN-SUNNY": 15.2,
-  "NISSAN-ALTIMA": 13.8,
-  "HONDA-CIVIC": 14.8,
-  "HONDA-ACCORD": 13.5,
-  "HONDA-CRV": 11.2,
-  "MERCEDES-BENZ-SPRINTER": 8.5,
-  "MERCEDES-BENZ-GCLASS": 7.8,
-  "MERCEDES-BENZ-CCLASS": 12.5,
-  "MERCEDES-BENZ-ECLASS": 11.8
-};
-
-const fuelTypeEfficiencyFactor: { [key: string]: number } = {
-  "Petrol": 1.0,    
-  "Diesel": 1.25,   
-  "Electric": 3.5,  
-  "Hybrid": 1.4,    
-  "CNG": 1.15,      
-  "LPG": 1.1        
-};
-
-const co2EmissionFactors: { [key: string]: number } = {
-  "Petrol": 2.31,    
-  "Diesel": 2.68,    
-  "Electric": 0,     
-  "Hybrid": 1.85,    
-  "CNG": 1.81,       
-  "LPG": 1.51        
-};
-
-function calculateCO2EmissionFactor(fuelType: string): number {
-  return co2EmissionFactors[fuelType] || 0;
-}
-
-const categoryBaseEfficiency: { [key: string]: number } = {
-  "SEDAN": 13.5,
-  "SUV": 10.5,
-  "VAN": 9.0,
-  "BUS": 6.0,
-  "TRUCK": 7.5,
-  "AMBULANCE": 8.0
-};
-
-function calculateAgeBasedEfficiencyAdjustment(modelYear: number): number {
-  const currentYear = new Date().getFullYear();
-  const vehicleAge = currentYear - modelYear;
-
-  if (vehicleAge <= 1) return 1;           
-  if (vehicleAge <= 3) return 0.98;        
-  if (vehicleAge <= 5) return 0.95;        
-  if (vehicleAge <= 7) return 0.92;        
-  if (vehicleAge <= 10) return 0.88;       
-  if (vehicleAge <= 15) return 0.85;       
-  return 0.80;                             
-}
-
-function findVehicleEfficiency(vehicleType: string, modelYear: number, fuelType: string): number {
-  let baseEfficiency = 0;
-  const vehicleCode = `${vehicleType}`.toUpperCase();
-
-  if (defaultFuelEfficiency[vehicleCode]) {
-    baseEfficiency = defaultFuelEfficiency[vehicleCode];
-  } else {
-    for (const [category, efficiency] of Object.entries(categoryBaseEfficiency)) {
-      if (vehicleCode.includes(category)) {
-        baseEfficiency = efficiency;
-        break;
-      }
-    }
-    if (baseEfficiency === 0) {
-      baseEfficiency = categoryBaseEfficiency.SEDAN;
-    }
+// Helper functions
+function calculateCostPerKm(fuelPrice: number, fuelEfficiency: number): number {
+  if (!fuelPrice || !fuelEfficiency || fuelEfficiency === 0) {
+    return 0;
   }
-
-  const ageAdjustment = calculateAgeBasedEfficiencyAdjustment(modelYear);
-  const fuelAdjustment = fuelTypeEfficiencyFactor[fuelType] || 1.0;
-  const highwayEfficiency = baseEfficiency * highwayEfficiencyMultiplier;
-  const finalEfficiency = ((baseEfficiency + highwayEfficiency) / 2) * ageAdjustment * fuelAdjustment;
-  return Number(finalEfficiency.toFixed(1));
-}
-
-
-const vehicleCategories: { [key: string]: string[] } = {
-  "Sedan": ["corolla", "civic", "camry", "accord", "altima"],
-  "SUV": ["rav4", "cr-v", "x-trail", "explorer", "tucson"],
-  "Van": ["hiace", "transit", "sprinter", "h1"],
-  "Bus": ["coaster", "bus"],
-  "Truck": ["tundra", "f-150", "silverado"],
-  "Ambulance": ["ambulance"]
-};
-
-const defaultIdleFuelConsumption: { [key: string]: number } = {
-  "TOYOTA-COROLLA": 0.8,
-  "TOYOTA-CAMRY": 0.9,
-  "TOYOTA-LANDCRUISER": 1.5,
-  "TOYOTA-PRADO": 1.3,
-  "TOYOTA-RAV4": 1.0,
-  "TOYOTA-FORTUNER": 1.2,
-  "TOYOTA-HIACE": 1.4,
-  "TOYOTA-COASTER": 2.0,
-  "TOYOTA-INNOVA": 1.1,
-  "NISSAN-PATROL": 1.6,
-  "NISSAN-XTRAIL": 1.1,
-  "NISSAN-URVAN": 1.4,
-  "NISSAN-SUNNY": 0.7,
-  "NISSAN-ALTIMA": 0.9,
-  "HONDA-CIVIC": 0.8,
-  "HONDA-ACCORD": 0.9,
-  "HONDA-CRV": 1.0,
-  "MERCEDES-BENZ-SPRINTER": 1.8,
-  "MERCEDES-BENZ-GCLASS": 1.7,
-  "MERCEDES-BENZ-CCLASS": 1.0,
-  "MERCEDES-BENZ-ECLASS": 1.1,
-  "SEDAN": 0.9,
-  "SUV": 1.2,
-  "VAN": 1.4,
-  "BUS": 2.0,
-  "TRUCK": 1.8,
-  "AMBULANCE": 1.5
-};
-
-function calculateIdleFuelConsumption(vehicleTypeCode: string, fuelType: string): number {
-  const code = vehicleTypeCode.toUpperCase();
-  let baseConsumption = 0;
-
-  if (defaultIdleFuelConsumption[code]) {
-    baseConsumption = defaultIdleFuelConsumption[code];
-  } else {
-    for (const [category, consumption] of Object.entries(defaultIdleFuelConsumption)) {
-      if (code.includes(category)) {
-        baseConsumption = consumption;
-        break;
-      }
-    }
-    if (baseConsumption === 0) {
-      baseConsumption = defaultIdleFuelConsumption.SEDAN;
-    }
-  }
-
-  const fuelAdjustment = fuelTypeEfficiencyFactor[fuelType] || 1.0;
-  const finalConsumption = baseConsumption / fuelAdjustment;
-  return Number(finalConsumption.toFixed(1));
+  return Number((fuelPrice / fuelEfficiency).toFixed(2));
 }
 
 const uaeVehicleModels: { [key: string]: string[] } = {
@@ -850,168 +707,5 @@ const uaeVehicleModels: { [key: string]: string[] } = {
     "Pilot",
     "HR-V",
     "City"
-  ],
-  "Mitsubishi": [
-    "Pajero",
-    "Montero Sport",
-    "ASX",
-    "L200",
-    "Attrage"
-  ],
-  "Lexus": [
-    "ES",
-    "LS",
-    "RX",
-    "LX",
-    "GX",
-    "IS"
-  ],
-  "Mercedes-Benz": [
-    "C-Class",
-    "E-Class",
-    "S-Class",
-    "GLE",
-    "GLS",
-    "G-Class",
-    "Sprinter"
-  ],
-  "BMW": [
-    "3 Series",
-    "5 Series",
-    "7 Series",
-    "X3",
-    "X5",
-    "X7"
-  ],
-  "Audi": [
-    "A4",
-    "A6",
-    "A8",
-    "Q5",
-    "Q7",
-    "Q8"
-  ],
-  "Ford": [
-    "Edge",
-    "Explorer",
-    "Expedition",
-    "F-150",
-    "Ranger",
-    "Transit"
-  ],
-  "Chevrolet": [
-    "Tahoe",
-    "Suburban",
-    "Silverado",
-    "Traverse",
-    "Captiva"
-  ],
-  "Hyundai": [
-    "Accent",
-    "Elantra",
-    "Sonata",
-    "Tucson",
-    "Santa Fe",
-    "H1"
-  ],
-  "Kia": [
-    "Picanto",
-    "Cerato",
-    "K5",
-    "Sportage",
-    "Sorento",
-    "Carnival"
   ]
 };
-
-const uaeManufacturers = Object.keys(uaeVehicleModels);
-
-const defaultPassengerCapacity: { [key: string]: number } = {
-  "TOYOTA-COROLLA": 5,
-  "TOYOTA-CAMRY": 5,
-  "TOYOTA-LANDCRUISER": 8,
-  "TOYOTA-PRADO": 7,
-  "TOYOTA-RAV4": 5,
-  "TOYOTA-FORTUNER": 7,
-  "TOYOTA-HIACE": 12,
-  "TOYOTA-COASTER": 23,
-  "TOYOTA-INNOVA": 7,
-  "NISSAN-PATROL": 8,
-  "NISSAN-XTRAIL": 7,
-  "NISSAN-URVAN": 12,
-  "HONDA-CIVIC": 5,
-  "HONDA-ACCORD": 5,
-  "HONDA-CRV": 5,
-  "MERCEDES-BENZ-SPRINTER": 14,
-  "MERCEDES-BENZ-GCLASS": 5,
-  "SEDAN": 5,
-  "SUV": 7,
-  "VAN": 12,
-  "BUS": 30,
-  "TRUCK": 3,
-  "AMBULANCE": 4
-};
-
-const defaultVehicleCapacity: { [key: string]: number } = {
-  "TOYOTA-COROLLA": 13,
-  "TOYOTA-CAMRY": 15,
-  "TOYOTA-LANDCRUISER": 82,
-  "TOYOTA-PRADO": 64,
-  "TOYOTA-RAV4": 37,
-  "TOYOTA-FORTUNER": 54,
-  "TOYOTA-HIACE": 280,
-  "TOYOTA-COASTER": 180,
-  "TOYOTA-INNOVA": 45,
-  "NISSAN-PATROL": 95,
-  "NISSAN-XTRAIL": 40,
-  "NISSAN-URVAN": 250,
-  "HONDA-CIVIC": 14,
-  "HONDA-ACCORD": 16,
-  "HONDA-CRV": 39,
-  "MERCEDES-BENZ-SPRINTER": 533,
-  "MERCEDES-BENZ-GCLASS": 79,
-  "SEDAN": 15,
-  "SUV": 40,
-  "VAN": 300,
-  "BUS": 200,
-  "TRUCK": 150,
-  "AMBULANCE": 400
-};
-
-function getVehicleCapacityFromCode(vehicleTypeCode: string): number {
-  const code = vehicleTypeCode.toUpperCase();
-
-  if (defaultVehicleCapacity[code]) {
-    return defaultVehicleCapacity[code];
-  }
-
-  for (const [category, capacity] of Object.entries(defaultVehicleCapacity)) {
-    if (code.includes(category)) {
-      return capacity;
-    }
-  }
-
-  return 0; 
-}
-
-function getPassengerCapacityFromCode(vehicleTypeCode: string): number {
-  const code = vehicleTypeCode.toUpperCase();
-
-  if (defaultPassengerCapacity[code]) {
-    return defaultPassengerCapacity[code];
-  }
-
-  for (const [category, capacity] of Object.entries(defaultPassengerCapacity)) {
-    if (code.includes(category)) {
-      return capacity;
-    }
-  }
-
-  return 4; 
-}
-
-function calculateCostPerKm(fuelPrice: number, fuelEfficiency: number) {
-  if (!fuelPrice || !fuelEfficiency || fuelEfficiency <= 0) return 0;
-  return Number((fuelPrice / fuelEfficiency).toFixed(2));
-}
-}

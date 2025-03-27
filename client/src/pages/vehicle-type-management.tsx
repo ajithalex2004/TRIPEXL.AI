@@ -3,7 +3,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { VehicleTypeMaster, InsertVehicleTypeMaster } from "@shared/schema";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
-import { VehicleTypeForm } from "@/components/ui/vehicle-type-form";
+import { VehicleTypeFormAnimated } from "@/components/ui/vehicle-type-form-animated";
 import { VehicleTypeFAB } from "@/components/ui/vehicle-type-fab";
 import {
   Card,
@@ -27,6 +27,7 @@ import {
 } from "@/components/ui/dialog";
 import { motion, AnimatePresence } from "framer-motion";
 import { Loader2 } from "lucide-react";
+import * as animationUtils from "@/lib/animation-utils";
 
 export default function VehicleTypeManagement() {
   const [selectedType, setSelectedType] = useState<VehicleTypeMaster | null>(null);
@@ -107,63 +108,96 @@ export default function VehicleTypeManagement() {
       }
     } catch (error) {
       console.error("Submit error:", error);
+      throw error;
     }
   };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-background/50 via-background to-background/90 p-6">
-      <div className="max-w-7xl mx-auto space-y-6">
-        <Card className="backdrop-blur-xl bg-background/60 border border-white/10 shadow-2xl">
-          <CardHeader>
-            <CardTitle>Vehicle Types</CardTitle>
-          </CardHeader>
-          <CardContent>
-            {isLoading ? (
-              <div className="flex items-center justify-center h-32">
-                <Loader2 className="h-8 w-8 animate-spin text-border" />
-              </div>
-            ) : (
-              <motion.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-              >
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Vehicle Group</TableHead>
-                      <TableHead>Type Code</TableHead>
-                      <TableHead>Vehicle Type</TableHead>
-                      <TableHead>Region</TableHead>
-                      <TableHead>Department</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    <AnimatePresence>
-                      {vehicleTypes?.map((type) => (
-                        <TableRow
-                          key={type.id}
-                          className="cursor-pointer hover:bg-accent/50"
-                          onClick={() => {
-                            setSelectedType(type);
-                            setIsFormOpen(true);
-                          }}
-                        >
-                          <TableCell>{type.group_id}</TableCell>
-                          <TableCell>{type.vehicle_type_code}</TableCell>
-                          <TableCell>{type.vehicle_type}</TableCell>
-                          <TableCell>{type.region}</TableCell>
-                          <TableCell>{type.department}</TableCell>
-                        </TableRow>
-                      ))}
-                    </AnimatePresence>
-                  </TableBody>
-                </Table>
+      <motion.div 
+        className="max-w-7xl mx-auto space-y-6"
+        initial="hidden"
+        animate="visible"
+        variants={animationUtils.staggerContainer(0.1, 0.2)}
+      >
+        <motion.div variants={animationUtils.fadeIn("up")}>
+          <Card className="backdrop-blur-xl bg-background/60 border border-white/10 shadow-2xl overflow-hidden">
+            <motion.div
+              className="absolute inset-0 bg-gradient-to-br from-primary/5 to-background/0 pointer-events-none"
+              animate={{
+                backgroundPosition: ["0% 0%", "100% 100%"],
+              }}
+              transition={{
+                duration: 10,
+                repeat: Infinity,
+                repeatType: "mirror",
+              }}
+            />
+            <CardHeader>
+              <motion.div variants={animationUtils.fadeIn("up", 0.1)}>
+                <CardTitle>Vehicle Types</CardTitle>
               </motion.div>
-            )}
-          </CardContent>
-        </Card>
-      </div>
+            </CardHeader>
+            <CardContent>
+              {isLoading ? (
+                <motion.div 
+                  className="flex items-center justify-center h-32"
+                  animate={animationUtils.pulse}
+                >
+                  <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                </motion.div>
+              ) : (
+                <motion.div
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  className="relative"
+                >
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Vehicle Group</TableHead>
+                        <TableHead>Type Code</TableHead>
+                        <TableHead>Vehicle Type</TableHead>
+                        <TableHead>Region</TableHead>
+                        <TableHead>Department</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      <AnimatePresence>
+                        {vehicleTypes?.map((type, index) => (
+                          <motion.tr
+                            key={type.id}
+                            className="cursor-pointer hover:bg-accent/50 transition-colors"
+                            onClick={() => {
+                              setSelectedType(type);
+                              setIsFormOpen(true);
+                            }}
+                            variants={animationUtils.listItem(index, 0.05)}
+                            initial="hidden"
+                            animate="visible"
+                            exit="exit"
+                            whileHover={{
+                              backgroundColor: "rgba(var(--primary), 0.1)",
+                              transition: { duration: 0.1 }
+                            }}
+                          >
+                            <TableCell>{type.group_id}</TableCell>
+                            <TableCell>{type.vehicle_type_code}</TableCell>
+                            <TableCell>{type.vehicle_type}</TableCell>
+                            <TableCell>{type.region}</TableCell>
+                            <TableCell>{type.department}</TableCell>
+                          </motion.tr>
+                        ))}
+                      </AnimatePresence>
+                    </TableBody>
+                  </Table>
+                </motion.div>
+              )}
+            </CardContent>
+          </Card>
+        </motion.div>
+      </motion.div>
 
       <Dialog 
         open={isFormOpen} 
@@ -174,11 +208,17 @@ export default function VehicleTypeManagement() {
       >
         <DialogContent className="max-w-3xl">
           <DialogHeader>
-            <DialogTitle>
-              {selectedType ? "Edit Vehicle Type" : "Add Vehicle Type"}
-            </DialogTitle>
+            <motion.div
+              initial={{ opacity: 0, y: -20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.3 }}
+            >
+              <DialogTitle className="text-2xl font-bold bg-gradient-to-r from-primary to-primary/70 bg-clip-text text-transparent">
+                {selectedType ? "Edit Vehicle Type" : "Add Vehicle Type"}
+              </DialogTitle>
+            </motion.div>
           </DialogHeader>
-          <VehicleTypeForm
+          <VehicleTypeFormAnimated
             onSubmit={handleSubmit}
             initialData={selectedType}
             isEditing={!!selectedType}
@@ -186,12 +226,23 @@ export default function VehicleTypeManagement() {
         </DialogContent>
       </Dialog>
 
-      <VehicleTypeFAB
-        onAddClick={() => {
-          setSelectedType(null);
-          setIsFormOpen(true);
+      <motion.div
+        initial={{ scale: 0, opacity: 0 }}
+        animate={{ scale: 1, opacity: 1 }}
+        transition={{ 
+          type: "spring", 
+          stiffness: 260, 
+          damping: 20,
+          delay: 0.5 
         }}
-      />
+      >
+        <VehicleTypeFAB
+          onAddClick={() => {
+            setSelectedType(null);
+            setIsFormOpen(true);
+          }}
+        />
+      </motion.div>
     </div>
   );
 }
