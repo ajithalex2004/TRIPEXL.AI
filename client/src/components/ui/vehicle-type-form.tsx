@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { useQuery } from "@tanstack/react-query";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -22,6 +22,8 @@ import {
 } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
+import { ProgressIndicator, type SubmissionStatus } from "./progress-indicator";
+import { Dialog, DialogContent } from "./dialog";
 
 interface VehicleTypeFormProps {
   onSubmit: (data: InsertVehicleTypeMaster) => Promise<void>;
@@ -31,6 +33,26 @@ interface VehicleTypeFormProps {
 
 export function VehicleTypeForm({ onSubmit, initialData, isEditing }: VehicleTypeFormProps) {
   const { toast } = useToast();
+  const [submissionStatus, setSubmissionStatus] = useState<SubmissionStatus>("idle");
+  const [currentStep, setCurrentStep] = useState(0);
+  const [submissionError, setSubmissionError] = useState<string>();
+  const [showProgress, setShowProgress] = useState(false);
+
+  // Define submission steps
+  const submissionSteps = [
+    {
+      label: "Validating Form Data",
+      description: "Ensuring all required fields are properly filled"
+    },
+    {
+      label: "Processing Vehicle Information",
+      description: "Preparing vehicle type data for submission"
+    },
+    {
+      label: "Saving Vehicle Type",
+      description: isEditing ? "Updating vehicle type details" : "Creating new vehicle type"
+    }
+  ];
 
   // Fetch vehicle groups
   const { data: vehicleGroups } = useQuery({
@@ -64,9 +86,16 @@ export function VehicleTypeForm({ onSubmit, initialData, isEditing }: VehicleTyp
 
   const handleSubmit = async (data: InsertVehicleTypeMaster) => {
     try {
+      setSubmissionStatus("submitting");
+      setShowProgress(true);
+      setSubmissionError(undefined);
+
+      // Step 1: Validate form data
+      setCurrentStep(0);
       console.log("Raw form data:", data);
 
-      // Convert numeric fields using Number()
+      // Step 2: Process vehicle information
+      setCurrentStep(1);
       const formattedData = {
         ...data,
         group_id: Number(data.group_id),
@@ -82,8 +111,12 @@ export function VehicleTypeForm({ onSubmit, initialData, isEditing }: VehicleTyp
       };
 
       console.log("Submitting formatted data:", formattedData);
+
+      // Step 3: Save vehicle type
+      setCurrentStep(2);
       await onSubmit(formattedData);
 
+      setSubmissionStatus("success");
       toast({
         title: "Success",
         description: isEditing ? "Vehicle type updated successfully" : "Vehicle type created successfully",
@@ -92,8 +125,18 @@ export function VehicleTypeForm({ onSubmit, initialData, isEditing }: VehicleTyp
       if (!isEditing) {
         form.reset();
       }
+
+      // Hide progress after success
+      setTimeout(() => {
+        setShowProgress(false);
+        setCurrentStep(0);
+        setSubmissionStatus("idle");
+      }, 1500);
+
     } catch (error) {
       console.error("Form submission error:", error);
+      setSubmissionStatus("error");
+      setSubmissionError(error instanceof Error ? error.message : "Failed to save vehicle type");
       toast({
         title: "Error",
         description: error instanceof Error ? error.message : "Failed to save vehicle type",
@@ -495,11 +538,22 @@ export function VehicleTypeForm({ onSubmit, initialData, isEditing }: VehicleTyp
           <Button variant="outline" type="button" onClick={() => form.reset()}>
             Reset
           </Button>
-          <Button type="submit">
+          <Button type="submit" disabled={submissionStatus === "submitting"}>
             {isEditing ? "Update Vehicle Type" : "Create Vehicle Type"}
           </Button>
         </div>
       </form>
+
+      <Dialog open={showProgress} onOpenChange={setShowProgress}>
+        <DialogContent className="sm:max-w-md">
+          <ProgressIndicator
+            status={submissionStatus}
+            steps={submissionSteps}
+            currentStep={currentStep}
+            error={submissionError}
+          />
+        </DialogContent>
+      </Dialog>
     </Form>
   );
 }
