@@ -1,290 +1,417 @@
 import { useState } from "react";
-import { motion, AnimatePresence } from "framer-motion";
-import { FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
-import { Input } from "@/components/ui/input";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Control } from "react-hook-form";
+import { motion } from "framer-motion";
+import { Control, FieldValues, Path } from "react-hook-form";
+import {
+  FormControl,
+  FormDescription,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form";
+import { Input } from "./input";
+import { Checkbox } from "./checkbox";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./select";
+import { Textarea } from "./textarea";
+import { useId } from "react";
+import { cn } from "@/lib/utils";
+import * as animationUtils from "@/lib/animation-utils";
 
-interface AnimatedSelectFieldProps {
-  name: string;
-  control: Control<any>;
+// Base animated form field component
+interface BaseAnimatedFieldProps<T extends FieldValues> {
+  name: Path<T>;
+  control: Control<T>;
   label: string;
-  placeholder: string;
-  options: { value: string; label: string }[];
+  description?: string;
   required?: boolean;
   disabled?: boolean;
-  onValueChange?: (value: string) => void;
+  placeholder?: string;
+  className?: string;
 }
 
-export function AnimatedSelectField({ 
-  name, 
-  control, 
-  label, 
-  placeholder, 
-  options, 
+// Input field
+interface AnimatedInputFieldProps<T extends FieldValues> extends BaseAnimatedFieldProps<T> {
+  type?: string;
+  readOnly?: boolean;
+}
+
+export function AnimatedInputField<T extends FieldValues>({
+  name,
+  control,
+  label,
+  description,
   required = false,
   disabled = false,
-  onValueChange
-}: AnimatedSelectFieldProps) {
-  const [isFocused, setIsFocused] = useState(false);
-
-  return (
-    <FormField
-      control={control}
-      name={name}
-      render={({ field }) => (
-        <motion.div
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.3 }}
-        >
-          <FormItem className="relative">
-            <FormLabel className={`${isFocused ? "text-primary" : ""} transition-colors duration-200`}>
-              {label} {required && <span className="text-red-500">*</span>}
-            </FormLabel>
-            <Select
-              disabled={disabled}
-              onValueChange={(value) => {
-                field.onChange(value);
-                if (onValueChange) onValueChange(value);
-              }}
-              value={field.value}
-              onOpenChange={(open) => setIsFocused(open)}
-            >
-              <FormControl>
-                <SelectTrigger className={`w-full border-2 transition-all duration-200 ${isFocused ? "border-primary ring-2 ring-primary/20" : "border-input"}`}>
-                  <SelectValue placeholder={placeholder} />
-                </SelectTrigger>
-              </FormControl>
-              <SelectContent>
-                <AnimatePresence>
-                  {options.map((option) => (
-                    <motion.div
-                      key={option.value}
-                      initial={{ opacity: 0, height: 0 }}
-                      animate={{ opacity: 1, height: "auto" }}
-                      exit={{ opacity: 0, height: 0 }}
-                      transition={{ duration: 0.15 }}
-                    >
-                      <SelectItem value={option.value}>{option.label}</SelectItem>
-                    </motion.div>
-                  ))}
-                </AnimatePresence>
-              </SelectContent>
-            </Select>
-            <AnimatePresence>
-              {field.value && (
-                <motion.div
-                  className="absolute right-3 top-8 text-green-500"
-                  initial={{ opacity: 0, scale: 0.5 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  exit={{ opacity: 0, scale: 0.5 }}
-                  transition={{ duration: 0.2 }}
-                >
-                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M20 6L9 17l-5-5"></path>
-                  </svg>
-                </motion.div>
-              )}
-            </AnimatePresence>
-            <FormMessage />
-          </FormItem>
-        </motion.div>
-      )}
-    />
-  );
-}
-
-interface AnimatedInputFieldProps {
-  name: string;
-  control: Control<any>;
-  label: string;
-  placeholder?: string;
-  type?: string;
-  required?: boolean;
-  readOnly?: boolean;
-  onChange?: (e: React.ChangeEvent<HTMLInputElement>) => void;
-}
-
-export function AnimatedInputField({ 
-  name, 
-  control, 
-  label, 
-  placeholder = "",
+  placeholder,
   type = "text",
-  required = false,
   readOnly = false,
-  onChange
-}: AnimatedInputFieldProps) {
+  className,
+}: AnimatedInputFieldProps<T>) {
   const [isFocused, setIsFocused] = useState(false);
+  const id = useId();
 
   return (
-    <FormField
-      control={control}
-      name={name}
-      render={({ field }) => (
-        <motion.div
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.3 }}
-        >
+    <motion.div
+      variants={animationUtils.fadeIn("up")}
+      className={className}
+    >
+      <FormField
+        control={control}
+        name={name}
+        render={({ field }) => (
           <FormItem className="relative">
-            <FormLabel className={`${isFocused ? "text-primary" : ""} transition-colors duration-200`}>
-              {label} {required && <span className="text-red-500">*</span>}
+            <FormLabel 
+              htmlFor={id}
+              className={cn(
+                "transition-all duration-200 font-medium",
+                isFocused && "text-primary"
+              )}
+            >
+              {label}
+              {required && <span className="text-destructive ml-1">*</span>}
             </FormLabel>
             <FormControl>
-              <Input
-                {...field}
-                placeholder={placeholder}
-                type={type}
-                readOnly={readOnly}
-                className={`transition-all duration-200 ${isFocused ? "border-primary ring-2 ring-primary/20" : ""} ${readOnly ? "bg-gray-50" : ""}`}
-                onFocus={() => setIsFocused(true)}
-                onBlur={() => setIsFocused(false)}
-                onChange={(e) => {
-                  field.onChange(e);
-                  if (onChange) onChange(e);
-                }}
-              />
+              <motion.div
+                whileHover={{ y: -1 }}
+                whileTap={{ y: 0 }}
+              >
+                <Input
+                  {...field}
+                  id={id}
+                  disabled={disabled}
+                  placeholder={placeholder}
+                  type={type}
+                  readOnly={readOnly}
+                  onFocus={() => setIsFocused(true)}
+                  onBlur={(e) => {
+                    field.onBlur();
+                    setIsFocused(false);
+                  }}
+                  className={cn(
+                    "transition-all duration-200",
+                    isFocused && "border-primary ring-1 ring-primary/20",
+                    readOnly && "bg-muted cursor-not-allowed opacity-70",
+                  )}
+                />
+              </motion.div>
             </FormControl>
-            <AnimatePresence>
-              {field.value && !isFocused && !readOnly && (
-                <motion.div
-                  className="absolute right-3 top-8 text-green-500"
-                  initial={{ opacity: 0, scale: 0.5 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  exit={{ opacity: 0, scale: 0.5 }}
-                  transition={{ duration: 0.2 }}
-                >
-                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M20 6L9 17l-5-5"></path>
-                  </svg>
-                </motion.div>
-              )}
-            </AnimatePresence>
+            {description && <FormDescription>{description}</FormDescription>}
             <FormMessage />
           </FormItem>
-        </motion.div>
-      )}
-    />
+        )}
+      />
+    </motion.div>
   );
 }
 
-interface AnimatedNumberInputFieldProps {
-  name: string;
-  control: Control<any>;
-  label: string;
-  placeholder?: string;
-  required?: boolean;
-  readOnly?: boolean;
+// Number input field with min/max
+interface AnimatedNumberInputFieldProps<T extends FieldValues> extends BaseAnimatedFieldProps<T> {
   min?: number;
   max?: number;
-  step?: number;
-  onChange?: (value: number) => void;
 }
 
-export function AnimatedNumberInputField({ 
-  name, 
-  control, 
-  label, 
-  placeholder = "",
+export function AnimatedNumberInputField<T extends FieldValues>({
+  name,
+  control,
+  label,
+  description,
   required = false,
-  readOnly = false,
+  disabled = false,
+  placeholder,
   min,
   max,
-  step = 1,
-  onChange
-}: AnimatedNumberInputFieldProps) {
+  className,
+}: AnimatedNumberInputFieldProps<T>) {
   const [isFocused, setIsFocused] = useState(false);
+  const id = useId();
 
   return (
-    <FormField
-      control={control}
-      name={name}
-      render={({ field }) => (
-        <motion.div
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.3 }}
-        >
-          <FormItem className="relative group">
-            <FormLabel className={`${isFocused ? "text-primary" : ""} transition-colors duration-200`}>
-              {label} {required && <span className="text-red-500">*</span>}
+    <motion.div
+      variants={animationUtils.fadeIn("up")}
+      className={className}
+    >
+      <FormField
+        control={control}
+        name={name}
+        render={({ field }) => (
+          <FormItem className="relative">
+            <FormLabel 
+              htmlFor={id}
+              className={cn(
+                "transition-all duration-200 font-medium",
+                isFocused && "text-primary"
+              )}
+            >
+              {label}
+              {required && <span className="text-destructive ml-1">*</span>}
             </FormLabel>
-            <div className="relative">
-              <FormControl>
+            <FormControl>
+              <motion.div
+                whileHover={{ y: -1 }}
+                whileTap={{ y: 0 }}
+              >
                 <Input
                   {...field}
-                  placeholder={placeholder}
+                  id={id}
                   type="number"
                   min={min}
                   max={max}
-                  step={step}
-                  readOnly={readOnly}
-                  className={`transition-all duration-200 pr-12 ${isFocused ? "border-primary ring-2 ring-primary/20" : ""} ${readOnly ? "bg-gray-50" : ""}`}
+                  disabled={disabled}
+                  placeholder={placeholder}
                   onFocus={() => setIsFocused(true)}
-                  onBlur={() => setIsFocused(false)}
+                  onBlur={(e) => {
+                    field.onBlur();
+                    setIsFocused(false);
+                  }}
+                  className={cn(
+                    "transition-all duration-200",
+                    isFocused && "border-primary ring-1 ring-primary/20"
+                  )}
                   onChange={(e) => {
-                    const value = Number(e.target.value);
+                    const value = e.target.value === "" ? "" : Number(e.target.value);
                     field.onChange(value);
-                    if (onChange) onChange(value);
                   }}
                 />
-              </FormControl>
-              
-              {!readOnly && (
-                <div className="absolute right-1 top-1 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col border rounded">
-                  <motion.button
-                    type="button"
-                    className="px-2 py-0.5 text-xs hover:bg-gray-100"
-                    whileTap={{ scale: 0.95 }}
-                    onClick={() => {
-                      const value = Number(field.value) + step;
-                      if (max === undefined || value <= max) {
-                        field.onChange(value);
-                        if (onChange) onChange(value);
-                      }
-                    }}
-                  >
-                    +
-                  </motion.button>
-                  <motion.button
-                    type="button"
-                    className="px-2 py-0.5 text-xs hover:bg-gray-100 border-t"
-                    whileTap={{ scale: 0.95 }}
-                    onClick={() => {
-                      const value = Number(field.value) - step;
-                      if (min === undefined || value >= min) {
-                        field.onChange(value);
-                        if (onChange) onChange(value);
-                      }
-                    }}
-                  >
-                    -
-                  </motion.button>
-                </div>
-              )}
-            </div>
-            
-            <AnimatePresence>
-              {field.value && !isFocused && !readOnly && (
-                <motion.div
-                  className="absolute right-3 top-8 text-green-500"
-                  initial={{ opacity: 0, scale: 0.5 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  exit={{ opacity: 0, scale: 0.5 }}
-                  transition={{ duration: 0.2 }}
-                >
-                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M20 6L9 17l-5-5"></path>
-                  </svg>
-                </motion.div>
-              )}
-            </AnimatePresence>
+              </motion.div>
+            </FormControl>
+            {description && <FormDescription>{description}</FormDescription>}
             <FormMessage />
           </FormItem>
-        </motion.div>
-      )}
-    />
+        )}
+      />
+    </motion.div>
+  );
+}
+
+// Textarea field
+interface AnimatedTextareaFieldProps<T extends FieldValues> extends BaseAnimatedFieldProps<T> {
+  rows?: number;
+}
+
+export function AnimatedTextareaField<T extends FieldValues>({
+  name,
+  control,
+  label,
+  description,
+  required = false,
+  disabled = false,
+  placeholder,
+  rows = 3,
+  className,
+}: AnimatedTextareaFieldProps<T>) {
+  const [isFocused, setIsFocused] = useState(false);
+  const id = useId();
+
+  return (
+    <motion.div
+      variants={animationUtils.fadeIn("up")}
+      className={className}
+    >
+      <FormField
+        control={control}
+        name={name}
+        render={({ field }) => (
+          <FormItem className="relative">
+            <FormLabel 
+              htmlFor={id}
+              className={cn(
+                "transition-all duration-200 font-medium",
+                isFocused && "text-primary"
+              )}
+            >
+              {label}
+              {required && <span className="text-destructive ml-1">*</span>}
+            </FormLabel>
+            <FormControl>
+              <motion.div
+                whileHover={{ y: -1 }}
+                whileTap={{ y: 0 }}
+              >
+                <Textarea
+                  {...field}
+                  id={id}
+                  disabled={disabled}
+                  placeholder={placeholder}
+                  rows={rows}
+                  onFocus={() => setIsFocused(true)}
+                  onBlur={(e) => {
+                    field.onBlur();
+                    setIsFocused(false);
+                  }}
+                  className={cn(
+                    "resize-none transition-all duration-200",
+                    isFocused && "border-primary ring-1 ring-primary/20"
+                  )}
+                />
+              </motion.div>
+            </FormControl>
+            {description && <FormDescription>{description}</FormDescription>}
+            <FormMessage />
+          </FormItem>
+        )}
+      />
+    </motion.div>
+  );
+}
+
+// Checkbox field
+interface AnimatedCheckboxFieldProps<T extends FieldValues> extends BaseAnimatedFieldProps<T> {
+  onCheckedChange?: (checked: boolean) => void;
+}
+
+export function AnimatedCheckboxField<T extends FieldValues>({
+  name,
+  control,
+  label,
+  description,
+  disabled = false,
+  onCheckedChange,
+  className,
+}: AnimatedCheckboxFieldProps<T>) {
+  const id = useId();
+
+  return (
+    <motion.div
+      variants={animationUtils.fadeIn("up")}
+      className={className}
+    >
+      <FormField
+        control={control}
+        name={name}
+        render={({ field }) => (
+          <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-3">
+            <FormControl>
+              <motion.div
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+              >
+                <Checkbox
+                  id={id}
+                  checked={field.value}
+                  onCheckedChange={(checked) => {
+                    field.onChange(checked);
+                    onCheckedChange?.(!!checked);
+                  }}
+                  disabled={disabled}
+                  className="data-[state=checked]:bg-primary data-[state=checked]:border-primary"
+                />
+              </motion.div>
+            </FormControl>
+            <div className="space-y-1 leading-none">
+              <FormLabel
+                htmlFor={id}
+                className="text-sm font-medium cursor-pointer"
+              >
+                {label}
+              </FormLabel>
+              {description && (
+                <FormDescription className="text-xs">
+                  {description}
+                </FormDescription>
+              )}
+              <FormMessage />
+            </div>
+          </FormItem>
+        )}
+      />
+    </motion.div>
+  );
+}
+
+// Select field
+interface SelectOption {
+  value: string;
+  label: string;
+}
+
+interface AnimatedSelectFieldProps<T extends FieldValues> extends BaseAnimatedFieldProps<T> {
+  options: SelectOption[];
+  onValueChange?: (value: string) => void;
+}
+
+export function AnimatedSelectField<T extends FieldValues>({
+  name,
+  control,
+  label,
+  description,
+  required = false,
+  disabled = false,
+  placeholder,
+  options,
+  onValueChange,
+  className,
+}: AnimatedSelectFieldProps<T>) {
+  const [isFocused, setIsFocused] = useState(false);
+  const id = useId();
+
+  return (
+    <motion.div
+      variants={animationUtils.fadeIn("up")}
+      className={className}
+    >
+      <FormField
+        control={control}
+        name={name}
+        render={({ field }) => (
+          <FormItem className="relative">
+            <FormLabel 
+              htmlFor={id}
+              className={cn(
+                "transition-all duration-200 font-medium",
+                isFocused && "text-primary"
+              )}
+            >
+              {label}
+              {required && <span className="text-destructive ml-1">*</span>}
+            </FormLabel>
+            <FormControl>
+              <motion.div
+                whileHover={{ y: -1 }}
+                whileTap={{ y: 0 }}
+              >
+                <Select
+                  disabled={disabled}
+                  onValueChange={(value) => {
+                    field.onChange(value);
+                    onValueChange?.(value);
+                  }}
+                  defaultValue={field.value?.toString()}
+                  value={field.value?.toString()}
+                  onOpenChange={(open) => setIsFocused(open)}
+                >
+                  <SelectTrigger
+                    id={id}
+                    className={cn(
+                      "w-full transition-all duration-200",
+                      isFocused && "border-primary ring-1 ring-primary/20"
+                    )}
+                  >
+                    <SelectValue placeholder={placeholder} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <motion.div 
+                      initial={{ opacity: 0 }} 
+                      animate={{ opacity: 1 }}
+                      transition={{ duration: 0.2 }}
+                    >
+                      {options.map((option) => (
+                        <SelectItem
+                          key={option.value}
+                          value={option.value}
+                        >
+                          {option.label}
+                        </SelectItem>
+                      ))}
+                    </motion.div>
+                  </SelectContent>
+                </Select>
+              </motion.div>
+            </FormControl>
+            {description && <FormDescription>{description}</FormDescription>}
+            <FormMessage />
+          </FormItem>
+        )}
+      />
+    </motion.div>
   );
 }

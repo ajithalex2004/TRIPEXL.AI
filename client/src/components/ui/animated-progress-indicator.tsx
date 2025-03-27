@@ -1,6 +1,6 @@
-import { useState, useEffect } from "react";
-import { motion, AnimatePresence } from "framer-motion";
-import { CheckIcon, XIcon, Loader2Icon } from "lucide-react";
+import { motion } from "framer-motion";
+import { CheckCircle, AlertCircle, Circle, ArrowRight } from "lucide-react";
+import * as animationUtils from "@/lib/animation-utils";
 
 interface Step {
   label: string;
@@ -20,226 +20,175 @@ export function AnimatedProgressIndicator({
   status,
   error
 }: AnimatedProgressIndicatorProps) {
-  const [visibleSteps, setVisibleSteps] = useState<number[]>([]);
-
-  useEffect(() => {
-    // Progressively reveal steps
-    const revealSteps = async () => {
-      for (let i = 0; i <= currentStep; i++) {
-        setVisibleSteps(prev => Array.from(new Set([...prev, i])));
-        await new Promise(resolve => setTimeout(resolve, 300));
-      }
-    };
-
-    revealSteps();
-  }, [currentStep]);
-
   return (
-    <div className="space-y-8 py-4">
-      <div className="text-center mb-8">
-        <AnimatePresence mode="wait">
-          {status === "idle" && (
-            <motion.h3
-              key="idle"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className="text-lg font-medium"
-            >
-              Processing Submission
-            </motion.h3>
-          )}
-          {status === "submitting" && (
-            <motion.h3
-              key="submitting"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className="text-lg font-medium text-primary"
-            >
-              Processing Submission...
-            </motion.h3>
-          )}
-          {status === "success" && (
-            <motion.h3
-              key="success"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className="text-lg font-medium text-green-500"
-            >
-              Submission Successful!
-            </motion.h3>
-          )}
-          {status === "error" && (
-            <motion.h3
-              key="error"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className="text-lg font-medium text-destructive"
-            >
-              Submission Failed
-            </motion.h3>
-          )}
-        </AnimatePresence>
-      </div>
+    <div className="w-full max-w-md mx-auto">
+      <motion.h3
+        className="text-lg font-semibold mb-6 text-center"
+        initial={{ opacity: 0, y: -10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.3 }}
+      >
+        {status === "error" ? "Form Submission Failed" : 
+         status === "success" ? "Form Submitted Successfully" : 
+         "Submitting Form..."}
+      </motion.h3>
 
-      <div className="relative">
-        {/* Progress Line */}
-        <div className="absolute left-5 top-0 w-px h-full bg-gray-200" />
+      <motion.div 
+        className="space-y-4"
+        variants={animationUtils.staggerContainer(0.2, 0.1)}
+        initial="hidden"
+        animate="visible"
+      >
+        {steps.map((step, index) => {
+          // Determine status for this step
+          const isCompleted = 
+            status === "success" || 
+            (status === "submitting" && index < currentStep);
+          
+          const isCurrent = status === "submitting" && index === currentStep;
+          
+          const isError = status === "error" && index === currentStep;
+          
+          const isPending = index > currentStep;
+          
+          return (
+            <motion.div
+              key={index}
+              className={`flex items-start gap-3 ${
+                isCompleted ? "text-primary" : 
+                isError ? "text-destructive" : 
+                isCurrent ? "text-primary/80" : 
+                "text-muted-foreground"
+              }`}
+              variants={animationUtils.fadeIn("right", index * 0.1)}
+            >
+              <div className="relative mt-1">
+                {isCompleted ? (
+                  <motion.div
+                    initial={{ scale: 0 }}
+                    animate={{ scale: 1 }}
+                    transition={{
+                      type: "spring",
+                      stiffness: 260,
+                      damping: 20,
+                    }}
+                  >
+                    <CheckCircle className="h-5 w-5" />
+                  </motion.div>
+                ) : isError ? (
+                  <motion.div
+                    initial={{ scale: 0 }}
+                    animate={{ scale: 1 }}
+                    transition={{
+                      type: "spring",
+                      stiffness: 260,
+                      damping: 20,
+                    }}
+                  >
+                    <AlertCircle className="h-5 w-5 text-destructive" />
+                  </motion.div>
+                ) : isCurrent ? (
+                  <motion.div
+                    animate={{
+                      scale: [1, 1.2, 1],
+                      opacity: [0.7, 1, 0.7],
+                    }}
+                    transition={{
+                      duration: 1.5,
+                      repeat: Infinity,
+                      ease: "easeInOut",
+                    }}
+                  >
+                    <Circle className="h-5 w-5" />
+                  </motion.div>
+                ) : (
+                  <Circle className="h-5 w-5 opacity-50" />
+                )}
+              </div>
 
-        {/* Animated Progress Overlay */}
+              <div className="flex-1">
+                <div className="font-medium">
+                  {step.label}
+                  {isCurrent && (
+                    <motion.span
+                      animate={{
+                        opacity: [0, 1, 0],
+                      }}
+                      transition={{
+                        duration: 1.5,
+                        repeat: Infinity,
+                        ease: "easeInOut",
+                      }}
+                      className="inline-block ml-2"
+                    >
+                      <span className="text-primary inline-flex">
+                        <span>.</span>
+                        <span>.</span>
+                        <span>.</span>
+                      </span>
+                    </motion.span>
+                  )}
+                </div>
+                <div className="text-sm text-muted-foreground mt-0.5">
+                  {step.description}
+                </div>
+              </div>
+
+              {index < steps.length - 1 && (
+                <div className="absolute left-[1.15rem] h-[calc(100%-1.5rem)] top-6 w-px bg-border">
+                  {(isPending || isCurrent) && (
+                    <motion.div
+                      className="absolute inset-0 bg-primary"
+                      initial={{ scaleY: 0 }}
+                      animate={isCurrent ? { scaleY: 0.5 } : { scaleY: 0 }}
+                      transition={{ duration: 0.5 }}
+                      style={{ transformOrigin: "top" }}
+                    />
+                  )}
+                  {isCompleted && (
+                    <motion.div
+                      className="absolute inset-0 bg-primary"
+                      initial={{ scaleY: 0 }}
+                      animate={{ scaleY: 1 }}
+                      transition={{ duration: 0.5 }}
+                      style={{ transformOrigin: "top" }}
+                    />
+                  )}
+                </div>
+              )}
+            </motion.div>
+          );
+        })}
+      </motion.div>
+
+      {status === "success" && (
         <motion.div
-          className="absolute left-5 top-0 w-px bg-primary"
-          initial={{ height: "0%" }}
-          animate={{ 
-            height: status === "error" 
-              ? `${(currentStep / (steps.length - 1)) * 100}%` 
-              : status === "success" 
-                ? "100%" 
-                : `${(currentStep / (steps.length - 1)) * 100}%` 
-          }}
-          transition={{ duration: 0.5 }}
-        />
+          className="mt-6 text-center text-green-500"
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.3, duration: 0.3 }}
+        >
+          <CheckCircle className="w-8 h-8 mx-auto mb-2" />
+          <p className="text-lg font-medium">Completed Successfully</p>
+        </motion.div>
+      )}
 
-        {/* Steps */}
-        <div className="space-y-8">
-          <AnimatePresence>
-            {steps.map((step, index) => {
-              // Determine status of this step
-              const isCompleted = status === "success" || (index < currentStep);
-              const isCurrent = index === currentStep && status === "submitting";
-              const isErrored = index === currentStep && status === "error";
-              const isPending = index > currentStep || status === "idle";
-
-              return (
-                <motion.div
-                  key={step.label}
-                  initial={{ opacity: 0, x: -20 }}
-                  animate={{ 
-                    opacity: visibleSteps.includes(index) ? 1 : 0.5, 
-                    x: visibleSteps.includes(index) ? 0 : -10 
-                  }}
-                  exit={{ opacity: 0, x: -20 }}
-                  transition={{ duration: 0.3 }}
-                  className="relative flex items-start"
-                >
-                  {/* Step Circle Indicator */}
-                  <div className="relative flex h-10 w-10 flex-shrink-0 items-center justify-center z-10">
-                    <div className={`absolute h-10 w-10 rounded-full ${
-                      isCompleted 
-                        ? "bg-green-50" 
-                        : isErrored 
-                          ? "bg-red-50" 
-                          : isCurrent 
-                            ? "bg-blue-50" 
-                            : "bg-gray-50"
-                    } flex items-center justify-center`}>
-                      <AnimatePresence mode="wait">
-                        {isCompleted && (
-                          <motion.div
-                            key="completed"
-                            initial={{ scale: 0 }}
-                            animate={{ scale: 1 }}
-                            exit={{ scale: 0 }}
-                            transition={{ type: "spring", duration: 0.4 }}
-                          >
-                            <CheckIcon className="h-5 w-5 text-green-500" />
-                          </motion.div>
-                        )}
-
-                        {isCurrent && (
-                          <motion.div
-                            key="current"
-                            initial={{ rotate: 0 }}
-                            animate={{ rotate: 360 }}
-                            transition={{ duration: 1.5, repeat: Infinity, ease: "linear" }}
-                          >
-                            <Loader2Icon className="h-5 w-5 text-primary" />
-                          </motion.div>
-                        )}
-
-                        {isErrored && (
-                          <motion.div
-                            key="error"
-                            initial={{ scale: 0 }}
-                            animate={{ scale: 1 }}
-                            exit={{ scale: 0 }}
-                            transition={{ type: "spring", duration: 0.4 }}
-                          >
-                            <XIcon className="h-5 w-5 text-red-500" />
-                          </motion.div>
-                        )}
-
-                        {isPending && !isCurrent && (
-                          <motion.div
-                            key="pending"
-                            initial={{ opacity: 0.5 }}
-                            animate={{ opacity: 1 }}
-                            exit={{ opacity: 0 }}
-                          >
-                            <div className="h-5 w-5 rounded-full border-2 border-gray-300" />
-                          </motion.div>
-                        )}
-                      </AnimatePresence>
-                    </div>
-                  </div>
-
-                  {/* Step Content */}
-                  <div className="ml-4 mt-1">
-                    <h4 className={`text-sm font-medium ${
-                      isCompleted 
-                        ? "text-green-500" 
-                        : isErrored 
-                          ? "text-red-500" 
-                          : isCurrent 
-                            ? "text-primary" 
-                            : "text-gray-500"
-                    }`}>
-                      {step.label}
-                    </h4>
-                    <p className="mt-1 text-sm text-gray-500">{step.description}</p>
-                  </div>
-                </motion.div>
-              );
-            })}
-          </AnimatePresence>
-        </div>
-      </div>
-
-      {/* Error Message */}
-      <AnimatePresence>
-        {status === "error" && error && (
-          <motion.div
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: 10 }}
-            transition={{ duration: 0.3 }}
-            className="mt-4 p-3 bg-red-50 border border-red-200 rounded-md"
-          >
-            <p className="text-sm text-red-600">{error}</p>
-          </motion.div>
-        )}
-      </AnimatePresence>
-
-      {/* Success Message */}
-      <AnimatePresence>
-        {status === "success" && (
-          <motion.div
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: 10 }}
-            transition={{ duration: 0.3 }}
-            className="mt-4 p-3 bg-green-50 border border-green-200 rounded-md"
-          >
-            <div className="flex items-center">
-              <CheckIcon className="h-5 w-5 text-green-500 mr-2" />
-              <p className="text-sm text-green-600">Form submitted successfully!</p>
+      {status === "error" && (
+        <motion.div
+          className="mt-6 p-3 bg-destructive/10 border border-destructive/20 rounded-md"
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.3, duration: 0.3 }}
+        >
+          <div className="flex items-start gap-2 text-destructive">
+            <AlertCircle className="w-5 h-5 mt-0.5 flex-shrink-0" />
+            <div>
+              <p className="font-medium">An error occurred</p>
+              <p className="text-sm mt-1">{error || "Please try again or contact support if the issue persists."}</p>
             </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+          </div>
+        </motion.div>
+      )}
     </div>
   );
 }
