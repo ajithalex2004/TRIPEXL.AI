@@ -912,7 +912,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           // Update user with reset token
           await storage.updateUserResetToken(user.id, resetToken, resetTokenExpiry);
         } catch (dbError) {
-          console.error`Database error updating reset token:', dbError);
+          console.error('Database error updating reset token:', dbError);
           throw new Error('Failed to update reset token');
         }
 
