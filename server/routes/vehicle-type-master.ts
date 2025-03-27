@@ -33,7 +33,6 @@ router.get("/api/vehicle-masters", async (_req, res) => {
   }
 });
 
-
 // Updated fuel prices with proper types
 const currentFuelPrices: Record<string, number> = {
   'PETROL': 2.99,
@@ -44,7 +43,7 @@ const currentFuelPrices: Record<string, number> = {
   'LPG': 2.25
 };
 
-const uaeVehicleModels = {
+const uaeVehicleModels: Record<string, string[]> = {
   "Toyota": [
     "Corolla",
     "Camry",
@@ -67,37 +66,34 @@ const uaeVehicleModels = {
     "Pathfinder",
     "Urvan",
     "Navara"
-  ],
+  ]
   // ... [Keep other manufacturer models]
 };
 
-const defaultFuelEfficiency = {
-  // Toyota models
+const defaultFuelEfficiency: Record<string, number> = {
   "TOYOTA-COROLLA": 14.5,
   "TOYOTA-CAMRY": 13.2,
   "TOYOTA-LANDCRUISER": 8.5,
   "TOYOTA-PRADO": 9.5,
-  "TOYOTA-RAV4": 11.8,
+  "TOYOTA-RAV4": 11.8
   // ... [Keep other efficiency data]
 };
 
-const defaultVehicleCapacity = {
-  // Toyota models
+const defaultVehicleCapacity: Record<string, number> = {
   "TOYOTA-COROLLA": 13,
   "TOYOTA-CAMRY": 15,
-  "TOYOTA-LANDCRUISER": 82,
+  "TOYOTA-LANDCRUISER": 82
   // ... [Keep other capacity data]
 };
 
-const defaultIdleFuelConsumption = {
-  // Toyota models
+const defaultIdleFuelConsumption: Record<string, number> = {
   "TOYOTA-COROLLA": 0.8,
   "TOYOTA-CAMRY": 0.9,
-  "TOYOTA-LANDCRUISER": 1.5,
+  "TOYOTA-LANDCRUISER": 1.5
   // ... [Keep other consumption data]
 };
 
-const co2EmissionFactors = {
+const co2EmissionFactors: Record<string, number> = {
   "Petrol": 2.31,
   "Diesel": 2.68,
   "Electric": 0,
@@ -158,19 +154,14 @@ router.post("/api/vehicle-types", async (req, res) => {
       });
     }
 
-    // Format the data for database insertion
-    const vehicleData = {
-      ...result.data,
-      is_active: true,
-      created_at: new Date(),
-      updated_at: new Date()
-    };
-
-    console.log("Formatted data for insertion:", vehicleData);
-
     const [newType] = await db
       .insert(vehicleTypeMaster)
-      .values([vehicleData])
+      .values({
+        ...result.data,
+        is_active: true,
+        created_at: new Date(),
+        updated_at: new Date()
+      })
       .returning();
 
     console.log("Successfully created vehicle type:", newType);
@@ -187,8 +178,7 @@ router.post("/api/vehicle-types", async (req, res) => {
 
     res.status(500).json({ 
       error: "Failed to create vehicle type",
-      message: error.message,
-      details: error.stack
+      message: error.message
     });
   }
 });

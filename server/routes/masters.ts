@@ -12,11 +12,11 @@ import { vehicleGroups } from "@shared/schema";
 const router = Router();
 
 // Current UAE fuel prices - Updated March 2024
-const currentFuelPrices = {
-  'Petrol': 2.85,
-  'Diesel': 2.95,
-  'Electric': 0,
-  'Hybrid': 2.85,
+const currentFuelPrices: Record<string, number> = {
+  'PETROL': 2.85,
+  'DIESEL': 2.95,
+  'ELECTRIC': 0,
+  'HYBRID': 2.85,
   'CNG': 2.35,
   'LPG': 2.25
 };
@@ -58,7 +58,14 @@ const units = [
 ];
 
 // Updated UAE Vehicle Models by Manufacturer with detailed info
-const vehicleModelMaster = {
+const vehicleModelMaster: Record<string, { models: Array<{
+  name: string;
+  efficiency: number;
+  capacity: number;
+  idleConsumption: number;
+  passengerCapacity: number;
+  categories: string[];
+}> }> = {
   "Toyota": {
     models: [
       {
@@ -77,7 +84,6 @@ const vehicleModelMaster = {
         passengerCapacity: 8,
         categories: ["SUV"]
       }
-      // Add more models with their specifications
     ]
   },
   "Nissan": {
@@ -98,18 +104,16 @@ const vehicleModelMaster = {
         passengerCapacity: 5,
         categories: ["SEDAN"]
       }
-      // Add more models with their specifications
     ]
-  },
-  // Add more manufacturers
+  }
 };
 
 // CO2 Emission Factors by fuel type
-const co2EmissionFactors = {
-  "Petrol": 2.31,    // kg CO2/liter
-  "Diesel": 2.68,    // kg CO2/liter
-  "Electric": 0,     // Zero direct emissions
-  "Hybrid": 1.85,    // Assumes 20% lower than petrol
+const co2EmissionFactors: Record<string, number> = {
+  "PETROL": 2.31,    // kg CO2/liter
+  "DIESEL": 2.68,    // kg CO2/liter
+  "ELECTRIC": 0,     // Zero direct emissions
+  "HYBRID": 1.85,    // Assumes 20% lower than petrol
   "CNG": 1.81,       // kg CO2/m³
   "LPG": 1.51        // kg CO2/liter
 };
@@ -126,7 +130,7 @@ router.get("/api/vehicle-masters", async (_req, res) => {
       fuelTypes: Object.entries(currentFuelPrices).map(([type, price]) => ({
         type,
         price,
-        co2Factor: co2EmissionFactors[type] || 0
+        co2Factor: co2EmissionFactors[type.toUpperCase()] || 0
       })),
       regions: Object.values(Region),
       departments: Object.values(Department),
