@@ -1,8 +1,8 @@
-import { useEffect, useState } from "react";
+import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { useQuery } from "@tanstack/react-query";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { InsertVehicleTypeMaster, insertVehicleTypeMasterSchema, VehicleTypeMaster, VehicleFuelType, Region, Department } from "@shared/schema"; 
+import { InsertVehicleTypeMaster, insertVehicleTypeMasterSchema, VehicleTypeMaster } from "@shared/schema";
 import { apiRequest } from "@/lib/queryClient";
 import {
   Form,
@@ -22,7 +22,7 @@ import {
 } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
-import { ProgressIndicator, type SubmissionStatus } from "./progress-indicator";
+import { ProgressIndicator } from "./progress-indicator";
 import { Dialog, DialogContent } from "./dialog";
 
 interface VehicleTypeFormProps {
@@ -50,38 +50,38 @@ const submissionSteps = [
 export function VehicleTypeForm({ onSubmit, initialData, isEditing }: VehicleTypeFormProps) {
   const { toast } = useToast();
   const [selectedManufacturer, setSelectedManufacturer] = useState<string>("");
-  const [submissionStatus, setSubmissionStatus] = useState<SubmissionStatus>("idle");
+  const [submissionStatus, setSubmissionStatus] = useState<"idle" | "submitting" | "success" | "error">("idle");
   const [currentStep, setCurrentStep] = useState(0);
   const [submissionError, setSubmissionError] = useState<string>();
   const [showProgress, setShowProgress] = useState(false);
 
-  // Initialize form first
+  // Initialize form
   const form = useForm<InsertVehicleTypeMaster>({
     resolver: zodResolver(insertVehicleTypeMasterSchema),
     defaultValues: {
       group_id: initialData?.group_id || 0,
       vehicle_type_code: initialData?.vehicle_type_code || "",
       vehicle_type_name: initialData?.vehicle_type_name || "",
+      vehicle_type: initialData?.vehicle_type || "",
       manufacturer: initialData?.manufacturer || "",
       model_year: initialData?.model_year || new Date().getFullYear(),
       number_of_passengers: initialData?.number_of_passengers || 0,
-      region: initialData?.region || Region.ABU_DHABI,
-      fuel_efficiency: initialData?.fuel_efficiency || 0,
-      fuel_price_per_litre: initialData?.fuel_price_per_litre || 0,
+      region: initialData?.region || "",
+      fuel_efficiency: initialData?.fuel_efficiency || "0",
+      fuel_price_per_litre: initialData?.fuel_price_per_litre || "0",
       fuel_type: initialData?.fuel_type || "",
       service_plan: initialData?.service_plan || "",
       cost_per_km: initialData?.cost_per_km || 0,
-      vehicle_type: initialData?.vehicle_type || "",
       department: initialData?.department || "",
       unit: initialData?.unit || "",
       alert_before: initialData?.alert_before || 0,
-      idle_fuel_consumption: initialData?.idle_fuel_consumption || 0,
+      idle_fuel_consumption: initialData?.idle_fuel_consumption || "0",
       vehicle_capacity: initialData?.vehicle_capacity || 0,
-      co2_emission_factor: initialData?.co2_emission_factor || 0
+      co2_emission_factor: initialData?.co2_emission_factor || "0"
     }
   });
 
-  // Update the query and state management section
+  // Fetch master data
   const { data: masterData, isLoading: isMasterDataLoading } = useQuery({
     queryKey: ["/api/vehicle-masters"],
   });
@@ -90,12 +90,11 @@ export function VehicleTypeForm({ onSubmit, initialData, isEditing }: VehicleTyp
     console.log("Master data received:", masterData);
   }, [masterData]);
 
-  // Watch form values after form initialization
+  // Watch form values
   const selectedFuelType = form.watch("fuel_type");
   const selectedModel = form.watch("vehicle_type");
   const modelYear = form.watch("model_year");
 
-  // Effect to update vehicle type code
   useEffect(() => {
     if (selectedManufacturer && selectedModel && modelYear) {
       const typeCode = `${selectedManufacturer}-${selectedModel}-${modelYear}`.toUpperCase();
@@ -103,7 +102,6 @@ export function VehicleTypeForm({ onSubmit, initialData, isEditing }: VehicleTyp
     }
   }, [selectedManufacturer, selectedModel, modelYear]);
 
-  // Effect to update vehicle data when model changes
   useEffect(() => {
     if (masterData?.vehicleModels && selectedManufacturer && selectedModel) {
       const modelData = masterData.vehicleModels[selectedManufacturer]?.models.find(
@@ -111,30 +109,28 @@ export function VehicleTypeForm({ onSubmit, initialData, isEditing }: VehicleTyp
       );
 
       if (modelData) {
-        form.setValue("fuel_efficiency", modelData.efficiency);
+        form.setValue("fuel_efficiency", modelData.efficiency.toString());
         form.setValue("vehicle_capacity", modelData.capacity);
-        form.setValue("idle_fuel_consumption", modelData.idleConsumption);
+        form.setValue("idle_fuel_consumption", modelData.idleConsumption.toString());
         form.setValue("number_of_passengers", modelData.passengerCapacity);
       }
     }
   }, [selectedManufacturer, selectedModel, masterData?.vehicleModels]);
 
-  // Effect to update fuel price and CO2 emission factor when fuel type changes
   useEffect(() => {
     if (masterData?.fuelTypes && selectedFuelType) {
       const fuelData = masterData.fuelTypes.find(f => f.type === selectedFuelType);
       if (fuelData) {
-        form.setValue("fuel_price_per_litre", fuelData.price);
-        form.setValue("co2_emission_factor", fuelData.co2Factor);
+        form.setValue("fuel_price_per_litre", fuelData.price.toString());
+        form.setValue("co2_emission_factor", fuelData.co2Factor.toString());
       }
     }
   }, [selectedFuelType, masterData?.fuelTypes]);
 
-  // Effect to update cost per km when fuel price or efficiency changes
   useEffect(() => {
-    const fuelPrice = form.watch("fuel_price_per_litre");
-    const fuelEfficiency = form.watch("fuel_efficiency");
-    if (fuelPrice && fuelEfficiency) {
+    const fuelPrice = Number(form.watch("fuel_price_per_litre"));
+    const fuelEfficiency = Number(form.watch("fuel_efficiency"));
+    if (fuelPrice && fuelEfficiency && fuelEfficiency > 0) {
       const costPerKm = Number((fuelPrice / fuelEfficiency).toFixed(2));
       form.setValue("cost_per_km", costPerKm);
     }
@@ -157,13 +153,9 @@ export function VehicleTypeForm({ onSubmit, initialData, isEditing }: VehicleTyp
         group_id: Number(data.group_id),
         model_year: Number(data.model_year),
         number_of_passengers: Number(data.number_of_passengers),
-        fuel_efficiency: Number(data.fuel_efficiency),
-        fuel_price_per_litre: Number(data.fuel_price_per_litre),
         cost_per_km: Number(data.cost_per_km),
         alert_before: Number(data.alert_before),
-        idle_fuel_consumption: Number(data.idle_fuel_consumption),
-        vehicle_capacity: Number(data.vehicle_capacity),
-        co2_emission_factor: Number(data.co2_emission_factor)
+        vehicle_capacity: Number(data.vehicle_capacity)
       };
 
       console.log("Submitting formatted data:", formattedData);
@@ -206,411 +198,446 @@ export function VehicleTypeForm({ onSubmit, initialData, isEditing }: VehicleTyp
       <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-4">
         <div className="max-h-[calc(100vh-200px)] overflow-y-auto px-6">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {/* Vehicle Group */}
-            <FormField
-              control={form.control}
-              name="group_id"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Vehicle Group *</FormLabel>
-                  <Select
-                    onValueChange={(value) => field.onChange(Number(value))}
-                    value={field.value?.toString()}
-                  >
-                    <FormControl>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select vehicle group" />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      {masterData?.groups?.map((group) => (
-                        <SelectItem key={group.id} value={group.id.toString()}>
-                          {group.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            {/* Vehicle Type Code (Auto-generated) */}
-            <FormField
-              control={form.control}
-              name="vehicle_type_code"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Vehicle Type Code *</FormLabel>
-                  <FormControl>
-                    <Input {...field} placeholder="Auto-generated" disabled />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            {/* Manufacturer */}
-            <FormField
-              control={form.control}
-              name="manufacturer"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Manufacturer *</FormLabel>
-                  <Select
-                    onValueChange={(value) => {
-                      field.onChange(value);
-                      setSelectedManufacturer(value);
-                      form.setValue("vehicle_type", "");
-                    }}
-                    value={field.value}
-                    disabled={isMasterDataLoading}
-                  >
-                    <FormControl>
-                      <SelectTrigger>
-                        <SelectValue placeholder={isMasterDataLoading ? "Loading..." : "Select manufacturer"} />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      {!isMasterDataLoading && masterData?.manufacturers?.map((manufacturer) => (
-                        <SelectItem key={manufacturer} value={manufacturer}>
-                          {manufacturer}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            {/* Vehicle Model */}
-            <FormField
-              control={form.control}
-              name="vehicle_type"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Vehicle Model *</FormLabel>
-                  <Select
-                    onValueChange={field.onChange}
-                    value={field.value}
-                    disabled={!selectedManufacturer}
-                  >
-                    <FormControl>
-                      <SelectTrigger>
-                        <SelectValue
-                          placeholder={selectedManufacturer ? "Select model" : "Select manufacturer first"}
-                        />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      {selectedManufacturer && masterData?.vehicleModels &&
-                        masterData.vehicleModels[selectedManufacturer].models.map((model) => (
-                          <SelectItem key={model.name} value={model.name}>
-                            {model.name}
+            {/* Left Column */}
+            <div className="space-y-6">
+              {/* Vehicle Group */}
+              <FormField
+                control={form.control}
+                name="group_id"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Vehicle Group *</FormLabel>
+                    <Select
+                      onValueChange={(value) => field.onChange(Number(value))}
+                      value={field.value?.toString()}
+                    >
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select vehicle group" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {masterData?.groups?.map((group) => (
+                          <SelectItem key={group.id} value={group.id.toString()}>
+                            {group.name}
                           </SelectItem>
                         ))}
-                    </SelectContent>
-                  </Select>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
 
-            {/* Fuel Type */}
-            <FormField
-              control={form.control}
-              name="fuel_type"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Fuel Type *</FormLabel>
-                  <Select onValueChange={field.onChange} value={field.value}>
+              {/* Vehicle Model */}
+              <FormField
+                control={form.control}
+                name="vehicle_type"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Vehicle Model *</FormLabel>
+                    <Select
+                      onValueChange={field.onChange}
+                      value={field.value}
+                      disabled={!selectedManufacturer}
+                    >
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder={selectedManufacturer ? "Select model" : "Select manufacturer first"} />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {selectedManufacturer && masterData?.vehicleModels &&
+                          masterData.vehicleModels[selectedManufacturer].models.map((model) => (
+                            <SelectItem key={model.name} value={model.name}>
+                              {model.name}
+                            </SelectItem>
+                          ))}
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              {/* Vehicle Type */}
+              <FormField
+                control={form.control}
+                name="vehicle_category"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Vehicle Category *</FormLabel>
+                    <Select onValueChange={field.onChange} value={field.value}>
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select category" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {["SEDAN", "SUV", "VAN", "BUS", "TRUCK", "AMBULANCE"].map((category) => (
+                          <SelectItem key={category} value={category}>
+                            {category}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              {/* Fuel Type */}
+              <FormField
+                control={form.control}
+                name="fuel_type"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Fuel Type *</FormLabel>
+                    <Select onValueChange={field.onChange} value={field.value}>
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select fuel type" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {masterData?.fuelTypes?.map((type) => (
+                          <SelectItem key={type.type} value={type.type}>
+                            {type.type}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              {/* Fuel Efficiency */}
+              <FormField
+                control={form.control}
+                name="fuel_efficiency"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Fuel Efficiency (km/l) *</FormLabel>
                     <FormControl>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select fuel type" />
-                      </SelectTrigger>
+                      <Input {...field} disabled />
                     </FormControl>
-                    <SelectContent>
-                      {masterData?.fuelTypes?.map((type) => (
-                        <SelectItem key={type.type} value={type.type}>
-                          {type.type}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
 
-            {/* Auto-populated fields based on selections */}
-            <FormField
-              control={form.control}
-              name="fuel_efficiency"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Fuel Efficiency (km/l) *</FormLabel>
-                  <FormControl>
-                    <Input {...field} disabled />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <FormField
-              control={form.control}
-              name="fuel_price_per_litre"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Fuel Price per Litre *</FormLabel>
-                  <FormControl>
-                    <Input {...field} disabled />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <FormField
-              control={form.control}
-              name="cost_per_km"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Cost per KM *</FormLabel>
-                  <FormControl>
-                    <Input {...field} disabled />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <FormField
-              control={form.control}
-              name="idle_fuel_consumption"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Idle Fuel Consumption *</FormLabel>
-                  <FormControl>
-                    <Input {...field} disabled />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <FormField
-              control={form.control}
-              name="co2_emission_factor"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>CO2 Emission Factor *</FormLabel>
-                  <FormControl>
-                    <Input {...field} disabled />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            {/* Other fields from master data */}
-            <FormField
-              control={form.control}
-              name="department"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Department *</FormLabel>
-                  <Select onValueChange={field.onChange} value={field.value}>
+              {/* Idle Fuel Consumption */}
+              <FormField
+                control={form.control}
+                name="idle_fuel_consumption"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Idle Fuel Consumption *</FormLabel>
                     <FormControl>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select department" />
-                      </SelectTrigger>
+                      <Input {...field} disabled />
                     </FormControl>
-                    <SelectContent>
-                      {masterData?.departments.map((dept) => (
-                        <SelectItem key={dept} value={dept}>
-                          {dept}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
 
-            <FormField
-              control={form.control}
-              name="region"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Region *</FormLabel>
-                  <Select onValueChange={field.onChange} value={field.value}>
+              {/* Number of Passengers */}
+              <FormField
+                control={form.control}
+                name="number_of_passengers"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Number of Passengers *</FormLabel>
                     <FormControl>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select region" />
-                      </SelectTrigger>
+                      <Input
+                        type="number"
+                        {...field}
+                        onChange={(e) => field.onChange(Number(e.target.value))}
+                        placeholder="Enter passenger capacity"
+                      />
                     </FormControl>
-                    <SelectContent>
-                      {masterData?.regions.map((region) => (
-                        <SelectItem key={region} value={region}>
-                          {region}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
 
-            <FormField
-              control={form.control}
-              name="service_plan"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Service Plan</FormLabel>
-                  <Select onValueChange={field.onChange} value={field.value}>
+              {/* Service Plan */}
+              <FormField
+                control={form.control}
+                name="service_plan"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Service Plan</FormLabel>
+                    <Select onValueChange={field.onChange} value={field.value}>
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select service plan" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {masterData?.servicePlans?.map((plan) => (
+                          <SelectItem key={plan.code} value={plan.code}>
+                            {plan.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              {/* Region */}
+              <FormField
+                control={form.control}
+                name="region"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Region *</FormLabel>
+                    <Select onValueChange={field.onChange} value={field.value}>
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select region" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {masterData?.regions?.map((region) => (
+                          <SelectItem key={region} value={region}>
+                            {region}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              {/* Unit */}
+              <FormField
+                control={form.control}
+                name="unit"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Unit</FormLabel>
+                    <Select onValueChange={field.onChange} value={field.value}>
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select unit" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {masterData?.units?.map((unit) => (
+                          <SelectItem key={unit} value={unit}>
+                            {unit}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
+
+            {/* Right Column */}
+            <div className="space-y-6">
+              {/* Manufacturer */}
+              <FormField
+                control={form.control}
+                name="manufacturer"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Manufacturer *</FormLabel>
+                    <Select
+                      onValueChange={(value) => {
+                        field.onChange(value);
+                        setSelectedManufacturer(value);
+                        form.setValue("vehicle_type", "");
+                      }}
+                      value={field.value}
+                      disabled={isMasterDataLoading}
+                    >
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder={isMasterDataLoading ? "Loading..." : "Select manufacturer"} />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {!isMasterDataLoading && masterData?.manufacturers?.map((manufacturer) => (
+                          <SelectItem key={manufacturer} value={manufacturer}>
+                            {manufacturer}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              {/* Model Year */}
+              <FormField
+                control={form.control}
+                name="model_year"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Model Year *</FormLabel>
                     <FormControl>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select service plan" />
-                      </SelectTrigger>
+                      <Input
+                        type="number"
+                        {...field}
+                        onChange={(e) => field.onChange(Number(e.target.value))}
+                        placeholder="Enter model year"
+                      />
                     </FormControl>
-                    <SelectContent>
-                      {masterData?.servicePlans.map((plan) => (
-                        <SelectItem key={plan.code} value={plan.code}>
-                          {plan.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
 
-            <FormField
-              control={form.control}
-              name="unit"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Unit</FormLabel>
-                  <Select onValueChange={field.onChange} value={field.value}>
+              {/* Vehicle Type Name */}
+              <FormField
+                control={form.control}
+                name="vehicle_type_name"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Vehicle Type Name *</FormLabel>
                     <FormControl>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select unit" />
-                      </SelectTrigger>
+                      <Input {...field} placeholder="Enter vehicle type name" />
                     </FormControl>
-                    <SelectContent>
-                      {masterData?.units.map((unit) => (
-                        <SelectItem key={unit} value={unit}>
-                          {unit}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
 
-            {/* Vehicle Type Name */}
-            <FormField
-              control={form.control}
-              name="vehicle_type_name"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Vehicle Type Name *</FormLabel>
-                  <FormControl>
-                    <Input {...field} placeholder="Enter vehicle type name" />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+              {/* Fuel Price per Litre */}
+              <FormField
+                control={form.control}
+                name="fuel_price_per_litre"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Fuel Price per Litre (AED) *</FormLabel>
+                    <FormControl>
+                      <Input {...field} disabled />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
 
-            {/* Number of Passengers */}
-            <FormField
-              control={form.control}
-              name="number_of_passengers"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Number of Passengers *</FormLabel>
-                  <FormControl>
-                    <Input
-                      type="number"
-                      {...field}
-                      onChange={(e) => field.onChange(Number(e.target.value))}
-                      placeholder="Enter passenger capacity"
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+              {/* Cost per KM */}
+              <FormField
+                control={form.control}
+                name="cost_per_km"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Cost per KM *</FormLabel>
+                    <FormControl>
+                      <Input {...field} disabled />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
 
-            {/* Model Year */}
-            <FormField
-              control={form.control}
-              name="model_year"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Model Year *</FormLabel>
-                  <FormControl>
-                    <Input
-                      type="number"
-                      {...field}
-                      onChange={(e) => field.onChange(Number(e.target.value))}
-                      placeholder="Enter model year"
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+              {/* CO2 Emission Factor */}
+              <FormField
+                control={form.control}
+                name="co2_emission_factor"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>CO2 Emission Factor *</FormLabel>
+                    <FormControl>
+                      <Input {...field} disabled />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
 
+              {/* Vehicle Capacity */}
+              <FormField
+                control={form.control}
+                name="vehicle_capacity"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Vehicle Capacity *</FormLabel>
+                    <FormControl>
+                      <Input
+                        type="number"
+                        {...field}
+                        onChange={(e) => field.onChange(Number(e.target.value))}
+                        placeholder="Enter vehicle capacity"
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
 
-            {/* Alert Before */}
-            <FormField
-              control={form.control}
-              name="alert_before"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Alert Before (days)</FormLabel>
-                  <FormControl>
-                    <Input
-                      type="number"
-                      {...field}
-                      onChange={(e) => field.onChange(Number(e.target.value))}
-                      placeholder="Enter alert days"
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+              {/* Alert Before */}
+              <FormField
+                control={form.control}
+                name="alert_before"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Alert Before Value (KM)</FormLabel>
+                    <FormControl>
+                      <Input
+                        type="number"
+                        {...field}
+                        onChange={(e) => field.onChange(Number(e.target.value))}
+                        placeholder="Enter alert value"
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
 
-            {/* Vehicle Capacity */}
-            <FormField
-              control={form.control}
-              name="vehicle_capacity"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Vehicle Capacity *</FormLabel>
-                  <FormControl>
-                    <Input
-                      type="number"
-                      {...field}
-                      onChange={(e) => field.onChange(Number(e.target.value))}
-                      placeholder="Enter vehicle capacity"
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+              {/* Department */}
+              <FormField
+                control={form.control}
+                name="department"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Department *</FormLabel>
+                    <Select onValueChange={field.onChange} value={field.value}>
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select department" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {masterData?.departments?.map((dept) => (
+                          <SelectItem key={dept} value={dept}>
+                            {dept}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
 
+              {/* Vehicle Type Code */}
+              <FormField
+                control={form.control}
+                name="vehicle_type_code"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Vehicle Type Code *</FormLabel>
+                    <FormControl>
+                      <Input {...field} placeholder="Auto-generated" disabled />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
           </div>
         </div>
 
@@ -1064,4 +1091,5 @@ function getPassengerCapacityFromCode(vehicleTypeCode: string): number {
 function calculateCostPerKm(fuelPrice: number, fuelEfficiency: number) {
   if (!fuelPrice || !fuelEfficiency || fuelEfficiency <= 0) return 0;
   return Number((fuelPrice / fuelEfficiency).toFixed(2));
+}
 }
