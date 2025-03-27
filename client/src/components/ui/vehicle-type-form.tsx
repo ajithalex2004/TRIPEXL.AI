@@ -272,7 +272,7 @@ export function VehicleTypeForm({ onSubmit, initialData, isEditing }: VehicleTyp
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      {masterData?.manufacturers?.map((manufacturer) => (
+                      {!isMasterDataLoading && masterData?.manufacturers?.map((manufacturer) => (
                         <SelectItem key={manufacturer} value={manufacturer}>
                           {manufacturer}
                         </SelectItem>
@@ -978,7 +978,7 @@ const defaultPassengerCapacity: { [key: string]: number } = {
   // Mercedes models"MERCEDES-BENZ-SPRINTER": 14,
   "MERCEDES-BENZ-GCLASS": 5,
 
-  // Default values by category
+  // Default values bycategory
   "SEDAN": 5,
   "SUV": 7,
   "VAN": 12,

@@ -57,6 +57,7 @@ const units = [
   "VIP Services"
 ];
 
+// Manufacturers list
 const manufacturers = [
   "Toyota",
   "Nissan",
@@ -70,6 +71,7 @@ const manufacturers = [
   "Kia"
 ];
 
+// Vehicle models with specifications
 const vehicleModels = {
   "Toyota": {
     models: [
@@ -160,9 +162,9 @@ router.get("/api/vehicle-masters", async (_req, res) => {
     const groups = await db.select().from(vehicleGroups);
     console.log("Retrieved vehicle groups:", groups);
 
-    const response = {
+    const masterData = {
       groups,
-      manufacturers,
+      manufacturers, // Add manufacturers list
       vehicleModels,
       fuelTypes: Object.entries(currentFuelPrices).map(([type, price]) => ({
         type,
@@ -177,8 +179,8 @@ router.get("/api/vehicle-masters", async (_req, res) => {
       transmissionTypes: Object.values(TransmissionType)
     };
 
-    console.log("Sending master data response:", JSON.stringify(response, null, 2));
-    res.json(response);
+    console.log("Sending master data response:", JSON.stringify(masterData, null, 2));
+    res.json(masterData);
   } catch (error: any) {
     console.error("Error fetching master data:", error);
     res.status(500).json({ error: error.message });
