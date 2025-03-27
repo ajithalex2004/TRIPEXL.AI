@@ -16,7 +16,7 @@ import XLSX from "xlsx";
 import nodemailer from "nodemailer";
 import crypto from "crypto";
 import { eq, sql } from 'drizzle-orm';
-
+import mastersRouter from "./routes/masters"; // Added import statement
 
 // Configure multer for handling file uploads
 const upload = multer({
@@ -62,6 +62,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     app.use(vehicleTypeMasterRouter);
     log("Vehicle type master routes registered");
 
+    app.use(mastersRouter); // Added mastersRouter
 
     // Auth routes
     log("Registering auth routes...");
@@ -911,7 +912,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           // Update user with reset token
           await storage.updateUserResetToken(user.id, resetToken, resetTokenExpiry);
         } catch (dbError) {
-          console.error('Database error updating reset token:', dbError);
+          console.error`Database error updating reset token:', dbError);
           throw new Error('Failed to update reset token');
         }
 
