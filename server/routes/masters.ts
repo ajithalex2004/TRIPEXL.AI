@@ -57,21 +57,45 @@ const units = [
   "VIP Services"
 ];
 
-// Manufacturers list
+// UAE Vehicle Manufacturers list (Popular in UAE)
 const manufacturers = [
   "Toyota",
   "Nissan",
-  "Honda",
-  "Mitsubishi",
   "Mercedes-Benz",
   "BMW",
-  "Ford",
+  "Lexus",
+  "Land Rover",
+  "Audi",
+  "Porsche",
+  "Mitsubishi",
   "Chevrolet",
+  "Ford",
+  "GMC",
+  "Honda",
   "Hyundai",
-  "Kia"
+  "Kia",
+  "Infiniti",
+  "Jeep",
+  "Mazda",
+  "MG",
+  "Volkswagen",
+  "Cadillac",
+  "Jaguar",
+  "Dodge",
+  "Volvo",
+  "Bentley",
+  "Ferrari",
+  "Lamborghini",
+  "Maserati",
+  "Rolls-Royce",
+  "Haval",
+  "BAIC",
+  "GAC",
+  "Changan",
+  "W Motors"
 ];
 
-// Vehicle models with specifications
+// Vehicle models with specifications (Popular in UAE)
 const vehicleModels = {
   "Toyota": {
     models: [
@@ -98,6 +122,30 @@ const vehicleModels = {
         idleConsumption: 0.9,
         passengerCapacity: 5,
         categories: ["SEDAN"]
+      },
+      {
+        name: "Prado",
+        efficiency: 9.8,
+        capacity: 60,
+        idleConsumption: 1.3,
+        passengerCapacity: 7,
+        categories: ["SUV"]
+      },
+      {
+        name: "Fortuner",
+        efficiency: 10.2,
+        capacity: 55,
+        idleConsumption: 1.2,
+        passengerCapacity: 7,
+        categories: ["SUV"]
+      },
+      {
+        name: "Hiace",
+        efficiency: 9.5,
+        capacity: 65,
+        idleConsumption: 1.4,
+        passengerCapacity: 14,
+        categories: ["VAN"]
       }
     ]
   },
@@ -118,6 +166,142 @@ const vehicleModels = {
         idleConsumption: 0.9,
         passengerCapacity: 5,
         categories: ["SEDAN"]
+      },
+      {
+        name: "Sunny",
+        efficiency: 15.5,
+        capacity: 12,
+        idleConsumption: 0.7,
+        passengerCapacity: 5,
+        categories: ["SEDAN"]
+      },
+      {
+        name: "X-Trail",
+        efficiency: 11.8,
+        capacity: 42,
+        idleConsumption: 1.1,
+        passengerCapacity: 5,
+        categories: ["SUV"]
+      },
+      {
+        name: "Urvan",
+        efficiency: 8.5,
+        capacity: 68,
+        idleConsumption: 1.5,
+        passengerCapacity: 14,
+        categories: ["VAN"]
+      }
+    ]
+  },
+  "Mercedes-Benz": {
+    models: [
+      {
+        name: "G-Class",
+        efficiency: 7.5,
+        capacity: 85,
+        idleConsumption: 1.7,
+        passengerCapacity: 5,
+        categories: ["SUV"]
+      },
+      {
+        name: "GLE",
+        efficiency: 9.2,
+        capacity: 70,
+        idleConsumption: 1.4,
+        passengerCapacity: 5,
+        categories: ["SUV"]
+      },
+      {
+        name: "S-Class",
+        efficiency: 10.5,
+        capacity: 65,
+        idleConsumption: 1.2,
+        passengerCapacity: 5,
+        categories: ["SEDAN"]
+      },
+      {
+        name: "Sprinter",
+        efficiency: 8.0,
+        capacity: 75,
+        idleConsumption: 1.6,
+        passengerCapacity: 14,
+        categories: ["VAN"]
+      }
+    ]
+  },
+  "BMW": {
+    models: [
+      {
+        name: "X5",
+        efficiency: 9.3,
+        capacity: 68,
+        idleConsumption: 1.3,
+        passengerCapacity: 5,
+        categories: ["SUV"]
+      },
+      {
+        name: "X7",
+        efficiency: 8.5,
+        capacity: 75,
+        idleConsumption: 1.5,
+        passengerCapacity: 7,
+        categories: ["SUV"]
+      },
+      {
+        name: "7 Series",
+        efficiency: 10.2,
+        capacity: 60,
+        idleConsumption: 1.2,
+        passengerCapacity: 5,
+        categories: ["SEDAN"]
+      }
+    ]
+  },
+  "Lexus": {
+    models: [
+      {
+        name: "LX",
+        efficiency: 8.0,
+        capacity: 85,
+        idleConsumption: 1.6,
+        passengerCapacity: 8,
+        categories: ["SUV"]
+      },
+      {
+        name: "ES",
+        efficiency: 12.5,
+        capacity: 15,
+        idleConsumption: 0.9,
+        passengerCapacity: 5,
+        categories: ["SEDAN"]
+      },
+      {
+        name: "RX",
+        efficiency: 9.8,
+        capacity: 65,
+        idleConsumption: 1.3,
+        passengerCapacity: 5,
+        categories: ["SUV"]
+      }
+    ]
+  },
+  "Land Rover": {
+    models: [
+      {
+        name: "Range Rover",
+        efficiency: 7.5,
+        capacity: 82,
+        idleConsumption: 1.8,
+        passengerCapacity: 5,
+        categories: ["SUV"]
+      },
+      {
+        name: "Defender",
+        efficiency: 8.2,
+        capacity: 75,
+        idleConsumption: 1.5,
+        passengerCapacity: 5,
+        categories: ["SUV"]
       }
     ]
   },
@@ -137,6 +321,118 @@ const vehicleModels = {
         capacity: 37,
         idleConsumption: 1.0,
         passengerCapacity: 5,
+        categories: ["SUV"]
+      },
+      {
+        name: "Accord",
+        efficiency: 13.5,
+        capacity: 15,
+        idleConsumption: 0.9,
+        passengerCapacity: 5,
+        categories: ["SEDAN"]
+      }
+    ]
+  },
+  "Mitsubishi": {
+    models: [
+      {
+        name: "Pajero",
+        efficiency: 9.0,
+        capacity: 72,
+        idleConsumption: 1.4,
+        passengerCapacity: 7,
+        categories: ["SUV"]
+      },
+      {
+        name: "Montero Sport",
+        efficiency: 10.2,
+        capacity: 65,
+        idleConsumption: 1.3,
+        passengerCapacity: 7,
+        categories: ["SUV"]
+      },
+      {
+        name: "L200",
+        efficiency: 10.5,
+        capacity: 55,
+        idleConsumption: 1.2,
+        passengerCapacity: 5,
+        categories: ["TRUCK"]
+      }
+    ]
+  },
+  "Chevrolet": {
+    models: [
+      {
+        name: "Tahoe",
+        efficiency: 8.2,
+        capacity: 85,
+        idleConsumption: 1.6,
+        passengerCapacity: 8,
+        categories: ["SUV"]
+      },
+      {
+        name: "Suburban",
+        efficiency: 7.8,
+        capacity: 90,
+        idleConsumption: 1.7,
+        passengerCapacity: 8,
+        categories: ["SUV"]
+      },
+      {
+        name: "Silverado",
+        efficiency: 8.5,
+        capacity: 75,
+        idleConsumption: 1.5,
+        passengerCapacity: 5,
+        categories: ["TRUCK"]
+      }
+    ]
+  },
+  "GMC": {
+    models: [
+      {
+        name: "Yukon",
+        efficiency: 8.0,
+        capacity: 85,
+        idleConsumption: 1.6,
+        passengerCapacity: 8,
+        categories: ["SUV"]
+      },
+      {
+        name: "Sierra",
+        efficiency: 8.3,
+        capacity: 75,
+        idleConsumption: 1.5,
+        passengerCapacity: 5,
+        categories: ["TRUCK"]
+      }
+    ]
+  },
+  "Ford": {
+    models: [
+      {
+        name: "Expedition",
+        efficiency: 8.2,
+        capacity: 88,
+        idleConsumption: 1.6,
+        passengerCapacity: 8,
+        categories: ["SUV"]
+      },
+      {
+        name: "F-150",
+        efficiency: 8.5,
+        capacity: 78,
+        idleConsumption: 1.5,
+        passengerCapacity: 5,
+        categories: ["TRUCK"]
+      },
+      {
+        name: "Explorer",
+        efficiency: 9.5,
+        capacity: 72,
+        idleConsumption: 1.4,
+        passengerCapacity: 7,
         categories: ["SUV"]
       }
     ]
