@@ -67,6 +67,7 @@ function Router() {
       <Route path="/bookings" component={() => <ProtectedRoute component={BookingHistory} />} />
       <Route path="/vehicle-groups" component={() => <ProtectedRoute component={VehicleGroupManagement} />} />
       <Route path="/vehicle-types" component={() => <ProtectedRoute component={VehicleTypeManagement} />} />
+      <Route path="/vehicle-type-management" component={() => <ProtectedRoute component={VehicleTypeManagement} />} />
       <Route path="/vehicle-master" component={() => <ProtectedRoute component={VehicleMasterManagement} />} />
       <Route path="/user-master" component={() => <ProtectedRoute component={UserMasterPage} />} />
       <Route path="/employees" component={() => <ProtectedRoute component={EmployeeManagement} />} />

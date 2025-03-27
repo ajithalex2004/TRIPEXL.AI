@@ -3,7 +3,7 @@ import { storage } from "../storage";
 import { insertVehicleTypeMasterSchema, vehicleTypeMaster } from "@shared/schema";
 import { db } from "../db";
 import { eq } from "drizzle-orm";
-import masterRouter from "./masters";
+import { vehicleModels, manufacturers, servicePlans, units } from "./masters";
 
 const router = Router();
 
@@ -128,23 +128,34 @@ router.post("/api/vehicle-types", async (req, res) => {
       });
     }
 
-    // Make sure all string fields are properly formatted
+    // Ensure all data is properly formatted for database
     const formattedData = {
-      ...result.data,
+      group_id: result.data.group_id,
+      vehicle_type_code: result.data.vehicle_type_code,
+      vehicle_type_name: result.data.vehicle_type_name,
+      manufacturer: result.data.manufacturer,
+      model_year: result.data.model_year,
+      number_of_passengers: result.data.number_of_passengers,
+      region: result.data.region,
       fuel_efficiency: result.data.fuel_efficiency?.toString(),
       fuel_price_per_litre: result.data.fuel_price_per_litre?.toString(),
+      fuel_type: result.data.fuel_type,
+      service_plan: result.data.service_plan,
+      cost_per_km: result.data.cost_per_km?.toString(),
+      vehicle_type: result.data.vehicle_type,
+      department: result.data.department,
+      unit: result.data.unit || "",
+      alert_before: result.data.alert_before,
       idle_fuel_consumption: result.data.idle_fuel_consumption?.toString(),
-      co2_emission_factor: result.data.co2_emission_factor?.toString()
+      vehicle_capacity: result.data.vehicle_capacity,
+      co2_emission_factor: result.data.co2_emission_factor?.toString() || "0"
     };
+    
+    console.log("Formatted data for insert:", formattedData);
     
     const [newType] = await db
       .insert(vehicleTypeMaster)
-      .values({
-        ...formattedData,
-        is_active: true,
-        created_at: new Date(),
-        updated_at: new Date()
-      })
+      .values(formattedData)
       .returning();
 
     console.log("Successfully created vehicle type:", newType);
@@ -211,21 +222,35 @@ router.patch("/api/vehicle-types/:id", async (req, res) => {
       });
     }
 
-    // Format numeric fields to string for update
-    const formattedUpdateData = {
-      ...result.data,
-      fuel_efficiency: result.data.fuel_efficiency?.toString(),
-      fuel_price_per_litre: result.data.fuel_price_per_litre?.toString(),
-      idle_fuel_consumption: result.data.idle_fuel_consumption?.toString(),
-      co2_emission_factor: result.data.co2_emission_factor?.toString()
-    };
+    // Create a clean update object with proper type conversions
+    const updateData: Record<string, any> = {};
+    
+    // Only include fields that are present in the request
+    if (result.data.group_id !== undefined) updateData.group_id = result.data.group_id;
+    if (result.data.vehicle_type_code !== undefined) updateData.vehicle_type_code = result.data.vehicle_type_code;
+    if (result.data.vehicle_type_name !== undefined) updateData.vehicle_type_name = result.data.vehicle_type_name;
+    if (result.data.manufacturer !== undefined) updateData.manufacturer = result.data.manufacturer;
+    if (result.data.model_year !== undefined) updateData.model_year = result.data.model_year;
+    if (result.data.number_of_passengers !== undefined) updateData.number_of_passengers = result.data.number_of_passengers;
+    if (result.data.region !== undefined) updateData.region = result.data.region;
+    if (result.data.fuel_efficiency !== undefined) updateData.fuel_efficiency = result.data.fuel_efficiency.toString();
+    if (result.data.fuel_price_per_litre !== undefined) updateData.fuel_price_per_litre = result.data.fuel_price_per_litre.toString();
+    if (result.data.fuel_type !== undefined) updateData.fuel_type = result.data.fuel_type;
+    if (result.data.service_plan !== undefined) updateData.service_plan = result.data.service_plan;
+    if (result.data.cost_per_km !== undefined) updateData.cost_per_km = result.data.cost_per_km.toString();
+    if (result.data.vehicle_type !== undefined) updateData.vehicle_type = result.data.vehicle_type;
+    if (result.data.department !== undefined) updateData.department = result.data.department;
+    if (result.data.unit !== undefined) updateData.unit = result.data.unit;
+    if (result.data.alert_before !== undefined) updateData.alert_before = result.data.alert_before;
+    if (result.data.idle_fuel_consumption !== undefined) updateData.idle_fuel_consumption = result.data.idle_fuel_consumption.toString();
+    if (result.data.vehicle_capacity !== undefined) updateData.vehicle_capacity = result.data.vehicle_capacity;
+    if (result.data.co2_emission_factor !== undefined) updateData.co2_emission_factor = result.data.co2_emission_factor.toString();
+    
+    console.log("Formatted update data:", updateData);
     
     const [updatedType] = await db
       .update(vehicleTypeMaster)
-      .set({
-        ...formattedUpdateData,
-        updated_at: new Date()
-      })
+      .set(updateData)
       .where(eq(vehicleTypeMaster.id, id))
       .returning();
 
