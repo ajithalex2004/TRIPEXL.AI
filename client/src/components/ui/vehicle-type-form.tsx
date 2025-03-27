@@ -31,24 +31,31 @@ interface VehicleTypeFormProps {
   isEditing?: boolean;
 }
 
+// Define submission steps outside component
+const submissionSteps = [
+  {
+    label: "Validating Form Data",
+    description: "Ensuring all required fields are properly filled"
+  },
+  {
+    label: "Processing Vehicle Information",
+    description: "Preparing vehicle type data for submission"
+  },
+  {
+    label: "Saving Vehicle Type",
+    description: "Creating new vehicle type"
+  }
+];
+
 export function VehicleTypeForm({ onSubmit, initialData, isEditing }: VehicleTypeFormProps) {
   const { toast } = useToast();
+  const [selectedManufacturer, setSelectedManufacturer] = useState<string>("");
   const [submissionStatus, setSubmissionStatus] = useState<SubmissionStatus>("idle");
   const [currentStep, setCurrentStep] = useState(0);
   const [submissionError, setSubmissionError] = useState<string>();
   const [showProgress, setShowProgress] = useState(false);
-  const [selectedManufacturer, setSelectedManufacturer] = useState<string>("");
 
-  // Fetch master data
-  const { data: masterData } = useQuery({
-    queryKey: ["/api/vehicle-masters"],
-  });
-
-  // Watch values for auto-calculations
-  const selectedFuelType = form.watch("fuel_type");
-  const selectedModel = form.watch("vehicle_type");
-  const modelYear = form.watch("model_year");
-
+  // Initialize form first
   const form = useForm<InsertVehicleTypeMaster>({
     resolver: zodResolver(insertVehicleTypeMasterSchema),
     defaultValues: {
@@ -73,6 +80,16 @@ export function VehicleTypeForm({ onSubmit, initialData, isEditing }: VehicleTyp
       co2_emission_factor: initialData?.co2_emission_factor || 0
     }
   });
+
+  // Fetch master data
+  const { data: masterData } = useQuery({
+    queryKey: ["/api/vehicle-masters"],
+  });
+
+  // Watch form values after form initialization
+  const selectedFuelType = form.watch("fuel_type");
+  const selectedModel = form.watch("vehicle_type");
+  const modelYear = form.watch("model_year");
 
   // Effect to update vehicle type code
   useEffect(() => {
@@ -250,7 +267,7 @@ export function VehicleTypeForm({ onSubmit, initialData, isEditing }: VehicleTyp
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      {masterData?.vehicleModels && 
+                      {masterData?.vehicleModels &&
                         Object.keys(masterData.vehicleModels).map((mfr) => (
                           <SelectItem key={mfr} value={mfr}>
                             {mfr}
@@ -277,13 +294,13 @@ export function VehicleTypeForm({ onSubmit, initialData, isEditing }: VehicleTyp
                   >
                     <FormControl>
                       <SelectTrigger>
-                        <SelectValue 
-                          placeholder={selectedManufacturer ? "Select model" : "Select manufacturer first"} 
+                        <SelectValue
+                          placeholder={selectedManufacturer ? "Select model" : "Select manufacturer first"}
                         />
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      {selectedManufacturer && masterData?.vehicleModels && 
+                      {selectedManufacturer && masterData?.vehicleModels &&
                         masterData.vehicleModels[selectedManufacturer].models.map((model) => (
                           <SelectItem key={model.name} value={model.name}>
                             {model.name}
@@ -616,22 +633,6 @@ export function VehicleTypeForm({ onSubmit, initialData, isEditing }: VehicleTyp
     </Form>
   );
 }
-
-// Define submission steps
-const submissionSteps = [
-  {
-    label: "Validating Form Data",
-    description: "Ensuring all required fields are properly filled"
-  },
-  {
-    label: "Processing Vehicle Information",
-    description: "Preparing vehicle type data for submission"
-  },
-  {
-    label: "Saving Vehicle Type",
-    description: "Creating new vehicle type"
-  }
-];
 
 const highwayEfficiencyMultiplier = 1.15; // Highway efficiency is typically 15% better
 
