@@ -779,28 +779,28 @@ export const insertApprovalWorkflowSchema = createInsertSchema(approvalWorkflows
     levels_required: z.enum(Object.values(WorkflowLevels) as [string, ...string[]])
   });
 
-// Update the vehicle type master schema
+// Vehicle type master schema
 export const insertVehicleTypeMasterSchema = createInsertSchema(vehicleTypeMaster)
   .extend({
     group_id: z.coerce.number().positive("Vehicle group is required"),
     vehicle_type_code: z.string().min(1, "Vehicle type code is required"),
     vehicle_type_name: z.string().min(1, "Vehicle type name is required"),
     manufacturer: z.string().min(1, "Manufacturer is required"),
-    model_year: z.coerce.number().min(1900, "Invalid model year").max(new Date().getFullYear() + 1, "Future model year not allowed"),
-    number_of_passengers: z.coerce.number().min(0, "Number of passengers must be non-negative"),
+    model_year: z.coerce.number().min(1900).max(new Date().getFullYear() + 1),
+    number_of_passengers: z.coerce.number().min(0),
     region: z.enum(Object.values(Region) as [string, ...string[]]),
-    fuel_efficiency: z.coerce.number().positive("Fuel efficiency must be positive"),
-    fuel_price_per_litre: z.coerce.number().positive("Fuel price per litre must be positive"),
+    fuel_efficiency: z.coerce.number().min(0),
+    fuel_price_per_litre: z.coerce.number().min(0),
     fuel_type: z.enum(Object.values(VehicleFuelType) as [string, ...string[]]),
-    service_plan: z.string().optional(),
-    cost_per_km: z.coerce.number().positive("Cost per KM must be positive"),
+    service_plan: z.string(),
+    cost_per_km: z.coerce.number().min(0),
     vehicle_type: z.string().min(1, "Vehicle type is required"),
     department: z.enum(Object.values(Department) as [string, ...string[]]),
-    unit: z.string().optional(),
-    alert_before: z.coerce.number().min(0, "Alert before must be non-negative"),
-    idle_fuel_consumption: z.coerce.number().min(0, "Idle fuel consumption must be non-negative"),
-    vehicle_capacity: z.coerce.number().min(0, "Vehicle capacity must be non-negative"),
-    co2_emission_factor: z.coerce.number().min(0, "CO2 emission factor must be non-negative"),
+    unit: z.string(),
+    alert_before: z.coerce.number().min(0),
+    idle_fuel_consumption: z.coerce.number().min(0),
+    vehicle_capacity: z.coerce.number().min(0),
+    co2_emission_factor: z.coerce.number().min(0),
     is_active: z.boolean().optional(),
     created_at: z.date().optional(),
     updated_at: z.date().optional()
