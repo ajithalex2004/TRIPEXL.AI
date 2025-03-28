@@ -43,9 +43,9 @@ export default function VehicleTypeManagement() {
   const [selectedType, setSelectedType] = useState<VehicleTypeMaster | null>(null);
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
-  const [regionFilter, setRegionFilter] = useState<string>("");
-  const [vehicleTypeFilter, setVehicleTypeFilter] = useState<string>("");
-  const [departmentFilter, setDepartmentFilter] = useState<string>("");
+  const [regionFilter, setRegionFilter] = useState<string>("all");
+  const [vehicleTypeFilter, setVehicleTypeFilter] = useState<string>("all");
+  const [departmentFilter, setDepartmentFilter] = useState<string>("all");
   const [showFilters, setShowFilters] = useState(false);
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -85,23 +85,27 @@ export default function VehicleTypeManagement() {
       );
       
       // Check filters
-      const regionMatches = regionFilter === "" || type.region === regionFilter;
-      const vehicleTypeMatches = vehicleTypeFilter === "" || type.vehicle_type === vehicleTypeFilter;
-      const departmentMatches = departmentFilter === "" || type.department === departmentFilter;
+      const regionMatches = regionFilter === "" || regionFilter === "all" || type.region === regionFilter;
+      const vehicleTypeMatches = vehicleTypeFilter === "" || vehicleTypeFilter === "all" || type.vehicle_type === vehicleTypeFilter;
+      const departmentMatches = departmentFilter === "" || departmentFilter === "all" || type.department === departmentFilter;
       
       return searchMatches && regionMatches && vehicleTypeMatches && departmentMatches;
     });
   }, [vehicleTypes, searchQuery, regionFilter, vehicleTypeFilter, departmentFilter]);
   
   // Check if any filters are active
-  const isFiltering = searchQuery !== "" || regionFilter !== "" || vehicleTypeFilter !== "" || departmentFilter !== "";
+  const isFiltering = 
+    searchQuery !== "" || 
+    (regionFilter !== "" && regionFilter !== "all") || 
+    (vehicleTypeFilter !== "" && vehicleTypeFilter !== "all") || 
+    (departmentFilter !== "" && departmentFilter !== "all");
   
   // Function to clear all filters
   const clearFilters = useCallback(() => {
     setSearchQuery("");
-    setRegionFilter("");
-    setVehicleTypeFilter("");
-    setDepartmentFilter("");
+    setRegionFilter("all");
+    setVehicleTypeFilter("all");
+    setDepartmentFilter("all");
   }, []);
 
   // Create mutation
@@ -273,7 +277,7 @@ export default function VehicleTypeManagement() {
                               <SelectValue placeholder="All regions" />
                             </SelectTrigger>
                             <SelectContent>
-                              <SelectItem value="">All regions</SelectItem>
+                              <SelectItem value="all">All regions</SelectItem>
                               {regionOptions.map((region) => (
                                 <SelectItem key={region} value={region}>
                                   {region}
@@ -294,7 +298,7 @@ export default function VehicleTypeManagement() {
                               <SelectValue placeholder="All types" />
                             </SelectTrigger>
                             <SelectContent>
-                              <SelectItem value="">All types</SelectItem>
+                              <SelectItem value="all">All types</SelectItem>
                               {vehicleTypeOptions.map((type) => (
                                 <SelectItem key={type} value={type}>
                                   {type}
@@ -315,7 +319,7 @@ export default function VehicleTypeManagement() {
                               <SelectValue placeholder="All departments" />
                             </SelectTrigger>
                             <SelectContent>
-                              <SelectItem value="">All departments</SelectItem>
+                              <SelectItem value="all">All departments</SelectItem>
                               {departmentOptions.map((dept) => (
                                 <SelectItem key={dept} value={dept}>
                                   {dept}
@@ -344,30 +348,30 @@ export default function VehicleTypeManagement() {
                         />
                       </Badge>
                     )}
-                    {regionFilter && (
+                    {regionFilter && regionFilter !== "all" && (
                       <Badge variant="outline" className="flex gap-1 items-center">
                         <span>Region: {regionFilter}</span>
                         <X 
                           className="h-3 w-3 cursor-pointer" 
-                          onClick={() => setRegionFilter("")}
+                          onClick={() => setRegionFilter("all")}
                         />
                       </Badge>
                     )}
-                    {vehicleTypeFilter && (
+                    {vehicleTypeFilter && vehicleTypeFilter !== "all" && (
                       <Badge variant="outline" className="flex gap-1 items-center">
                         <span>Type: {vehicleTypeFilter}</span>
                         <X 
                           className="h-3 w-3 cursor-pointer" 
-                          onClick={() => setVehicleTypeFilter("")}
+                          onClick={() => setVehicleTypeFilter("all")}
                         />
                       </Badge>
                     )}
-                    {departmentFilter && (
+                    {departmentFilter && departmentFilter !== "all" && (
                       <Badge variant="outline" className="flex gap-1 items-center">
                         <span>Department: {departmentFilter}</span>
                         <X 
                           className="h-3 w-3 cursor-pointer" 
-                          onClick={() => setDepartmentFilter("")}
+                          onClick={() => setDepartmentFilter("all")}
                         />
                       </Badge>
                     )}
