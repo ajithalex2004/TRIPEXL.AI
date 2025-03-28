@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo, useCallback } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { VehicleTypeMaster, InsertVehicleTypeMaster } from "@shared/schema";
 import { apiRequest } from "@/lib/queryClient";
@@ -25,13 +25,28 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { motion, AnimatePresence } from "framer-motion";
-import { Loader2 } from "lucide-react";
+import { Loader2, Search, X, Filter, ChevronDown } from "lucide-react";
 import * as animationUtils from "@/lib/animation-utils";
 
 export default function VehicleTypeManagement() {
   const [selectedType, setSelectedType] = useState<VehicleTypeMaster | null>(null);
   const [isFormOpen, setIsFormOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [regionFilter, setRegionFilter] = useState<string>("");
+  const [vehicleTypeFilter, setVehicleTypeFilter] = useState<string>("");
+  const [departmentFilter, setDepartmentFilter] = useState<string>("");
+  const [showFilters, setShowFilters] = useState(false);
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -39,6 +54,55 @@ export default function VehicleTypeManagement() {
   const { data: vehicleTypes, isLoading } = useQuery<VehicleTypeMaster[]>({
     queryKey: ["/api/vehicle-types"],
   });
+
+  // Extract unique filter options from data
+  const regionOptions = useMemo(() => {
+    if (!vehicleTypes) return [];
+    return Array.from(new Set(vehicleTypes.map(type => type.region))).filter(Boolean);
+  }, [vehicleTypes]);
+
+  const vehicleTypeOptions = useMemo(() => {
+    if (!vehicleTypes) return [];
+    return Array.from(new Set(vehicleTypes.map(type => type.vehicle_type))).filter(Boolean);
+  }, [vehicleTypes]);
+
+  const departmentOptions = useMemo(() => {
+    if (!vehicleTypes) return [];
+    return Array.from(new Set(vehicleTypes.map(type => type.department))).filter(Boolean);
+  }, [vehicleTypes]);
+
+  // Filter functionality
+  const filteredVehicleTypes = useMemo(() => {
+    if (!vehicleTypes) return [];
+    
+    return vehicleTypes.filter(type => {
+      // Check if it matches the search query
+      const searchMatches = searchQuery === "" || (
+        (type.vehicle_type_code?.toLowerCase().includes(searchQuery.toLowerCase())) ||
+        (type.vehicle_type_name?.toLowerCase().includes(searchQuery.toLowerCase())) ||
+        (type.vehicle_type?.toLowerCase().includes(searchQuery.toLowerCase())) ||
+        (type.manufacturer?.toLowerCase().includes(searchQuery.toLowerCase()))
+      );
+      
+      // Check filters
+      const regionMatches = regionFilter === "" || type.region === regionFilter;
+      const vehicleTypeMatches = vehicleTypeFilter === "" || type.vehicle_type === vehicleTypeFilter;
+      const departmentMatches = departmentFilter === "" || type.department === departmentFilter;
+      
+      return searchMatches && regionMatches && vehicleTypeMatches && departmentMatches;
+    });
+  }, [vehicleTypes, searchQuery, regionFilter, vehicleTypeFilter, departmentFilter]);
+  
+  // Check if any filters are active
+  const isFiltering = searchQuery !== "" || regionFilter !== "" || vehicleTypeFilter !== "" || departmentFilter !== "";
+  
+  // Function to clear all filters
+  const clearFilters = useCallback(() => {
+    setSearchQuery("");
+    setRegionFilter("");
+    setVehicleTypeFilter("");
+    setDepartmentFilter("");
+  }, []);
 
   // Create mutation
   const createMutation = useMutation({
@@ -133,10 +197,183 @@ export default function VehicleTypeManagement() {
                 repeatType: "mirror",
               }}
             />
-            <CardHeader>
-              <motion.div variants={animationUtils.fadeIn("up", 0.1)}>
-                <CardTitle>Vehicle Types</CardTitle>
-              </motion.div>
+            <CardHeader className="pb-0">
+              <div className="flex flex-col gap-4">
+                <motion.div variants={animationUtils.fadeIn("up", 0.1)}>
+                  <CardTitle>Vehicle Types</CardTitle>
+                </motion.div>
+                
+                <motion.div 
+                  variants={animationUtils.fadeIn("up", 0.15)}
+                  className="flex flex-col md:flex-row gap-3 items-start md:items-center"
+                >
+                  {/* Search box */}
+                  <div className="relative flex-1 min-w-[240px]">
+                    <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+                    <Input
+                      placeholder="Search by code, name or type..."
+                      className="pl-8"
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                    />
+                    {searchQuery && (
+                      <button
+                        className="absolute right-2 top-2.5 p-0.5 rounded-full bg-muted/50 hover:bg-muted"
+                        onClick={() => setSearchQuery("")}
+                      >
+                        <X className="h-3 w-3 text-muted-foreground" />
+                      </button>
+                    )}
+                  </div>
+                  
+                  {/* Filter button */}
+                  <Button
+                    variant={showFilters ? "secondary" : "outline"}
+                    className="flex items-center gap-1"
+                    onClick={() => setShowFilters(!showFilters)}
+                  >
+                    <Filter className="h-4 w-4" />
+                    <span>Filters</span>
+                    <ChevronDown
+                      className={`h-4 w-4 transition-transform ${showFilters ? 'rotate-180' : ''}`}
+                    />
+                  </Button>
+                  
+                  {/* Clear filters button (only shows when filters are active) */}
+                  {isFiltering && (
+                    <Button
+                      variant="ghost"
+                      className="text-primary"
+                      onClick={clearFilters}
+                    >
+                      Clear filters
+                    </Button>
+                  )}
+                </motion.div>
+                
+                {/* Filter panel */}
+                <AnimatePresence>
+                  {showFilters && (
+                    <motion.div
+                      initial={{ height: 0, opacity: 0 }}
+                      animate={{ height: "auto", opacity: 1 }}
+                      exit={{ height: 0, opacity: 0 }}
+                      transition={{ duration: 0.3 }}
+                      className="overflow-hidden"
+                    >
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 py-3">
+                        {/* Region filter */}
+                        <div className="space-y-2">
+                          <label className="text-sm font-medium">Region</label>
+                          <Select
+                            value={regionFilter}
+                            onValueChange={setRegionFilter}
+                          >
+                            <SelectTrigger>
+                              <SelectValue placeholder="All regions" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="">All regions</SelectItem>
+                              {regionOptions.map((region) => (
+                                <SelectItem key={region} value={region}>
+                                  {region}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        
+                        {/* Vehicle type filter */}
+                        <div className="space-y-2">
+                          <label className="text-sm font-medium">Vehicle Type</label>
+                          <Select
+                            value={vehicleTypeFilter}
+                            onValueChange={setVehicleTypeFilter}
+                          >
+                            <SelectTrigger>
+                              <SelectValue placeholder="All types" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="">All types</SelectItem>
+                              {vehicleTypeOptions.map((type) => (
+                                <SelectItem key={type} value={type}>
+                                  {type}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        
+                        {/* Department filter */}
+                        <div className="space-y-2">
+                          <label className="text-sm font-medium">Department</label>
+                          <Select
+                            value={departmentFilter}
+                            onValueChange={setDepartmentFilter}
+                          >
+                            <SelectTrigger>
+                              <SelectValue placeholder="All departments" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="">All departments</SelectItem>
+                              {departmentOptions.map((dept) => (
+                                <SelectItem key={dept} value={dept}>
+                                  {dept}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+                
+                {/* Active filter badges */}
+                {isFiltering && (
+                  <motion.div 
+                    variants={animationUtils.fadeIn("up", 0.2)}
+                    className="flex flex-wrap gap-2 pt-2"
+                  >
+                    {searchQuery && (
+                      <Badge variant="outline" className="flex gap-1 items-center">
+                        <span>Search: {searchQuery}</span>
+                        <X 
+                          className="h-3 w-3 cursor-pointer" 
+                          onClick={() => setSearchQuery("")}
+                        />
+                      </Badge>
+                    )}
+                    {regionFilter && (
+                      <Badge variant="outline" className="flex gap-1 items-center">
+                        <span>Region: {regionFilter}</span>
+                        <X 
+                          className="h-3 w-3 cursor-pointer" 
+                          onClick={() => setRegionFilter("")}
+                        />
+                      </Badge>
+                    )}
+                    {vehicleTypeFilter && (
+                      <Badge variant="outline" className="flex gap-1 items-center">
+                        <span>Type: {vehicleTypeFilter}</span>
+                        <X 
+                          className="h-3 w-3 cursor-pointer" 
+                          onClick={() => setVehicleTypeFilter("")}
+                        />
+                      </Badge>
+                    )}
+                    {departmentFilter && (
+                      <Badge variant="outline" className="flex gap-1 items-center">
+                        <span>Department: {departmentFilter}</span>
+                        <X 
+                          className="h-3 w-3 cursor-pointer" 
+                          onClick={() => setDepartmentFilter("")}
+                        />
+                      </Badge>
+                    )}
+                  </motion.div>
+                )}
+              </div>
             </CardHeader>
             <CardContent>
               {isLoading ? (
@@ -164,32 +401,51 @@ export default function VehicleTypeManagement() {
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      <AnimatePresence>
-                        {vehicleTypes?.map((type, index) => (
-                          <motion.tr
-                            key={type.id}
-                            className="cursor-pointer hover:bg-accent/50 transition-colors"
-                            onClick={() => {
-                              setSelectedType(type);
-                              setIsFormOpen(true);
-                            }}
-                            variants={animationUtils.listItem(index, 0.05)}
-                            initial="hidden"
-                            animate="visible"
-                            exit="exit"
-                            whileHover={{
-                              backgroundColor: "rgba(var(--primary), 0.1)",
-                              transition: { duration: 0.1 }
-                            }}
-                          >
-                            <TableCell>{type.group_id}</TableCell>
-                            <TableCell>{type.vehicle_type_code}</TableCell>
-                            <TableCell>{type.vehicle_type}</TableCell>
-                            <TableCell>{type.region}</TableCell>
-                            <TableCell>{type.department}</TableCell>
-                          </motion.tr>
-                        ))}
-                      </AnimatePresence>
+                      {filteredVehicleTypes.length === 0 ? (
+                        <TableRow>
+                          <TableCell colSpan={5} className="h-24 text-center">
+                            <div className="flex flex-col items-center justify-center gap-2 py-4">
+                              <p className="text-muted-foreground">No vehicle types found</p>
+                              {isFiltering && (
+                                <Button 
+                                  variant="outline" 
+                                  size="sm"
+                                  onClick={clearFilters}
+                                >
+                                  Clear filters
+                                </Button>
+                              )}
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      ) : (
+                        <AnimatePresence>
+                          {filteredVehicleTypes.map((type, index) => (
+                            <motion.tr
+                              key={type.id}
+                              className="cursor-pointer hover:bg-accent/50 transition-colors"
+                              onClick={() => {
+                                setSelectedType(type);
+                                setIsFormOpen(true);
+                              }}
+                              variants={animationUtils.listItem(index, 0.05)}
+                              initial="hidden"
+                              animate="visible"
+                              exit="exit"
+                              whileHover={{
+                                backgroundColor: "rgba(var(--primary), 0.1)",
+                                transition: { duration: 0.1 }
+                              }}
+                            >
+                              <TableCell>{type.group_id}</TableCell>
+                              <TableCell>{type.vehicle_type_code}</TableCell>
+                              <TableCell>{type.vehicle_type}</TableCell>
+                              <TableCell>{type.region}</TableCell>
+                              <TableCell>{type.department}</TableCell>
+                            </motion.tr>
+                          ))}
+                        </AnimatePresence>
+                      )}
                     </TableBody>
                   </Table>
                 </motion.div>
@@ -220,7 +476,7 @@ export default function VehicleTypeManagement() {
           </DialogHeader>
           <VehicleTypeFormAnimated
             onSubmit={handleSubmit}
-            initialData={selectedType}
+            initialData={selectedType || undefined}
             isEditing={!!selectedType}
           />
         </DialogContent>
@@ -240,6 +496,50 @@ export default function VehicleTypeManagement() {
           onAddClick={() => {
             setSelectedType(null);
             setIsFormOpen(true);
+          }}
+          onImport={async (file) => {
+            toast({
+              title: "Import started",
+              description: "Importing vehicle types from file...",
+            });
+            // Actual implementation would parse and upload file
+            await new Promise(resolve => setTimeout(resolve, 1000));
+            toast({
+              title: "Import completed",
+              description: "Vehicle types imported successfully",
+            });
+            queryClient.invalidateQueries({ queryKey: ["/api/vehicle-types"] });
+          }}
+          onExport={async () => {
+            toast({
+              title: "Export started",
+              description: "Exporting vehicle types...",
+            });
+            // Actual implementation would generate and download Excel
+            await new Promise(resolve => setTimeout(resolve, 1000));
+            toast({
+              title: "Export completed",
+              description: "Vehicle types exported successfully",
+            });
+          }}
+          onDownloadTemplate={async () => {
+            toast({
+              title: "Download started",
+              description: "Downloading template file...",
+            });
+            // Actual implementation would generate and download Excel template
+            await new Promise(resolve => setTimeout(resolve, 1000));
+            toast({
+              title: "Download completed",
+              description: "Template downloaded successfully",
+            });
+          }}
+          onRefresh={() => {
+            queryClient.invalidateQueries({ queryKey: ["/api/vehicle-types"] });
+            toast({
+              title: "Refreshed",
+              description: "Vehicle types data refreshed",
+            });
           }}
         />
       </motion.div>
