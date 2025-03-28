@@ -59,6 +59,18 @@ export function VehicleTypeForm({ onSubmit, initialData, isEditing }: VehicleTyp
   const { data: masterData, isLoading: isMasterDataLoading } = useQuery({
     queryKey: ["/api/vehicle-masters"],
   });
+  
+  // Fetch vehicle groups directly
+  const { data: vehicleGroups } = useQuery({
+    queryKey: ["/api/vehicle-groups"]
+  });
+  
+  // Log data for debugging
+  useEffect(() => {
+    if (vehicleGroups) {
+      console.log("Vehicle groups data:", vehicleGroups);
+    }
+  }, [vehicleGroups]);
 
   // Initialize form
   const form = useForm<InsertVehicleTypeMaster>({
@@ -213,7 +225,7 @@ export function VehicleTypeForm({ onSubmit, initialData, isEditing }: VehicleTyp
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        {masterData?.groups?.map((group) => (
+                        {vehicleGroups?.map((group) => (
                           <SelectItem key={group.id} value={group.id.toString()}>
                             {group.name}
                           </SelectItem>
