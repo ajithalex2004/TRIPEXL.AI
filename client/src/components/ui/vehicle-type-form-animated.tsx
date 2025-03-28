@@ -47,8 +47,10 @@ export function VehicleTypeFormAnimated({ onSubmit, initialData, isEditing }: Ve
     queryKey: ["/api/vehicle-masters"]
   });
   
-  // Fetch vehicle groups directly
-  const { data: vehicleGroups } = useQuery({
+  // Fetch vehicle groups directly with proper typing
+  const { data: vehicleGroups, isLoading: isLoadingGroups, error: groupsError } = useQuery<
+    { id: number; name: string; group_code: string }[]
+  >({
     queryKey: ["/api/vehicle-groups"]
   });
   
@@ -63,7 +65,10 @@ export function VehicleTypeFormAnimated({ onSubmit, initialData, isEditing }: Ve
     if (vehicleGroups) {
       console.log("Vehicle groups data:", vehicleGroups);
     }
-  }, [vehicleGroups]);
+    if (groupsError) {
+      console.error("Error fetching vehicle groups:", groupsError);
+    }
+  }, [vehicleGroups, groupsError]);
 
   // Initialize form
   const form = useForm<InsertVehicleTypeMaster>({
