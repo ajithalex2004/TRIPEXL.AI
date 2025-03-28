@@ -47,8 +47,8 @@ export function VehicleTypeFormAnimated({ onSubmit, initialData, isEditing }: Ve
     queryKey: ["/api/vehicle-masters"]
   });
   
-  // Fetch vehicle groups directly from API
-  const { data: vehicleGroups, isLoading: isLoadingGroups, error: groupsError } = useQuery<
+  // Fetch vehicle groups with explicit typing and data handling
+  const { data: vehicleGroups = [], isLoading: isLoadingGroups, error: groupsError } = useQuery<
     { id: number; name: string; group_code: string }[]
   >({
     queryKey: ["/api/vehicle-groups"]
@@ -246,10 +246,12 @@ export function VehicleTypeFormAnimated({ onSubmit, initialData, isEditing }: Ve
                 placeholder="Select vehicle group"
                 required
                 options={
-                  vehicleGroups?.map(group => ({
-                    value: group.id.toString(),
-                    label: group.name
-                  })) || []
+                  Array.isArray(vehicleGroups) && vehicleGroups.length > 0
+                    ? vehicleGroups.map(group => ({
+                        value: group.id.toString(),
+                        label: group.name || "Unknown"
+                      }))
+                    : [{ value: "0", label: "No groups available" }]
                 }
                 onValueChange={(value) => {
                   console.log("Selected vehicle group:", value);
