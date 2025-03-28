@@ -47,7 +47,7 @@ export function VehicleTypeFormAnimated({ onSubmit, initialData, isEditing }: Ve
     queryKey: ["/api/vehicle-masters"]
   });
   
-  // Fetch vehicle groups directly with proper typing
+  // Fetch vehicle groups directly from API
   const { data: vehicleGroups, isLoading: isLoadingGroups, error: groupsError } = useQuery<
     { id: number; name: string; group_code: string }[]
   >({
@@ -63,7 +63,14 @@ export function VehicleTypeFormAnimated({ onSubmit, initialData, isEditing }: Ve
   
   useEffect(() => {
     if (vehicleGroups) {
-      console.log("Vehicle groups data:", vehicleGroups);
+      console.log("Vehicle groups data in form:", vehicleGroups);
+      console.log("First vehicle group:", vehicleGroups[0]);
+      // Check if the dropdown options will be created correctly
+      const groupOptions = vehicleGroups.map(group => ({
+        value: group.id.toString(),
+        label: group.name
+      }));
+      console.log("Group options for dropdown:", groupOptions);
     }
     if (groupsError) {
       console.error("Error fetching vehicle groups:", groupsError);
