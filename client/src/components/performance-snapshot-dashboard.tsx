@@ -1,5 +1,5 @@
+import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { useState, useMemo, useCallback } from "react";
 import {
   Card,
   CardContent,
@@ -7,105 +7,128 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Loader2 } from "lucide-react";
-import { VehicleTypeMaster } from "@shared/schema";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import {
   BarChart,
   Bar,
+  PieChart,
+  Pie,
+  Cell,
   XAxis,
   YAxis,
   CartesianGrid,
   Tooltip,
   Legend,
   ResponsiveContainer,
-  PieChart,
-  Pie,
-  Cell,
+  LineChart,
+  Line,
 } from "recharts";
-import { QuickFilterBar, FilterOption } from "./ui/quick-filter-bar";
-import { applyFilters, hasActiveFilters, extractUniqueOptions } from "@/lib/filter-utils";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Loader2, Droplets, Gauge, TrendingUp, ArrowUpRight, Ban, AlertTriangle, Info } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
 import { motion } from "framer-motion";
 import * as animationUtils from "@/lib/animation-utils";
 
-const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884d8'];
+// In a real application, we would fetch this from the API
+const mockVehicleTypes = [
+  {
+    id: 1,
+    vehicle_type_name: "Toyota Corolla",
+    vehicle_type_code: "TC-2025",
+    manufacturer: "Toyota",
+    fuel_type: "PETROL",
+    fuel_efficiency: 14.5,  // km/liter
+    idle_fuel_consumption: 0.7, // liters/hour
+    cost_per_km: 0.18, // AED/km
+    co2_emission_factor: 2.31, // kg CO2/liter
+    region: "Dubai",
+    number_of_passengers: 5,
+    model_year: 2025
+  },
+  {
+    id: 2,
+    vehicle_type_name: "Nissan Altima",
+    vehicle_type_code: "NA-2024",
+    manufacturer: "Nissan",
+    fuel_type: "HYBRID",
+    fuel_efficiency: 20.3,
+    idle_fuel_consumption: 0.4,
+    cost_per_km: 0.10,
+    co2_emission_factor: 1.85,
+    region: "Abu Dhabi",
+    number_of_passengers: 5,
+    model_year: 2024
+  },
+  {
+    id: 3,
+    vehicle_type_name: "Mercedes Sprinter",
+    vehicle_type_code: "MS-2025",
+    manufacturer: "Mercedes",
+    fuel_type: "DIESEL",
+    fuel_efficiency: 11.2,
+    idle_fuel_consumption: 1.2,
+    cost_per_km: 0.26,
+    co2_emission_factor: 2.68,
+    region: "Sharjah",
+    number_of_passengers: 14,
+    model_year: 2025
+  },
+  {
+    id: 4,
+    vehicle_type_name: "Tesla Model Y",
+    vehicle_type_code: "TMY-2025",
+    manufacturer: "Tesla",
+    fuel_type: "ELECTRIC",
+    fuel_efficiency: 0, // Electric
+    idle_fuel_consumption: 0, // No idle consumption
+    cost_per_km: 0.05,
+    co2_emission_factor: 0,
+    region: "Dubai",
+    number_of_passengers: 5,
+    model_year: 2025
+  },
+  {
+    id: 5,
+    vehicle_type_name: "Ford Transit",
+    vehicle_type_code: "FT-2024",
+    manufacturer: "Ford",
+    fuel_type: "CNG",
+    fuel_efficiency: 10.8,
+    idle_fuel_consumption: 1.0,
+    cost_per_km: 0.21,
+    co2_emission_factor: 1.81,
+    region: "Ajman",
+    number_of_passengers: 12,
+    model_year: 2024
+  }
+];
+
+const fuelTypeColors = {
+  PETROL: "#f97316",
+  DIESEL: "#0f172a",
+  ELECTRIC: "#06b6d4",
+  HYBRID: "#22c55e",
+  CNG: "#8b5cf6",
+  LPG: "#eab308",
+};
 
 export function PerformanceSnapshotDashboard() {
-  // State for filtering
-  const [searchQuery, setSearchQuery] = useState("");
-  const [filterValues, setFilterValues] = useState<Record<string, string>>({
-    "vehicle_type": "all",
-    "region": "all",
-    "department": "all"
-  });
-
-  // Fetch vehicle types data
-  const { data: vehicleTypes, isLoading: loadingVehicleTypes } = useQuery<VehicleTypeMaster[]>({
+  const [selectedRegion, setSelectedRegion] = useState<string>("all");
+  
+  // In a real implementation, this would fetch data from an API
+  const { data: vehicleTypes, isLoading } = useQuery({
     queryKey: ["/api/vehicle-types"],
+    enabled: false, // Disable actual API call for now
+    initialData: mockVehicleTypes, // Use mock data instead
   });
 
-  // Extract filter options from data
-  const filterOptions = useMemo<FilterOption[]>(() => {
-    if (!vehicleTypes) return [];
-    
-    return [
-      {
-        id: "vehicle_type",
-        label: "Vehicle Type",
-        options: extractUniqueOptions(vehicleTypes, "vehicle_type"),
-        defaultValue: "all"
-      },
-      {
-        id: "region",
-        label: "Region",
-        options: extractUniqueOptions(vehicleTypes, "region"),
-        defaultValue: "all"
-      },
-      {
-        id: "department",
-        label: "Department",
-        options: extractUniqueOptions(vehicleTypes, "department"),
-        defaultValue: "all"
-      }
-    ];
-  }, [vehicleTypes]);
-
-  // Apply filters to data
-  const filteredVehicleTypes = useMemo(() => {
-    if (!vehicleTypes) return [];
-    
-    return applyFilters(
-      vehicleTypes,
-      searchQuery,
-      filterValues,
-      ["vehicle_type_code", "vehicle_type_name", "vehicle_type", "manufacturer"]
-    );
-  }, [vehicleTypes, searchQuery, filterValues]);
-
-  // Check if any filters are active
-  const isFiltering = useMemo(() => {
-    return hasActiveFilters(searchQuery, filterValues);
-  }, [searchQuery, filterValues]);
-
-  // Filter change handler
-  const handleFilterChange = useCallback((filterId: string, value: string) => {
-    setFilterValues(prev => ({
-      ...prev,
-      [filterId]: value
-    }));
-  }, []);
-
-  // Clear all filters
-  const clearAllFilters = useCallback(() => {
-    setSearchQuery("");
-    setFilterValues({
-      "vehicle_type": "all",
-      "region": "all",
-      "department": "all"
-    });
-  }, []);
-
-  if (loadingVehicleTypes) {
+  if (isLoading) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
         <Loader2 className="h-8 w-8 animate-spin" />
@@ -113,245 +136,356 @@ export function PerformanceSnapshotDashboard() {
     );
   }
 
-  if (!vehicleTypes?.length) {
-    return (
-      <div className="text-center py-8">
-        <p>No vehicle data available.</p>
-      </div>
-    );
-  }
+  const filteredVehicleTypes = selectedRegion === "all" 
+    ? vehicleTypes
+    : vehicleTypes.filter((vt) => vt.region === selectedRegion);
 
-  // Calculate metrics
-  const metrics = {
-    totalVehicles: vehicleTypes.length,
-    filteredVehicles: filteredVehicleTypes.length,
-    avgFuelEfficiency: filteredVehicleTypes.length 
-      ? filteredVehicleTypes.reduce((acc, v) => acc + Number(parseFloat(v.fuel_efficiency.toString())), 0) / filteredVehicleTypes.length
-      : 0,
-    avgCostPerKm: filteredVehicleTypes.length 
-      ? filteredVehicleTypes.reduce((acc, v) => {
-          // cost_per_km is a decimal in the DB schema, might come as string or number
-          const cost = typeof v.cost_per_km === 'string' 
-            ? Number(parseFloat(v.cost_per_km)) 
-            : Number(v.cost_per_km);
-          return acc + cost;
-        }, 0) / filteredVehicleTypes.length
-      : 0,
-  };
+  // Prepare data for charts
+  const fuelEfficiencyData = filteredVehicleTypes.map((vt) => ({
+    name: vt.vehicle_type_code,
+    value: Number(vt.fuel_efficiency),
+    fuel_type: vt.fuel_type,
+  }));
 
-  // Prepare data for vehicle type distribution
-  const typeDistribution = filteredVehicleTypes.reduce((acc, vehicle) => {
-    acc[vehicle.vehicle_type] = (acc[vehicle.vehicle_type] || 0) + 1;
+  const costPerKmData = filteredVehicleTypes.map((vt) => ({
+    name: vt.vehicle_type_code,
+    value: Number(vt.cost_per_km),
+    fuel_type: vt.fuel_type,
+  }));
+
+  const co2EmissionsData = filteredVehicleTypes.map((vt) => ({
+    name: vt.vehicle_type_code,
+    value: Number(vt.co2_emission_factor),
+    fuel_type: vt.fuel_type,
+  }));
+
+  const idleFuelConsumptionData = filteredVehicleTypes.map((vt) => ({
+    name: vt.vehicle_type_code,
+    value: Number(vt.idle_fuel_consumption),
+    fuel_type: vt.fuel_type,
+  }));
+
+  // Calculate averages
+  const avgFuelEfficiency = filteredVehicleTypes
+    .filter(vt => vt.fuel_type !== "ELECTRIC") // Exclude electric vehicles
+    .reduce((acc, vt) => acc + Number(vt.fuel_efficiency), 0) / 
+    filteredVehicleTypes.filter(vt => vt.fuel_type !== "ELECTRIC").length;
+
+  const avgCostPerKm = filteredVehicleTypes
+    .reduce((acc, vt) => acc + Number(vt.cost_per_km), 0) / filteredVehicleTypes.length;
+
+  const avgCO2EmissionFactor = filteredVehicleTypes
+    .reduce((acc, vt) => acc + Number(vt.co2_emission_factor), 0) / filteredVehicleTypes.length;
+
+  const fuelTypeCounts = filteredVehicleTypes.reduce((acc, vt) => {
+    acc[vt.fuel_type] = (acc[vt.fuel_type] || 0) + 1;
     return acc;
   }, {} as Record<string, number>);
 
-  const pieChartData = Object.entries(typeDistribution).map(([name, value]) => ({
+  const fuelTypeDistribution = Object.entries(fuelTypeCounts).map(([name, value]) => ({
     name,
     value,
   }));
 
-  // Prepare data for fuel efficiency comparison (limit to top 10 for better visualization)
-  const fuelEfficiencyData = filteredVehicleTypes
-    .slice(0, 10)
-    .map(vehicle => {
-      // Handle fuel_efficiency and cost_per_km which could be strings or decimals
-      const efficiency = typeof vehicle.fuel_efficiency === 'string' 
-        ? Number(parseFloat(vehicle.fuel_efficiency)) 
-        : Number(vehicle.fuel_efficiency);
-      
-      const cost = typeof vehicle.cost_per_km === 'string' 
-        ? Number(parseFloat(vehicle.cost_per_km)) 
-        : Number(vehicle.cost_per_km);
-        
-      return {
-        name: vehicle.vehicle_type_code,
-        efficiency,
-        cost
-      };
-    });
+  const regions = ["Dubai", "Abu Dhabi", "Sharjah", "Ajman", "Fujairah", "Ras Al Khaimah", "Umm Al Quwain"];
 
   return (
-    <motion.div 
+    <motion.div
       initial="hidden"
       animate="visible"
       variants={animationUtils.staggerContainer(0.1, 0.1)}
       className="space-y-6"
     >
-      {/* Quick Filter Bar */}
-      <motion.div variants={animationUtils.fadeIn("up")}>
-        <Card className="backdrop-blur-xl bg-background/60 border border-white/10 shadow-md overflow-hidden">
-          <CardHeader>
-            <CardTitle>Performance Snapshot Dashboard</CardTitle>
-            <CardDescription>Analyze vehicle performance metrics</CardDescription>
+      <motion.div variants={animationUtils.fadeIn("up")} className="flex justify-between items-center">
+        <div>
+          <h2 className="text-2xl font-bold">Fleet Performance</h2>
+          <p className="text-muted-foreground">
+            View key performance metrics across your fleet
+          </p>
+        </div>
+
+        <Select
+          value={selectedRegion}
+          onValueChange={setSelectedRegion}
+        >
+          <SelectTrigger className="w-[180px]">
+            <SelectValue placeholder="Filter by region" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All Regions</SelectItem>
+            {regions.map((region) => (
+              <SelectItem key={region} value={region}>
+                {region}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </motion.div>
+
+      <motion.div variants={animationUtils.fadeIn("up")} className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <Card className="backdrop-blur-xl bg-background/60 border border-white/10 shadow-md">
+          <CardHeader className="pb-2">
+            <div className="flex justify-between items-center">
+              <CardTitle className="text-base font-medium">Avg. Fuel Efficiency</CardTitle>
+              <Droplets className="h-4 w-4 text-primary" />
+            </div>
           </CardHeader>
           <CardContent>
-            <QuickFilterBar
-              searchPlaceholder="Search by code, name, type or manufacturer..."
-              filterOptions={filterOptions}
-              onSearch={setSearchQuery}
-              onFilterChange={handleFilterChange}
-              clearFilters={clearAllFilters}
-              searchValue={searchQuery}
-              filterValues={filterValues}
-              isFiltering={isFiltering}
-            />
+            <div className="text-2xl font-bold">
+              {avgFuelEfficiency.toFixed(2)} km/L
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Higher is better
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card className="backdrop-blur-xl bg-background/60 border border-white/10 shadow-md">
+          <CardHeader className="pb-2">
+            <div className="flex justify-between items-center">
+              <CardTitle className="text-base font-medium">Avg. Cost per KM</CardTitle>
+              <TrendingUp className="h-4 w-4 text-primary" />
+            </div>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">
+              {avgCostPerKm.toFixed(2)} AED
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Lower is better
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card className="backdrop-blur-xl bg-background/60 border border-white/10 shadow-md">
+          <CardHeader className="pb-2">
+            <div className="flex justify-between items-center">
+              <CardTitle className="text-base font-medium">CO₂ Emissions</CardTitle>
+              <Ban className="h-4 w-4 text-destructive" />
+            </div>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">
+              {avgCO2EmissionFactor.toFixed(2)} kg/L
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Lower is better for environment
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card className="backdrop-blur-xl bg-background/60 border border-white/10 shadow-md">
+          <CardHeader className="pb-2">
+            <div className="flex justify-between items-center">
+              <CardTitle className="text-base font-medium">Fleet Distribution</CardTitle>
+              <Gauge className="h-4 w-4 text-primary" />
+            </div>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">
+              {filteredVehicleTypes.length} vehicles
+            </div>
+            <p className="text-xs text-muted-foreground">
+              {Object.keys(fuelTypeCounts).length} different fuel types
+            </p>
           </CardContent>
         </Card>
       </motion.div>
 
-      {/* Filtered status message */}
-      {isFiltering && (
-        <motion.div variants={animationUtils.fadeIn("up")} className="text-sm text-muted-foreground">
-          Showing {filteredVehicleTypes.length} of {vehicleTypes.length} vehicles
-        </motion.div>
-      )}
-
-      {/* No results message */}
-      {isFiltering && filteredVehicleTypes.length === 0 ? (
-        <motion.div variants={animationUtils.fadeIn("up")} className="text-center py-8 bg-background/60 border rounded-lg shadow-sm">
-          <div className="flex flex-col items-center justify-center gap-2 p-8">
-            <p className="text-muted-foreground text-lg">No vehicles match your filters</p>
-            <Button variant="outline" onClick={clearAllFilters} className="mt-2">
-              Clear all filters
-            </Button>
-          </div>
-        </motion.div>
-      ) : (
-        <motion.div 
-          variants={animationUtils.staggerContainer(0.1, 0.1)}
-          className="grid gap-4 md:grid-cols-2 lg:grid-cols-3"
-        >
-          {/* Key Metrics Cards */}
-          <motion.div variants={animationUtils.fadeIn("up")}>
-            <Card className="transition-all hover:shadow-md">
-              <CardHeader>
-                <CardTitle>Total Vehicles</CardTitle>
-                <CardDescription>
-                  {isFiltering 
-                    ? `Showing ${filteredVehicleTypes.length} of ${vehicleTypes.length}`
-                    : "Fleet size overview"
-                  }
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="text-3xl font-bold">
-                  {isFiltering
-                    ? `${filteredVehicleTypes.length} / ${vehicleTypes.length}`
-                    : metrics.totalVehicles
-                  }
+      <motion.div variants={animationUtils.fadeIn("up")}>
+        <Tabs defaultValue="fuel-efficiency" className="space-y-4">
+          <TabsList>
+            <TabsTrigger value="fuel-efficiency">Fuel Efficiency</TabsTrigger>
+            <TabsTrigger value="cost">Cost per KM</TabsTrigger>
+            <TabsTrigger value="emissions">CO₂ Emissions</TabsTrigger>
+            <TabsTrigger value="idle">Idle Consumption</TabsTrigger>
+            <TabsTrigger value="distribution">Fuel Distribution</TabsTrigger>
+          </TabsList>
+          
+          <TabsContent value="fuel-efficiency" className="p-4 border rounded-lg">
+            <h3 className="text-lg font-medium mb-4">Fuel Efficiency by Vehicle Type</h3>
+            <div className="h-[350px]">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart
+                  data={fuelEfficiencyData}
+                  margin={{
+                    top: 5,
+                    right: 30,
+                    left: 20,
+                    bottom: 5,
+                  }}
+                >
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis dataKey="name" />
+                  <YAxis label={{ value: 'km/Litre', angle: -90, position: 'insideLeft' }} />
+                  <Tooltip formatter={(value) => [`${value} km/L`, "Fuel Efficiency"]} />
+                  <Legend />
+                  <Bar dataKey="value">
+                    {fuelEfficiencyData.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={fuelTypeColors[entry.fuel_type as keyof typeof fuelTypeColors]} />
+                    ))}
+                  </Bar>
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+            
+            <div className="mt-4 text-sm text-muted-foreground flex items-center">
+              <Info className="h-4 w-4 mr-2" />
+              <span>Higher values indicate better fuel efficiency. Electric vehicles are not included in this metric.</span>
+            </div>
+          </TabsContent>
+          
+          <TabsContent value="cost" className="p-4 border rounded-lg">
+            <h3 className="text-lg font-medium mb-4">Cost per KM by Vehicle Type</h3>
+            <div className="h-[350px]">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart
+                  data={costPerKmData}
+                  margin={{
+                    top: 5,
+                    right: 30,
+                    left: 20,
+                    bottom: 5,
+                  }}
+                >
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis dataKey="name" />
+                  <YAxis label={{ value: 'AED', angle: -90, position: 'insideLeft' }} />
+                  <Tooltip formatter={(value) => [`${value} AED`, "Cost per KM"]} />
+                  <Legend />
+                  <Bar dataKey="value">
+                    {costPerKmData.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={fuelTypeColors[entry.fuel_type as keyof typeof fuelTypeColors]} />
+                    ))}
+                  </Bar>
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+            
+            <div className="mt-4 text-sm text-muted-foreground flex items-center">
+              <AlertTriangle className="h-4 w-4 mr-2" />
+              <span>Lower values indicate more cost-effective operations. Electric vehicles typically have the lowest cost per km.</span>
+            </div>
+          </TabsContent>
+          
+          <TabsContent value="emissions" className="p-4 border rounded-lg">
+            <h3 className="text-lg font-medium mb-4">CO₂ Emissions by Vehicle Type</h3>
+            <div className="h-[350px]">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart
+                  data={co2EmissionsData}
+                  margin={{
+                    top: 5,
+                    right: 30,
+                    left: 20,
+                    bottom: 5,
+                  }}
+                >
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis dataKey="name" />
+                  <YAxis label={{ value: 'kg CO₂/L', angle: -90, position: 'insideLeft' }} />
+                  <Tooltip formatter={(value) => [`${value} kg CO₂/L`, "Emissions Factor"]} />
+                  <Legend />
+                  <Bar dataKey="value">
+                    {co2EmissionsData.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={fuelTypeColors[entry.fuel_type as keyof typeof fuelTypeColors]} />
+                    ))}
+                  </Bar>
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+            
+            <div className="mt-4 text-sm text-muted-foreground flex items-center">
+              <AlertTriangle className="h-4 w-4 mr-2" />
+              <span>Lower values indicate environmentally friendlier vehicles. Electric vehicles have zero direct emissions.</span>
+            </div>
+          </TabsContent>
+          
+          <TabsContent value="idle" className="p-4 border rounded-lg">
+            <h3 className="text-lg font-medium mb-4">Idle Fuel Consumption by Vehicle Type</h3>
+            <div className="h-[350px]">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart
+                  data={idleFuelConsumptionData}
+                  margin={{
+                    top: 5,
+                    right: 30,
+                    left: 20,
+                    bottom: 5,
+                  }}
+                >
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis dataKey="name" />
+                  <YAxis label={{ value: 'L/hour', angle: -90, position: 'insideLeft' }} />
+                  <Tooltip formatter={(value) => [`${value} L/hour`, "Idle Consumption"]} />
+                  <Legend />
+                  <Bar dataKey="value">
+                    {idleFuelConsumptionData.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={fuelTypeColors[entry.fuel_type as keyof typeof fuelTypeColors]} />
+                    ))}
+                  </Bar>
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+            
+            <div className="mt-4 text-sm text-muted-foreground flex items-center">
+              <Info className="h-4 w-4 mr-2" />
+              <span>Lower values indicate more efficient vehicles during idle. Electric vehicles have zero idle consumption.</span>
+            </div>
+          </TabsContent>
+          
+          <TabsContent value="distribution" className="p-4 border rounded-lg">
+            <h3 className="text-lg font-medium mb-4">Fuel Type Distribution in Fleet</h3>
+            <div className="h-[350px] flex flex-col md:flex-row">
+              <div className="w-full md:w-1/2 h-full">
+                <ResponsiveContainer width="100%" height="100%">
+                  <PieChart>
+                    <Pie
+                      data={fuelTypeDistribution}
+                      cx="50%"
+                      cy="50%"
+                      labelLine={true}
+                      label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
+                      outerRadius={100}
+                      fill="#8884d8"
+                      dataKey="value"
+                    >
+                      {fuelTypeDistribution.map((entry, index) => (
+                        <Cell key={`cell-${index}`} fill={fuelTypeColors[entry.name as keyof typeof fuelTypeColors]} />
+                      ))}
+                    </Pie>
+                    <Tooltip formatter={(value) => [`${value} vehicles`, ""]} />
+                  </PieChart>
+                </ResponsiveContainer>
+              </div>
+              
+              <div className="w-full md:w-1/2 h-full flex flex-col justify-center">
+                <div className="space-y-4">
+                  <h4 className="text-md font-medium">Fuel Type Distribution</h4>
+                  <div className="space-y-2">
+                    {Object.entries(fuelTypeCounts).map(([fuelType, count]) => (
+                      <div key={fuelType} className="flex items-center justify-between">
+                        <div className="flex items-center">
+                          <div 
+                            className="w-3 h-3 rounded-full mr-2" 
+                            style={{ backgroundColor: fuelTypeColors[fuelType as keyof typeof fuelTypeColors] }}
+                          />
+                          <span>{fuelType}</span>
+                        </div>
+                        <Badge variant="outline">{count} vehicles</Badge>
+                      </div>
+                    ))}
+                  </div>
+                  
+                  <div className="text-sm text-muted-foreground pt-4 border-t">
+                    <p>A balanced distribution of fuel types allows for flexibility in assignments based on trip requirements.</p>
+                  </div>
                 </div>
-              </CardContent>
-            </Card>
-          </motion.div>
-
-          <motion.div variants={animationUtils.fadeIn("up")}>
-            <Card className="transition-all hover:shadow-md">
-              <CardHeader>
-                <CardTitle>Average Fuel Efficiency</CardTitle>
-                <CardDescription>
-                  {isFiltering ? "Based on filtered vehicles" : "Across all vehicles"}
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="text-3xl font-bold">
-                  {metrics.avgFuelEfficiency.toFixed(2)} KM/L
-                </div>
-              </CardContent>
-            </Card>
-          </motion.div>
-
-          <motion.div variants={animationUtils.fadeIn("up")}>
-            <Card className="transition-all hover:shadow-md">
-              <CardHeader>
-                <CardTitle>Average Cost per KM</CardTitle>
-                <CardDescription>
-                  {isFiltering ? "Based on filtered vehicles" : "Operating cost overview"}
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="text-3xl font-bold">
-                  ${metrics.avgCostPerKm.toFixed(2)}
-                </div>
-              </CardContent>
-            </Card>
-          </motion.div>
-
-          {/* Vehicle Type Distribution */}
-          <motion.div variants={animationUtils.fadeIn("up")} className="col-span-2">
-            <Card className="transition-all hover:shadow-md h-full">
-              <CardHeader>
-                <CardTitle>Vehicle Type Distribution</CardTitle>
-                <CardDescription>
-                  {isFiltering ? "Based on filtered vehicles" : "Fleet composition breakdown"}
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                {pieChartData.length > 0 ? (
-                  <div className="h-[300px]">
-                    <ResponsiveContainer width="100%" height="100%">
-                      <PieChart>
-                        <Pie
-                          data={pieChartData}
-                          dataKey="value"
-                          nameKey="name"
-                          cx="50%"
-                          cy="50%"
-                          outerRadius={80}
-                          label
-                        >
-                          {pieChartData.map((entry, index) => (
-                            <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                          ))}
-                        </Pie>
-                        <Tooltip />
-                        <Legend />
-                      </PieChart>
-                    </ResponsiveContainer>
-                  </div>
-                ) : (
-                  <div className="flex items-center justify-center h-[300px] text-muted-foreground">
-                    No data available for distribution chart
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          </motion.div>
-
-          {/* Efficiency Comparison */}
-          <motion.div variants={animationUtils.fadeIn("up")} className="col-span-3">
-            <Card className="transition-all hover:shadow-md">
-              <CardHeader>
-                <CardTitle>Efficiency Comparison</CardTitle>
-                <CardDescription>
-                  {isFiltering ? "Based on filtered vehicles (showing up to 10)" : "Fuel efficiency and cost analysis by vehicle type (showing up to 10)"}
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                {fuelEfficiencyData.length > 0 ? (
-                  <div className="h-[300px]">
-                    <ResponsiveContainer width="100%" height="100%">
-                      <BarChart data={fuelEfficiencyData}>
-                        <CartesianGrid strokeDasharray="3 3" />
-                        <XAxis dataKey="name" />
-                        <YAxis yAxisId="left" label={{ value: 'Fuel Efficiency (KM/L)', angle: -90, position: 'insideLeft' }} />
-                        <YAxis yAxisId="right" orientation="right" label={{ value: 'Cost per KM ($)', angle: 90, position: 'insideRight' }} />
-                        <Tooltip />
-                        <Legend />
-                        <Bar yAxisId="left" dataKey="efficiency" fill="#8884d8" name="Fuel Efficiency" />
-                        <Bar yAxisId="right" dataKey="cost" fill="#82ca9d" name="Cost per KM" />
-                      </BarChart>
-                    </ResponsiveContainer>
-                  </div>
-                ) : (
-                  <div className="flex items-center justify-center h-[300px] text-muted-foreground">
-                    No data available for efficiency chart
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          </motion.div>
-        </motion.div>
-      )}
+              </div>
+            </div>
+          </TabsContent>
+        </Tabs>
+      </motion.div>
     </motion.div>
   );
 }

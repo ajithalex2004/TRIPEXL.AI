@@ -4,6 +4,11 @@ import { insertVehicleTypeMasterSchema, vehicleTypeMaster } from "@shared/schema
 import { db } from "../db";
 import { eq } from "drizzle-orm";
 import { vehicleModels, manufacturers, servicePlans, units } from "./masters";
+import { 
+  scheduleFuelPriceUpdates, 
+  runImmediateFuelPriceUpdate, 
+  initializeFuelPrices 
+} from "../services/fuel-price-service";
 
 const router = Router();
 
@@ -265,5 +270,63 @@ router.patch("/api/vehicle-types/:id", async (req, res) => {
     res.status(500).json({ error: error.message });
   }
 });
+
+// Fuel price management endpoints
+router.get("/api/fuel-types", async (_req, res) => {
+  try {
+    console.log("Fetching all fuel types from database");
+    const fuelTypes = await storage.getAllFuelTypes();
+    console.log("Retrieved fuel types:", fuelTypes);
+    res.json(fuelTypes);
+  } catch (error: any) {
+    console.error("Error fetching fuel types:", error);
+    res.status(500).json({ 
+      error: "Failed to fetch fuel types",
+      message: error.message 
+    });
+  }
+});
+
+// Endpoint to manually trigger fuel price update
+router.post("/api/fuel-prices/update", async (_req, res) => {
+  try {
+    console.log("Manually triggering fuel price update");
+    await runImmediateFuelPriceUpdate();
+    console.log("Fuel prices updated successfully");
+    
+    // Return the updated fuel types
+    const updatedFuelTypes = await storage.getAllFuelTypes();
+    res.json({
+      message: "Fuel prices updated successfully",
+      fuelTypes: updatedFuelTypes
+    });
+  } catch (error: any) {
+    console.error("Error updating fuel prices:", error);
+    res.status(500).json({ 
+      error: "Failed to update fuel prices",
+      message: error.message 
+    });
+  }
+});
+
+// Initialize the fuel price update scheduler
+try {
+  console.log("Initializing fuel price service");
+  
+  // Initialize fuel prices
+  initializeFuelPrices()
+    .then(() => {
+      console.log("Initial fuel prices loaded");
+      
+      // Schedule regular updates (runs on the 1st day of each month at 6:00 AM)
+      scheduleFuelPriceUpdates();
+      console.log("Fuel price update scheduler started");
+    })
+    .catch(error => {
+      console.error("Failed to initialize fuel prices:", error);
+    });
+} catch (error) {
+  console.error("Error setting up fuel price service:", error);
+}
 
 export default router;

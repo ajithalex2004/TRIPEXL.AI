@@ -4,7 +4,7 @@ import bcrypt from 'bcryptjs';
 import { type Employee } from '@shared/schema';
 import { type User, type InsertUser } from '@shared/schema';
 import { type OtpVerification, type InsertOtpVerification } from '@shared/schema';
-import { type VehicleTypeMaster, type InsertVehicleTypeMaster } from '@shared/schema';
+import { type VehicleTypeMaster, type InsertVehicleTypeMaster, type FuelType, VehicleFuelType } from '@shared/schema';
 import { db } from "./db";
 import { eq, desc } from "drizzle-orm";
 import * as schema from "@shared/schema";
@@ -82,9 +82,128 @@ export interface IStorage {
   getAllEmployees(): Promise<Employee[]>;
   updateUserPassword(userId: number, hashedPassword: string): Promise<User>;
   initializeDefaultUser(): Promise<void>; // Added method
+  
+  // Fuel-related methods
+  getAllFuelTypes(): Promise<FuelType[]>;
+  updateFuelTypePrice(fuelType: string, price: number): Promise<void>;
+  recalculateVehicleCosts(): Promise<void>;
 }
 
 export class DatabaseStorage implements IStorage {
+  // Fuel-related methods
+  async getAllFuelTypes(): Promise<FuelType[]> {
+    try {
+      console.log("Fetching all fuel types");
+      const fuelTypes = await db.select().from(schema.fuelTypes);
+      console.log("Found fuel types:", fuelTypes);
+      return fuelTypes;
+    } catch (error) {
+      console.error("Error in getAllFuelTypes:", error);
+      throw error;
+    }
+  }
+
+  async updateFuelTypePrice(fuelType: string, price: number): Promise<void> {
+    try {
+      console.log(`Updating price for fuel type ${fuelType} to ${price}`);
+      await db
+        .update(schema.fuelTypes)
+        .set({
+          price: price.toString(),
+          updated_at: new Date(),
+          last_fetched_at: new Date()
+        })
+        .where(eq(schema.fuelTypes.type, fuelType));
+      console.log("Fuel price updated successfully");
+    } catch (error) {
+      console.error(`Error updating fuel price for ${fuelType}:`, error);
+      throw error;
+    }
+  }
+
+  async recalculateVehicleCosts(): Promise<void> {
+    try {
+      console.log("Recalculating vehicle costs and efficiency metrics based on updated fuel prices");
+      
+      // Get all fuel types with their current prices
+      const fuelTypes = await this.getAllFuelTypes();
+      const fuelPriceMap = new Map<string, number>();
+      
+      // Create a map of fuel type to price for quick lookup
+      fuelTypes.forEach(fuel => {
+        fuelPriceMap.set(fuel.type, parseFloat(fuel.price.toString()));
+      });
+
+      // CO2 emission factors for different fuel types (kg CO2 per liter)
+      const co2EmissionFactors: Record<string, number> = {
+        "PETROL": 2.31,
+        "DIESEL": 2.68,
+        "ELECTRIC": 0.0,  // No direct emissions
+        "HYBRID": 1.85,
+        "CNG": 1.81,
+        "LPG": 1.51
+      };
+
+      // Efficiency adjustment factors based on fuel price changes
+      // As fuel prices increase, fuel efficiency might slightly decrease due to quality changes
+      const efficiencyAdjustmentFactor = 0.99; // 1% reduction in efficiency for new fuel
+      
+      // Idle consumption adjustment based on fuel quality and price
+      const idleConsumptionAdjustmentFactor = 1.02; // 2% increase in idle consumption for new fuel
+      
+      // Get all vehicle types
+      const vehicleTypes = await this.getAllVehicleTypes();
+      
+      // Get historical fuel prices for comparison (from previous month)
+      const newDataMonth = new Date().toLocaleString('default', { month: 'long', year: 'numeric' });
+      
+      // Update each vehicle type with the new fuel price and recalculated values
+      for (const vehicleType of vehicleTypes) {
+        const fuelPrice = fuelPriceMap.get(vehicleType.fuel_type);
+        
+        if (fuelPrice) {
+          // Get current values to calculate adjustments
+          const currentFuelEfficiency = parseFloat(vehicleType.fuel_efficiency.toString());
+          const currentIdleConsumption = parseFloat(vehicleType.idle_fuel_consumption?.toString() || "0");
+          
+          // Calculate adjusted efficiency and consumption values
+          const adjustedFuelEfficiency = Math.round(currentFuelEfficiency * efficiencyAdjustmentFactor * 100) / 100;
+          const adjustedIdleConsumption = Math.round(currentIdleConsumption * idleConsumptionAdjustmentFactor * 100) / 100;
+          
+          // Calculate new cost per km based on fuel efficiency and new price
+          const costPerKm = Math.round((fuelPrice / adjustedFuelEfficiency) * 100) / 100;
+          
+          // Get CO2 emission factor for this fuel type
+          const co2Factor = co2EmissionFactors[vehicleType.fuel_type] || 0;
+          
+          console.log(`Updating ${vehicleType.vehicle_type_name} (${vehicleType.vehicle_type_code}):`);
+          console.log(`- Fuel price: ${fuelPrice} AED/liter`);
+          console.log(`- Adjusted fuel efficiency: ${adjustedFuelEfficiency} km/liter`);
+          console.log(`- Adjusted idle consumption: ${adjustedIdleConsumption} liters/hour`);
+          console.log(`- New cost per km: ${costPerKm} AED/km`);
+          console.log(`- CO2 emission factor: ${co2Factor} kg/liter`);
+          
+          // Update the vehicle type with new values
+          await db
+            .update(schema.vehicleTypeMaster)
+            .set({
+              fuel_price_per_litre: fuelPrice.toString(),
+              fuel_efficiency: adjustedFuelEfficiency.toString(),
+              idle_fuel_consumption: adjustedIdleConsumption.toString(),
+              cost_per_km: costPerKm.toString(),
+              co2_emission_factor: co2Factor.toString(),
+              updated_at: new Date()
+            })
+            .where(eq(schema.vehicleTypeMaster.id, vehicleType.id));
+        }
+      }
+      
+      console.log("Vehicle costs, efficiency, and consumption values recalculated successfully");
+    } catch (error) {
+      console.error("Error recalculating vehicle metrics:", error);
+      throw error;
+    }
+  }
   // Vehicle Type Master methods
   async getAllVehicleTypes(): Promise<VehicleTypeMaster[]> {
     try {

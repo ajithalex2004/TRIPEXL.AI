@@ -226,6 +226,18 @@ export const VehicleFuelType = {
   LPG: "LPG"
 } as const;
 
+// Fuel type metadata table for pricing and emissions data
+export const fuelTypes = pgTable("fuel_types", {
+  id: serial("id").primaryKey(),
+  type: varchar("type", { length: 50 }).notNull().unique(),
+  price: decimal("price", { precision: 10, scale: 2 }).notNull().default("0"),
+  co2_factor: decimal("co2_factor", { precision: 10, scale: 2 }).notNull().default("0"),
+  efficiency: decimal("efficiency", { precision: 10, scale: 2 }).default("0"),
+  idle_consumption: decimal("idle_consumption", { precision: 10, scale: 2 }).default("0"),
+  updated_at: timestamp("updated_at").notNull().defaultNow(),
+  last_fetched_at: timestamp("last_fetched_at").notNull().defaultNow(),
+});
+
 export const TransmissionType = {
   MANUAL: "Manual",
   AUTOMATIC: "Automatic",
@@ -442,6 +454,10 @@ export const vehicleTypeMasterRelations = relations(vehicleTypeMaster, ({ one })
   group: one(vehicleGroups, {
     fields: [vehicleTypeMaster.group_id],
     references: [vehicleGroups.id]
+  }),
+  fuelTypeDetails: one(fuelTypes, {
+    fields: [vehicleTypeMaster.fuel_type],
+    references: [fuelTypes.type]
   })
 }));
 
@@ -861,3 +877,5 @@ export type InsertApprovalWorkflow = z.infer<typeof insertApprovalWorkflowSchema
 // Added Vehicle Master type exports here
 export type VehicleMaster = typeof vehicleMaster.$inferSelect;
 export type InsertVehicleMaster = z.infer<typeof insertVehicleMasterSchema>;
+// Add FuelType export
+export type FuelType = typeof fuelTypes.$inferSelect;
