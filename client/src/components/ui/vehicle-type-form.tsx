@@ -67,6 +67,11 @@ export function VehicleTypeForm({ onSubmit, initialData, isEditing }: VehicleTyp
     queryKey: ["/api/vehicle-groups"]
   });
   
+  // Fetch fuel types directly to ensure we have the latest prices
+  const { data: fuelTypes, isLoading: isFuelTypesLoading } = useQuery({
+    queryKey: ["/api/fuel-types"],
+  });
+  
   // Log data for debugging
   useEffect(() => {
     if (vehicleGroups) {
@@ -134,14 +139,25 @@ export function VehicleTypeForm({ onSubmit, initialData, isEditing }: VehicleTyp
 
   // Update fuel-related fields when fuel type changes
   useEffect(() => {
-    if (masterData?.fuelTypes && selectedFuelType) {
+    // First try to get data from direct fuel types API endpoint
+    if (fuelTypes && selectedFuelType) {
+      const fuelData = fuelTypes.find(f => f.type === selectedFuelType);
+      if (fuelData) {
+        form.setValue("fuel_price_per_litre", fuelData.price.toString());
+        form.setValue("co2_emission_factor", fuelData.co2_factor.toString());
+        console.log(`Using direct fuel price data: ${fuelData.price} for ${selectedFuelType}`);
+      }
+    } 
+    // Fall back to master data if direct API call hasn't returned yet
+    else if (masterData?.fuelTypes && selectedFuelType) {
       const fuelData = masterData.fuelTypes.find(f => f.type === selectedFuelType);
       if (fuelData) {
         form.setValue("fuel_price_per_litre", fuelData.price.toString());
         form.setValue("co2_emission_factor", fuelData.co2Factor.toString());
+        console.log(`Using master data fuel price: ${fuelData.price} for ${selectedFuelType}`);
       }
     }
-  }, [selectedFuelType, masterData?.fuelTypes, form]);
+  }, [selectedFuelType, masterData?.fuelTypes, fuelTypes, form]);
 
   // Calculate cost per km
   useEffect(() => {
@@ -313,11 +329,21 @@ export function VehicleTypeForm({ onSubmit, initialData, isEditing }: VehicleTyp
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        {masterData?.fuelTypes?.map((type) => (
-                          <SelectItem key={type.type} value={type.type}>
-                            {type.type}
-                          </SelectItem>
-                        ))}
+                        {/* Prioritize using the directly fetched fuel types */}
+                        {fuelTypes ? (
+                          fuelTypes.map((type) => (
+                            <SelectItem key={type.id} value={type.type}>
+                              {type.type}
+                            </SelectItem>
+                          ))
+                        ) : (
+                          // Fall back to master data if direct API call hasn't returned yet
+                          masterData?.fuelTypes?.map((type) => (
+                            <SelectItem key={type.type} value={type.type}>
+                              {type.type}
+                            </SelectItem>
+                          ))
+                        )}
                       </SelectContent>
                     </Select>
                     <FormMessage />
