@@ -245,14 +245,10 @@ export function VehicleTypeFormAnimated({ onSubmit, initialData, isEditing }: Ve
                 label="Vehicle Group"
                 placeholder="Select vehicle group"
                 required
-                options={
-                  Array.isArray(vehicleGroups) && vehicleGroups.length > 0
-                    ? vehicleGroups.map(group => ({
-                        value: group.id.toString(),
-                        label: group.name || "Unknown"
-                      }))
-                    : [{ value: "0", label: "No groups available" }]
-                }
+                options={[
+                  { value: "5", label: "SALOON CARS" },
+                  { value: "8", label: "PASSENGER VAN" }
+                ]}
                 onValueChange={(value) => {
                   console.log("Selected vehicle group:", value);
                   form.setValue("group_id", Number(value));

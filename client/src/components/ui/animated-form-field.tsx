@@ -343,6 +343,10 @@ export function AnimatedSelectField<T extends FieldValues>({
 }: AnimatedSelectFieldProps<T>) {
   const [isFocused, setIsFocused] = useState(false);
   const id = useId();
+  
+  // Debug logging for options
+  console.log(`AnimatedSelectField (${name}) options:`, options);
+  console.log(`AnimatedSelectField (${name}) options length:`, options ? options.length : 0);
 
   return (
     <motion.div
