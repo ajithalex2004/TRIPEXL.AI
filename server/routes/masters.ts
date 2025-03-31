@@ -4,10 +4,11 @@ import {
   Region, 
   Department, 
   PlateCategory,
-  TransmissionType 
+  TransmissionType,
+  vehicleGroups,
+  fuelTypes as fuelTypesTable
 } from "@shared/schema";
 import { db } from "../db";
-import { vehicleGroups } from "@shared/schema";
 
 const router = Router();
 
@@ -461,15 +462,21 @@ router.get("/api/vehicle-masters", async (_req, res) => {
     const groups = await db.select().from(vehicleGroups);
     console.log("Retrieved vehicle groups:", groups);
 
+    // Fetch real fuel types data from the database
+    const fuelTypesData = await db.select().from(fuelTypesTable);
+    console.log("Retrieved fuel types from database:", fuelTypesData);
+
+    const formattedFuelTypes = fuelTypesData.map(fuelType => ({
+      type: fuelType.type,
+      price: parseFloat(fuelType.price.toString()),
+      co2Factor: parseFloat(fuelType.co2_factor.toString()) 
+    }));
+    
     const masterData = {
       groups,
       manufacturers, // Add manufacturers list
       vehicleModels,
-      fuelTypes: Object.entries(currentFuelPrices).map(([type, price]) => ({
-        type,
-        price,
-        co2Factor: co2EmissionFactors[type] || 0
-      })),
+      fuelTypes: formattedFuelTypes,
       regions: Object.values(Region),
       departments: Object.values(Department),
       servicePlans,

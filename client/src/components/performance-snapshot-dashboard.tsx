@@ -35,79 +35,7 @@ import { Badge } from "@/components/ui/badge";
 import { motion } from "framer-motion";
 import * as animationUtils from "@/lib/animation-utils";
 
-// In a real application, we would fetch this from the API
-const mockVehicleTypes = [
-  {
-    id: 1,
-    vehicle_type_name: "Toyota Corolla",
-    vehicle_type_code: "TC-2025",
-    manufacturer: "Toyota",
-    fuel_type: "PETROL",
-    fuel_efficiency: 14.5,  // km/liter
-    idle_fuel_consumption: 0.7, // liters/hour
-    cost_per_km: 0.18, // AED/km
-    co2_emission_factor: 2.31, // kg CO2/liter
-    region: "Dubai",
-    number_of_passengers: 5,
-    model_year: 2025
-  },
-  {
-    id: 2,
-    vehicle_type_name: "Nissan Altima",
-    vehicle_type_code: "NA-2024",
-    manufacturer: "Nissan",
-    fuel_type: "HYBRID",
-    fuel_efficiency: 20.3,
-    idle_fuel_consumption: 0.4,
-    cost_per_km: 0.10,
-    co2_emission_factor: 1.85,
-    region: "Abu Dhabi",
-    number_of_passengers: 5,
-    model_year: 2024
-  },
-  {
-    id: 3,
-    vehicle_type_name: "Mercedes Sprinter",
-    vehicle_type_code: "MS-2025",
-    manufacturer: "Mercedes",
-    fuel_type: "DIESEL",
-    fuel_efficiency: 11.2,
-    idle_fuel_consumption: 1.2,
-    cost_per_km: 0.26,
-    co2_emission_factor: 2.68,
-    region: "Sharjah",
-    number_of_passengers: 14,
-    model_year: 2025
-  },
-  {
-    id: 4,
-    vehicle_type_name: "Tesla Model Y",
-    vehicle_type_code: "TMY-2025",
-    manufacturer: "Tesla",
-    fuel_type: "ELECTRIC",
-    fuel_efficiency: 0, // Electric
-    idle_fuel_consumption: 0, // No idle consumption
-    cost_per_km: 0.05,
-    co2_emission_factor: 0,
-    region: "Dubai",
-    number_of_passengers: 5,
-    model_year: 2025
-  },
-  {
-    id: 5,
-    vehicle_type_name: "Ford Transit",
-    vehicle_type_code: "FT-2024",
-    manufacturer: "Ford",
-    fuel_type: "CNG",
-    fuel_efficiency: 10.8,
-    idle_fuel_consumption: 1.0,
-    cost_per_km: 0.21,
-    co2_emission_factor: 1.81,
-    region: "Ajman",
-    number_of_passengers: 12,
-    model_year: 2024
-  }
-];
+// Now fetching from API directly
 
 const fuelTypeColors = {
   PETROL: "#f97316",
@@ -121,11 +49,9 @@ const fuelTypeColors = {
 export function PerformanceSnapshotDashboard() {
   const [selectedRegion, setSelectedRegion] = useState<string>("all");
   
-  // In a real implementation, this would fetch data from an API
+  // Fetch actual vehicle type data from API
   const { data: vehicleTypes, isLoading } = useQuery({
     queryKey: ["/api/vehicle-types"],
-    enabled: false, // Disable actual API call for now
-    initialData: mockVehicleTypes, // Use mock data instead
   });
 
   if (isLoading) {

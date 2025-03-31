@@ -39,46 +39,14 @@ interface FuelPriceHistory {
   lpg: number;
 }
 
-// This would typically come from an API
-// For this demo, we'll create a mock history
-const mockHistory: FuelPriceHistory[] = [
-  {
-    month: "Jan 2025",
-    petrol: 2.62,
-    diesel: 2.94,
-    electric: 0.31,
-    hybrid: 2.08,
-    cng: 2.22,
-    lpg: 2.12,
-  },
-  {
-    month: "Feb 2025",
-    petrol: 2.65,
-    diesel: 2.98,
-    electric: 0.32,
-    hybrid: 2.10,
-    cng: 2.26,
-    lpg: 2.15,
-  },
-  {
-    month: "Mar 2025",
-    petrol: 2.68,
-    diesel: 3.01,
-    electric: 0.33,
-    hybrid: 2.15,
-    cng: 2.28,
-    lpg: 2.18,
-  },
-];
+// Now using API data direct from the database
 
 export function FuelPriceHistory() {
   const [selectedFuelType, setSelectedFuelType] = useState<string>("petrol");
 
-  // In a real implementation, this would fetch from an API
+  // Fetch real historical fuel price data from the API
   const { data: history, isLoading } = useQuery<FuelPriceHistory[]>({
     queryKey: ["/api/fuel-prices/history"],
-    enabled: false, // Disable actual API call for this demo
-    initialData: mockHistory, // Use mock data instead
   });
 
   if (isLoading) {
