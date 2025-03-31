@@ -40,6 +40,9 @@ export async function initializeFuelPriceService() {
       // If not, insert default fuel types with current prices
       console.log('No fuel types found, initializing with default values');
       
+      const currentDate = getCurrentDate();
+      console.log(`Using date for initial fuel price history: ${currentDate}`);
+      
       const defaultValues = [
         {
           type: 'Petrol',
@@ -48,7 +51,7 @@ export async function initializeFuelPriceService() {
           efficiency: '12.5',
           emission_factor: '0.24',
           idle_consumption: '0.8',
-          historical_prices: JSON.stringify([{date: new Date().toISOString().split('T')[0], price: defaultFuelPrices.PETROL}])
+          historical_prices: JSON.stringify([{date: currentDate, price: defaultFuelPrices.PETROL}])
         },
         {
           type: 'Diesel',
@@ -57,7 +60,7 @@ export async function initializeFuelPriceService() {
           efficiency: '16.2',
           emission_factor: '0.27',
           idle_consumption: '0.6',
-          historical_prices: JSON.stringify([{date: new Date().toISOString().split('T')[0], price: defaultFuelPrices.DIESEL}])
+          historical_prices: JSON.stringify([{date: currentDate, price: defaultFuelPrices.DIESEL}])
         },
         {
           type: 'Premium',
@@ -66,7 +69,7 @@ export async function initializeFuelPriceService() {
           efficiency: '11.7',
           emission_factor: '0.22',
           idle_consumption: '0.9',
-          historical_prices: JSON.stringify([{date: new Date().toISOString().split('T')[0], price: 3.56}])
+          historical_prices: JSON.stringify([{date: currentDate, price: 3.56}])
         },
         {
           type: 'Electric',
@@ -75,7 +78,7 @@ export async function initializeFuelPriceService() {
           efficiency: '25.0',
           emission_factor: '0.05',
           idle_consumption: '0.1',
-          historical_prices: JSON.stringify([{date: new Date().toISOString().split('T')[0], price: defaultFuelPrices.ELECTRIC}])
+          historical_prices: JSON.stringify([{date: currentDate, price: defaultFuelPrices.ELECTRIC}])
         },
         {
           type: 'Hybrid',
@@ -84,7 +87,7 @@ export async function initializeFuelPriceService() {
           efficiency: '19.8',
           emission_factor: '0.15',
           idle_consumption: '0.5',
-          historical_prices: JSON.stringify([{date: new Date().toISOString().split('T')[0], price: defaultFuelPrices.HYBRID}])
+          historical_prices: JSON.stringify([{date: currentDate, price: defaultFuelPrices.HYBRID}])
         },
         {
           type: 'CNG',
@@ -93,7 +96,7 @@ export async function initializeFuelPriceService() {
           efficiency: '18.9',
           emission_factor: '0.12',
           idle_consumption: '0.4',
-          historical_prices: JSON.stringify([{date: new Date().toISOString().split('T')[0], price: defaultFuelPrices.CNG}])
+          historical_prices: JSON.stringify([{date: currentDate, price: defaultFuelPrices.CNG}])
         },
         {
           type: 'LPG',
@@ -102,7 +105,7 @@ export async function initializeFuelPriceService() {
           efficiency: '17.6',
           emission_factor: '0.14',
           idle_consumption: '0.5',
-          historical_prices: JSON.stringify([{date: new Date().toISOString().split('T')[0], price: defaultFuelPrices.LPG}])
+          historical_prices: JSON.stringify([{date: currentDate, price: defaultFuelPrices.LPG}])
         }
       ];
       
@@ -160,12 +163,8 @@ export async function updateFuelPrices() {
       const fuelType = fuelTypeMap.get(type);
       if (fuelType) {
         // Update price in the database
-        // Let's simulate a different date by setting it to April 1st
-        // We need to use explicit dates for the simulation
-        const useFakeDate = true; // Use this to toggle simulation mode
-        const currentDate = useFakeDate ? 
-          '2025-04-01' : // Simulate April 1st for testing
-          new Date().toISOString().split('T')[0];
+        // Use our global date function
+        const currentDate = getCurrentDate();
         console.log(`Using date for fuel price history: ${currentDate}`);
         let historicalPrices = [];
         
@@ -264,7 +263,7 @@ export async function getFuelPriceHistory() {
             console.warn(`Failed to parse historical prices JSON for ${fuelType.type}:`, parseError);
             // In case of parsing error, use current price as fallback
             historicalPricesData = [{
-              date: new Date().toISOString().split('T')[0],
+              date: getCurrentDate(),
               price: parseFloat(fuelType.price.toString())
             }];
           }
@@ -300,7 +299,9 @@ export async function getFuelPriceHistory() {
     
     // If we don't have enough historical data, add current data
     if (history.length === 0) {
-      const currentMonth = new Date().toLocaleString('default', { month: 'short', year: 'numeric' });
+      const currentDate = getCurrentDate();
+      const date = new Date(currentDate);
+      const currentMonth = date.toLocaleString('default', { month: 'short', year: 'numeric' });
       const currentEntry = { month: currentMonth };
       
       for (const fuelType of fuelTypes) {
