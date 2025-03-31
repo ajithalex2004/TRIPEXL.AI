@@ -263,12 +263,54 @@ export function VehicleTypeFormAnimated({ onSubmit, initialData, isEditing }: Ve
                 required
                 disabled={!selectedManufacturer}
                 options={
-                  selectedManufacturer && masterData?.vehicleModels
-                    ? masterData.vehicleModels[selectedManufacturer].models.map(model => ({
-                        value: model.name,
-                        label: model.name
-                      }))
-                    : []
+                  selectedManufacturer ? (
+                    selectedManufacturer === "Toyota" ? [
+                      { value: "Corolla", label: "Corolla" },
+                      { value: "Land Cruiser", label: "Land Cruiser" },
+                      { value: "Camry", label: "Camry" },
+                      { value: "Prado", label: "Prado" },
+                      { value: "Fortuner", label: "Fortuner" },
+                      { value: "Hiace", label: "Hiace" }
+                    ] : selectedManufacturer === "Nissan" ? [
+                      { value: "Patrol", label: "Patrol" },
+                      { value: "Altima", label: "Altima" },
+                      { value: "Sunny", label: "Sunny" },
+                      { value: "X-Trail", label: "X-Trail" },
+                      { value: "Urvan", label: "Urvan" }
+                    ] : selectedManufacturer === "Mercedes-Benz" ? [
+                      { value: "G-Class", label: "G-Class" },
+                      { value: "GLE", label: "GLE" },
+                      { value: "S-Class", label: "S-Class" },
+                      { value: "Sprinter", label: "Sprinter" }
+                    ] : selectedManufacturer === "BMW" ? [
+                      { value: "X5", label: "X5" },
+                      { value: "X7", label: "X7" },
+                      { value: "7 Series", label: "7 Series" }
+                    ] : selectedManufacturer === "Lexus" ? [
+                      { value: "LX", label: "LX" },
+                      { value: "ES", label: "ES" },
+                      { value: "RX", label: "RX" }
+                    ] : selectedManufacturer === "Land Rover" ? [
+                      { value: "Range Rover", label: "Range Rover" },
+                      { value: "Defender", label: "Defender" }
+                    ] : selectedManufacturer === "Honda" ? [
+                      { value: "Civic", label: "Civic" },
+                      { value: "CR-V", label: "CR-V" },
+                      { value: "Accord", label: "Accord" }
+                    ] : selectedManufacturer === "Mitsubishi" ? [
+                      { value: "Pajero", label: "Pajero" },
+                      { value: "Montero Sport", label: "Montero Sport" },
+                      { value: "L200", label: "L200" }
+                    ] : selectedManufacturer === "Chevrolet" ? [
+                      { value: "Tahoe", label: "Tahoe" },
+                      { value: "Suburban", label: "Suburban" },
+                      { value: "Silverado", label: "Silverado" }
+                    ] : selectedManufacturer === "Ford" ? [
+                      { value: "Expedition", label: "Expedition" },
+                      { value: "F-150", label: "F-150" },
+                      { value: "Explorer", label: "Explorer" }
+                    ] : []
+                  ) : []
                 }
               />
 
@@ -292,12 +334,14 @@ export function VehicleTypeFormAnimated({ onSubmit, initialData, isEditing }: Ve
                 label="Fuel Type"
                 placeholder="Select fuel type"
                 required
-                options={
-                  masterData?.fuelTypes?.map(type => ({
-                    value: type.type,
-                    label: type.type
-                  })) || []
-                }
+                options={[
+                  { value: "PETROL", label: "PETROL" },
+                  { value: "DIESEL", label: "DIESEL" },
+                  { value: "ELECTRIC", label: "ELECTRIC" },
+                  { value: "HYBRID", label: "HYBRID" },
+                  { value: "CNG", label: "CNG" },
+                  { value: "LPG", label: "LPG" }
+                ]}
               />
 
               <AnimatedInputField
@@ -330,12 +374,11 @@ export function VehicleTypeFormAnimated({ onSubmit, initialData, isEditing }: Ve
                 control={form.control}
                 label="Service Plan"
                 placeholder="Select service plan"
-                options={
-                  masterData?.servicePlans?.map(plan => ({
-                    value: plan.code,
-                    label: plan.name
-                  })) || []
-                }
+                options={[
+                  { value: "BASIC", label: "Basic Service Plan" },
+                  { value: "STANDARD", label: "Standard Service Plan" },
+                  { value: "PREMIUM", label: "Premium Service Plan" }
+                ]}
               />
 
               <AnimatedSelectField
@@ -344,12 +387,15 @@ export function VehicleTypeFormAnimated({ onSubmit, initialData, isEditing }: Ve
                 label="Region"
                 placeholder="Select region"
                 required
-                options={
-                  masterData?.regions?.map(region => ({
-                    value: region,
-                    label: region
-                  })) || []
-                }
+                options={[
+                  { value: "Abu Dhabi", label: "Abu Dhabi" },
+                  { value: "Dubai", label: "Dubai" },
+                  { value: "Sharjah", label: "Sharjah" },
+                  { value: "Fujairah", label: "Fujairah" },
+                  { value: "Ajman", label: "Ajman" },
+                  { value: "Ras Al Khaimah", label: "Ras Al Khaimah" },
+                  { value: "Umm Al Quwain", label: "Umm Al Quwain" }
+                ]}
               />
 
               <AnimatedSelectField
@@ -357,12 +403,15 @@ export function VehicleTypeFormAnimated({ onSubmit, initialData, isEditing }: Ve
                 control={form.control}
                 label="Unit"
                 placeholder="Select unit"
-                options={
-                  masterData?.units?.map(unit => ({
-                    value: unit,
-                    label: unit
-                  })) || []
-                }
+                options={[
+                  { value: "Fleet Operations", label: "Fleet Operations" },
+                  { value: "Maintenance", label: "Maintenance" },
+                  { value: "Emergency Response", label: "Emergency Response" },
+                  { value: "Patient Transport", label: "Patient Transport" },
+                  { value: "Special Operations", label: "Special Operations" },
+                  { value: "General Transport", label: "General Transport" },
+                  { value: "VIP Services", label: "VIP Services" }
+                ]}
               />
             </div>
 
@@ -374,12 +423,18 @@ export function VehicleTypeFormAnimated({ onSubmit, initialData, isEditing }: Ve
                 label="Manufacturer"
                 placeholder="Select manufacturer"
                 required
-                options={
-                  masterData?.manufacturers?.map(manufacturer => ({
-                    value: manufacturer,
-                    label: manufacturer
-                  })) || []
-                }
+                options={[
+                  { value: "Toyota", label: "Toyota" },
+                  { value: "Nissan", label: "Nissan" },
+                  { value: "Mercedes-Benz", label: "Mercedes-Benz" },
+                  { value: "BMW", label: "BMW" },
+                  { value: "Lexus", label: "Lexus" },
+                  { value: "Land Rover", label: "Land Rover" },
+                  { value: "Honda", label: "Honda" },
+                  { value: "Mitsubishi", label: "Mitsubishi" },
+                  { value: "Chevrolet", label: "Chevrolet" },
+                  { value: "Ford", label: "Ford" }
+                ]}
                 onValueChange={(value) => {
                   setSelectedManufacturer(value);
                 }}
@@ -450,12 +505,15 @@ export function VehicleTypeFormAnimated({ onSubmit, initialData, isEditing }: Ve
                 label="Department"
                 placeholder="Select department"
                 required
-                options={
-                  masterData?.departments?.map(department => ({
-                    value: department,
-                    label: department
-                  })) || []
-                }
+                options={[
+                  { value: "Operations", label: "Operations" },
+                  { value: "Logistics", label: "Logistics" },
+                  { value: "Medical", label: "Medical" },
+                  { value: "Administration", label: "Administration" },
+                  { value: "Maintenance", label: "Maintenance" },
+                  { value: "Security", label: "Security" },
+                  { value: "Fleet", label: "Fleet" }
+                ]}
               />
 
               <AnimatedInputField
