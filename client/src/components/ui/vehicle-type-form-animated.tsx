@@ -34,6 +34,26 @@ const submissionSteps = [
   }
 ];
 
+// Define fuel constants
+const fuelPrices = {
+  "PETROL": 2.85,
+  "DIESEL": 2.95,
+  "ELECTRIC": 0,
+  "HYBRID": 2.85,
+  "CNG": 2.35,
+  "LPG": 2.25
+};
+
+// Define CO2 emission factors
+const co2EmissionFactors = {
+  "PETROL": 2.31,    // kg CO2/liter
+  "DIESEL": 2.68,    // kg CO2/liter
+  "ELECTRIC": 0,     // Zero direct emissions
+  "HYBRID": 1.85,    // Assumes 20% lower than petrol
+  "CNG": 1.81,       // kg CO2/m³
+  "LPG": 1.51        // kg CO2/liter
+};
+
 export function VehicleTypeFormAnimated({ onSubmit, initialData, isEditing }: VehicleTypeFormProps) {
   const { toast } = useToast();
   const [selectedManufacturer, setSelectedManufacturer] = useState<string>("");
@@ -104,7 +124,7 @@ export function VehicleTypeFormAnimated({ onSubmit, initialData, isEditing }: Ve
   });
 
   // Watch form values
-  const selectedFuelType = form.watch("fuel_type");
+  const watchedFuelType = form.watch("fuel_type");
   const selectedModel = form.watch("vehicle_type");
   const modelYear = form.watch("model_year");
 
@@ -134,14 +154,14 @@ export function VehicleTypeFormAnimated({ onSubmit, initialData, isEditing }: Ve
 
   // Update fuel-related fields when fuel type changes
   useEffect(() => {
-    if (masterData?.fuelTypes && selectedFuelType) {
-      const fuelData = masterData.fuelTypes.find(f => f.type === selectedFuelType);
+    if (masterData?.fuelTypes && watchedFuelType) {
+      const fuelData = masterData.fuelTypes.find(f => f.type === watchedFuelType);
       if (fuelData) {
         form.setValue("fuel_price_per_litre", fuelData.price.toString());
         form.setValue("co2_emission_factor", fuelData.co2Factor.toString());
       }
     }
-  }, [selectedFuelType, masterData?.fuelTypes, form]);
+  }, [watchedFuelType, masterData?.fuelTypes, form]);
 
   // Calculate cost per km
   useEffect(() => {
