@@ -236,6 +236,8 @@ export const fuelTypes = pgTable("fuel_types", {
   idle_consumption: decimal("idle_consumption", { precision: 10, scale: 2 }).default("0"),
   updated_at: timestamp("updated_at").notNull().defaultNow(),
   last_fetched_at: timestamp("last_fetched_at").notNull().defaultNow(),
+  // JSON array to store historical price data with timestamps
+  historical_prices: text("historical_prices").default('[]'),
 });
 
 export const TransmissionType = {

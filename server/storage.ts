@@ -125,25 +125,15 @@ export class DatabaseStorage implements IStorage {
     try {
       console.log("Recalculating vehicle costs and efficiency metrics based on updated fuel prices");
       
-      // Get all fuel types with their current prices
+      // Get all fuel types with their current prices and other metrics
       const fuelTypes = await this.getAllFuelTypes();
-      const fuelPriceMap = new Map<string, number>();
+      const fuelTypeMap = new Map<string, FuelType>();
       
-      // Create a map of fuel type to price for quick lookup
+      // Create maps for all fuel type metrics for quick lookup
       fuelTypes.forEach(fuel => {
-        fuelPriceMap.set(fuel.type, parseFloat(fuel.price.toString()));
+        fuelTypeMap.set(fuel.type, fuel);
       });
-
-      // CO2 emission factors for different fuel types (kg CO2 per liter)
-      const co2EmissionFactors: Record<string, number> = {
-        "PETROL": 2.31,
-        "DIESEL": 2.68,
-        "ELECTRIC": 0.0,  // No direct emissions
-        "HYBRID": 1.85,
-        "CNG": 1.81,
-        "LPG": 1.51
-      };
-
+      
       // Efficiency adjustment factors based on fuel price changes
       // As fuel prices increase, fuel efficiency might slightly decrease due to quality changes
       const efficiencyAdjustmentFactor = 0.99; // 1% reduction in efficiency for new fuel
@@ -154,14 +144,17 @@ export class DatabaseStorage implements IStorage {
       // Get all vehicle types
       const vehicleTypes = await this.getAllVehicleTypes();
       
-      // Get historical fuel prices for comparison (from previous month)
+      // Get current month/year for logging
       const newDataMonth = new Date().toLocaleString('default', { month: 'long', year: 'numeric' });
+      console.log(`Updating vehicle metrics for ${newDataMonth}`);
       
       // Update each vehicle type with the new fuel price and recalculated values
       for (const vehicleType of vehicleTypes) {
-        const fuelPrice = fuelPriceMap.get(vehicleType.fuel_type);
+        const fuelType = fuelTypeMap.get(vehicleType.fuel_type);
         
-        if (fuelPrice) {
+        if (fuelType) {
+          const fuelPrice = parseFloat(fuelType.price.toString());
+          
           // Get current values to calculate adjustments
           const currentFuelEfficiency = parseFloat(vehicleType.fuel_efficiency.toString());
           const currentIdleConsumption = parseFloat(vehicleType.idle_fuel_consumption?.toString() || "0");
@@ -174,7 +167,7 @@ export class DatabaseStorage implements IStorage {
           const costPerKm = Math.round((fuelPrice / adjustedFuelEfficiency) * 100) / 100;
           
           // Get CO2 emission factor for this fuel type
-          const co2Factor = co2EmissionFactors[vehicleType.fuel_type] || 0;
+          const co2Factor = parseFloat(fuelType.co2_factor?.toString() || "0");
           
           console.log(`Updating ${vehicleType.vehicle_type_name} (${vehicleType.vehicle_type_code}):`);
           console.log(`- Fuel price: ${fuelPrice} AED/liter`);
@@ -195,10 +188,42 @@ export class DatabaseStorage implements IStorage {
               updated_at: new Date()
             })
             .where(eq(schema.vehicleTypeMaster.id, vehicleType.id));
+        } else {
+          console.warn(`Fuel type ${vehicleType.fuel_type} not found for vehicle type ${vehicleType.vehicle_type_name}, skipping update`);
         }
       }
       
       console.log("Vehicle costs, efficiency, and consumption values recalculated successfully");
+      
+      // Now update vehicle masters based on their type
+      console.log("Updating vehicle master records with new metrics");
+      const vehicleMasters = await this.getAllVehicleMaster();
+      
+      for (const vehicle of vehicleMasters) {
+        // Find the vehicle type for this vehicle
+        const matchingVehicleTypes = vehicleTypes.filter(vt => vt.id === vehicle.vehicle_type_id);
+        
+        if (matchingVehicleTypes.length > 0) {
+          const vehicleType = matchingVehicleTypes[0];
+          
+          // Update the vehicle master with metrics from its vehicle type
+          await db
+            .update(schema.vehicleMaster)
+            .set({
+              fuel_price_per_litre: vehicleType.fuel_price_per_litre,
+              fuel_efficiency: vehicleType.fuel_efficiency,
+              idle_fuel_consumption: vehicleType.idle_fuel_consumption,
+              cost_per_km: vehicleType.cost_per_km,
+              co2_emission_factor: vehicleType.co2_emission_factor,
+              updated_at: new Date()
+            })
+            .where(eq(schema.vehicleMaster.id, vehicle.id));
+          
+          console.log(`Updated vehicle master ${vehicle.vehicle_number} with new metrics from type ${vehicleType.vehicle_type_name}`);
+        }
+      }
+      
+      console.log("Vehicle master records updated successfully");
     } catch (error) {
       console.error("Error recalculating vehicle metrics:", error);
       throw error;

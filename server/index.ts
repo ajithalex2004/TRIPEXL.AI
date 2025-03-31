@@ -6,6 +6,7 @@ import { sql } from "drizzle-orm";
 import { createServer } from "http";
 import authRouter from "./routes/auth";
 import path from "path";
+import { initializeFuelPriceService } from "./services/fuel-price-service";
 
 // Add global error handlers
 process.on("uncaughtException", (error) => {
@@ -90,6 +91,11 @@ async function initializeServer() {
       throw new Error("Failed to connect to database");
     }
     log("Database connection successful");
+    
+    // Initialize fuel price service
+    log("Initializing fuel price service...");
+    await initializeFuelPriceService();
+    log("Fuel price service initialized successfully");
 
     // Create HTTP server first
     log("Creating HTTP server...");

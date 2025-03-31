@@ -17,6 +17,7 @@ import nodemailer from "nodemailer";
 import crypto from "crypto";
 import { eq, sql } from 'drizzle-orm';
 import mastersRouter from "./routes/masters"; // Added import statement
+import { initializeFuelPriceService, updateFuelPrices, getFuelPriceHistory, triggerFuelPriceUpdate } from "./services/fuel-price-service";
 
 // Configure multer for handling file uploads
 const upload = multer({
@@ -51,6 +52,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
     log("Initializing default user...");
     await storage.initializeDefaultUser();
     log("Default user initialized");
+    
+    // Initialize fuel price service
+    log("Initializing fuel price service...");
+    await initializeFuelPriceService();
+    log("Fuel price service initialized successfully");
 
     // Register vehicle group routes
     log("Registering vehicle group routes...");
@@ -427,6 +433,56 @@ export async function registerRoutes(app: Express): Promise<Server> {
     log("Registering eco-routes...");
     app.use(ecoRoutesRouter);
     log("Eco-routes registered");
+    
+    // Add fuel price endpoints
+    log("Registering fuel price API endpoints...");
+    
+    // Get all fuel types with current prices
+    app.get("/api/fuel-types", async (_req, res) => {
+      try {
+        const fuelTypes = await storage.getAllFuelTypes();
+        res.json(fuelTypes);
+      } catch (error: any) {
+        console.error("Error fetching fuel types:", error);
+        res.status(500).json({ error: "Failed to fetch fuel types" });
+      }
+    });
+    
+    // Get fuel price history
+    app.get("/api/fuel-prices/history", async (_req, res) => {
+      try {
+        const history = await getFuelPriceHistory();
+        res.json(history);
+      } catch (error: any) {
+        console.error("Error fetching fuel price history:", error);
+        res.status(500).json({ error: "Failed to fetch fuel price history" });
+      }
+    });
+    
+    // Trigger manual update of fuel prices (requires admin)
+    app.post("/api/fuel-prices/update", async (req, res) => {
+      try {
+        // TODO: Add proper authentication check here
+        const result = await triggerFuelPriceUpdate();
+        if (result) {
+          res.json({ success: true, message: "Fuel prices updated successfully" });
+        } else {
+          res.status(500).json({ 
+            success: false, 
+            error: "Failed to update fuel prices" 
+          });
+        }
+      } catch (error: any) {
+        console.error("Error updating fuel prices:", error);
+        res.status(500).json({ 
+          success: false, 
+          error: "Error updating fuel prices", 
+          details: error.message 
+        });
+      }
+    });
+    
+    log("Fuel price API endpoints registered");
 
     // Add employee routes
     app.get("/api/employees", async (_req, res) => {

@@ -5,9 +5,9 @@ import { db } from "../db";
 import { eq } from "drizzle-orm";
 import { vehicleModels, manufacturers, servicePlans, units } from "./masters";
 import { 
-  scheduleFuelPriceUpdates, 
-  runImmediateFuelPriceUpdate, 
-  initializeFuelPrices 
+  updateFuelPrices,
+  triggerFuelPriceUpdate,
+  initializeFuelPriceService 
 } from "../services/fuel-price-service";
 
 const router = Router();
@@ -82,14 +82,16 @@ const co2EmissionFactors: Record<string, number> = {
 };
 
 // Enhanced fuel prices endpoint with better error handling
-router.get("/api/fuel-prices", (_req, res) => {
+router.get("/api/fuel-prices", async (_req, res) => {
   try {
-    console.log("Fetching current fuel prices...");
-    console.log("Available fuel types:", Object.keys(currentFuelPrices));
-
+    console.log("Fetching current fuel prices from database...");
+    
+    // Get real fuel prices from the database
+    const fuelTypes = await storage.getAllFuelTypes();
+    
     // Convert response to lowercase keys for consistency
-    const formattedPrices = Object.entries(currentFuelPrices).reduce((acc, [key, value]) => {
-      acc[key.toLowerCase()] = value;
+    const formattedPrices = fuelTypes.reduce((acc, fuelType) => {
+      acc[fuelType.type.toLowerCase()] = parseFloat(fuelType.price.toString());
       return acc;
     }, {} as Record<string, number>);
 
@@ -291,7 +293,7 @@ router.get("/api/fuel-types", async (_req, res) => {
 router.post("/api/fuel-prices/update", async (_req, res) => {
   try {
     console.log("Manually triggering fuel price update");
-    await runImmediateFuelPriceUpdate();
+    await triggerFuelPriceUpdate();
     console.log("Fuel prices updated successfully");
     
     // Return the updated fuel types
@@ -308,25 +310,5 @@ router.post("/api/fuel-prices/update", async (_req, res) => {
     });
   }
 });
-
-// Initialize the fuel price update scheduler
-try {
-  console.log("Initializing fuel price service");
-  
-  // Initialize fuel prices
-  initializeFuelPrices()
-    .then(() => {
-      console.log("Initial fuel prices loaded");
-      
-      // Schedule regular updates (runs on the 1st day of each month at 6:00 AM)
-      scheduleFuelPriceUpdates();
-      console.log("Fuel price update scheduler started");
-    })
-    .catch(error => {
-      console.error("Failed to initialize fuel prices:", error);
-    });
-} catch (error) {
-  console.error("Error setting up fuel price service:", error);
-}
 
 export default router;
