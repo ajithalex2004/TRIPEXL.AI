@@ -116,7 +116,9 @@ export function VehicleTypeForm({ onSubmit, initialData, isEditing }: VehicleTyp
   // Auto-generate vehicle type code
   useEffect(() => {
     if (selectedManufacturer && selectedModel && modelYear) {
-      const typeCode = `${selectedManufacturer}-${selectedModel}-${modelYear}`.toUpperCase();
+      // Generate a unique code including a timestamp for uniqueness
+      const timestamp = new Date().getTime().toString().substring(9, 13); // Last 4 digits of timestamp
+      const typeCode = `${selectedManufacturer.substring(0,3)}-${selectedModel.substring(0,3)}-${modelYear}-${timestamp}`.toUpperCase();
       form.setValue("vehicle_type_code", typeCode);
     }
   }, [selectedManufacturer, selectedModel, modelYear, form]);
@@ -141,16 +143,37 @@ export function VehicleTypeForm({ onSubmit, initialData, isEditing }: VehicleTyp
   useEffect(() => {
     // First try to get data from direct fuel types API endpoint
     if (fuelTypes && selectedFuelType) {
-      const fuelData = fuelTypes.find(f => f.type === selectedFuelType);
+      // Abu Dhabi fuel pricing - case insensitive match
+      const fuelData = fuelTypes.find(f => 
+        f.type.toLowerCase() === selectedFuelType.toLowerCase()
+      );
+      
       if (fuelData) {
+        // Set fuel price per litre (current Abu Dhabi price)
         form.setValue("fuel_price_per_litre", fuelData.price.toString());
+        
+        // Set CO2 emission factor
         form.setValue("co2_emission_factor", fuelData.co2_factor.toString());
-        console.log(`Using direct fuel price data: ${fuelData.price} for ${selectedFuelType}`);
+        
+        // Set fuel efficiency if available
+        if (fuelData.efficiency) {
+          form.setValue("fuel_efficiency", fuelData.efficiency.toString());
+        }
+        
+        // Set idle fuel consumption if available
+        if (fuelData.idle_consumption) {
+          form.setValue("idle_fuel_consumption", fuelData.idle_consumption.toString());
+        }
+        
+        console.log(`Using Abu Dhabi fuel price data: ${fuelData.price} AED/L for ${selectedFuelType}`);
       }
     } 
     // Fall back to master data if direct API call hasn't returned yet
     else if (masterData?.fuelTypes && selectedFuelType) {
-      const fuelData = masterData.fuelTypes.find(f => f.type === selectedFuelType);
+      const fuelData = masterData.fuelTypes.find(f => 
+        f.type.toLowerCase() === selectedFuelType.toLowerCase()
+      );
+      
       if (fuelData) {
         form.setValue("fuel_price_per_litre", fuelData.price.toString());
         form.setValue("co2_emission_factor", fuelData.co2Factor.toString());
