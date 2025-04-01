@@ -47,9 +47,16 @@ export function VehicleTypeForm({ onSubmit, initialData, isEditing = false }: Ve
   });
 
   // Fetch master data for dropdowns
-  const { data: masterData } = useQuery<any>({
-    queryKey: ["/api/masters"]
+  const { data: masterData, isLoading: isLoadingMasterData } = useQuery<any>({
+    queryKey: ["/api/vehicle-masters"]
   });
+  
+  // For debugging
+  useEffect(() => {
+    if (masterData) {
+      console.log("Fetched master data:", masterData);
+    }
+  }, [masterData]);
 
   // Fetch fuel types directly from API
   const { data: fuelTypes } = useQuery<FuelTypeData[]>({
