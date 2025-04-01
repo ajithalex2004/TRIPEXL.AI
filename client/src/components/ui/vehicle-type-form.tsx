@@ -369,23 +369,61 @@ export function VehicleTypeForm({ onSubmit, initialData, isEditing }: VehicleTyp
                         
                         // Immediately try to set fuel price when fuel type changes
                         if (fuelTypes) {
+                          console.log("Looking for fuel type:", value);
+                          console.log("Available fuel types:", fuelTypes);
+                          
                           const selectedFuelData = fuelTypes.find(ft => 
                             ft.type.toLowerCase() === value.toLowerCase()
                           );
                           
                           if (selectedFuelData) {
                             console.log("Auto-setting fuel data:", selectedFuelData);
-                            form.setValue("fuel_price_per_litre", selectedFuelData.price);
-                            form.setValue("co2_emission_factor", selectedFuelData.co2_factor);
                             
-                            if (selectedFuelData.efficiency) {
-                              form.setValue("fuel_efficiency", selectedFuelData.efficiency);
+                            // Convert string values to numbers
+                            const price = typeof selectedFuelData.price === 'string' 
+                              ? parseFloat(selectedFuelData.price) 
+                              : selectedFuelData.price;
+                              
+                            const co2Factor = typeof selectedFuelData.co2_factor === 'string'
+                              ? parseFloat(selectedFuelData.co2_factor)
+                              : selectedFuelData.co2_factor;
+                              
+                            const efficiency = typeof selectedFuelData.efficiency === 'string'
+                              ? parseFloat(selectedFuelData.efficiency)
+                              : selectedFuelData.efficiency;
+                              
+                            const idleConsumption = typeof selectedFuelData.idle_consumption === 'string'
+                              ? parseFloat(selectedFuelData.idle_consumption)
+                              : selectedFuelData.idle_consumption;
+                            
+                            console.log("Setting numeric values:", {
+                              price,
+                              co2Factor,
+                              efficiency,
+                              idleConsumption
+                            });
+                            
+                            form.setValue("fuel_price_per_litre", price);
+                            form.setValue("co2_emission_factor", co2Factor);
+                            
+                            if (efficiency) {
+                              form.setValue("fuel_efficiency", efficiency);
                             }
                             
-                            if (selectedFuelData.idle_consumption) {
-                              form.setValue("idle_fuel_consumption", selectedFuelData.idle_consumption);
+                            if (idleConsumption) {
+                              form.setValue("idle_fuel_consumption", idleConsumption);
                             }
+                            
+                            // Immediately calculate cost per km
+                            if (price && efficiency) {
+                              const costPerKm = price / efficiency;
+                              form.setValue("cost_per_km", parseFloat(costPerKm.toFixed(2)));
+                            }
+                          } else {
+                            console.log("No matching fuel type found for:", value);
                           }
+                        } else {
+                          console.log("No fuel types data available yet");
                         }
                       }} 
                       value={field.value}
@@ -400,7 +438,7 @@ export function VehicleTypeForm({ onSubmit, initialData, isEditing }: VehicleTyp
                         {fuelTypes ? (
                           fuelTypes.map((type) => (
                             <SelectItem key={type.id} value={type.type}>
-                              {type.type}
+                              {type.type} - {type.price} AED/L
                             </SelectItem>
                           ))
                         ) : (
