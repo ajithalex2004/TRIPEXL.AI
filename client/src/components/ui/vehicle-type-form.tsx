@@ -1,9 +1,10 @@
-import { useState, useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
-import { useQuery } from "@tanstack/react-query";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { InsertVehicleTypeMaster, insertVehicleTypeMasterSchema, VehicleTypeMaster } from "@shared/schema";
-import { apiRequest } from "@/lib/queryClient";
+import { useQuery } from "@tanstack/react-query";
+import { insertVehicleTypeMasterSchema, type InsertVehicleTypeMaster, type VehicleTypeMaster } from "@shared/schema";
+
+import { Button } from "./button";
 import {
   Form,
   FormControl,
@@ -11,19 +12,21 @@ import {
   FormItem,
   FormLabel,
   FormMessage,
-} from "@/components/ui/form";
-import { Input } from "@/components/ui/input";
+} from "./form";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select";
-import { Button } from "@/components/ui/button";
+} from "./select";
+import { Input } from "./input";
 import { useToast } from "@/hooks/use-toast";
+import {
+  Dialog,
+  DialogContent,
+} from "./dialog";
 import { ProgressIndicator } from "./progress-indicator";
-import { Dialog, DialogContent } from "./dialog";
 
 interface VehicleTypeFormProps {
   onSubmit: (data: InsertVehicleTypeMaster) => Promise<void>;
@@ -31,70 +34,49 @@ interface VehicleTypeFormProps {
   isEditing?: boolean;
 }
 
-// Define submission steps
-const submissionSteps = [
-  {
-    label: "Validating Form Data",
-    description: "Ensuring all required fields are properly filled"
-  },
-  {
-    label: "Processing Vehicle Information",
-    description: "Preparing vehicle type data for submission"
-  },
-  {
-    label: "Saving Vehicle Type",
-    description: "Creating new vehicle type"
-  }
-];
+// FuelTypeData interface to ensure proper typing
+interface FuelTypeData {
+  id: number;
+  type: string;
+  price: string | number;
+  co2_factor: string | number;
+  efficiency: string | number;
+  idle_consumption: string | number;
+  updated_at: string;
+  last_fetched_at: string;
+  historical_prices: Array<{date: string, price: number}>;
+}
 
-export function VehicleTypeForm({ onSubmit, initialData, isEditing }: VehicleTypeFormProps) {
+export function VehicleTypeForm({ onSubmit, initialData, isEditing = false }: VehicleTypeFormProps) {
   const { toast } = useToast();
-  const [selectedManufacturer, setSelectedManufacturer] = useState<string>("");
-  const [submissionStatus, setSubmissionStatus] = useState<"idle" | "submitting" | "success" | "error">("idle");
-  const [currentStep, setCurrentStep] = useState(0);
-  const [submissionError, setSubmissionError] = useState<string>();
+  const [selectedManufacturer, setSelectedManufacturer] = useState<string>(initialData?.manufacturer || "");
   const [showProgress, setShowProgress] = useState(false);
+  const [currentStep, setCurrentStep] = useState(0);
+  const [submissionStatus, setSubmissionStatus] = useState<"idle" | "submitting" | "success" | "error">("idle");
+  const [submissionError, setSubmissionError] = useState<string | undefined>();
 
-  // Fetch master data
-  const { data: masterData, isLoading: isMasterDataLoading } = useQuery({
-    queryKey: ["/api/vehicle-masters"],
+  const submissionSteps = [
+    { label: "Validating Data", description: "Validating form data" },
+    { label: "Processing", description: "Processing vehicle information" },
+    { label: "Saving", description: "Saving vehicle type" },
+  ];
+
+  // Master data for manufacturers, models, etc.
+  const { data: masterData } = useQuery<any>({
+    queryKey: ["/api/masters/vehicle-data"]
   });
-  
-  // Fetch vehicle groups directly with proper typing
-  const { data: vehicleGroups, isLoading: isLoadingGroups, error: groupsError } = useQuery<
-    { id: number; name: string; group_code: string }[]
-  >({
+
+  // Fetch vehicle groups for dropdown
+  const { data: vehicleGroups, error: groupsError } = useQuery<any[]>({
     queryKey: ["/api/vehicle-groups"]
   });
-  
-  // Fetch fuel types directly to ensure we have the latest prices
-  const { data: fuelTypes, isLoading: isFuelTypesLoading } = useQuery<any[]>({
+
+  // Fetch fuel types directly from API
+  const { data: fuelTypes } = useQuery<FuelTypeData[]>({
     queryKey: ["/api/fuel-types"]
   });
-  
-  // Log fuel types data when it's loaded
-  useEffect(() => {
-    if (fuelTypes) {
-      console.log("Fuel types loaded successfully:", fuelTypes);
-    }
-  }, [fuelTypes]);
-  
-  // Log data for debugging
-  useEffect(() => {
-    if (vehicleGroups) {
-      console.log("Vehicle groups data:", vehicleGroups);
-    }
-    if (groupsError) {
-      console.error("Error fetching vehicle groups:", groupsError);
-    }
-    
-    // Debug fuel types data
-    if (fuelTypes) {
-      console.log("Fuel types data received:", fuelTypes);
-    }
-  }, [vehicleGroups, groupsError, fuelTypes]);
 
-  // Initialize form
+  // Initialize form with the correct types that match the zod schema
   const form = useForm<InsertVehicleTypeMaster>({
     resolver: zodResolver(insertVehicleTypeMasterSchema),
     defaultValues: {
@@ -105,18 +87,18 @@ export function VehicleTypeForm({ onSubmit, initialData, isEditing }: VehicleTyp
       manufacturer: initialData?.manufacturer || "",
       model_year: initialData?.model_year || new Date().getFullYear(),
       number_of_passengers: initialData?.number_of_passengers || 0,
-      region: initialData?.region || "",
-      fuel_efficiency: initialData?.fuel_efficiency || "0",
-      fuel_price_per_litre: initialData?.fuel_price_per_litre || "0",
-      fuel_type: initialData?.fuel_type || "",
+      region: initialData?.region || "ABU_DHABI", // Default region
+      fuel_efficiency: initialData?.fuel_efficiency ? Number(initialData.fuel_efficiency) : 0,
+      fuel_price_per_litre: initialData?.fuel_price_per_litre ? Number(initialData.fuel_price_per_litre) : 0,
+      fuel_type: initialData?.fuel_type || "SPECIAL_95", // Default fuel type
       service_plan: initialData?.service_plan || "",
       cost_per_km: initialData?.cost_per_km || 0,
-      department: initialData?.department || "",
+      department: initialData?.department || "FLEET", // Default department
       unit: initialData?.unit || "",
       alert_before: initialData?.alert_before || 0,
-      idle_fuel_consumption: initialData?.idle_fuel_consumption || "0",
+      idle_fuel_consumption: initialData?.idle_fuel_consumption ? Number(initialData.idle_fuel_consumption) : 0,
       vehicle_capacity: initialData?.vehicle_capacity || 0,
-      co2_emission_factor: initialData?.co2_emission_factor || "0"
+      co2_emission_factor: initialData?.co2_emission_factor ? Number(initialData.co2_emission_factor) : 0
     }
   });
 
@@ -139,7 +121,7 @@ export function VehicleTypeForm({ onSubmit, initialData, isEditing }: VehicleTyp
   useEffect(() => {
     if (masterData?.vehicleModels && selectedManufacturer && selectedModel) {
       const modelData = masterData.vehicleModels[selectedManufacturer]?.models.find(
-        m => m.name === selectedModel
+        (m: any) => m.name === selectedModel
       );
 
       if (modelData) {
@@ -149,73 +131,24 @@ export function VehicleTypeForm({ onSubmit, initialData, isEditing }: VehicleTyp
         form.setValue("number_of_passengers", modelData.passengerCapacity);
       }
     }
-  }, [selectedManufacturer, selectedModel, masterData?.vehicleModels, form]);
+  }, [selectedManufacturer, selectedModel, masterData, form]);
 
-  // This useEffect is only here as a fallback safety - the direct set in onValueChange is the primary method
-  // for setting fuel-related fields when fuel type changes
+  // Calculate cost per km when fuel price or efficiency changes
   useEffect(() => {
-    // Only run if the fuel price is not already set
-    const currentFuelPrice = form.watch("fuel_price_per_litre");
-    if (currentFuelPrice === "0" || currentFuelPrice === 0 || currentFuelPrice === "") {
-      console.log("Fallback fuel data setting via useEffect");
-      console.log("Fuel type selected:", selectedFuelType);
-      console.log("Available fuel types data:", fuelTypes);
-      
-      // First try to get data from direct fuel types API endpoint
-      if (fuelTypes && selectedFuelType) {
-        // Abu Dhabi fuel pricing - case insensitive match
-        const fuelData = fuelTypes.find(f => 
-          f.type.toLowerCase() === selectedFuelType.toLowerCase()
-        );
-        
-        console.log("Found fuel data:", fuelData);
-        
-        if (fuelData) {
-          // Set fuel price per litre (current Abu Dhabi price)
-          form.setValue("fuel_price_per_litre", fuelData.price);
-          console.log("Setting fuel price to:", fuelData.price);
-          
-          // Set CO2 emission factor
-          form.setValue("co2_emission_factor", fuelData.co2_factor);
-          
-          // Set fuel efficiency if available
-          if (fuelData.efficiency) {
-            form.setValue("fuel_efficiency", fuelData.efficiency);
-          }
-          
-          // Set idle fuel consumption if available
-          if (fuelData.idle_consumption) {
-            form.setValue("idle_fuel_consumption", fuelData.idle_consumption);
-          }
-          
-          console.log(`Using Abu Dhabi fuel price data: ${fuelData.price} AED/L for ${selectedFuelType}`);
-        }
-      } 
-      // Fall back to master data if direct API call hasn't returned yet
-      else if (masterData?.fuelTypes && selectedFuelType) {
-        const fuelData = masterData.fuelTypes.find(f => 
-          f.type.toLowerCase() === selectedFuelType.toLowerCase()
-        );
-        
-        if (fuelData) {
-          form.setValue("fuel_price_per_litre", fuelData.price.toString());
-          form.setValue("co2_emission_factor", fuelData.co2Factor.toString());
-          console.log(`Using master data fuel price: ${fuelData.price} for ${selectedFuelType}`);
-        }
-      }
-    }
-  }, [selectedFuelType, masterData?.fuelTypes, fuelTypes, form]);
-
-  // Calculate cost per km
-  useEffect(() => {
-    const fuelPrice = Number(form.watch("fuel_price_per_litre"));
-    const fuelEfficiency = Number(form.watch("fuel_efficiency"));
-    if (fuelPrice && fuelEfficiency && fuelEfficiency > 0) {
-      const costPerKm = Number((fuelPrice / fuelEfficiency).toFixed(2));
+    const fuelPrice = form.watch("fuel_price_per_litre");
+    const fuelEfficiency = form.watch("fuel_efficiency");
+    
+    // Ensure values are numbers
+    const priceValue = typeof fuelPrice === 'string' ? parseFloat(fuelPrice) : fuelPrice;
+    const efficiencyValue = typeof fuelEfficiency === 'string' ? parseFloat(fuelEfficiency) : fuelEfficiency;
+    
+    if (priceValue && efficiencyValue && efficiencyValue > 0) {
+      const costPerKm = Number((priceValue / efficiencyValue).toFixed(2));
       form.setValue("cost_per_km", costPerKm);
     }
   }, [form.watch("fuel_price_per_litre"), form.watch("fuel_efficiency"), form]);
 
+  // Handle form submission
   const handleSubmit = async (data: InsertVehicleTypeMaster) => {
     try {
       setSubmissionStatus("submitting");
@@ -324,7 +257,7 @@ export function VehicleTypeForm({ onSubmit, initialData, isEditing }: VehicleTyp
                       </FormControl>
                       <SelectContent>
                         {selectedManufacturer && masterData?.vehicleModels &&
-                          masterData.vehicleModels[selectedManufacturer].models.map((model) => (
+                          masterData.vehicleModels[selectedManufacturer].models.map((model: any) => (
                             <SelectItem key={model.name} value={model.name}>
                               {model.name}
                             </SelectItem>
@@ -336,31 +269,7 @@ export function VehicleTypeForm({ onSubmit, initialData, isEditing }: VehicleTyp
                 )}
               />
 
-              {/* Vehicle Category */}
-              <FormField
-                control={form.control}
-                name="vehicle_category"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Vehicle Category *</FormLabel>
-                    <Select onValueChange={field.onChange} value={field.value}>
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select category" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        {["SEDAN", "SUV", "VAN", "BUS", "TRUCK", "AMBULANCE"].map((category) => (
-                          <SelectItem key={category} value={category}>
-                            {category}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+
 
               {/* Fuel Type */}
               <FormField
@@ -371,89 +280,55 @@ export function VehicleTypeForm({ onSubmit, initialData, isEditing }: VehicleTyp
                     <FormLabel>Fuel Type *</FormLabel>
                     <Select 
                       onValueChange={(value) => {
+                        // Set the form value
                         field.onChange(value);
                         console.log("Fuel type selected:", value);
                         
-                        // Create a direct timeout to ensure the React rendering cycle has completed
-                        setTimeout(() => {
-                          try {
-                            // Using direct DOM manipulation as a last resort
-                            if (fuelTypes) {
-                              console.log("Looking for fuel type after timeout:", value);
+                        // Find selected fuel data and set related fields
+                        if (fuelTypes && fuelTypes.length > 0) {
+                          const selectedFuelData = fuelTypes.find(ft => 
+                            ft.type.toLowerCase() === value.toLowerCase()
+                          );
+                          
+                          if (selectedFuelData) {
+                            console.log("Found fuel data:", selectedFuelData);
+                            
+                            // Convert values to proper types
+                            const price = typeof selectedFuelData.price === 'string' 
+                              ? parseFloat(selectedFuelData.price) 
+                              : selectedFuelData.price;
                               
-                              const selectedFuelData = fuelTypes.find(ft => 
-                                ft.type.toLowerCase() === value.toLowerCase()
-                              );
+                            const co2Factor = typeof selectedFuelData.co2_factor === 'string'
+                              ? parseFloat(selectedFuelData.co2_factor)
+                              : selectedFuelData.co2_factor;
                               
-                              if (selectedFuelData) {
-                                console.log("Found fuel data in setTimeout:", selectedFuelData);
-                                
-                                // Direct form value updates
-                                const priceInput = document.querySelector('input[name="fuel_price_per_litre"]') as HTMLInputElement;
-                                const co2Input = document.querySelector('input[name="co2_emission_factor"]') as HTMLInputElement;
-                                const efficiencyInput = document.querySelector('input[name="fuel_efficiency"]') as HTMLInputElement;
-                                const consumptionInput = document.querySelector('input[name="idle_fuel_consumption"]') as HTMLInputElement;
-                                
-                                if (priceInput) {
-                                  priceInput.value = selectedFuelData.price.toString();
-                                  console.log("Set price input directly:", selectedFuelData.price);
-                                  
-                                  // Trigger change event
-                                  const event = new Event('input', { bubbles: true });
-                                  priceInput.dispatchEvent(event);
-                                }
-                                
-                                if (co2Input) {
-                                  co2Input.value = selectedFuelData.co2_factor.toString();
-                                  const event = new Event('input', { bubbles: true });
-                                  co2Input.dispatchEvent(event);
-                                }
-                                
-                                if (efficiencyInput && selectedFuelData.efficiency) {
-                                  efficiencyInput.value = selectedFuelData.efficiency.toString();
-                                  const event = new Event('input', { bubbles: true });
-                                  efficiencyInput.dispatchEvent(event);
-                                }
-                                
-                                if (consumptionInput && selectedFuelData.idle_consumption) {
-                                  consumptionInput.value = selectedFuelData.idle_consumption.toString();
-                                  const event = new Event('input', { bubbles: true });
-                                  consumptionInput.dispatchEvent(event);
-                                }
-                                
-                                // Also update form state
-                                form.setValue("fuel_price_per_litre", selectedFuelData.price);
-                                form.setValue("co2_emission_factor", selectedFuelData.co2_factor);
-                                
-                                if (selectedFuelData.efficiency) {
-                                  form.setValue("fuel_efficiency", selectedFuelData.efficiency);
-                                }
-                                
-                                if (selectedFuelData.idle_consumption) {
-                                  form.setValue("idle_fuel_consumption", selectedFuelData.idle_consumption);
-                                }
-                                
-                                // Calculate cost per km
-                                if (selectedFuelData.price && selectedFuelData.efficiency) {
-                                  const price = parseFloat(selectedFuelData.price.toString());
-                                  const efficiency = parseFloat(selectedFuelData.efficiency.toString());
-                                  const costPerKm = price / efficiency;
-                                  
-                                  form.setValue("cost_per_km", parseFloat(costPerKm.toFixed(2)));
-                                  
-                                  const costInput = document.querySelector('input[name="cost_per_km"]') as HTMLInputElement;
-                                  if (costInput) {
-                                    costInput.value = costPerKm.toFixed(2);
-                                    const event = new Event('input', { bubbles: true });
-                                    costInput.dispatchEvent(event);
-                                  }
-                                }
-                              }
+                            const efficiency = typeof selectedFuelData.efficiency === 'string'
+                              ? parseFloat(selectedFuelData.efficiency)
+                              : selectedFuelData.efficiency;
+                              
+                            const idleConsumption = typeof selectedFuelData.idle_consumption === 'string'
+                              ? parseFloat(selectedFuelData.idle_consumption)
+                              : selectedFuelData.idle_consumption;
+                            
+                            // Update form values with proper numeric types
+                            form.setValue("fuel_price_per_litre", Number(price));
+                            form.setValue("co2_emission_factor", Number(co2Factor));
+                            
+                            if (efficiency) {
+                              form.setValue("fuel_efficiency", Number(efficiency));
                             }
-                          } catch (err) {
-                            console.error("Error in direct DOM manipulation:", err);
+                            
+                            if (idleConsumption) {
+                              form.setValue("idle_fuel_consumption", Number(idleConsumption));
+                            }
+                            
+                            // Calculate cost per km
+                            if (price && efficiency && efficiency > 0) {
+                              const costPerKm = parseFloat((price / efficiency).toFixed(2));
+                              form.setValue("cost_per_km", costPerKm);
+                            }
                           }
-                        }, 100);
+                        }
                       }} 
                       value={field.value}
                     >
@@ -463,16 +338,25 @@ export function VehicleTypeForm({ onSubmit, initialData, isEditing }: VehicleTyp
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        {/* Prioritize using the directly fetched fuel types */}
-                        {fuelTypes ? (
+                        {/* Use fetched fuel types if available */}
+                        {fuelTypes && fuelTypes.length > 0 ? (
                           fuelTypes.map((type) => (
-                            <SelectItem key={type.id} value={type.type}>
-                              {type.type} - {type.price} AED/L
+                            <SelectItem 
+                              key={type.id} 
+                              value={type.type}
+                              className="relative flex items-center justify-between"
+                            >
+                              <div className="flex items-center gap-2">
+                                <span className="font-medium">{type.type}</span>
+                                <span className="text-xs text-muted-foreground">
+                                  {typeof type.price === 'string' ? parseFloat(type.price).toFixed(2) : type.price.toFixed(2)} AED/L
+                                </span>
+                              </div>
                             </SelectItem>
                           ))
                         ) : (
                           // Fall back to master data if direct API call hasn't returned yet
-                          masterData?.fuelTypes?.map((type) => (
+                          masterData?.fuelTypes?.map((type: any) => (
                             <SelectItem key={type.type} value={type.type}>
                               {type.type}
                             </SelectItem>
@@ -493,7 +377,7 @@ export function VehicleTypeForm({ onSubmit, initialData, isEditing }: VehicleTyp
                   <FormItem>
                     <FormLabel>Fuel Efficiency (km/l) *</FormLabel>
                     <FormControl>
-                      <Input {...field} type="number" />
+                      <Input {...field} type="number" step="0.01" />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -508,7 +392,7 @@ export function VehicleTypeForm({ onSubmit, initialData, isEditing }: VehicleTyp
                   <FormItem>
                     <FormLabel>Idle Fuel Consumption (l/h) *</FormLabel>
                     <FormControl>
-                      <Input {...field} type="number" />
+                      <Input {...field} type="number" step="0.01" />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -549,7 +433,7 @@ export function VehicleTypeForm({ onSubmit, initialData, isEditing }: VehicleTyp
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        {masterData?.servicePlans?.map((plan) => (
+                        {masterData?.servicePlans?.map((plan: any) => (
                           <SelectItem key={plan.code} value={plan.code}>
                             {plan.name}
                           </SelectItem>
@@ -575,7 +459,7 @@ export function VehicleTypeForm({ onSubmit, initialData, isEditing }: VehicleTyp
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        {masterData?.regions?.map((region) => (
+                        {masterData?.regions?.map((region: any) => (
                           <SelectItem key={region} value={region}>
                             {region}
                           </SelectItem>
@@ -601,7 +485,7 @@ export function VehicleTypeForm({ onSubmit, initialData, isEditing }: VehicleTyp
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        {masterData?.units?.map((unit) => (
+                        {masterData?.units?.map((unit: any) => (
                           <SelectItem key={unit} value={unit}>
                             {unit}
                           </SelectItem>
@@ -636,7 +520,7 @@ export function VehicleTypeForm({ onSubmit, initialData, isEditing }: VehicleTyp
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        {masterData?.manufacturers?.map((manufacturer) => (
+                        {masterData?.manufacturers?.map((manufacturer: any) => (
                           <SelectItem key={manufacturer} value={manufacturer}>
                             {manufacturer}
                           </SelectItem>
@@ -789,7 +673,7 @@ export function VehicleTypeForm({ onSubmit, initialData, isEditing }: VehicleTyp
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        {masterData?.departments?.map((department) => (
+                        {masterData?.departments?.map((department: any) => (
                           <SelectItem key={department} value={department}>
                             {department}
                           </SelectItem>
@@ -844,45 +728,3 @@ export function VehicleTypeForm({ onSubmit, initialData, isEditing }: VehicleTyp
     </Form>
   );
 }
-
-// Helper functions
-function calculateCostPerKm(fuelPrice: number, fuelEfficiency: number): number {
-  if (!fuelPrice || !fuelEfficiency || fuelEfficiency === 0) {
-    return 0;
-  }
-  return Number((fuelPrice / fuelEfficiency).toFixed(2));
-}
-
-const uaeVehicleModels: { [key: string]: string[] } = {
-  "Toyota": [
-    "Corolla",
-    "Camry",
-    "Land Cruiser",
-    "Prado",
-    "RAV4",
-    "Fortuner",
-    "Hiace",
-    "Yaris",
-    "Hilux",
-    "Coaster",
-    "Innova"
-  ],
-  "Nissan": [
-    "Altima",
-    "Patrol",
-    "X-Trail",
-    "Sunny",
-    "Kicks",
-    "Pathfinder",
-    "Urvan",
-    "Navara"
-  ],
-  "Honda": [
-    "Civic",
-    "Accord",
-    "CR-V",
-    "Pilot",
-    "HR-V",
-    "City"
-  ]
-};
