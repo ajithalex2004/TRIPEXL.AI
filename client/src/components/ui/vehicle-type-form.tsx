@@ -144,51 +144,57 @@ export function VehicleTypeForm({ onSubmit, initialData, isEditing }: VehicleTyp
     }
   }, [selectedManufacturer, selectedModel, masterData?.vehicleModels, form]);
 
-  // Update fuel-related fields when fuel type changes
+  // This useEffect is only here as a fallback safety - the direct set in onValueChange is the primary method
+  // for setting fuel-related fields when fuel type changes
   useEffect(() => {
-    console.log("Fuel type selected:", selectedFuelType);
-    console.log("Available fuel types data:", fuelTypes);
-    
-    // First try to get data from direct fuel types API endpoint
-    if (fuelTypes && selectedFuelType) {
-      // Abu Dhabi fuel pricing - case insensitive match
-      const fuelData = fuelTypes.find(f => 
-        f.type.toLowerCase() === selectedFuelType.toLowerCase()
-      );
+    // Only run if the fuel price is not already set
+    const currentFuelPrice = form.watch("fuel_price_per_litre");
+    if (currentFuelPrice === "0" || currentFuelPrice === 0 || currentFuelPrice === "") {
+      console.log("Fallback fuel data setting via useEffect");
+      console.log("Fuel type selected:", selectedFuelType);
+      console.log("Available fuel types data:", fuelTypes);
       
-      console.log("Found fuel data:", fuelData);
-      
-      if (fuelData) {
-        // Set fuel price per litre (current Abu Dhabi price)
-        form.setValue("fuel_price_per_litre", fuelData.price);
-        console.log("Setting fuel price to:", fuelData.price);
+      // First try to get data from direct fuel types API endpoint
+      if (fuelTypes && selectedFuelType) {
+        // Abu Dhabi fuel pricing - case insensitive match
+        const fuelData = fuelTypes.find(f => 
+          f.type.toLowerCase() === selectedFuelType.toLowerCase()
+        );
         
-        // Set CO2 emission factor
-        form.setValue("co2_emission_factor", fuelData.co2_factor);
+        console.log("Found fuel data:", fuelData);
         
-        // Set fuel efficiency if available
-        if (fuelData.efficiency) {
-          form.setValue("fuel_efficiency", fuelData.efficiency);
+        if (fuelData) {
+          // Set fuel price per litre (current Abu Dhabi price)
+          form.setValue("fuel_price_per_litre", fuelData.price);
+          console.log("Setting fuel price to:", fuelData.price);
+          
+          // Set CO2 emission factor
+          form.setValue("co2_emission_factor", fuelData.co2_factor);
+          
+          // Set fuel efficiency if available
+          if (fuelData.efficiency) {
+            form.setValue("fuel_efficiency", fuelData.efficiency);
+          }
+          
+          // Set idle fuel consumption if available
+          if (fuelData.idle_consumption) {
+            form.setValue("idle_fuel_consumption", fuelData.idle_consumption);
+          }
+          
+          console.log(`Using Abu Dhabi fuel price data: ${fuelData.price} AED/L for ${selectedFuelType}`);
         }
+      } 
+      // Fall back to master data if direct API call hasn't returned yet
+      else if (masterData?.fuelTypes && selectedFuelType) {
+        const fuelData = masterData.fuelTypes.find(f => 
+          f.type.toLowerCase() === selectedFuelType.toLowerCase()
+        );
         
-        // Set idle fuel consumption if available
-        if (fuelData.idle_consumption) {
-          form.setValue("idle_fuel_consumption", fuelData.idle_consumption);
+        if (fuelData) {
+          form.setValue("fuel_price_per_litre", fuelData.price.toString());
+          form.setValue("co2_emission_factor", fuelData.co2Factor.toString());
+          console.log(`Using master data fuel price: ${fuelData.price} for ${selectedFuelType}`);
         }
-        
-        console.log(`Using Abu Dhabi fuel price data: ${fuelData.price} AED/L for ${selectedFuelType}`);
-      }
-    } 
-    // Fall back to master data if direct API call hasn't returned yet
-    else if (masterData?.fuelTypes && selectedFuelType) {
-      const fuelData = masterData.fuelTypes.find(f => 
-        f.type.toLowerCase() === selectedFuelType.toLowerCase()
-      );
-      
-      if (fuelData) {
-        form.setValue("fuel_price_per_litre", fuelData.price.toString());
-        form.setValue("co2_emission_factor", fuelData.co2Factor.toString());
-        console.log(`Using master data fuel price: ${fuelData.price} for ${selectedFuelType}`);
       }
     }
   }, [selectedFuelType, masterData?.fuelTypes, fuelTypes, form]);
@@ -356,7 +362,34 @@ export function VehicleTypeForm({ onSubmit, initialData, isEditing }: VehicleTyp
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Fuel Type *</FormLabel>
-                    <Select onValueChange={field.onChange} value={field.value}>
+                    <Select 
+                      onValueChange={(value) => {
+                        field.onChange(value);
+                        console.log("Fuel type selected:", value);
+                        
+                        // Immediately try to set fuel price when fuel type changes
+                        if (fuelTypes) {
+                          const selectedFuelData = fuelTypes.find(ft => 
+                            ft.type.toLowerCase() === value.toLowerCase()
+                          );
+                          
+                          if (selectedFuelData) {
+                            console.log("Auto-setting fuel data:", selectedFuelData);
+                            form.setValue("fuel_price_per_litre", selectedFuelData.price);
+                            form.setValue("co2_emission_factor", selectedFuelData.co2_factor);
+                            
+                            if (selectedFuelData.efficiency) {
+                              form.setValue("fuel_efficiency", selectedFuelData.efficiency);
+                            }
+                            
+                            if (selectedFuelData.idle_consumption) {
+                              form.setValue("idle_fuel_consumption", selectedFuelData.idle_consumption);
+                            }
+                          }
+                        }
+                      }} 
+                      value={field.value}
+                    >
                       <FormControl>
                         <SelectTrigger>
                           <SelectValue placeholder="Select fuel type" />
