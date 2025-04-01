@@ -68,9 +68,16 @@ export function VehicleTypeForm({ onSubmit, initialData, isEditing }: VehicleTyp
   });
   
   // Fetch fuel types directly to ensure we have the latest prices
-  const { data: fuelTypes, isLoading: isFuelTypesLoading } = useQuery({
-    queryKey: ["/api/fuel-types"],
+  const { data: fuelTypes, isLoading: isFuelTypesLoading } = useQuery<any[]>({
+    queryKey: ["/api/fuel-types"]
   });
+  
+  // Log fuel types data when it's loaded
+  useEffect(() => {
+    if (fuelTypes) {
+      console.log("Fuel types loaded successfully:", fuelTypes);
+    }
+  }, [fuelTypes]);
   
   // Log data for debugging
   useEffect(() => {
@@ -367,64 +374,86 @@ export function VehicleTypeForm({ onSubmit, initialData, isEditing }: VehicleTyp
                         field.onChange(value);
                         console.log("Fuel type selected:", value);
                         
-                        // Immediately try to set fuel price when fuel type changes
-                        if (fuelTypes) {
-                          console.log("Looking for fuel type:", value);
-                          console.log("Available fuel types:", fuelTypes);
-                          
-                          const selectedFuelData = fuelTypes.find(ft => 
-                            ft.type.toLowerCase() === value.toLowerCase()
-                          );
-                          
-                          if (selectedFuelData) {
-                            console.log("Auto-setting fuel data:", selectedFuelData);
-                            
-                            // Convert string values to numbers
-                            const price = typeof selectedFuelData.price === 'string' 
-                              ? parseFloat(selectedFuelData.price) 
-                              : selectedFuelData.price;
+                        // Create a direct timeout to ensure the React rendering cycle has completed
+                        setTimeout(() => {
+                          try {
+                            // Using direct DOM manipulation as a last resort
+                            if (fuelTypes) {
+                              console.log("Looking for fuel type after timeout:", value);
                               
-                            const co2Factor = typeof selectedFuelData.co2_factor === 'string'
-                              ? parseFloat(selectedFuelData.co2_factor)
-                              : selectedFuelData.co2_factor;
+                              const selectedFuelData = fuelTypes.find(ft => 
+                                ft.type.toLowerCase() === value.toLowerCase()
+                              );
                               
-                            const efficiency = typeof selectedFuelData.efficiency === 'string'
-                              ? parseFloat(selectedFuelData.efficiency)
-                              : selectedFuelData.efficiency;
-                              
-                            const idleConsumption = typeof selectedFuelData.idle_consumption === 'string'
-                              ? parseFloat(selectedFuelData.idle_consumption)
-                              : selectedFuelData.idle_consumption;
-                            
-                            console.log("Setting numeric values:", {
-                              price,
-                              co2Factor,
-                              efficiency,
-                              idleConsumption
-                            });
-                            
-                            form.setValue("fuel_price_per_litre", price);
-                            form.setValue("co2_emission_factor", co2Factor);
-                            
-                            if (efficiency) {
-                              form.setValue("fuel_efficiency", efficiency);
+                              if (selectedFuelData) {
+                                console.log("Found fuel data in setTimeout:", selectedFuelData);
+                                
+                                // Direct form value updates
+                                const priceInput = document.querySelector('input[name="fuel_price_per_litre"]') as HTMLInputElement;
+                                const co2Input = document.querySelector('input[name="co2_emission_factor"]') as HTMLInputElement;
+                                const efficiencyInput = document.querySelector('input[name="fuel_efficiency"]') as HTMLInputElement;
+                                const consumptionInput = document.querySelector('input[name="idle_fuel_consumption"]') as HTMLInputElement;
+                                
+                                if (priceInput) {
+                                  priceInput.value = selectedFuelData.price.toString();
+                                  console.log("Set price input directly:", selectedFuelData.price);
+                                  
+                                  // Trigger change event
+                                  const event = new Event('input', { bubbles: true });
+                                  priceInput.dispatchEvent(event);
+                                }
+                                
+                                if (co2Input) {
+                                  co2Input.value = selectedFuelData.co2_factor.toString();
+                                  const event = new Event('input', { bubbles: true });
+                                  co2Input.dispatchEvent(event);
+                                }
+                                
+                                if (efficiencyInput && selectedFuelData.efficiency) {
+                                  efficiencyInput.value = selectedFuelData.efficiency.toString();
+                                  const event = new Event('input', { bubbles: true });
+                                  efficiencyInput.dispatchEvent(event);
+                                }
+                                
+                                if (consumptionInput && selectedFuelData.idle_consumption) {
+                                  consumptionInput.value = selectedFuelData.idle_consumption.toString();
+                                  const event = new Event('input', { bubbles: true });
+                                  consumptionInput.dispatchEvent(event);
+                                }
+                                
+                                // Also update form state
+                                form.setValue("fuel_price_per_litre", selectedFuelData.price);
+                                form.setValue("co2_emission_factor", selectedFuelData.co2_factor);
+                                
+                                if (selectedFuelData.efficiency) {
+                                  form.setValue("fuel_efficiency", selectedFuelData.efficiency);
+                                }
+                                
+                                if (selectedFuelData.idle_consumption) {
+                                  form.setValue("idle_fuel_consumption", selectedFuelData.idle_consumption);
+                                }
+                                
+                                // Calculate cost per km
+                                if (selectedFuelData.price && selectedFuelData.efficiency) {
+                                  const price = parseFloat(selectedFuelData.price.toString());
+                                  const efficiency = parseFloat(selectedFuelData.efficiency.toString());
+                                  const costPerKm = price / efficiency;
+                                  
+                                  form.setValue("cost_per_km", parseFloat(costPerKm.toFixed(2)));
+                                  
+                                  const costInput = document.querySelector('input[name="cost_per_km"]') as HTMLInputElement;
+                                  if (costInput) {
+                                    costInput.value = costPerKm.toFixed(2);
+                                    const event = new Event('input', { bubbles: true });
+                                    costInput.dispatchEvent(event);
+                                  }
+                                }
+                              }
                             }
-                            
-                            if (idleConsumption) {
-                              form.setValue("idle_fuel_consumption", idleConsumption);
-                            }
-                            
-                            // Immediately calculate cost per km
-                            if (price && efficiency) {
-                              const costPerKm = price / efficiency;
-                              form.setValue("cost_per_km", parseFloat(costPerKm.toFixed(2)));
-                            }
-                          } else {
-                            console.log("No matching fuel type found for:", value);
+                          } catch (err) {
+                            console.error("Error in direct DOM manipulation:", err);
                           }
-                        } else {
-                          console.log("No fuel types data available yet");
-                        }
+                        }, 100);
                       }} 
                       value={field.value}
                     >
