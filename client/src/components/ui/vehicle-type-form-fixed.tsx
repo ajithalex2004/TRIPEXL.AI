@@ -20,31 +20,26 @@ interface VehicleTypeFormProps {
 
 type SubmissionStatus = "idle" | "submitting" | "success" | "error";
 
-// Declare this interface outside the component to avoid re-declaration on each render
+// Define fuel type data interface
 interface FuelTypeData {
   id: number;
   type: string;
-  price: number;
-  co2_factor: number;
-  efficiency: number;
-  idle_consumption: number;
+  price: string;
+  co2_factor: string;
+  efficiency: string;
+  idle_consumption: string;
   updated_at: string;
   last_fetched_at: string;
   historical_prices: Array<{date: string, price: number}>;
 }
 
-export function VehicleTypeForm({ onSubmit, initialData, isEditing = false }: VehicleTypeFormProps) {
+export function VehicleTypeFormFixed({ onSubmit, initialData, isEditing = false }: VehicleTypeFormProps) {
   const { toast } = useToast();
   const [submissionStatus, setSubmissionStatus] = useState<SubmissionStatus>("idle");
   const [submissionError, setSubmissionError] = useState<string | undefined>();
   const [showProgress, setShowProgress] = useState(false);
   const [currentStep, setCurrentStep] = useState(0);
   const [selectedManufacturer, setSelectedManufacturer] = useState<string | undefined>(initialData?.manufacturer);
-
-  // Fetch vehicle groups
-  const { data: vehicleGroups } = useQuery<VehicleGroup[]>({
-    queryKey: ["/api/vehicle-groups"]
-  });
 
   // Initialize form with the correct types that match the zod schema
   const form = useForm<InsertVehicleTypeMaster>({
@@ -72,11 +67,26 @@ export function VehicleTypeForm({ onSubmit, initialData, isEditing = false }: Ve
     }
   });
 
+  // Watch form values
+  const selectedFuelType = form.watch("fuel_type");
+  const selectedModel = form.watch("vehicle_type");
+  const modelYear = form.watch("model_year");
+
+  // Fetch vehicle groups
+  const { data: vehicleGroups } = useQuery<VehicleGroup[]>({
+    queryKey: ["/api/vehicle-groups"]
+  });
+
   // Fetch master data for dropdowns
   const { data: masterData, isLoading: isLoadingMasterData } = useQuery<any>({
     queryKey: ["/api/vehicle-masters"]
   });
   
+  // Fetch fuel types directly from API
+  const { data: fuelTypes } = useQuery<FuelTypeData[]>({
+    queryKey: ["/api/fuel-types"]
+  });
+
   // For debugging
   useEffect(() => {
     if (masterData) {
@@ -84,50 +94,18 @@ export function VehicleTypeForm({ onSubmit, initialData, isEditing = false }: Ve
     }
   }, [masterData]);
 
-  // Fetch fuel types directly from API
-  const { data: fuelTypes, isLoading: isLoadingFuelTypes } = useQuery<FuelTypeData[]>({
-    queryKey: ["/api/fuel-types"],
-    onSuccess: (data) => {
-      console.log("Fuel types loaded:", data);
+  // For debugging
+  useEffect(() => {
+    if (fuelTypes) {
+      console.log("Fetched fuel types:", fuelTypes);
       
       // If a fuel type is already selected, update form values
       const currentFuelType = form.getValues("fuel_type");
-      if (currentFuelType && data) {
+      if (currentFuelType) {
         updateFormValuesFromFuelType(currentFuelType);
       }
     }
-  });
-
-  // Initialize form with the correct types that match the zod schema
-  const form = useForm<InsertVehicleTypeMaster>({
-    resolver: zodResolver(insertVehicleTypeMasterSchema),
-    defaultValues: {
-      group_id: initialData?.group_id || 0,
-      vehicle_type_code: initialData?.vehicle_type_code || "",
-      vehicle_type_name: initialData?.vehicle_type_name || "",
-      vehicle_type: initialData?.vehicle_type || "",
-      manufacturer: initialData?.manufacturer || "",
-      model_year: initialData?.model_year || new Date().getFullYear(),
-      number_of_passengers: initialData?.number_of_passengers || 0,
-      region: initialData?.region || "ABU_DHABI", // Default region
-      fuel_efficiency: initialData?.fuel_efficiency ? Number(initialData.fuel_efficiency) : 0,
-      fuel_price_per_litre: initialData?.fuel_price_per_litre ? Number(initialData.fuel_price_per_litre) : 3.75, // Default fuel price
-      fuel_type: initialData?.fuel_type || "SPECIAL_95", // Default fuel type
-      service_plan: initialData?.service_plan || "",
-      cost_per_km: initialData?.cost_per_km ? Number(initialData.cost_per_km) : 0, // Fix type conversion
-      department: initialData?.department || "FLEET", // Default department
-      unit: initialData?.unit || "",
-      alert_before: initialData?.alert_before || 0,
-      idle_fuel_consumption: initialData?.idle_fuel_consumption ? Number(initialData.idle_fuel_consumption) : 0,
-      vehicle_capacity: initialData?.vehicle_capacity || 0,
-      co2_emission_factor: initialData?.co2_emission_factor ? Number(initialData.co2_emission_factor) : 0
-    }
-  });
-
-  // Watch form values
-  const selectedFuelType = form.watch("fuel_type");
-  const selectedModel = form.watch("vehicle_type");
-  const modelYear = form.watch("model_year");
+  }, [fuelTypes, form]);
 
   // Auto-generate vehicle type code
   useEffect(() => {
@@ -165,6 +143,42 @@ export function VehicleTypeForm({ onSubmit, initialData, isEditing = false }: Ve
       form.setValue("cost_per_km", costPerKm);
     }
   }, [form.watch("fuel_price_per_litre"), form.watch("fuel_efficiency"), form]);
+
+  // This function is used by the fuel type selection to update form values
+  const updateFormValuesFromFuelType = (fuelType: string) => {
+    if (fuelTypes && fuelTypes.length > 0) {
+      console.log("Updating from fuel type:", fuelType);
+      console.log("Available fuel types:", fuelTypes);
+      
+      const selectedFuelData = fuelTypes.find(ft => 
+        ft.type.toLowerCase() === fuelType.toLowerCase()
+      );
+      
+      if (selectedFuelData) {
+        console.log("Selected fuel data:", selectedFuelData);
+        
+        // Convert all string values to numbers explicitly
+        const price = parseFloat(selectedFuelData.price);
+        const efficiency = parseFloat(selectedFuelData.efficiency);
+        const co2Factor = parseFloat(selectedFuelData.co2_factor);
+        const idleConsumption = parseFloat(selectedFuelData.idle_consumption);
+        
+        // Update form values with proper numeric types
+        console.log("Setting fuel price to:", price);
+        form.setValue("fuel_price_per_litre", price);
+        form.setValue("co2_emission_factor", co2Factor);
+        form.setValue("fuel_efficiency", efficiency);
+        form.setValue("idle_fuel_consumption", idleConsumption);
+        
+        // Calculate cost per km
+        if (price && efficiency && efficiency > 0) {
+          const costPerKm = Number((price / efficiency).toFixed(2));
+          console.log("Setting cost per km to:", costPerKm);
+          form.setValue("cost_per_km", costPerKm);
+        }
+      }
+    }
+  };
 
   // Handle form submission
   const handleSubmit = async (data: InsertVehicleTypeMaster) => {
@@ -221,40 +235,6 @@ export function VehicleTypeForm({ onSubmit, initialData, isEditing = false }: Ve
         description: error instanceof Error ? error.message : "Failed to save vehicle type",
         variant: "destructive",
       });
-    }
-  };
-
-  // This function is used by the fuel type selection to update form values
-  const updateFormValuesFromFuelType = (fuelType: string) => {
-    if (fuelTypes && fuelTypes.length > 0) {
-      console.log("Fuel types available:", fuelTypes);
-      const selectedFuelData = fuelTypes.find(ft => 
-        ft.type.toLowerCase() === fuelType.toLowerCase()
-      );
-      
-      if (selectedFuelData) {
-        console.log("Selected fuel data:", selectedFuelData);
-        
-        // Convert all string values to numbers explicitly
-        const price = parseFloat(selectedFuelData.price);
-        const efficiency = parseFloat(selectedFuelData.efficiency);
-        const co2Factor = parseFloat(selectedFuelData.co2_factor);
-        const idleConsumption = parseFloat(selectedFuelData.idle_consumption);
-        
-        // Update form values with proper numeric types
-        console.log("Setting fuel price to:", price);
-        form.setValue("fuel_price_per_litre", price);
-        form.setValue("co2_emission_factor", co2Factor);
-        form.setValue("fuel_efficiency", efficiency);
-        form.setValue("idle_fuel_consumption", idleConsumption);
-        
-        // Calculate cost per km
-        if (price && efficiency && efficiency > 0) {
-          const costPerKm = Number((price / efficiency).toFixed(2));
-          console.log("Setting cost per km to:", costPerKm);
-          form.setValue("cost_per_km", costPerKm);
-        }
-      }
     }
   };
 
@@ -351,7 +331,7 @@ export function VehicleTypeForm({ onSubmit, initialData, isEditing = false }: Ve
                           </FormControl>
                           <SelectContent>
                             {selectedManufacturer && masterData?.vehicleModels &&
-                              masterData.vehicleModels[selectedManufacturer].models.map((model: any) => (
+                              masterData.vehicleModels[selectedManufacturer]?.models?.map((model: any) => (
                                 <SelectItem key={model.name} value={model.name}>
                                   {model.name}
                                 </SelectItem>
@@ -447,21 +427,20 @@ export function VehicleTypeForm({ onSubmit, initialData, isEditing = false }: Ve
                                 <SelectItem 
                                   key={type.id} 
                                   value={type.type}
-                                  className="relative flex items-center justify-between"
                                 >
                                   <div className="flex items-center gap-2">
                                     <span className="font-medium">{type.type}</span>
                                     <span className="text-xs text-muted-foreground">
-                                      {typeof type.price === 'string' ? parseFloat(type.price).toFixed(2) : type.price.toFixed(2)} AED/L
+                                      {parseFloat(type.price).toFixed(2)} AED/L
                                     </span>
                                   </div>
                                 </SelectItem>
                               ))
                             ) : (
-                              // Fall back to master data if direct API call hasn't returned yet
-                              masterData?.fuelTypes?.map((type: any) => (
-                                <SelectItem key={type.type} value={type.type}>
-                                  {type.type}
+                              // Fall back to defaults if direct API call hasn't returned yet
+                              ["Petrol", "Diesel", "Premium", "Electric", "Hybrid", "CNG", "LPG"].map((type) => (
+                                <SelectItem key={type} value={type}>
+                                  {type}
                                 </SelectItem>
                               ))
                             )}
@@ -480,7 +459,13 @@ export function VehicleTypeForm({ onSubmit, initialData, isEditing = false }: Ve
                       <FormItem>
                         <FormLabel>Fuel Price Per Litre (AED) *</FormLabel>
                         <FormControl>
-                          <Input {...field} type="number" step="0.01" />
+                          <Input
+                            {...field}
+                            type="number"
+                            step="0.01" 
+                            value={field.value}
+                            onChange={(e) => field.onChange(parseFloat(e.target.value))}
+                          />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -499,7 +484,13 @@ export function VehicleTypeForm({ onSubmit, initialData, isEditing = false }: Ve
                       <FormItem>
                         <FormLabel>Fuel Efficiency (km/l) *</FormLabel>
                         <FormControl>
-                          <Input {...field} type="number" step="0.01" />
+                          <Input
+                            {...field}
+                            type="number"
+                            step="0.01"
+                            value={field.value}
+                            onChange={(e) => field.onChange(parseFloat(e.target.value))}
+                          />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -514,7 +505,13 @@ export function VehicleTypeForm({ onSubmit, initialData, isEditing = false }: Ve
                       <FormItem>
                         <FormLabel>Cost Per KM</FormLabel>
                         <FormControl>
-                          <Input {...field} type="number" step="0.01" readOnly />
+                          <Input
+                            {...field}
+                            type="number"
+                            step="0.01"
+                            readOnly
+                            value={field.value}
+                          />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -533,7 +530,13 @@ export function VehicleTypeForm({ onSubmit, initialData, isEditing = false }: Ve
                       <FormItem>
                         <FormLabel>Idle Fuel Consumption (l/h) *</FormLabel>
                         <FormControl>
-                          <Input {...field} type="number" step="0.01" />
+                          <Input
+                            {...field}
+                            type="number"
+                            step="0.01"
+                            value={field.value}
+                            onChange={(e) => field.onChange(parseFloat(e.target.value))}
+                          />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -548,7 +551,13 @@ export function VehicleTypeForm({ onSubmit, initialData, isEditing = false }: Ve
                       <FormItem>
                         <FormLabel>CO2 Emission Factor</FormLabel>
                         <FormControl>
-                          <Input {...field} type="number" step="0.01" />
+                          <Input
+                            {...field}
+                            type="number"
+                            step="0.01"
+                            value={field.value}
+                            onChange={(e) => field.onChange(parseFloat(e.target.value))}
+                          />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -569,7 +578,7 @@ export function VehicleTypeForm({ onSubmit, initialData, isEditing = false }: Ve
                         <FormControl>
                           <Input
                             type="number"
-                            {...field}
+                            value={field.value}
                             onChange={(e) => field.onChange(Number(e.target.value))}
                             placeholder="Enter passenger capacity"
                           />
@@ -589,7 +598,7 @@ export function VehicleTypeForm({ onSubmit, initialData, isEditing = false }: Ve
                         <FormControl>
                           <Input 
                             type="number" 
-                            {...field}
+                            value={field.value}
                             onChange={(e) => field.onChange(Number(e.target.value))}
                             placeholder="Enter vehicle capacity"
                           />
@@ -610,20 +619,9 @@ export function VehicleTypeForm({ onSubmit, initialData, isEditing = false }: Ve
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel>Service Plan</FormLabel>
-                        <Select onValueChange={field.onChange} value={field.value}>
-                          <FormControl>
-                            <SelectTrigger>
-                              <SelectValue placeholder="Select service plan" />
-                            </SelectTrigger>
-                          </FormControl>
-                          <SelectContent>
-                            {masterData?.servicePlans?.map((plan: any) => (
-                              <SelectItem key={plan.code} value={plan.code}>
-                                {plan.name}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
+                        <FormControl>
+                          <Input {...field} placeholder="Enter service plan" />
+                        </FormControl>
                         <FormMessage />
                       </FormItem>
                     )}
@@ -637,11 +635,11 @@ export function VehicleTypeForm({ onSubmit, initialData, isEditing = false }: Ve
                       <FormItem>
                         <FormLabel>Alert Before Value (KM)</FormLabel>
                         <FormControl>
-                          <Input 
-                            type="number" 
-                            {...field} 
+                          <Input
+                            type="number"
+                            value={field.value}
                             onChange={(e) => field.onChange(Number(e.target.value))}
-                            placeholder="Enter alert distance"
+                            placeholder="Enter alert before value"
                           />
                         </FormControl>
                         <FormMessage />
@@ -651,34 +649,8 @@ export function VehicleTypeForm({ onSubmit, initialData, isEditing = false }: Ve
                 </td>
               </tr>
 
-              {/* Row 9: Region | Department */}
+              {/* Row 9: Department | Region */}
               <tr>
-                <td className="border p-2">
-                  <FormField
-                    control={form.control}
-                    name="region"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Region *</FormLabel>
-                        <Select onValueChange={field.onChange} value={field.value}>
-                          <FormControl>
-                            <SelectTrigger>
-                              <SelectValue placeholder="Select region" />
-                            </SelectTrigger>
-                          </FormControl>
-                          <SelectContent>
-                            {masterData?.regions?.map((region: any) => (
-                              <SelectItem key={region} value={region}>
-                                {region}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                </td>
                 <td className="border p-2">
                   <FormField
                     control={form.control}
@@ -693,9 +665,35 @@ export function VehicleTypeForm({ onSubmit, initialData, isEditing = false }: Ve
                             </SelectTrigger>
                           </FormControl>
                           <SelectContent>
-                            {masterData?.departments?.map((department: any) => (
-                              <SelectItem key={department} value={department}>
-                                {department}
+                            {Object.entries(masterData?.departments || {}).map(([key, value]: [string, any]) => (
+                              <SelectItem key={key} value={key}>
+                                {value}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </td>
+                <td className="border p-2">
+                  <FormField
+                    control={form.control}
+                    name="region"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Region *</FormLabel>
+                        <Select onValueChange={field.onChange} value={field.value}>
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select region" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            {Object.entries(masterData?.regions || {}).map(([key, value]: [string, any]) => (
+                              <SelectItem key={key} value={key}>
+                                {value}
                               </SelectItem>
                             ))}
                           </SelectContent>
@@ -707,7 +705,7 @@ export function VehicleTypeForm({ onSubmit, initialData, isEditing = false }: Ve
                 </td>
               </tr>
 
-              {/* Row 10: Unit | Vehicle Type Code */}
+              {/* Row 10: Unit | Vehicle Type Code (Auto-Generated) */}
               <tr>
                 <td className="border p-2">
                   <FormField
@@ -716,20 +714,9 @@ export function VehicleTypeForm({ onSubmit, initialData, isEditing = false }: Ve
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel>Unit</FormLabel>
-                        <Select onValueChange={field.onChange} value={field.value}>
-                          <FormControl>
-                            <SelectTrigger>
-                              <SelectValue placeholder="Select unit" />
-                            </SelectTrigger>
-                          </FormControl>
-                          <SelectContent>
-                            {masterData?.units?.map((unit: any) => (
-                              <SelectItem key={unit} value={unit}>
-                                {unit}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
+                        <FormControl>
+                          <Input {...field} placeholder="Enter unit" />
+                        </FormControl>
                         <FormMessage />
                       </FormItem>
                     )}
@@ -743,7 +730,7 @@ export function VehicleTypeForm({ onSubmit, initialData, isEditing = false }: Ve
                       <FormItem>
                         <FormLabel>Vehicle Type Code</FormLabel>
                         <FormControl>
-                          <Input {...field} readOnly placeholder="Auto-generated" />
+                          <Input {...field} readOnly className="bg-muted" />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -755,46 +742,39 @@ export function VehicleTypeForm({ onSubmit, initialData, isEditing = false }: Ve
           </table>
         </div>
 
-        {/* Progress indicator for form submission */}
+        {/* Progress indicator */}
         {showProgress && (
-          <div className="mt-6 mb-2">
+          <div className="my-4">
             <AnimatedProgressIndicator 
-              steps={[
-                { label: "Validating data...", description: "Checking form values" },
-                { label: "Processing vehicle information...", description: "Preparing data for submission" },
-                { label: "Saving vehicle type...", description: "Sending to server" }
-              ]}
               currentStep={currentStep}
+              steps={[
+                { label: "Validating form data", description: "Checking for errors" },
+                { label: "Processing", description: "Formatting data" },
+                { label: "Saving", description: isEditing ? "Updating vehicle type" : "Creating vehicle type" }
+              ]}
               status={submissionStatus}
               error={submissionError}
             />
           </div>
         )}
 
-        <div className="flex justify-end space-x-2 pt-4 border-t">
-          <Button 
-            variant="outline" 
+        {/* Form submission buttons */}
+        <div className="flex justify-end space-x-2 px-6 py-4 border-t">
+          <Button
             type="button"
+            variant="outline"
             onClick={() => {
-              if (isEditing && initialData) {
-                const formattedData = {
-                  ...initialData,
-                  fuel_efficiency: Number(initialData.fuel_efficiency),
-                  fuel_price_per_litre: Number(initialData.fuel_price_per_litre),
-                  cost_per_km: Number(initialData.cost_per_km),
-                  idle_fuel_consumption: Number(initialData.idle_fuel_consumption),
-                  co2_emission_factor: Number(initialData.co2_emission_factor)
-                };
-                form.reset(formattedData);
-              } else {
-                form.reset();
-              }
+              form.reset();
+              setSubmissionStatus("idle");
+              setShowProgress(false);
+              setCurrentStep(0);
             }}
+            disabled={submissionStatus === "submitting"}
           >
-            Reset
+            Cancel
           </Button>
           <Button 
-            type="submit"
+            type="submit" 
             disabled={submissionStatus === "submitting"}
           >
             {isEditing ? "Update" : "Create"} Vehicle Type
