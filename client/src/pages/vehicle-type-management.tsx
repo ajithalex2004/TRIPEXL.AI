@@ -3,7 +3,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { VehicleTypeMaster, InsertVehicleTypeMaster } from "@shared/schema";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
-import { VehicleTypeFormAnimated } from "@/components/ui/vehicle-type-form-animated";
+import { VehicleTypeForm } from "@/components/ui/vehicle-type-form-new";
 import { VehicleTypeFAB } from "@/components/ui/vehicle-type-fab";
 import {
   Card,
@@ -478,7 +478,7 @@ export default function VehicleTypeManagement() {
               </DialogTitle>
             </motion.div>
           </DialogHeader>
-          <VehicleTypeFormAnimated
+          <VehicleTypeForm
             onSubmit={handleSubmit}
             initialData={selectedType || undefined}
             isEditing={!!selectedType}

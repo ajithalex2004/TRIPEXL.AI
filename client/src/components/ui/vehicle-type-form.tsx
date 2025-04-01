@@ -89,10 +89,10 @@ export function VehicleTypeForm({ onSubmit, initialData, isEditing = false }: Ve
       number_of_passengers: initialData?.number_of_passengers || 0,
       region: initialData?.region || "ABU_DHABI", // Default region
       fuel_efficiency: initialData?.fuel_efficiency ? Number(initialData.fuel_efficiency) : 0,
-      fuel_price_per_litre: initialData?.fuel_price_per_litre ? Number(initialData.fuel_price_per_litre) : 0,
+      fuel_price_per_litre: initialData?.fuel_price_per_litre ? Number(initialData.fuel_price_per_litre) : 3.75, // Default fuel price
       fuel_type: initialData?.fuel_type || "SPECIAL_95", // Default fuel type
       service_plan: initialData?.service_plan || "",
-      cost_per_km: initialData?.cost_per_km || 0,
+      cost_per_km: initialData?.cost_per_km ? Number(initialData.cost_per_km) : 0, // Fix type conversion
       department: initialData?.department || "FLEET", // Default department
       unit: initialData?.unit || "",
       alert_before: initialData?.alert_before || 0,
@@ -207,7 +207,7 @@ export function VehicleTypeForm({ onSubmit, initialData, isEditing = false }: Ve
       <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-4">
         <div className="max-h-[calc(100vh-200px)] overflow-y-auto px-6">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {/* Left Column */}
+            {/* Left Column - Exactly matching the table layout from the image */}
             <div className="space-y-6">
               {/* Vehicle Group */}
               <FormField
@@ -268,8 +268,6 @@ export function VehicleTypeForm({ onSubmit, initialData, isEditing = false }: Ve
                   </FormItem>
                 )}
               />
-
-
 
               {/* Fuel Type */}
               <FormField
