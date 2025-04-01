@@ -3,7 +3,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { VehicleTypeMaster, InsertVehicleTypeMaster } from "@shared/schema";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
-import { VehicleTypeFormFixed as VehicleTypeForm } from "@/components/ui/vehicle-type-form-fixed";
+import { VehicleTypeForm } from "@/components/ui/vehicle-type-form-new";
 import { VehicleTypeFAB } from "@/components/ui/vehicle-type-fab";
 import {
   Card,
