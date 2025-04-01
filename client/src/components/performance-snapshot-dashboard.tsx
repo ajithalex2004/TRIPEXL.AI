@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import {
   Card,
@@ -6,6 +6,7 @@ import {
   CardDescription,
   CardHeader,
   CardTitle,
+  CardFooter,
 } from "@/components/ui/card";
 import {
   Select,
@@ -28,31 +29,65 @@ import {
   ResponsiveContainer,
   LineChart,
   Line,
+  ReferenceLine,
+  Area,
+  AreaChart,
 } from "recharts";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Loader2, Droplets, Gauge, TrendingUp, ArrowUpRight, Ban, AlertTriangle, Info } from "lucide-react";
+import { 
+  Loader2, 
+  Droplets, 
+  Gauge, 
+  TrendingUp, 
+  ArrowUpRight, 
+  ArrowDownRight,
+  Ban, 
+  AlertTriangle, 
+  Info, 
+  DollarSign,
+  Calendar,
+  PieChart as PieChartIcon
+} from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { motion } from "framer-motion";
 import * as animationUtils from "@/lib/animation-utils";
+import { format } from "date-fns";
 
-// Now fetching from API directly
-
+// Fuel type color mapping for visualization consistency
 const fuelTypeColors = {
-  PETROL: "#f97316",
-  DIESEL: "#0f172a",
-  ELECTRIC: "#06b6d4",
-  HYBRID: "#22c55e",
-  CNG: "#8b5cf6",
-  LPG: "#eab308",
+  PETROL: "#f97316", // Orange
+  DIESEL: "#0f172a", // Dark blue
+  ELECTRIC: "#06b6d4", // Cyan
+  HYBRID: "#22c55e", // Green
+  CNG: "#8b5cf6", // Purple
+  LPG: "#eab308", // Yellow
+  Premium: "#dc2626", // Red
+  Petrol: "#f97316", // Orange
+  Diesel: "#0f172a", // Dark blue
+  Electric: "#06b6d4", // Cyan
+  Hybrid: "#22c55e", // Green
 };
 
 export function PerformanceSnapshotDashboard() {
   const [selectedRegion, setSelectedRegion] = useState<string>("all");
+  const [selectedPeriod, setSelectedPeriod] = useState<string>("6m");
   
-  // Fetch actual vehicle type data from API
-  const { data: vehicleTypes, isLoading } = useQuery({
+  // Fetch vehicle type data from API
+  const { data: vehicleTypes = [], isLoading: isLoadingVehicles } = useQuery<any[]>({
     queryKey: ["/api/vehicle-types"],
   });
+  
+  // Fetch fuel price history data from API
+  const { data: fuelPriceHistory = [], isLoading: isLoadingFuelPrices } = useQuery<any[]>({
+    queryKey: ["/api/fuel-prices/history"],
+  });
+  
+  // Fetch current fuel types with prices
+  const { data: fuelTypes = [], isLoading: isLoadingFuelTypes } = useQuery<any[]>({
+    queryKey: ["/api/fuel-types"],
+  });
+  
+  const isLoading = isLoadingVehicles || isLoadingFuelPrices || isLoadingFuelTypes;
 
   if (isLoading) {
     return (
@@ -61,6 +96,56 @@ export function PerformanceSnapshotDashboard() {
       </div>
     );
   }
+  
+  // Prepare data for fuel price trends chart
+  const fuelPriceData = useMemo(() => {
+    if (!fuelPriceHistory || fuelPriceHistory.length === 0) {
+      return [];
+    }
+    
+    // Group by date (month-year)
+    const groupedData: Record<string, Record<string, number>> = {};
+    
+    fuelPriceHistory.forEach((record: any) => {
+      const date = new Date(record.date);
+      const formattedDate = format(date, 'MMM yyyy');
+      
+      if (!groupedData[formattedDate]) {
+        groupedData[formattedDate] = {};
+      }
+      
+      groupedData[formattedDate][record.fuel_type] = parseFloat(record.price);
+    });
+    
+    // Convert to array format for the chart
+    return Object.entries(groupedData).map(([date, prices]) => ({
+      date,
+      ...prices,
+    }));
+  }, [fuelPriceHistory]);
+  
+  // Calculate fuel price trends
+  const fuelTrends = useMemo(() => {
+    if (!fuelTypes || fuelTypes.length === 0) return {};
+    
+    const trends: Record<string, {change: number, direction: string}> = {};
+    
+    fuelTypes.forEach((fuel: any) => {
+      if (fuel.historical_prices && fuel.historical_prices.length >= 2) {
+        const latest = parseFloat(fuel.price);
+        const previous = parseFloat(fuel.historical_prices[fuel.historical_prices.length - 2].price);
+        const change = ((latest - previous) / previous) * 100;
+        trends[fuel.type] = {
+          change: parseFloat(change.toFixed(2)),
+          direction: change >= 0 ? 'up' : 'down'
+        };
+      } else {
+        trends[fuel.type] = { change: 0, direction: 'neutral' };
+      }
+    });
+    
+    return trends;
+  }, [fuelTypes]);
 
   const filteredVehicleTypes = selectedRegion === "all" 
     ? vehicleTypes
@@ -115,6 +200,54 @@ export function PerformanceSnapshotDashboard() {
 
   const regions = ["Dubai", "Abu Dhabi", "Sharjah", "Ajman", "Fujairah", "Ras Al Khaimah", "Umm Al Quwain"];
 
+  // Create fuel price trend cards data
+  const fuelPriceTrendCards = fuelTypes
+    .filter((fuel: any) => ["PETROL", "DIESEL", "SUPER"].includes(fuel.type.toUpperCase()))
+    .map((fuel: any) => {
+      const trend = fuelTrends[fuel.type] || { change: 0, direction: 'neutral' };
+      return {
+        type: fuel.type,
+        price: parseFloat(fuel.price).toFixed(2),
+        trend: trend.change,
+        direction: trend.direction,
+      };
+    });
+
+  // Convert historical price data for the line chart
+  const fuelPriceTrendChartData = useMemo(() => {
+    if (!fuelPriceHistory || fuelPriceHistory.length === 0) return [];
+    
+    // Sort by date
+    const sorted = [...fuelPriceHistory].sort((a: any, b: any) => {
+      return new Date(a.date).getTime() - new Date(b.date).getTime();
+    });
+    
+    // Group by date and fuel type
+    const result: any[] = [];
+    let lastDate = '';
+    let currentEntry: any = null;
+    
+    sorted.forEach((record: any) => {
+      const date = format(new Date(record.date), 'MMM yyyy');
+      
+      if (date !== lastDate) {
+        if (currentEntry) {
+          result.push(currentEntry);
+        }
+        currentEntry = { date };
+        lastDate = date;
+      }
+      
+      currentEntry[record.fuel_type] = parseFloat(record.price);
+    });
+    
+    if (currentEntry) {
+      result.push(currentEntry);
+    }
+    
+    return result;
+  }, [fuelPriceHistory]);
+  
   return (
     <motion.div
       initial="hidden"
@@ -130,22 +263,81 @@ export function PerformanceSnapshotDashboard() {
           </p>
         </div>
 
-        <Select
-          value={selectedRegion}
-          onValueChange={setSelectedRegion}
-        >
-          <SelectTrigger className="w-[180px]">
-            <SelectValue placeholder="Filter by region" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All Regions</SelectItem>
-            {regions.map((region) => (
-              <SelectItem key={region} value={region}>
-                {region}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+        <div className="flex gap-2">
+          <Select
+            value={selectedRegion}
+            onValueChange={setSelectedRegion}
+          >
+            <SelectTrigger className="w-[180px]">
+              <SelectValue placeholder="Filter by region" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Regions</SelectItem>
+              {regions.map((region) => (
+                <SelectItem key={region} value={region}>
+                  {region}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          
+          <Select
+            value={selectedPeriod}
+            onValueChange={setSelectedPeriod}
+          >
+            <SelectTrigger className="w-[120px]">
+              <SelectValue placeholder="Time period" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="3m">3 Months</SelectItem>
+              <SelectItem value="6m">6 Months</SelectItem>
+              <SelectItem value="1y">1 Year</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+      </motion.div>
+      
+      {/* Fuel Price Trend Cards */}
+      <motion.div variants={animationUtils.fadeIn("up")} className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        {fuelPriceTrendCards.map((card) => (
+          <Card key={card.type} className="backdrop-blur-xl bg-background/60 border border-white/10 shadow-md overflow-hidden">
+            <CardHeader className="pb-2">
+              <div className="flex justify-between items-center">
+                <CardTitle className="text-base font-medium">{card.type}</CardTitle>
+                <DollarSign className="h-4 w-4 text-primary" />
+              </div>
+            </CardHeader>
+            <CardContent className="pb-2">
+              <div className="text-2xl font-bold flex items-center">
+                {card.price} AED
+                <span className={`ml-2 text-sm ${
+                  card.direction === 'up' ? 'text-destructive' : 
+                  card.direction === 'down' ? 'text-emerald-500' : 'text-muted-foreground'
+                } flex items-center`}>
+                  {card.direction === 'up' ? (
+                    <ArrowUpRight className="h-4 w-4 mr-1" />
+                  ) : card.direction === 'down' ? (
+                    <ArrowDownRight className="h-4 w-4 mr-1" />
+                  ) : null}
+                  {card.trend !== 0 ? `${Math.abs(card.trend)}%` : ''}
+                </span>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Current {card.type} price per liter in Abu Dhabi
+              </p>
+            </CardContent>
+            <div 
+              className="h-1" 
+              style={{ 
+                background: `${
+                  card.direction === 'up' ? 'linear-gradient(to right, #ff4b4b, #ff8f8f)' : 
+                  card.direction === 'down' ? 'linear-gradient(to right, #22c55e, #4ade80)' : 
+                  'linear-gradient(to right, #94a3b8, #cbd5e1)'
+                }`
+              }}
+            ></div>
+          </Card>
+        ))}
       </motion.div>
 
       <motion.div variants={animationUtils.fadeIn("up")} className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -219,14 +411,79 @@ export function PerformanceSnapshotDashboard() {
       </motion.div>
 
       <motion.div variants={animationUtils.fadeIn("up")}>
-        <Tabs defaultValue="fuel-efficiency" className="space-y-4">
-          <TabsList>
+        <Tabs defaultValue="fuel-trends" className="space-y-4">
+          <TabsList className="flex flex-wrap">
+            <TabsTrigger value="fuel-trends">Fuel Price Trends</TabsTrigger>
             <TabsTrigger value="fuel-efficiency">Fuel Efficiency</TabsTrigger>
             <TabsTrigger value="cost">Cost per KM</TabsTrigger>
             <TabsTrigger value="emissions">CO₂ Emissions</TabsTrigger>
             <TabsTrigger value="idle">Idle Consumption</TabsTrigger>
             <TabsTrigger value="distribution">Fuel Distribution</TabsTrigger>
           </TabsList>
+          
+          <TabsContent value="fuel-trends" className="p-4 border rounded-lg">
+            <h3 className="text-lg font-medium mb-4">Fuel Price Trends (Last 12 Months)</h3>
+            <div className="h-[350px]">
+              <ResponsiveContainer width="100%" height="100%">
+                <LineChart
+                  data={fuelPriceTrendChartData}
+                  margin={{
+                    top: 5,
+                    right: 30,
+                    left: 20,
+                    bottom: 5,
+                  }}
+                >
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis dataKey="date" />
+                  <YAxis label={{ value: 'AED', angle: -90, position: 'insideLeft' }} />
+                  <Tooltip formatter={(value) => [`${value} AED`, "Price per Liter"]} />
+                  <Legend />
+                  {fuelTypes
+                    .filter((fuel: any) => ["PETROL", "DIESEL", "SUPER"].includes(fuel.type.toUpperCase()))
+                    .map((fuel: any) => (
+                      <Line
+                        key={fuel.type}
+                        type="monotone"
+                        dataKey={fuel.type}
+                        name={fuel.type}
+                        stroke={fuelTypeColors[fuel.type as keyof typeof fuelTypeColors]}
+                        activeDot={{ r: 8 }}
+                      />
+                    ))
+                  }
+                  <ReferenceLine y={3.5} label="Average" stroke="red" strokeDasharray="3 3" />
+                </LineChart>
+              </ResponsiveContainer>
+            </div>
+            
+            <div className="mt-4">
+              <h4 className="text-md font-medium mb-2">Analysis</h4>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="text-sm border p-3 rounded-md bg-background/50">
+                  <h5 className="font-medium flex items-center text-primary mb-2">
+                    <TrendingUp className="h-4 w-4 mr-2" />
+                    Impact on Operational Costs
+                  </h5>
+                  <p>Fuel price fluctuations directly impact operational costs. Each 1 AED change in fuel price affects per-kilometer cost by approximately 0.07-0.12 AED depending on vehicle efficiency.</p>
+                </div>
+                <div className="text-sm border p-3 rounded-md bg-background/50">
+                  <h5 className="font-medium flex items-center text-primary mb-2">
+                    <Calendar className="h-4 w-4 mr-2" />
+                    Monthly Recalculation
+                  </h5>
+                  <p>Vehicle costs are automatically recalculated on the 1st of each month based on current fuel prices to maintain accurate operational metrics and forecasting.</p>
+                </div>
+                <div className="text-sm border p-3 rounded-md bg-background/50">
+                  <h5 className="font-medium flex items-center text-primary mb-2">
+                    <PieChartIcon className="h-4 w-4 mr-2" />
+                    Strategic Recommendations
+                  </h5>
+                  <p>During periods of rising fuel prices, prioritize electric and hybrid vehicles or higher efficiency vehicles to minimize operational costs.</p>
+                </div>
+              </div>
+            </div>
+          </TabsContent>
           
           <TabsContent value="fuel-efficiency" className="p-4 border rounded-lg">
             <h3 className="text-lg font-medium mb-4">Fuel Efficiency by Vehicle Type</h3>
