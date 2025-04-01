@@ -80,7 +80,12 @@ export function VehicleTypeForm({ onSubmit, initialData, isEditing }: VehicleTyp
     if (groupsError) {
       console.error("Error fetching vehicle groups:", groupsError);
     }
-  }, [vehicleGroups, groupsError]);
+    
+    // Debug fuel types data
+    if (fuelTypes) {
+      console.log("Fuel types data received:", fuelTypes);
+    }
+  }, [vehicleGroups, groupsError, fuelTypes]);
 
   // Initialize form
   const form = useForm<InsertVehicleTypeMaster>({
@@ -141,6 +146,9 @@ export function VehicleTypeForm({ onSubmit, initialData, isEditing }: VehicleTyp
 
   // Update fuel-related fields when fuel type changes
   useEffect(() => {
+    console.log("Fuel type selected:", selectedFuelType);
+    console.log("Available fuel types data:", fuelTypes);
+    
     // First try to get data from direct fuel types API endpoint
     if (fuelTypes && selectedFuelType) {
       // Abu Dhabi fuel pricing - case insensitive match
@@ -148,21 +156,24 @@ export function VehicleTypeForm({ onSubmit, initialData, isEditing }: VehicleTyp
         f.type.toLowerCase() === selectedFuelType.toLowerCase()
       );
       
+      console.log("Found fuel data:", fuelData);
+      
       if (fuelData) {
         // Set fuel price per litre (current Abu Dhabi price)
-        form.setValue("fuel_price_per_litre", fuelData.price.toString());
+        form.setValue("fuel_price_per_litre", fuelData.price);
+        console.log("Setting fuel price to:", fuelData.price);
         
         // Set CO2 emission factor
-        form.setValue("co2_emission_factor", fuelData.co2_factor.toString());
+        form.setValue("co2_emission_factor", fuelData.co2_factor);
         
         // Set fuel efficiency if available
         if (fuelData.efficiency) {
-          form.setValue("fuel_efficiency", fuelData.efficiency.toString());
+          form.setValue("fuel_efficiency", fuelData.efficiency);
         }
         
         // Set idle fuel consumption if available
         if (fuelData.idle_consumption) {
-          form.setValue("idle_fuel_consumption", fuelData.idle_consumption.toString());
+          form.setValue("idle_fuel_consumption", fuelData.idle_consumption);
         }
         
         console.log(`Using Abu Dhabi fuel price data: ${fuelData.price} AED/L for ${selectedFuelType}`);
