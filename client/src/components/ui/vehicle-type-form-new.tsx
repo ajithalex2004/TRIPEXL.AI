@@ -185,26 +185,46 @@ export function VehicleTypeForm({ onSubmit, initialData, isEditing = false }: Ve
   // This function is used by the fuel type selection to update form values
   const updateFormValuesFromFuelType = (fuelType: string) => {
     if (fuelTypes && fuelTypes.length > 0) {
+      console.log("Fuel types available:", fuelTypes);
       const selectedFuelData = fuelTypes.find(ft => 
         ft.type.toLowerCase() === fuelType.toLowerCase()
       );
       
       if (selectedFuelData) {
-        // Update form values with proper numeric types
-        form.setValue("fuel_price_per_litre", Number(selectedFuelData.price));
-        form.setValue("co2_emission_factor", Number(selectedFuelData.co2_factor));
+        console.log("Selected fuel data:", selectedFuelData);
         
-        if (selectedFuelData.efficiency) {
-          form.setValue("fuel_efficiency", Number(selectedFuelData.efficiency));
+        // Convert all string values to numbers explicitly
+        const price = typeof selectedFuelData.price === 'string' ? 
+          parseFloat(selectedFuelData.price) : selectedFuelData.price;
+          
+        const efficiency = typeof selectedFuelData.efficiency === 'string' ? 
+          parseFloat(selectedFuelData.efficiency) : selectedFuelData.efficiency;
+          
+        const co2Factor = typeof selectedFuelData.co2_factor === 'string' ? 
+          parseFloat(selectedFuelData.co2_factor) : selectedFuelData.co2_factor;
+          
+        const idleConsumption = typeof selectedFuelData.idle_consumption === 'string' ? 
+          parseFloat(selectedFuelData.idle_consumption) : selectedFuelData.idle_consumption;
+        
+        // Update form values with proper numeric types
+        console.log("Setting fuel price to:", price);
+        form.setValue("fuel_price_per_litre", price);
+        form.setValue("co2_emission_factor", co2Factor);
+        
+        if (efficiency) {
+          console.log("Setting fuel efficiency to:", efficiency);
+          form.setValue("fuel_efficiency", efficiency);
         }
         
-        if (selectedFuelData.idle_consumption) {
-          form.setValue("idle_fuel_consumption", Number(selectedFuelData.idle_consumption));
+        if (idleConsumption) {
+          console.log("Setting idle consumption to:", idleConsumption);
+          form.setValue("idle_fuel_consumption", idleConsumption);
         }
         
         // Calculate cost per km
-        if (selectedFuelData.price && selectedFuelData.efficiency && selectedFuelData.efficiency > 0) {
-          const costPerKm = Number((selectedFuelData.price / selectedFuelData.efficiency).toFixed(2));
+        if (price && efficiency && efficiency > 0) {
+          const costPerKm = Number((price / efficiency).toFixed(2));
+          console.log("Setting cost per km to:", costPerKm);
           form.setValue("cost_per_km", costPerKm);
         }
       }
@@ -405,7 +425,7 @@ export function VehicleTypeForm({ onSubmit, initialData, isEditing = false }: Ve
                                   <div className="flex items-center gap-2">
                                     <span className="font-medium">{type.type}</span>
                                     <span className="text-xs text-muted-foreground">
-                                      {type.price.toFixed(2)} AED/L
+                                      {typeof type.price === 'string' ? parseFloat(type.price).toFixed(2) : type.price.toFixed(2)} AED/L
                                     </span>
                                   </div>
                                 </SelectItem>
