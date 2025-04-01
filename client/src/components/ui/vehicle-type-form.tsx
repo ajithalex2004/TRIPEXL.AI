@@ -61,15 +61,36 @@ export function VehicleTypeForm({ onSubmit, initialData, isEditing = false }: Ve
     { label: "Saving", description: "Saving vehicle type" },
   ];
 
-  // Master data for manufacturers, models, etc.
-  const { data: masterData } = useQuery<any>({
-    queryKey: ["/api/masters/vehicle-data"]
+  // Master data for manufacturers, models, etc. (TanStack Query v5 compatible)
+  const { 
+    data: masterData, 
+    isLoading: isLoadingMasterData 
+  } = useQuery({
+    queryKey: ["/api/vehicle-masters"]
   });
 
+  // Log master data for debugging
+  useEffect(() => {
+    if (masterData) {
+      console.log("Fetched master data:", masterData);
+    }
+  }, [masterData]);
+
   // Fetch vehicle groups for dropdown
-  const { data: vehicleGroups, error: groupsError } = useQuery<any[]>({
+  const { 
+    data: vehicleGroups, 
+    error: groupsError, 
+    isLoading: isLoadingGroups 
+  } = useQuery({
     queryKey: ["/api/vehicle-groups"]
   });
+
+  // Log vehicle groups for debugging
+  useEffect(() => {
+    if (vehicleGroups) {
+      console.log("Fetched vehicle groups:", vehicleGroups);
+    }
+  }, [vehicleGroups]);
 
   // Fetch fuel types directly from API
   const { data: fuelTypes } = useQuery<FuelTypeData[]>({
@@ -509,22 +530,24 @@ export function VehicleTypeForm({ onSubmit, initialData, isEditing = false }: Ve
                       onValueChange={(value) => {
                         field.onChange(value);
                         setSelectedManufacturer(value);
+                        console.log("Selected manufacturer:", value);
                       }}
                       value={field.value}
                     >
                       <FormControl>
                         <SelectTrigger>
-                          <SelectValue placeholder="Select manufacturer" />
+                          <SelectValue placeholder={isLoadingMasterData ? "Loading..." : "Select manufacturer"} />
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        {masterData?.manufacturers?.map((manufacturer: any) => (
+                        {masterData?.manufacturers?.map((manufacturer: string) => (
                           <SelectItem key={manufacturer} value={manufacturer}>
                             {manufacturer}
                           </SelectItem>
                         ))}
                       </SelectContent>
                     </Select>
+                    {isLoadingMasterData && <p className="text-sm text-muted-foreground">Loading manufacturers...</p>}
                     <FormMessage />
                   </FormItem>
                 )}
