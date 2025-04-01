@@ -52,17 +52,35 @@ export function VehicleTypeForm({ onSubmit, initialData, isEditing = false }: Ve
 
   // Load master data
   const { data: masterData, isLoading: isLoadingMasterData } = useQuery({
-    queryKey: ["/api/vehicle-masters"]
+    queryKey: ["/api/vehicle-masters"],
+    onSuccess: (data) => {
+      console.log("MASTER DATA LOADED:", data);
+    },
+    onError: (error) => {
+      console.error("Error loading master data:", error);
+    }
   });
 
   // Vehicle groups
   const { data: vehicleGroups, isLoading: isLoadingVehicleGroups } = useQuery({
-    queryKey: ["/api/vehicle-groups"]
+    queryKey: ["/api/vehicle-groups"],
+    onSuccess: (data) => {
+      console.log("VEHICLE GROUPS LOADED:", data);
+    },
+    onError: (error) => {
+      console.error("Error loading vehicle groups:", error);
+    }
   });
 
   // Fetch fuel types
   const { data: fuelTypes, isLoading: isLoadingFuelTypes } = useQuery({
-    queryKey: ["/api/fuel-types"]
+    queryKey: ["/api/fuel-types"],
+    onSuccess: (data) => {
+      console.log("FUEL TYPES LOADED:", data);
+    },
+    onError: (error) => {
+      console.error("Error loading fuel types:", error);
+    }
   });
 
   // Set vehicle type code when model, manufacturer and year are set
@@ -101,13 +119,39 @@ export function VehicleTypeForm({ onSubmit, initialData, isEditing = false }: Ve
       
       if (modelData) {
         console.log("Model data found:", modelData);
-        form.setValue("fuel_efficiency", Number(modelData.efficiency));
-        form.setValue("vehicle_capacity", Number(modelData.capacity));
-        form.setValue("idle_fuel_consumption", Number(modelData.idleConsumption));
-        form.setValue("number_of_passengers", Number(modelData.passengerCapacity));
         
-        // Calculate cost per km if fuel price is set
-        updateCostPerKm(Number(modelData.efficiency));
+        // Create a timeout to ensure DOM update has processed
+        setTimeout(() => {
+          try {
+            console.log("Setting model-specific values");
+            
+            // Get current form state
+            const currentFormState = form.getValues();
+            console.log("Current form state before update:", currentFormState);
+            
+            // Directly update efficiency value
+            const efficiency = Number(modelData.efficiency);
+            form.setValue("fuel_efficiency", efficiency);
+            
+            // Update all other model-specific fields
+            form.setValue("vehicle_capacity", Number(modelData.capacity));
+            form.setValue("idle_fuel_consumption", Number(modelData.idleConsumption));
+            form.setValue("number_of_passengers", Number(modelData.passengerCapacity));
+            
+            // Get fuel price and calculate cost per km
+            const fuelPrice = form.getValues("fuel_price_per_litre");
+            if (fuelPrice && efficiency > 0) {
+              const costPerKm = Number((fuelPrice / efficiency).toFixed(2));
+              console.log("Setting cost per km to:", costPerKm, "based on price:", fuelPrice, "and efficiency:", efficiency);
+              form.setValue("cost_per_km", costPerKm);
+            }
+            
+            // Log the updated form state
+            console.log("Form state after update:", form.getValues());
+          } catch (error) {
+            console.error("Error updating form values:", error);
+          }
+        }, 50);
       }
     }
   };
@@ -123,14 +167,38 @@ export function VehicleTypeForm({ onSubmit, initialData, isEditing = false }: Ve
       const fuelData = fuelTypes.find((ft: any) => ft.type === value);
       if (fuelData) {
         console.log("Fuel data found:", fuelData);
-        const price = parseFloat(fuelData.price);
-        const co2Factor = parseFloat(fuelData.co2_factor);
         
-        form.setValue("fuel_price_per_litre", price);
-        form.setValue("co2_emission_factor", co2Factor);
-        
-        // Calculate cost per km based on current efficiency
-        updateCostPerKm();
+        // Create a timeout to ensure DOM update has processed
+        setTimeout(() => {
+          try {
+            console.log("Setting fuel type-specific values");
+            
+            // Get current form state
+            const currentFormState = form.getValues();
+            console.log("Current form state before fuel update:", currentFormState);
+            
+            // Parse values as numbers
+            const price = parseFloat(fuelData.price);
+            const co2Factor = parseFloat(fuelData.co2_factor);
+            
+            // Update form values
+            form.setValue("fuel_price_per_litre", price);
+            form.setValue("co2_emission_factor", co2Factor);
+            
+            // Calculate cost per km based on current efficiency
+            const efficiency = form.getValues("fuel_efficiency");
+            if (price && efficiency && efficiency > 0) {
+              const costPerKm = Number((price / efficiency).toFixed(2));
+              console.log("Setting cost per km to:", costPerKm, "based on price:", price, "and efficiency:", efficiency);
+              form.setValue("cost_per_km", costPerKm);
+            }
+            
+            // Log updated form state
+            console.log("Form state after fuel update:", form.getValues());
+          } catch (error) {
+            console.error("Error updating fuel values:", error);
+          }
+        }, 50);
       }
     }
   };
