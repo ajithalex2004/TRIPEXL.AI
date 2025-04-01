@@ -84,8 +84,16 @@ export function VehicleTypeFormFixed({ onSubmit, initialData, isEditing = false 
   
   // Fetch fuel types directly from API
   const { data: fuelTypes } = useQuery<FuelTypeData[]>({
-    queryKey: ["/api/fuel-types"]
+    queryKey: ["/api/fuel-types"],
+    staleTime: 60000 // Cache for 1 minute
   });
+  
+  // For debugging
+  useEffect(() => {
+    if (fuelTypes) {
+      console.log("Fetched fuel types:", fuelTypes);
+    }
+  }, [fuelTypes]);
 
   // For debugging
   useEffect(() => {
@@ -125,10 +133,20 @@ export function VehicleTypeFormFixed({ onSubmit, initialData, isEditing = false 
       );
 
       if (modelData) {
+        console.log("Setting values from model data:", modelData);
+        
+        // Always set these values from the model data
         form.setValue("fuel_efficiency", Number(modelData.efficiency));
         form.setValue("vehicle_capacity", Number(modelData.capacity));
         form.setValue("idle_fuel_consumption", Number(modelData.idleConsumption));
         form.setValue("number_of_passengers", Number(modelData.passengerCapacity));
+        
+        // Recalculate cost per km based on current fuel price and efficiency
+        const fuelPrice = form.getValues("fuel_price_per_litre");
+        if (fuelPrice && Number(modelData.efficiency) > 0) {
+          const costPerKm = Number((fuelPrice / Number(modelData.efficiency)).toFixed(2));
+          form.setValue("cost_per_km", costPerKm);
+        }
       }
     }
   }, [selectedManufacturer, selectedModel, masterData, form]);
@@ -167,12 +185,25 @@ export function VehicleTypeFormFixed({ onSubmit, initialData, isEditing = false 
         console.log("Setting fuel price to:", price);
         form.setValue("fuel_price_per_litre", price);
         form.setValue("co2_emission_factor", co2Factor);
-        form.setValue("fuel_efficiency", efficiency);
-        form.setValue("idle_fuel_consumption", idleConsumption);
+        
+        // Only set efficiency and idle consumption if we don't already have model-specific values
+        // that were set by the vehicle model selection
+        const currentEfficiency = form.getValues("fuel_efficiency");
+        if (!currentEfficiency || currentEfficiency === 0) {
+          console.log("Setting default fuel efficiency to:", efficiency);
+          form.setValue("fuel_efficiency", efficiency);
+        }
+        
+        const currentIdleConsumption = form.getValues("idle_fuel_consumption");
+        if (!currentIdleConsumption || currentIdleConsumption === 0) {
+          console.log("Setting default idle consumption to:", idleConsumption);
+          form.setValue("idle_fuel_consumption", idleConsumption);
+        }
         
         // Calculate cost per km
-        if (price && efficiency && efficiency > 0) {
-          const costPerKm = Number((price / efficiency).toFixed(2));
+        const currentFuelEfficiency = form.getValues("fuel_efficiency") || efficiency;
+        if (price && currentFuelEfficiency && currentFuelEfficiency > 0) {
+          const costPerKm = Number((price / currentFuelEfficiency).toFixed(2));
           console.log("Setting cost per km to:", costPerKm);
           form.setValue("cost_per_km", costPerKm);
         }
