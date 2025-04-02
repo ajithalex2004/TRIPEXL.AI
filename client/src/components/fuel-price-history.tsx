@@ -48,15 +48,8 @@ export function FuelPriceHistory() {
   const { data: history, isLoading } = useQuery<FuelPriceHistory[]>({
     queryKey: ["/api/fuel-types/history"],
   });
-
-  if (isLoading) {
-    return (
-      <div className="flex items-center justify-center min-h-[400px]">
-        <Loader2 className="h-8 w-8 animate-spin" />
-      </div>
-    );
-  }
-
+  
+  // Define color constants outside of conditional rendering
   const fuelTypeColors = {
     petrol: "#f97316",
     diesel: "#0f172a",
@@ -66,7 +59,8 @@ export function FuelPriceHistory() {
     lpg: "#eab308",
   };
 
-  const lines = Object.keys(fuelTypeColors).map((fuelType) => (
+  // Generate line components with the colors - this isn't a hook so it's fine to use in render
+  const getLines = () => Object.keys(fuelTypeColors).map((fuelType) => (
     <Line
       key={fuelType}
       type="monotone"
@@ -76,6 +70,15 @@ export function FuelPriceHistory() {
       strokeWidth={2}
     />
   ));
+
+  // Show loading state if data is still loading
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <Loader2 className="h-8 w-8 animate-spin" />
+      </div>
+    );
+  }
 
   return (
     <motion.div
@@ -108,8 +111,8 @@ export function FuelPriceHistory() {
                   <XAxis dataKey="month" />
                   <YAxis label={{ value: 'AED per Litre', angle: -90, position: 'insideLeft' }} />
                   <Tooltip formatter={(value) => [`${value} AED`, ""]} />
-                  <Legend onClick={(e) => setSelectedFuelType(e.dataKey)} />
-                  {lines}
+                  <Legend onClick={(e) => e.dataKey && setSelectedFuelType(e.dataKey.toString())} />
+                  {getLines()}
                 </LineChart>
               </ResponsiveContainer>
             </div>

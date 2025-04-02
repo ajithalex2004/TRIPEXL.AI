@@ -34,6 +34,7 @@ import {
   AreaChart,
 } from "recharts";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Badge } from "@/components/ui/badge";
 import { 
   Loader2, 
   Droplets, 
@@ -59,7 +60,6 @@ import {
   Tag,
   CircleDollarSign
 } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
 import { motion } from "framer-motion";
 import * as animationUtils from "@/lib/animation-utils";
 import { format } from "date-fns";
