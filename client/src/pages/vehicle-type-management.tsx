@@ -704,10 +704,10 @@ export default function VehicleTypeManagement() {
                     <TableBody>
                       {filteredVehicleTypes.map((type) => (
                         <TableRow key={type.id} className="hover:bg-muted/50">
-                          <TableCell className="font-medium">{type.vehicle_type_code}</TableCell>
-                          <TableCell>{type.vehicle_type_name}</TableCell>
-                          <TableCell>{type.manufacturer}</TableCell>
-                          <TableCell>{type.vehicle_type}</TableCell>
+                          <TableCell className="font-medium">{type.vehicle_type_code || "N/A"}</TableCell>
+                          <TableCell>{type.vehicle_type_name || "N/A"}</TableCell>
+                          <TableCell>{type.manufacturer || "N/A"}</TableCell>
+                          <TableCell>{type.vehicle_type || "N/A"}</TableCell>
                           <TableCell>
                             {type.group_id ? (
                               <Badge variant="outline" className="font-normal">

@@ -517,11 +517,13 @@ export function VehicleMasterForm({ isOpen, onClose, initialData }: VehicleMaste
                             Loading fuel types...
                           </SelectItem>
                         ) : fuelTypes && fuelTypes.length > 0 ? (
-                          fuelTypes.map((fuelType) => (
-                            <SelectItem key={fuelType.id} value={fuelType.type}>
-                              {fuelType.type}
-                            </SelectItem>
-                          ))
+                          fuelTypes
+                            .filter(fuelType => fuelType && fuelType.type && typeof fuelType.type === 'string' && fuelType.type.trim() !== '')
+                            .map((fuelType) => (
+                              <SelectItem key={fuelType.id} value={fuelType.type}>
+                                {fuelType.type || "Unknown Fuel Type"}
+                              </SelectItem>
+                            ))
                         ) : (
                           <SelectItem value="none" disabled>
                             No fuel types available

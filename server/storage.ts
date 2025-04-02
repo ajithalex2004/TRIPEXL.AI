@@ -460,8 +460,35 @@ export class DatabaseStorage implements IStorage {
     try {
       console.log("Querying vehicle type master records");
       const vehicleTypes = await db.select().from(schema.vehicleTypeMaster);
-      console.log("Found vehicle types:", vehicleTypes);
-      return vehicleTypes;
+      
+      // Process each vehicle type to ensure we don't have null values for important fields
+      const processedTypes = vehicleTypes.map(type => {
+        // Create a new object with non-null values for critical fields
+        return {
+          ...type,
+          // Ensure these specific fields always have a string value
+          fuel_type: type.fuel_type || "",
+          vehicle_model: type.vehicle_model || "",
+          vehicle_type: type.vehicle_type || "",
+          manufacturer: type.manufacturer || "",
+          vehicle_type_name: type.vehicle_type_name || "",
+          vehicle_type_code: type.vehicle_type_code || "",
+          region: type.region || "Abu Dhabi",
+          department: type.department || "Fleet",
+          service_plan: type.service_plan || "",
+          unit: type.unit || "",
+          // Convert potential nulls to empty strings in Drizzle-style record
+          ...(Object.entries(type).reduce((acc, [key, value]) => {
+            if (typeof value === 'string' || value === null) {
+              acc[key] = value === null ? "" : value;
+            }
+            return acc;
+          }, {} as Record<string, any>))
+        };
+      });
+      
+      console.log("Found and processed vehicle types:", processedTypes.length);
+      return processedTypes;
     } catch (error) {
       console.error("Error in getAllVehicleTypes:", error);
       throw error;

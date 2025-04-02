@@ -113,11 +113,15 @@ router.get("/api/vehicle-types", async (_req, res) => {
     console.log("Fetching all vehicle types");
     const types = await db.select().from(vehicleTypeMaster);
     
-    // Process each record to convert null values to empty strings for string fields
+    // Process each record to convert null values to empty strings for all string fields
     const processedTypes = types.map(type => {
       return Object.entries(type).reduce((acc, [key, value]) => {
         if (typeof value === 'string' || value === null) {
+          // Convert null values to empty strings
           acc[key] = value === null ? "" : value;
+        } else if (key === 'fuel_type' || key === 'vehicle_model' || key === 'vehicle_type') {
+          // Ensure these specific fields always have a string value even if they're not string type
+          acc[key] = value === null || value === undefined ? "" : String(value);
         } else {
           acc[key] = value;
         }

@@ -496,12 +496,14 @@ export function VehicleTypeForm({
                     </SelectTrigger>
                     <SelectContent>
                       {formState.manufacturer && 
-                        (vehicleModels[formState.manufacturer] ? 
-                          vehicleModels[formState.manufacturer].models.map((model: VehicleModelInfo) => (
-                            <SelectItem key={model.name} value={model.name}>
-                              {model.name}
-                            </SelectItem>
-                          )) 
+                        (vehicleModels[formState.manufacturer] && vehicleModels[formState.manufacturer].models ? 
+                          vehicleModels[formState.manufacturer].models
+                            .filter((model: VehicleModelInfo) => model && model.name && model.name.trim() !== '')
+                            .map((model: VehicleModelInfo) => (
+                              <SelectItem key={model.name} value={model.name}>
+                                {model.name || "Unknown Model"}
+                              </SelectItem>
+                            )) 
                         : [])}
                     </SelectContent>
                   </Select>
@@ -590,7 +592,7 @@ export function VehicleTypeForm({
                         .filter(ft => ft && ft.id && ft.type && typeof ft.type === 'string' && ft.type.trim() !== '')
                         .map((ft) => (
                           <SelectItem key={ft.id} value={ft.type}>
-                            {ft.type}
+                            {ft.type || "Unknown Fuel Type"}
                           </SelectItem>
                         ))}
                     </SelectContent>
