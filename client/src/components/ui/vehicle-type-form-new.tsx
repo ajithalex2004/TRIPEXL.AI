@@ -380,12 +380,14 @@ export function VehicleTypeForm({ onSubmit, initialData, isEditing = false }: Ve
         
         // Check for co2_factor (from /api/fuel-types endpoint)
         if (fuelData.co2_factor !== undefined) {
+          console.log("Found co2_factor in fuel data:", fuelData.co2_factor);
           co2Factor = typeof fuelData.co2_factor === 'string'
             ? parseFloat(fuelData.co2_factor)
             : fuelData.co2_factor;
         } 
         // Check for co2Factor (from /api/vehicle-masters endpoint)
         else if (fuelData.co2Factor !== undefined) {
+          console.log("Found co2Factor in fuel data:", fuelData.co2Factor);
           co2Factor = typeof fuelData.co2Factor === 'string'
             ? parseFloat(fuelData.co2Factor)
             : fuelData.co2Factor;
@@ -420,9 +422,16 @@ export function VehicleTypeForm({ onSubmit, initialData, isEditing = false }: Ve
         
         console.log("Extracted values - Price:", price, "CO2 Factor:", co2Factor);
         
-        // Update form values
+        // Update form values with console logging
+        console.log("Setting fuel price:", price);
         form.setValue("fuel_price_per_litre", price);
+        
+        console.log("Setting CO2 emission factor:", co2Factor);
         form.setValue("co2_emission_factor", co2Factor);
+        
+        // Also update the form state directly
+        const formValues = form.getValues();
+        console.log("Current form values:", formValues);
         
         // Calculate cost per km based on current efficiency
         const efficiency = form.getValues("fuel_efficiency");
