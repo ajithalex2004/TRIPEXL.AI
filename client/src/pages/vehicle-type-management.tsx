@@ -58,6 +58,7 @@ export default function VehicleTypeManagement() {
   const [regionFilter, setRegionFilter] = useState<string>("all");
   const [vehicleTypeFilter, setVehicleTypeFilter] = useState<string>("all");
   const [departmentFilter, setDepartmentFilter] = useState<string>("all");
+  const [vehicleGroups, setVehicleGroups] = useState<any[]>([]);
   const [showFilters, setShowFilters] = useState(false);
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -137,6 +138,26 @@ export default function VehicleTypeManagement() {
     
     return () => clearTimeout(timer);
   }, [refetch, vehicleTypes, isError, error]);
+  
+  // Fetch vehicle groups to display group names
+  useEffect(() => {
+    const fetchVehicleGroups = async () => {
+      try {
+        const response = await fetch("/api/vehicle-groups");
+        if (response.ok) {
+          const data = await response.json();
+          console.log("Vehicle groups loaded:", data);
+          setVehicleGroups(data);
+        } else {
+          console.error("Failed to load vehicle groups:", response.statusText);
+        }
+      } catch (error) {
+        console.error("Error fetching vehicle groups:", error);
+      }
+    };
+    
+    fetchVehicleGroups();
+  }, []);
 
   // Extract unique filter options from data
   const regionOptions = useMemo(() => {
@@ -688,7 +709,9 @@ export default function VehicleTypeManagement() {
                                   setSelectedType(type);
                                   setIsFormOpen(true);
                                 }}
-                              >{type.group_id}</TableCell>
+                              >
+                                {vehicleGroups.find(group => group.id === type.group_id)?.name || `Group ${type.group_id}`}
+                              </TableCell>
                               <TableCell 
                                 className="cursor-pointer"
                                 onClick={() => {
@@ -790,6 +813,7 @@ export default function VehicleTypeManagement() {
                   <p><strong>Code:</strong> {selectedType.vehicle_type_code}</p>
                   <p><strong>Name:</strong> {selectedType.vehicle_type_name}</p>
                   <p><strong>Type:</strong> {selectedType.vehicle_type}</p>
+                  <p><strong>Group:</strong> {vehicleGroups.find(group => group.id === selectedType.group_id)?.name || `Group ${selectedType.group_id}`}</p>
                 </div>
               )}
             </AlertDialogDescription>
