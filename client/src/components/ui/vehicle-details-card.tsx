@@ -23,9 +23,10 @@ const DetailRow: React.FC<DetailRowProps> = ({ label, value, icon }) => (
 
 export function VehicleDetailsCard({ vehicleData }: VehicleDetailsCardProps) {
   // Format currency values
-  const formatCurrency = (value: number | string) => {
-    const numValue = typeof value === 'string' ? parseFloat(value) : value;
-    return `${numValue.toFixed(2)} AED`;
+  const formatCurrency = (value: number | string | null | undefined) => {
+    if (value === null || value === undefined || value === '') return '0.00 AED';
+    const numValue = typeof value === 'string' ? parseFloat(value || '0') : value;
+    return isNaN(numValue) ? '0.00 AED' : `${numValue.toFixed(2)} AED`;
   };
 
   // Get performance data if available

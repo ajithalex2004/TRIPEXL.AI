@@ -28,21 +28,35 @@ performanceRouter.get("/api/performance-snapshot/top-performers", async (req, re
         // Find the associated fuel type
         const fuelType = fuelTypes.find(f => f.type === vehicle.fuel_type) || null;
         
+        // Function to handle null or undefined values
+        const safeString = (value: any) => value === null || value === undefined ? "" : value;
+        const safeNumber = (value: any) => {
+          if (value === null || value === undefined || value === '') return 0;
+          const num = typeof value === 'string' ? parseFloat(value) : Number(value);
+          return isNaN(num) ? 0 : num;
+        };
+        
         return {
           id: vehicle.id,
-          name: vehicle.vehicle_type_name,
-          code: vehicle.vehicle_type_code,
-          manufacturer: vehicle.manufacturer,
-          modelYear: vehicle.model_year,
-          fuelType: vehicle.fuel_type,
+          name: safeString(vehicle.vehicle_type_name),
+          code: safeString(vehicle.vehicle_type_code),
+          manufacturer: safeString(vehicle.manufacturer),
+          modelYear: safeNumber(vehicle.model_year),
+          fuelType: safeString(vehicle.fuel_type),
           fuelTypeDetails: fuelType,
-          fuelEfficiency: Number(vehicle.fuel_efficiency),
-          costPerKm: Number(vehicle.cost_per_km),
-          co2EmissionFactor: Number(vehicle.co2_emission_factor),
-          idleFuelConsumption: Number(vehicle.idle_fuel_consumption),
-          passengerCapacity: Number(vehicle.number_of_passengers),
-          region: vehicle.region,
-          department: vehicle.department,
+          fuelEfficiency: safeNumber(vehicle.fuel_efficiency),
+          costPerKm: safeNumber(vehicle.cost_per_km),
+          co2EmissionFactor: safeNumber(vehicle.co2_emission_factor),
+          idleFuelConsumption: safeNumber(vehicle.idle_fuel_consumption),
+          passengerCapacity: safeNumber(vehicle.number_of_passengers),
+          region: safeString(vehicle.region),
+          department: safeString(vehicle.department),
+          // Additional fields
+          vehicle_model: safeString(vehicle.vehicle_model),
+          vehicle_type: safeString(vehicle.vehicle_type),
+          service_plan: safeString(vehicle.service_plan),
+          unit: safeString(vehicle.unit),
+          color: safeString(vehicle.color),
           performance: {
             efficiencyRating: calculateEfficiencyRating(vehicle, vehicles),
             costRating: calculateCostRating(vehicle, vehicles),

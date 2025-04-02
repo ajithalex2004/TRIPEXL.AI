@@ -112,8 +112,21 @@ router.get("/api/vehicle-types", async (_req, res) => {
   try {
     console.log("Fetching all vehicle types");
     const types = await db.select().from(vehicleTypeMaster);
-    console.log("Retrieved vehicle types:", types);
-    res.json(types);
+    
+    // Process each record to convert null values to empty strings for string fields
+    const processedTypes = types.map(type => {
+      return Object.entries(type).reduce((acc, [key, value]) => {
+        if (typeof value === 'string' || value === null) {
+          acc[key] = value === null ? "" : value;
+        } else {
+          acc[key] = value;
+        }
+        return acc;
+      }, {} as any);
+    });
+    
+    console.log("Retrieved vehicle types:", processedTypes);
+    res.json(processedTypes);
   } catch (error: any) {
     console.error("Error fetching vehicle types:", error);
     res.status(500).json({ error: error.message });
@@ -187,8 +200,18 @@ router.post("/api/vehicle-types", async (req, res) => {
       .values(formattedData)
       .returning();
 
-    console.log("Successfully created vehicle type:", newType);
-    res.status(201).json(newType);
+    // Convert null values to empty strings for string fields
+    const processedNewType = Object.entries(newType).reduce((acc, [key, value]) => {
+      if (typeof value === 'string' || value === null) {
+        acc[key] = value === null ? "" : value;
+      } else {
+        acc[key] = value;
+      }
+      return acc;
+    }, {} as any);
+    
+    console.log("Successfully created vehicle type:", processedNewType);
+    res.status(201).json(processedNewType);
   } catch (error: any) {
     console.error("Error creating vehicle type:", error);
 
@@ -225,8 +248,18 @@ router.get("/api/vehicle-types/:id", async (req, res) => {
       return res.status(404).json({ error: "Vehicle type not found" });
     }
 
-    console.log("Retrieved vehicle type:", type);
-    res.json(type);
+    // Convert null values to empty strings for string fields
+    const processedType = Object.entries(type).reduce((acc, [key, value]) => {
+      if (typeof value === 'string' || value === null) {
+        acc[key] = value === null ? "" : value;
+      } else {
+        acc[key] = value;
+      }
+      return acc;
+    }, {} as any);
+
+    console.log("Retrieved and processed vehicle type:", processedType);
+    res.json(processedType);
   } catch (error: any) {
     console.error("Error fetching vehicle type:", error);
     res.status(500).json({ error: error.message });
@@ -330,8 +363,18 @@ router.patch("/api/vehicle-types/:id", async (req, res) => {
       return res.status(404).json({ error: "Vehicle type not found" });
     }
 
-    console.log("Updated vehicle type:", updatedType);
-    res.json(updatedType);
+    // Convert null values to empty strings for string fields
+    const processedUpdatedType = Object.entries(updatedType).reduce((acc, [key, value]) => {
+      if (typeof value === 'string' || value === null) {
+        acc[key] = value === null ? "" : value;
+      } else {
+        acc[key] = value;
+      }
+      return acc;
+    }, {} as any);
+    
+    console.log("Updated and processed vehicle type:", processedUpdatedType);
+    res.json(processedUpdatedType);
   } catch (error: any) {
     console.error("Error updating vehicle type:", error);
     res.status(500).json({ error: error.message });
