@@ -218,11 +218,23 @@ export function VehicleMasterForm({ isOpen, onClose, initialData }: VehicleMaste
   const handleVehicleTypeSelect = React.useCallback((typeCode: string) => {
     const selectedType = vehicleTypes?.find(type => type.vehicle_type_code === typeCode);
     if (selectedType) {
+      // Set the form fields based on the selected vehicle type
       form.setValue("vehicle_type_code", selectedType.vehicle_type_code);
       form.setValue("vehicle_type_name", `${selectedType.manufacturer} ${selectedType.vehicle_type_name}`);
       form.setValue("fuel_type", selectedType.fuel_type);
       form.setValue("model_year", selectedType.model_year);
       form.setValue("manufacturer", selectedType.manufacturer);
+      form.setValue("vehicle_model", selectedType.vehicle_model);
+      
+      // Also update the state variables to ensure dropdowns reflect the selected values
+      setSelectedManufacturer(selectedType.manufacturer);
+      setSelectedModelYear(selectedType.model_year);
+      setSelectedModel(selectedType.vehicle_model);
+      
+      // Update available models for the selected manufacturer
+      const modelInfo = DEFAULT_VEHICLE_MODELS[selectedType.manufacturer as keyof typeof DEFAULT_VEHICLE_MODELS];
+      const modelNames = modelInfo ? Object.keys(modelInfo) : [];
+      setAvailableModels(modelNames);
     }
   }, [vehicleTypes, form]);
 
@@ -249,65 +261,20 @@ export function VehicleMasterForm({ isOpen, onClose, initialData }: VehicleMaste
     // Reset vehicle type code and name if manufacturer changes
     form.setValue("vehicle_type_code", "");
     form.setValue("vehicle_type_name", "");
-    
-    // Generate vehicle type code if model and year are already set
-    if (selectedModel && selectedModelYear) {
-      const generatedTypeCode = generateVehicleTypeCode(
-        value,
-        selectedModel,
-        selectedModelYear
-      );
-      
-      // Set the type code
-      form.setValue("vehicle_type_code", generatedTypeCode);
-      
-      // Also set vehicle type name in a readable format
-      form.setValue("vehicle_type_name", `${value} ${selectedModel} ${selectedModelYear}`);
-    }
-  }, [form, selectedModel, selectedModelYear]);
+  }, [form]);
 
   // Handle model year change
   const handleModelYearChange = React.useCallback((value: string) => {
     const yearValue = parseInt(value, 10);
     setSelectedModelYear(yearValue);
     form.setValue("model_year", yearValue);
-    
-    // Generate vehicle type code if manufacturer and model are already set
-    if (selectedManufacturer && selectedModel && yearValue) {
-      const generatedTypeCode = generateVehicleTypeCode(
-        selectedManufacturer,
-        selectedModel,
-        yearValue
-      );
-      
-      // Set the type code
-      form.setValue("vehicle_type_code", generatedTypeCode);
-      
-      // Also set vehicle type name in a readable format
-      form.setValue("vehicle_type_name", `${selectedManufacturer} ${selectedModel} ${yearValue}`);
-    }
-  }, [form, selectedManufacturer, selectedModel]);
+  }, [form]);
 
   // Handle vehicle model change
   const handleVehicleModelChange = React.useCallback((value: string) => {
     setSelectedModel(value);
     form.setValue("vehicle_model", value);
-    
-    // Generate vehicle type code if manufacturer, model, and year are set
-    if (selectedManufacturer && value && selectedModelYear) {
-      const generatedTypeCode = generateVehicleTypeCode(
-        selectedManufacturer,
-        value,
-        selectedModelYear
-      );
-      
-      // Set the type code
-      form.setValue("vehicle_type_code", generatedTypeCode);
-      
-      // Also set vehicle type name in a readable format
-      form.setValue("vehicle_type_name", `${selectedManufacturer} ${value} ${selectedModelYear}`);
-    }
-  }, [form, selectedManufacturer, selectedModelYear]);
+  }, [form]);
 
   // Show loading spinner while vehicle types are being fetched
   if (isLoadingVehicleTypes) {
