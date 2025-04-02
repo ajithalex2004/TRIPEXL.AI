@@ -50,7 +50,7 @@ import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
 import { motion } from "framer-motion";
 import * as animationUtils from "@/lib/animation-utils";
-import { apiRequest } from "@/lib/queryClient";
+import { apiRequest, getQueryFn } from "@/lib/queryClient";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
@@ -265,8 +265,8 @@ export function FuelTypeManagement() {
     setIsEditing(true);
     form.reset({
       type: fuelType.type,
-      price: fuelType.price,
-      co2_factor: fuelType.co2_factor,
+      price: parseFloat(fuelType.price),
+      co2_factor: parseFloat(fuelType.co2_factor),
     });
     setEditDialogOpen(true);
   };
@@ -301,8 +301,8 @@ export function FuelTypeManagement() {
   // Function to apply a UAE fuel type to the form
   const applyUaeFuelType = (fuelType: FuelType) => {
     form.setValue("type", fuelType.type);
-    form.setValue("price", fuelType.price);
-    form.setValue("co2_factor", fuelType.co2_factor);
+    form.setValue("price", parseFloat(fuelType.price));
+    form.setValue("co2_factor", parseFloat(fuelType.co2_factor));
     setShowUaeFuels(false);
     
     toast({
@@ -318,8 +318,8 @@ export function FuelTypeManagement() {
     const selectedFuel = fuelTypes?.find(fuel => fuel.type === fuelTypeName);
     if (selectedFuel) {
       form.setValue("type", selectedFuel.type);
-      form.setValue("price", selectedFuel.price);
-      form.setValue("co2_factor", selectedFuel.co2_factor);
+      form.setValue("price", parseFloat(selectedFuel.price));
+      form.setValue("co2_factor", parseFloat(selectedFuel.co2_factor));
       
       toast({
         title: "Fuel Type Selected",
@@ -410,9 +410,9 @@ export function FuelTypeManagement() {
                   {fuelTypes?.map((fuelType) => (
                     <TableRow key={fuelType.id}>
                       <TableCell className="font-medium">{fuelType.type}</TableCell>
-                      <TableCell>{fuelType.price.toFixed(2)} AED</TableCell>
-                      <TableCell>{fuelType.co2_factor.toFixed(2)}</TableCell>
-                      <TableCell>{formatDate(fuelType.updated_at)}</TableCell>
+                      <TableCell>{parseFloat(fuelType.price).toFixed(2)} AED</TableCell>
+                      <TableCell>{parseFloat(fuelType.co2_factor).toFixed(2)}</TableCell>
+                      <TableCell>{formatDate(fuelType.updated_at.toString())}</TableCell>
                       <TableCell className="text-right">
                         <div className="flex justify-end gap-2">
                           <Button
@@ -532,8 +532,8 @@ export function FuelTypeManagement() {
                               // Find the selected fuel type to set price and CO2 factor
                               const selectedFuel = fuelTypes?.find(fuel => fuel.type === e.target.value);
                               if (selectedFuel) {
-                                form.setValue("price", selectedFuel.price);
-                                form.setValue("co2_factor", selectedFuel.co2_factor);
+                                form.setValue("price", parseFloat(selectedFuel.price));
+                                form.setValue("co2_factor", parseFloat(selectedFuel.co2_factor));
                                 
                                 toast({
                                   title: "Fuel Type Selected",
