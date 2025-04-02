@@ -362,19 +362,30 @@ export function VehicleTypeForm({ onSubmit, initialData, isEditing = false }: Ve
       
       try {
         // Parse values as numbers - ensure we handle string values properly
-        const price = typeof fuelData.price === 'string' 
-          ? parseFloat(fuelData.price) 
-          : typeof fuelData.price === 'number'
-            ? fuelData.price
-            : 0;
+        let price = 0;
+        
+        // Check for price property
+        if (fuelData.price !== undefined) {
+          price = typeof fuelData.price === 'string' 
+            ? parseFloat(fuelData.price) 
+            : typeof fuelData.price === 'number'
+              ? fuelData.price
+              : 0;
+        }
+        
+        console.log("Extracted price:", price, "from fuel data:", fuelData);
             
         // Try various property names for CO2 factor with better error handling
         let co2Factor = null;
+        
+        // Check for co2_factor (from /api/fuel-types endpoint)
         if (fuelData.co2_factor !== undefined) {
           co2Factor = typeof fuelData.co2_factor === 'string'
             ? parseFloat(fuelData.co2_factor)
             : fuelData.co2_factor;
-        } else if (fuelData.co2Factor !== undefined) {
+        } 
+        // Check for co2Factor (from /api/vehicle-masters endpoint)
+        else if (fuelData.co2Factor !== undefined) {
           co2Factor = typeof fuelData.co2Factor === 'string'
             ? parseFloat(fuelData.co2Factor)
             : fuelData.co2Factor;
