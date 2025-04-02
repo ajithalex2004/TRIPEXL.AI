@@ -12,6 +12,7 @@ import {
   EmiratesPlateInfo,
   VehicleTypeMaster,
   AssetType,
+  FuelType,
 } from "@shared/schema";
 import { useQuery } from "@tanstack/react-query";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
@@ -57,40 +58,44 @@ export function VehicleMasterForm({ isOpen, onClose, initialData }: VehicleMaste
   const [selectedEmirate, setSelectedEmirate] = React.useState<string>(initialData?.emirate || "");
   const [selectedCategory, setSelectedCategory] = React.useState<string>(initialData?.plateCategory || "");
 
-  // Query hook for vehicle types - keep this at top level
+  // Query hooks - keep at top level
   const { data: vehicleTypes, isLoading: isLoadingVehicleTypes } = useQuery<VehicleTypeMaster[]>({
     queryKey: ["/api/vehicle-type-master"],
+  });
+  
+  const { data: fuelTypes, isLoading: isLoadingFuelTypes } = useQuery<FuelType[]>({
+    queryKey: ["/api/fuel-types"],
   });
 
   // Initialize form with useForm hook - keep at top level
   const form = useForm({
     resolver: zodResolver(insertVehicleMasterSchema),
     defaultValues: {
-      vehicleId: initialData?.vehicleId || "",
+      vehicle_id: initialData?.vehicle_id || "",
       emirate: initialData?.emirate || "",
-      registrationNumber: initialData?.registrationNumber || "",
-      plateCode: initialData?.plateCode || "",
-      plateNumber: initialData?.plateNumber || "",
-      currentOdometer: initialData?.currentOdometer?.toString() || "0",
-      plateCategory: initialData?.plateCategory || "",
-      vehicleTypeCode: initialData?.vehicleTypeCode || "",
-      vehicleTypeName: initialData?.vehicleTypeName || "",
-      vehicleModel: initialData?.vehicleModel || "",
-      fuelType: initialData?.fuelType || "",
-      transmissionType: initialData?.transmissionType || "",
+      registration_number: initialData?.registration_number || "",
+      plate_code: initialData?.plate_code || "",
+      plate_number: initialData?.plate_number || "",
+      current_odometer: initialData?.current_odometer?.toString() || "0",
+      plate_category: initialData?.plate_category || "",
+      vehicle_type_code: initialData?.vehicle_type_code || "",
+      vehicle_type_name: initialData?.vehicle_type_name || "",
+      vehicle_model: initialData?.vehicle_model || "",
+      fuel_type: initialData?.fuel_type || "",
+      transmission_type: initialData?.transmission_type || "",
       region: initialData?.region || "",
       department: initialData?.department || "",
-      chassisNumber: initialData?.chassisNumber || "",
-      engineNumber: initialData?.engineNumber || "",
+      chassis_number: initialData?.chassis_number || "",
+      engine_number: initialData?.engine_number || "",
       unit: initialData?.unit || "",
-      modelYear: initialData?.modelYear || 0,
-      assetType: initialData?.assetType || "",
+      model_year: initialData?.model_year || 0,
+      asset_type: initialData?.asset_type || "",
       manufacturer: initialData?.manufacturer || "",
-      vehicleUsage: initialData?.vehicleUsage || "",
-      isCanConnected: initialData?.isCanConnected || YesNo.NO,
-      isWeightSensorConnected: initialData?.isWeightSensorConnected || YesNo.NO,
-      isTemperatureSensorConnected: initialData?.isTemperatureSensorConnected || YesNo.NO,
-      isPtoConnected: initialData?.isPtoConnected || YesNo.NO,
+      vehicle_usage: initialData?.vehicle_usage || "",
+      is_can_connected: initialData?.is_can_connected || YesNo.NO,
+      is_weight_sensor_connected: initialData?.is_weight_sensor_connected || YesNo.NO,
+      is_temperature_sensor_connected: initialData?.is_temperature_sensor_connected || YesNo.NO,
+      is_pto_connected: initialData?.is_pto_connected || YesNo.NO,
     },
   });
 
@@ -199,12 +204,12 @@ export function VehicleMasterForm({ isOpen, onClose, initialData }: VehicleMaste
   }, [form, updateRegistrationNumber]);
 
   const handleVehicleTypeSelect = React.useCallback((typeCode: string) => {
-    const selectedType = vehicleTypes?.find(type => type.vehicleTypeCode === typeCode);
+    const selectedType = vehicleTypes?.find(type => type.vehicle_type_code === typeCode);
     if (selectedType) {
-      form.setValue("vehicleTypeCode", selectedType.vehicleTypeCode);
-      form.setValue("vehicleTypeName", `${selectedType.manufacturer} ${selectedType.vehicleType}`);
-      form.setValue("fuelType", selectedType.fuelType);
-      form.setValue("modelYear", selectedType.modelYear);
+      form.setValue("vehicle_type_code", selectedType.vehicle_type_code);
+      form.setValue("vehicle_type_name", `${selectedType.manufacturer} ${selectedType.vehicle_type_name}`);
+      form.setValue("fuel_type", selectedType.fuel_type);
+      form.setValue("model_year", selectedType.model_year);
       form.setValue("manufacturer", selectedType.manufacturer);
     }
   }, [vehicleTypes, form]);
@@ -383,10 +388,10 @@ export function VehicleMasterForm({ isOpen, onClose, initialData }: VehicleMaste
                       <SelectContent>
                         {vehicleTypes?.map((type) => (
                           <SelectItem
-                            key={type.vehicleTypeCode}
-                            value={type.vehicleTypeCode}
+                            key={type.vehicle_type_code}
+                            value={type.vehicle_type_code}
                           >
-                            {type.vehicleTypeCode}
+                            {type.vehicle_type_code}
                           </SelectItem>
                         ))}
                       </SelectContent>
@@ -416,16 +421,37 @@ export function VehicleMasterForm({ isOpen, onClose, initialData }: VehicleMaste
                 )}
               />
 
-              {/* Fuel Type - Read only */}
+              {/* Fuel Type */}
               <FormField
                 control={form.control}
-                name="fuelType"
+                name="fuel_type"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Fuel Type</FormLabel>
-                    <FormControl>
-                      <Input placeholder="Fuel Type" {...field} readOnly />
-                    </FormControl>
+                    <FormLabel>Fuel Type *</FormLabel>
+                    <Select onValueChange={field.onChange} value={field.value}>
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select fuel type" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {isLoadingFuelTypes ? (
+                          <SelectItem value="loading" disabled>
+                            Loading fuel types...
+                          </SelectItem>
+                        ) : fuelTypes && fuelTypes.length > 0 ? (
+                          fuelTypes.map((fuelType) => (
+                            <SelectItem key={fuelType.id} value={fuelType.type}>
+                              {fuelType.type}
+                            </SelectItem>
+                          ))
+                        ) : (
+                          <SelectItem value="none" disabled>
+                            No fuel types available
+                          </SelectItem>
+                        )}
+                      </SelectContent>
+                    </Select>
                     <FormMessage />
                   </FormItem>
                 )}
@@ -676,29 +702,32 @@ export function VehicleMasterForm({ isOpen, onClose, initialData }: VehicleMaste
 }
 
 interface VehicleMaster {
-  vehicleId: string;
+  id?: number;
+  vehicle_id: string;
   emirate: string;
-  registrationNumber: string;
-  plateCode: string;
-  plateNumber: string;
-  currentOdometer: number | null;
-  plateCategory: string;
-  vehicleTypeCode: string;
-  vehicleTypeName: string;
-  vehicleModel: string;
-  fuelType: string;
-  transmissionType: string;
+  registration_number: string;
+  plate_code: string;
+  plate_number: string;
+  current_odometer: number | null;
+  plate_category: string;
+  vehicle_type_code: string;
+  vehicle_type_name: string;
+  vehicle_model: string;
+  fuel_type: string;
+  transmission_type: string;
   region: string;
   department: string;
-  chassisNumber: string;
-  engineNumber: string;
+  chassis_number: string;
+  engine_number: string;
   unit: string;
-  modelYear: number;
-  assetType: string;
+  model_year: number;
+  asset_type: string;
   manufacturer: string;
-  vehicleUsage: string;
-  isCanConnected: YesNo;
-  isWeightSensorConnected: YesNo;
-  isTemperatureSensorConnected: YesNo;
-  isPtoConnected: YesNo;
+  vehicle_usage: string;
+  is_can_connected: string; // Using string type because schema uses text
+  is_weight_sensor_connected: string;
+  is_temperature_sensor_connected: string;
+  is_pto_connected: string;
+  created_at?: Date;
+  updated_at?: Date;
 }
