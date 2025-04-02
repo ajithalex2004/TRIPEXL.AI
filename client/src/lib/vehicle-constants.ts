@@ -25,8 +25,23 @@ export const DEFAULT_MANUFACTURERS = [
   "Volkswagen"
 ];
 
+// Define the type for model objects
+export interface VehicleModelInfo {
+  name: string;
+  efficiency?: string;
+  capacity?: string;
+  idleConsumption?: string;
+  passengerCapacity?: string;
+  categories?: string[];
+}
+
+// Define the type for manufacturer entries
+export interface ManufacturerModels {
+  models: VehicleModelInfo[];
+}
+
 // Default vehicle models (organized by manufacturer)
-export const DEFAULT_VEHICLE_MODELS = {
+export const DEFAULT_VEHICLE_MODELS: Record<string, ManufacturerModels> = {
   "Toyota": {
     models: [
       { name: "Corolla" },

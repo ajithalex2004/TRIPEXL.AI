@@ -7,7 +7,8 @@ import {
   DEFAULT_MANUFACTURERS, 
   DEFAULT_VEHICLE_MODELS, 
   DEFAULT_YEARS, 
-  generateVehicleTypeCode 
+  generateVehicleTypeCode,
+  type VehicleModelInfo
 } from "@/lib/vehicle-constants";
 
 import {
@@ -308,28 +309,32 @@ export function VehicleTypeForm({
       console.log("Need manufacturer, model and year to generate vehicle type code");
     }
     
-    // Load model data if available
+    // Load model data if available, with proper type checking
     if (vehicleModels[formState.manufacturer]) {
-      const modelData = vehicleModels[formState.manufacturer].models?.find(
-        (m: any) => m.name === value
-      );
-      
-      if (modelData) {
-        if (modelData.efficiency) {
-          updateFormField("fuel_efficiency", parseFloat(modelData.efficiency));
-        }
-        if (modelData.capacity) {
-          updateFormField("vehicle_capacity", parseFloat(modelData.capacity));
-        }
-        if (modelData.idleConsumption) {
-          updateFormField("idle_fuel_consumption", parseFloat(modelData.idleConsumption));
-        }
-        if (modelData.passengerCapacity) {
-          updateFormField("number_of_passengers", parseInt(modelData.passengerCapacity));
-        }
+      try {
+        const modelData = vehicleModels[formState.manufacturer].models.find(
+          (m: VehicleModelInfo) => m.name === value
+        );
         
-        // Recalculate cost per km
-        setTimeout(calculateCostPerKm, 0);
+        if (modelData) {
+          if (modelData.efficiency) {
+            updateFormField("fuel_efficiency", parseFloat(modelData.efficiency));
+          }
+          if (modelData.capacity) {
+            updateFormField("vehicle_capacity", parseFloat(modelData.capacity));
+          }
+          if (modelData.idleConsumption) {
+            updateFormField("idle_fuel_consumption", parseFloat(modelData.idleConsumption));
+          }
+          if (modelData.passengerCapacity) {
+            updateFormField("number_of_passengers", parseInt(modelData.passengerCapacity));
+          }
+          
+          // Recalculate cost per km
+          setTimeout(calculateCostPerKm, 0);
+        }
+      } catch (error) {
+        console.error("Error loading model data:", error);
       }
     }
   };
@@ -490,12 +495,14 @@ export function VehicleTypeForm({
                       <SelectValue placeholder="Select model" />
                     </SelectTrigger>
                     <SelectContent>
-                      {formState.manufacturer &&
-                        vehicleModels[formState.manufacturer]?.models.map((model: any) => (
-                          <SelectItem key={model.name} value={model.name}>
-                            {model.name}
-                          </SelectItem>
-                        ))}
+                      {formState.manufacturer && 
+                        (vehicleModels[formState.manufacturer] ? 
+                          vehicleModels[formState.manufacturer].models.map((model: VehicleModelInfo) => (
+                            <SelectItem key={model.name} value={model.name}>
+                              {model.name}
+                            </SelectItem>
+                          )) 
+                        : [])}
                     </SelectContent>
                   </Select>
                 </div>
