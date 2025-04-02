@@ -266,6 +266,64 @@ router.get("/api/vehicle-types/:id", async (req, res) => {
   }
 });
 
+// Get form-ready vehicle type data
+router.get("/api/vehicle-types/:id/form-data", async (req, res) => {
+  try {
+    const id = parseInt(req.params.id);
+    if (isNaN(id)) {
+      return res.status(400).json({ error: "Invalid ID format" });
+    }
+
+    console.log("Fetching form-ready vehicle type with ID:", id);
+    const [type] = await db
+      .select()
+      .from(vehicleTypeMaster)
+      .where(eq(vehicleTypeMaster.id, id));
+
+    if (!type) {
+      console.log("Vehicle type not found with ID:", id);
+      return res.status(404).json({ error: "Vehicle type not found" });
+    }
+
+    // Process stringified numeric values for form display
+    const formReadyData = {
+      ...type,
+      // String fields - ensure they're not null
+      vehicle_type_code: type.vehicle_type_code || "",
+      vehicle_type_name: type.vehicle_type_name || "",
+      manufacturer: type.manufacturer || "",
+      vehicle_model: type.vehicle_model || "",
+      region: type.region || "Abu Dhabi",
+      fuel_type: type.fuel_type || "",
+      service_plan: type.service_plan || "",
+      vehicle_type: type.vehicle_type || "",
+      department: type.department || "Fleet",
+      unit: type.unit || "",
+      color: type.color || "",
+      
+      // Numeric fields - parse and format
+      fuel_efficiency: type.fuel_efficiency ? parseFloat(type.fuel_efficiency.toString()) : 0,
+      fuel_price_per_litre: type.fuel_price_per_litre ? parseFloat(type.fuel_price_per_litre.toString()) : 0,
+      cost_per_km: type.cost_per_km ? parseFloat(type.cost_per_km.toString()) : 0,
+      idle_fuel_consumption: type.idle_fuel_consumption ? parseFloat(type.idle_fuel_consumption.toString()) : 0,
+      co2_emission_factor: type.co2_emission_factor ? parseFloat(type.co2_emission_factor.toString()) : 0,
+      
+      // Integer fields
+      model_year: type.model_year || new Date().getFullYear(),
+      number_of_passengers: type.number_of_passengers || 0,
+      alert_before: type.alert_before || 0,
+      vehicle_capacity: type.vehicle_capacity || 0,
+      group_id: type.group_id || 0,
+    };
+
+    console.log("Form-ready vehicle type data:", formReadyData);
+    res.json(formReadyData);
+  } catch (error: any) {
+    console.error("Error fetching form-ready vehicle type:", error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
 // Update vehicle type
 router.patch("/api/vehicle-types/:id", async (req, res) => {
   try {
