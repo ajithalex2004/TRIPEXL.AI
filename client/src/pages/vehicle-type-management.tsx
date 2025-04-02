@@ -52,13 +52,54 @@ export default function VehicleTypeManagement() {
   const queryClient = useQueryClient();
 
   // Query vehicle types with better caching and retry strategy
-  const { data: vehicleTypes, isLoading, refetch } = useQuery<VehicleTypeMaster[]>({
+  const { data: vehicleTypes, isLoading, refetch, isError, error } = useQuery<VehicleTypeMaster[]>({
     queryKey: ["/api/vehicle-types"],
     staleTime: 0, // Always consider data stale (fetch on mount)
     refetchOnMount: true, // Refetch when component mounts
     refetchOnWindowFocus: true, // Refetch when window gets focus
     retry: 3, // Retry 3 times if the request fails
     retryDelay: 1000, // Wait 1 second between retries
+    queryFn: async () => {
+      try {
+        console.log("Attempting to fetch vehicle types from API...");
+        
+        // Use a more explicit fetch with error logging
+        const response = await fetch("/api/vehicle-types", {
+          method: "GET",
+          headers: {
+            "Accept": "application/json",
+            "Content-Type": "application/json"
+          }
+        });
+        
+        console.log("API response status:", response.status);
+        console.log("API response OK:", response.ok);
+        
+        if (!response.ok) {
+          const errorText = await response.text();
+          console.error("API error response:", errorText);
+          throw new Error(`API error: ${response.status} - ${errorText}`);
+        }
+        
+        const responseText = await response.text();
+        console.log("Raw API response:", responseText);
+        
+        // Parse the text manually for better debugging
+        let data;
+        try {
+          data = JSON.parse(responseText);
+          console.log("API data parsed successfully:", data);
+          console.log("Number of vehicle types:", data.length);
+          return data;
+        } catch (parseError) {
+          console.error("Error parsing JSON:", parseError);
+          throw new Error(`Invalid JSON response: ${parseError.message}`);
+        }
+      } catch (err) {
+        console.error("Error fetching vehicle types:", err);
+        throw err;
+      }
+    }
   });
   
   // Force refetch when component mounts to ensure fresh data
@@ -68,10 +109,22 @@ export default function VehicleTypeManagement() {
     const timer = setTimeout(() => {
       refetch();
       console.log("Explicit refetch triggered");
+      
+      // Debug output
+      if (vehicleTypes) {
+        console.log("Vehicle types data received:", vehicleTypes);
+        console.log("Number of vehicle types:", vehicleTypes.length);
+      } else {
+        console.log("No vehicle types data received");
+      }
+      
+      if (isError) {
+        console.error("Error loading vehicle types:", error);
+      }
     }, 500);
     
     return () => clearTimeout(timer);
-  }, [refetch]);
+  }, [refetch, vehicleTypes, isError, error]);
 
   // Extract unique filter options from data
   const regionOptions = useMemo(() => {
