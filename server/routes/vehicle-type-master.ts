@@ -141,6 +141,7 @@ router.post("/api/vehicle-types", async (req, res) => {
       vehicle_type_code: result.data.vehicle_type_code,
       vehicle_type_name: result.data.vehicle_type_name,
       manufacturer: result.data.manufacturer,
+      vehicle_model: result.data.vehicle_model || "",
       model_year: result.data.model_year,
       number_of_passengers: result.data.number_of_passengers,
       region: result.data.region,
@@ -155,7 +156,8 @@ router.post("/api/vehicle-types", async (req, res) => {
       alert_before: result.data.alert_before,
       idle_fuel_consumption: result.data.idle_fuel_consumption?.toString(),
       vehicle_capacity: result.data.vehicle_capacity,
-      co2_emission_factor: result.data.co2_emission_factor?.toString() || "0"
+      co2_emission_factor: result.data.co2_emission_factor?.toString() || "0",
+      color: result.data.color || ""
     };
     
     console.log("Formatted data for insert:", formattedData);
@@ -237,6 +239,7 @@ router.patch("/api/vehicle-types/:id", async (req, res) => {
     if (result.data.vehicle_type_code !== undefined) updateData.vehicle_type_code = result.data.vehicle_type_code;
     if (result.data.vehicle_type_name !== undefined) updateData.vehicle_type_name = result.data.vehicle_type_name;
     if (result.data.manufacturer !== undefined) updateData.manufacturer = result.data.manufacturer;
+    if (result.data.vehicle_model !== undefined) updateData.vehicle_model = result.data.vehicle_model;
     if (result.data.model_year !== undefined) updateData.model_year = result.data.model_year;
     if (result.data.number_of_passengers !== undefined) updateData.number_of_passengers = result.data.number_of_passengers;
     if (result.data.region !== undefined) updateData.region = result.data.region;
@@ -252,6 +255,7 @@ router.patch("/api/vehicle-types/:id", async (req, res) => {
     if (result.data.idle_fuel_consumption !== undefined) updateData.idle_fuel_consumption = result.data.idle_fuel_consumption.toString();
     if (result.data.vehicle_capacity !== undefined) updateData.vehicle_capacity = result.data.vehicle_capacity;
     if (result.data.co2_emission_factor !== undefined) updateData.co2_emission_factor = result.data.co2_emission_factor.toString();
+    if (result.data.color !== undefined) updateData.color = result.data.color;
     
     console.log("Formatted update data:", updateData);
     

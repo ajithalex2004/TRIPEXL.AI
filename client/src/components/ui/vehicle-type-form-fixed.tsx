@@ -449,6 +449,32 @@ export function VehicleTypeForm({
                 </td>
               </tr>
 
+              {/* Row 2.5: Color */}
+              <tr>
+                <td className="border p-2">
+                  <FormField
+                    control={form.control}
+                    name="color"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Vehicle Color</FormLabel>
+                        <FormControl>
+                          <Input
+                            {...field}
+                            type="text"
+                            placeholder="Enter vehicle color"
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </td>
+                <td className="border p-2">
+                  {/* Placeholder to maintain grid structure */}
+                </td>
+              </tr>
+
               {/* Row 3: Vehicle Category | Vehicle Type Name */}
               <tr>
                 <td className="border p-2">
