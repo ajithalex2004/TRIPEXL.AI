@@ -18,6 +18,7 @@ import crypto from "crypto";
 import { eq, sql } from 'drizzle-orm';
 import mastersRouter from "./routes/masters"; // Added import statement
 import { initializeFuelPriceService, updateFuelPrices, getFuelPriceHistory, triggerFuelPriceUpdate } from "./services/fuel-price-service";
+import { performanceRouter } from "./routes/performance-snapshot";
 
 // Configure multer for handling file uploads
 const upload = multer({
@@ -483,6 +484,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
     });
     
     log("Fuel price API endpoints registered");
+
+    // Add performance snapshot routes
+    log("Registering performance snapshot routes...");
+    app.use(performanceRouter);
+    log("Performance snapshot routes registered");
 
     // Add employee routes
     app.get("/api/employees", async (_req, res) => {

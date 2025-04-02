@@ -87,6 +87,7 @@ export interface IStorage {
   getAllFuelTypes(): Promise<FuelType[]>;
   updateFuelTypePrice(fuelType: string, price: number): Promise<void>;
   recalculateVehicleCosts(): Promise<void>;
+  getFuelPriceHistory(): Promise<any[]>; // Get historical fuel price data
 }
 
 export class DatabaseStorage implements IStorage {
@@ -226,6 +227,45 @@ export class DatabaseStorage implements IStorage {
       console.log("Vehicle master records updated successfully");
     } catch (error) {
       console.error("Error recalculating vehicle metrics:", error);
+      throw error;
+    }
+  }
+  
+  // Get historical fuel price data
+  async getFuelPriceHistory(): Promise<any[]> {
+    try {
+      console.log("Fetching fuel price history");
+      
+      // Get all fuel types with their historical price data
+      const fuelTypes = await this.getAllFuelTypes();
+      const result: any[] = [];
+      
+      // Flatten the historical price data from all fuel types
+      fuelTypes.forEach(fuel => {
+        if (fuel.historical_prices && Array.isArray(fuel.historical_prices)) {
+          const fuelHistory = fuel.historical_prices.map(record => ({
+            fuel_type: fuel.type,
+            date: record.date,
+            price: record.price
+          }));
+          result.push(...fuelHistory);
+        }
+        
+        // Also add the current price as the latest entry
+        result.push({
+          fuel_type: fuel.type,
+          date: fuel.updated_at || new Date(),
+          price: fuel.price
+        });
+      });
+      
+      // Sort the combined history by date (newest first)
+      result.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+      
+      console.log(`Found ${result.length} historical fuel price records`);
+      return result;
+    } catch (error) {
+      console.error("Error fetching fuel price history:", error);
       throw error;
     }
   }
