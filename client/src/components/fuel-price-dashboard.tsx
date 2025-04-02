@@ -17,11 +17,17 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import { Loader2, RefreshCw } from "lucide-react";
+import { AlertCircle, Loader2, RefreshCw, Search } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { motion } from "framer-motion";
 import * as animationUtils from "@/lib/animation-utils";
 import { apiRequest } from "@/lib/queryClient";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 interface FuelType {
   type: string;
@@ -33,6 +39,7 @@ export function FuelPriceDashboard() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [isUpdating, setIsUpdating] = useState(false);
+  const [isScrapingWam, setIsScrapingWam] = useState(false);
 
   // Fetch fuel types data
   const { data: fuelTypes, isLoading } = useQuery<FuelType[]>({
@@ -68,9 +75,43 @@ export function FuelPriceDashboard() {
     },
   });
 
+  // Mutation for running WAM scraper
+  const wamScraperMutation = useMutation({
+    mutationFn: async () => {
+      const response = await apiRequest("POST", "/api/fuel-prices/wam-scrape");
+      return await response.json();
+    },
+    onMutate: () => {
+      setIsScrapingWam(true);
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ["/api/fuel-types"] });
+      toast({
+        title: "Success",
+        description: "WAM fuel prices scraper completed successfully",
+      });
+    },
+    onError: (error) => {
+      console.error("Error running WAM fuel price scraper:", error);
+      toast({
+        title: "Error",
+        description: "Failed to run WAM fuel price scraper",
+        variant: "destructive",
+      });
+    },
+    onSettled: () => {
+      setIsScrapingWam(false);
+    },
+  });
+
   // Handle update button click
   const handleUpdateFuelPrices = () => {
     updateFuelPricesMutation.mutate();
+  };
+  
+  // Handle WAM scraper button click
+  const handleRunWamScraper = () => {
+    wamScraperMutation.mutate();
   };
 
   // Format date for better readability
@@ -135,24 +176,49 @@ export function FuelPriceDashboard() {
               </TableBody>
             </Table>
           </CardContent>
-          <CardFooter className="bg-muted/10 border-t flex justify-between items-center p-4">
+          <CardFooter className="bg-muted/10 border-t flex flex-col sm:flex-row justify-between items-center gap-4 p-4">
             <div className="text-sm text-muted-foreground">
               {fuelTypes?.length
                 ? `Last updated on ${formatDate(fuelTypes[0].updated_at)}`
                 : "No update history available"}
             </div>
-            <Button
-              onClick={handleUpdateFuelPrices}
-              disabled={isUpdating}
-              className="space-x-2"
-            >
-              {isUpdating ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
-              ) : (
-                <RefreshCw className="h-4 w-4" />
-              )}
-              <span>{isUpdating ? "Updating..." : "Update Now"}</span>
-            </Button>
+            <div className="flex gap-3">
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      onClick={handleRunWamScraper}
+                      disabled={isScrapingWam || isUpdating}
+                      variant="outline"
+                      className="space-x-2"
+                    >
+                      {isScrapingWam ? (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      ) : (
+                        <Search className="h-4 w-4" />
+                      )}
+                      <span>{isScrapingWam ? "Scraping WAM..." : "Scrape WAM"}</span>
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>Fetch latest fuel prices from Emirates News Agency (WAM)</p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+              
+              <Button
+                onClick={handleUpdateFuelPrices}
+                disabled={isUpdating || isScrapingWam}
+                className="space-x-2"
+              >
+                {isUpdating ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <RefreshCw className="h-4 w-4" />
+                )}
+                <span>{isUpdating ? "Updating..." : "Update Now"}</span>
+              </Button>
+            </div>
           </CardFooter>
         </Card>
       </motion.div>

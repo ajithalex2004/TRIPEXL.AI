@@ -17,7 +17,7 @@ import nodemailer from "nodemailer";
 import crypto from "crypto";
 import { eq, sql } from 'drizzle-orm';
 import mastersRouter from "./routes/masters"; // Added import statement
-import { initializeFuelPriceService, updateFuelPrices, getFuelPriceHistory, triggerFuelPriceUpdate } from "./services/fuel-price-service";
+import { initializeFuelPriceService, updateFuelPrices, getFuelPriceHistory, triggerFuelPriceUpdate, runWamFuelPriceScraper } from "./services/fuel-price-service";
 import { performanceRouter } from "./routes/performance-snapshot";
 
 // Configure multer for handling file uploads
@@ -478,6 +478,34 @@ export async function registerRoutes(app: Express): Promise<Server> {
         res.status(500).json({ 
           success: false, 
           error: "Error updating fuel prices", 
+          details: error.message 
+        });
+      }
+    });
+    
+    // Endpoint to manually trigger WAM scraper (requires admin)
+    app.post("/api/fuel-prices/wam-scrape", async (req, res) => {
+      try {
+        // TODO: Add proper authentication check here
+        console.log("Manually triggering WAM fuel price scraper");
+        const result = await runWamFuelPriceScraper();
+        
+        if (result) {
+          res.json({ 
+            success: true, 
+            message: "WAM fuel price scraper completed successfully. Prices updated."
+          });
+        } else {
+          res.status(500).json({ 
+            success: false, 
+            error: "WAM fuel price scraper failed" 
+          });
+        }
+      } catch (error: any) {
+        console.error("Error running WAM fuel price scraper:", error);
+        res.status(500).json({ 
+          success: false, 
+          error: "Error running WAM fuel price scraper", 
           details: error.message 
         });
       }

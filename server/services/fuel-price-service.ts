@@ -4,6 +4,8 @@ import { db } from '../db';
 import cron from 'node-cron';
 import * as schema from '@shared/schema';
 import { eq } from 'drizzle-orm';
+import { spawn } from 'child_process';
+import path from 'path';
 
 // Global date handler for simulation
 const USE_FAKE_DATE = true;
@@ -15,6 +17,160 @@ function getCurrentDate() {
     return FAKE_DATE;
   } else {
     return new Date().toISOString().split('T')[0];
+  }
+}
+
+// Function to run the WAM fuel price scraper Python script
+export async function runWamFuelPriceScraper(): Promise<boolean> {
+  return new Promise((resolve) => {
+    console.log('Running WAM fuel price scraper...');
+    
+    // Get the absolute path to the Python script
+    const scriptPath = path.join(__dirname, '..', 'services', 'wam_fuel_scraper.py');
+    console.log(`Executing Python script at: ${scriptPath}`);
+    
+    // Store stdout data
+    let stdoutData = '';
+    
+    // Spawn the Python process
+    const pythonProcess = spawn('python', [scriptPath]);
+    
+    // Capture stdout data
+    pythonProcess.stdout.on('data', (data) => {
+      const output = data.toString();
+      console.log(`WAM Scraper output: ${output}`);
+      stdoutData += output;
+    });
+    
+    // Capture stderr data
+    pythonProcess.stderr.on('data', (data) => {
+      console.error(`WAM Scraper error: ${data.toString()}`);
+    });
+    
+    // Handle process exit
+    pythonProcess.on('close', async (code) => {
+      if (code === 0) {
+        console.log('WAM fuel price scraper completed successfully');
+        
+        // Try to extract and process the fuel price data
+        try {
+          const priceDataMatch = stdoutData.match(/Sending price data to TripXL API: .*?(\{.*?\})/s);
+          if (priceDataMatch && priceDataMatch[1]) {
+            // Parse the price data from the output
+            const priceData = JSON.parse(priceDataMatch[1]);
+            console.log('Successfully extracted price data:', priceData);
+            
+            // Process the scraped prices
+            if (priceData.prices) {
+              await processScrapedFuelPrices(priceData.prices);
+              console.log('Successfully processed scraped fuel prices');
+              
+              // Recalculate vehicle costs based on the new fuel prices
+              await storage.recalculateVehicleCosts();
+              console.log('Successfully recalculated vehicle costs');
+            }
+          } else {
+            console.log('No price data found in scraper output');
+          }
+        } catch (err) {
+          console.error('Error processing scraped fuel prices:', err);
+        }
+        
+        resolve(true);
+      } else {
+        console.error(`WAM fuel price scraper exited with code ${code}`);
+        resolve(false);
+      }
+    });
+    
+    // Handle errors in process spawn
+    pythonProcess.on('error', (err) => {
+      console.error('Failed to start WAM fuel price scraper:', err);
+      resolve(false);
+    });
+  });
+}
+
+// Process fuel prices from WAM scraper
+async function processScrapedFuelPrices(prices: Record<string, number>): Promise<void> {
+  console.log('Processing scraped fuel prices:', prices);
+  
+  try {
+    // Get current fuel types from the database
+    const fuelTypes = await db.select().from(schema.fuelTypes);
+    const fuelTypeMap = new Map(fuelTypes.map(ft => [ft.type.toUpperCase(), ft]));
+    
+    // Current date for historical records
+    const currentDate = getCurrentDate();
+    
+    // Update each fuel type that was found in the scraped data
+    for (const [type, price] of Object.entries(prices)) {
+      const fuelTypeName = type.toUpperCase();
+      console.log(`Processing scraped price for ${fuelTypeName}: ${price} AED/liter`);
+      
+      // Find the corresponding fuel type in our database
+      const fuelType = fuelTypeMap.get(fuelTypeName);
+      if (fuelType) {
+        console.log(`Updating ${fuelTypeName} price to ${price} AED/liter`);
+        
+        // Process historical prices
+        let historicalPrices = [];
+        try {
+          // Parse historical prices if stored as string
+          if (typeof fuelType.historical_prices === 'string') {
+            historicalPrices = JSON.parse(fuelType.historical_prices || '[]');
+          } 
+          // Handle if it's already an object (Array)
+          else if (Array.isArray(fuelType.historical_prices)) {
+            historicalPrices = fuelType.historical_prices;
+          }
+          // Handle if it's a single object
+          else if (typeof fuelType.historical_prices === 'object' && fuelType.historical_prices !== null) {
+            historicalPrices = [fuelType.historical_prices];
+          }
+        } catch (e) {
+          console.warn(`Error parsing historical prices for ${fuelTypeName}:`, e);
+          historicalPrices = [];
+        }
+        
+        // Check if we already have an entry for today
+        const existingEntryIndex = historicalPrices.findIndex(
+          entry => entry.date === currentDate
+        );
+        
+        if (existingEntryIndex >= 0) {
+          // Update today's entry
+          historicalPrices[existingEntryIndex].price = price;
+        } else {
+          // Add new price to history
+          historicalPrices.push({
+            date: currentDate,
+            price: price
+          });
+        }
+        
+        // Keep only last 12 months of data
+        if (historicalPrices.length > 12) {
+          historicalPrices = historicalPrices.slice(-12);
+        }
+        
+        // Update the database
+        await db.update(schema.fuelTypes)
+          .set({
+            price: price.toString(),
+            updated_at: new Date(),
+            historical_prices: JSON.stringify(historicalPrices)
+          })
+          .where(eq(schema.fuelTypes.type, fuelType.type));
+          
+        console.log(`Successfully updated ${fuelTypeName} price in database`);
+      } else {
+        console.warn(`Fuel type ${fuelTypeName} not found in database, skipping update`);
+      }
+    }
+  } catch (error) {
+    console.error('Error processing scraped fuel prices:', error);
+    throw error;
   }
 }
 
@@ -124,7 +280,17 @@ export async function initializeFuelPriceService() {
     // Runs on the 1st day of each month at 6:00 AM
     cron.schedule('0 6 1 * *', async () => {
       console.log('Running scheduled fuel price update job');
-      await updateFuelPrices();
+      
+      // First try to scrape WAM website for real fuel prices
+      console.log('Attempting to scrape WAM for latest fuel prices...');
+      const scrapeResult = await runWamFuelPriceScraper();
+      
+      if (scrapeResult) {
+        console.log('Successfully scraped WAM fuel prices');
+      } else {
+        console.log('WAM scraping failed, falling back to simulated price update');
+        await updateFuelPrices();
+      }
     });
     
     console.log('Fuel price service initialized successfully');
@@ -332,5 +498,16 @@ function roundToTwoDecimals(value: number) {
 // Function to manually trigger a fuel price update
 export async function triggerFuelPriceUpdate() {
   console.log('Manually triggering fuel price update');
-  return await updateFuelPrices();
+  
+  // First try to scrape real prices from WAM
+  console.log('Attempting to scrape WAM for latest fuel prices...');
+  const scrapeResult = await runWamFuelPriceScraper();
+  
+  if (scrapeResult) {
+    console.log('Successfully scraped WAM fuel prices');
+    return true;
+  } else {
+    console.log('WAM scraping failed, falling back to simulated price update');
+    return await updateFuelPrices();
+  }
 }
