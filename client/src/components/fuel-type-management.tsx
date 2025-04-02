@@ -63,16 +63,8 @@ import {
 } from "@/components/ui/tooltip";
 import { Badge } from "@/components/ui/badge";
 
-// Define the fuel type interface
-interface FuelType {
-  id: number;
-  type: string;
-  price: number;
-  co2_factor: number;
-  updated_at: string;
-  created_at: string;
-  historical_prices?: string;
-}
+// Import FuelType from shared schema
+import { FuelType } from "@shared/schema";
 
 // Define the schema for the fuel type form
 const fuelTypeSchema = z.object({
@@ -114,8 +106,9 @@ export function FuelTypeManagement() {
   });
 
   // Fetch fuel types data
-  const { data: fuelTypes, isLoading, isError } = useQuery<FuelType[]>({
+  const { data: fuelTypes, isLoading, isError, error } = useQuery<FuelType[]>({
     queryKey: ["/api/fuel-types"],
+    retry: 1,
   });
   
   // Mutation for fetching UAE fuel types
@@ -393,6 +386,7 @@ export function FuelTypeManagement() {
                 <AlertTitle>Error</AlertTitle>
                 <AlertDescription>
                   Failed to load fuel types. Please try again later.
+                  {error instanceof Error && <p className="text-xs mt-1">Error details: {error.message}</p>}
                 </AlertDescription>
               </Alert>
             )}
