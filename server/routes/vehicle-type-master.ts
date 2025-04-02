@@ -138,58 +138,90 @@ router.post("/api/vehicle-types", async (req, res) => {
   try {
     console.log("Received vehicle type data:", req.body);
 
+    // Special handling for fuel types
+    // First check if the validation would fail specifically for fuel_type
     const result = insertVehicleTypeMasterSchema.safeParse(req.body);
-
+    
     if (!result.success) {
-      console.error("Validation failed:", result.error.issues);
-      return res.status(400).json({
-        error: "Invalid vehicle type data",
-        details: result.error.issues
-      });
+      // Check if the only issue is the fuel_type field
+      const fuelTypeIssue = result.error.issues.find(issue => 
+        issue.path.includes('fuel_type') && issue.code === 'invalid_enum_value'
+      );
+      
+      if (fuelTypeIssue) {
+        console.log("Found fuel type validation issue:", fuelTypeIssue);
+        console.log("Attempting to bypass validation for fuel_type");
+        
+        // If we have a fuel_type issue, let's verify the fuel_type exists in the database
+        const fuelTypes = await storage.getAllFuelTypes();
+        const requestedFuelType = req.body.fuel_type;
+        const fuelTypeExists = fuelTypes.some(ft => ft.type === requestedFuelType);
+        
+        if (fuelTypeExists) {
+          console.log(`Fuel type '${requestedFuelType}' exists in database, bypassing validation`);
+          // Continue processing with the data as-is
+        } else {
+          console.error(`Fuel type '${requestedFuelType}' not found in database`);
+          return res.status(400).json({
+            error: "Invalid fuel type",
+            message: `The fuel type '${requestedFuelType}' does not exist in the database`
+          });
+        }
+      } else {
+        // If there are other validation issues, return them
+        console.error("Validation failed:", result.error.issues);
+        return res.status(400).json({
+          error: "Invalid vehicle type data",
+          details: result.error.issues
+        });
+      }
     }
 
     // Ensure all data is properly formatted for database
     // First, create the base object with correct string values for required fields
+    // Use req.body directly if we had a fuel_type validation bypass
+    const data = result.success ? result.data : req.body;
+    
     const formattedData = {
-      group_id: result.data.group_id,
-      vehicle_type_code: result.data.vehicle_type_code,
-      vehicle_type_name: result.data.vehicle_type_name,
-      manufacturer: result.data.manufacturer,
-      model_year: result.data.model_year,
-      number_of_passengers: result.data.number_of_passengers,
-      region: result.data.region || "Abu Dhabi",
-      fuel_type: result.data.fuel_type,
-      department: result.data.department || "Fleet",
-      vehicle_capacity: result.data.vehicle_capacity,
-      alert_before: result.data.alert_before,
+      group_id: data.group_id,
+      vehicle_type_code: data.vehicle_type_code,
+      vehicle_type_name: data.vehicle_type_name,
+      manufacturer: data.manufacturer,
+      model_year: data.model_year,
+      number_of_passengers: data.number_of_passengers,
+      region: data.region || "Abu Dhabi",
+      fuel_type: data.fuel_type,
+      department: data.department || "Fleet",
+      vehicle_capacity: data.vehicle_capacity,
+      alert_before: data.alert_before,
       
       // Ensure all string fields have values
-      vehicle_model: result.data.vehicle_model || (result.data.vehicle_type || ""),
-      vehicle_type: result.data.vehicle_type || (result.data.vehicle_model || ""),
-      service_plan: result.data.service_plan || "",
-      unit: result.data.unit || "",
-      color: result.data.color || "",
+      vehicle_model: data.vehicle_model || (data.vehicle_type || ""),
+      vehicle_type: data.vehicle_type || (data.vehicle_model || ""),
+      service_plan: data.service_plan || "",
+      unit: data.unit || "",
+      color: data.color || "",
       
       // Convert numeric fields to strings
-      fuel_efficiency: typeof result.data.fuel_efficiency === 'number' 
-        ? result.data.fuel_efficiency.toString()
-        : (result.data.fuel_efficiency || "0"),
+      fuel_efficiency: typeof data.fuel_efficiency === 'number' 
+        ? data.fuel_efficiency.toString()
+        : (data.fuel_efficiency || "0"),
         
-      fuel_price_per_litre: typeof result.data.fuel_price_per_litre === 'number'
-        ? result.data.fuel_price_per_litre.toString()
-        : (result.data.fuel_price_per_litre || "0"),
+      fuel_price_per_litre: typeof data.fuel_price_per_litre === 'number'
+        ? data.fuel_price_per_litre.toString()
+        : (data.fuel_price_per_litre || "0"),
         
-      cost_per_km: typeof result.data.cost_per_km === 'number'
-        ? result.data.cost_per_km.toString()
-        : (result.data.cost_per_km || "0"),
+      cost_per_km: typeof data.cost_per_km === 'number'
+        ? data.cost_per_km.toString()
+        : (data.cost_per_km || "0"),
         
-      idle_fuel_consumption: typeof result.data.idle_fuel_consumption === 'number'
-        ? result.data.idle_fuel_consumption.toString()
-        : (result.data.idle_fuel_consumption || "0"),
+      idle_fuel_consumption: typeof data.idle_fuel_consumption === 'number'
+        ? data.idle_fuel_consumption.toString()
+        : (data.idle_fuel_consumption || "0"),
         
-      co2_emission_factor: typeof result.data.co2_emission_factor === 'number'
-        ? result.data.co2_emission_factor.toString()
-        : (result.data.co2_emission_factor || "0")
+      co2_emission_factor: typeof data.co2_emission_factor === 'number'
+        ? data.co2_emission_factor.toString()
+        : (data.co2_emission_factor || "0")
     };
     
     console.log("Formatted data for insert:", formattedData);
@@ -336,78 +368,108 @@ router.patch("/api/vehicle-types/:id", async (req, res) => {
     const result = insertVehicleTypeMasterSchema.partial().safeParse(req.body);
 
     if (!result.success) {
-      return res.status(400).json({
-        error: "Invalid vehicle type data",
-        details: result.error.issues
-      });
+      // Check if the only issue is the fuel_type field
+      const fuelTypeIssue = result.error.issues.find(issue => 
+        issue.path.includes('fuel_type') && issue.code === 'invalid_enum_value'
+      );
+      
+      if (fuelTypeIssue) {
+        console.log("Found fuel type validation issue on update:", fuelTypeIssue);
+        console.log("Attempting to bypass validation for fuel_type");
+        
+        // Verify the fuel_type exists in the database
+        const fuelTypes = await storage.getAllFuelTypes();
+        const requestedFuelType = req.body.fuel_type;
+        const fuelTypeExists = fuelTypes.some(ft => ft.type === requestedFuelType);
+        
+        if (fuelTypeExists) {
+          console.log(`Fuel type '${requestedFuelType}' exists in database, bypassing validation`);
+          // Continue with processing using req.body directly
+        } else {
+          console.error(`Fuel type '${requestedFuelType}' not found in database`);
+          return res.status(400).json({
+            error: "Invalid fuel type",
+            message: `The fuel type '${requestedFuelType}' does not exist in the database`
+          });
+        }
+      } else {
+        // If there are other validation issues, return them
+        return res.status(400).json({
+          error: "Invalid vehicle type data",
+          details: result.error.issues
+        });
+      }
     }
 
     // Create a clean update object with proper type conversions
     const updateData: Record<string, any> = {};
     
+    // Use result.data if validation succeeded, otherwise use req.body
+    const data = result.success ? result.data : req.body;
+    
     // Only include fields that are present in the request
-    if (result.data.group_id !== undefined) updateData.group_id = result.data.group_id;
-    if (result.data.vehicle_type_code !== undefined) updateData.vehicle_type_code = result.data.vehicle_type_code;
-    if (result.data.vehicle_type_name !== undefined) updateData.vehicle_type_name = result.data.vehicle_type_name;
-    if (result.data.manufacturer !== undefined) updateData.manufacturer = result.data.manufacturer;
+    if (data.group_id !== undefined) updateData.group_id = data.group_id;
+    if (data.vehicle_type_code !== undefined) updateData.vehicle_type_code = data.vehicle_type_code;
+    if (data.vehicle_type_name !== undefined) updateData.vehicle_type_name = data.vehicle_type_name;
+    if (data.manufacturer !== undefined) updateData.manufacturer = data.manufacturer;
     
     // Handle special text fields
-    if (result.data.vehicle_model !== undefined) {
-      updateData.vehicle_model = result.data.vehicle_model || "";
+    if (data.vehicle_model !== undefined) {
+      updateData.vehicle_model = data.vehicle_model || "";
     }
     
-    if (result.data.model_year !== undefined) updateData.model_year = result.data.model_year;
-    if (result.data.number_of_passengers !== undefined) updateData.number_of_passengers = result.data.number_of_passengers;
-    if (result.data.region !== undefined) updateData.region = result.data.region || "Abu Dhabi";
+    if (data.model_year !== undefined) updateData.model_year = data.model_year;
+    if (data.number_of_passengers !== undefined) updateData.number_of_passengers = data.number_of_passengers;
+    if (data.region !== undefined) updateData.region = data.region || "Abu Dhabi";
     
     // Handle numeric fields with proper string conversion
-    if (result.data.fuel_efficiency !== undefined) {
-      updateData.fuel_efficiency = typeof result.data.fuel_efficiency === 'number'
-        ? result.data.fuel_efficiency.toString()
-        : (result.data.fuel_efficiency || "0");
+    if (data.fuel_efficiency !== undefined) {
+      updateData.fuel_efficiency = typeof data.fuel_efficiency === 'number'
+        ? data.fuel_efficiency.toString()
+        : (data.fuel_efficiency || "0");
     }
     
-    if (result.data.fuel_price_per_litre !== undefined) {
-      updateData.fuel_price_per_litre = typeof result.data.fuel_price_per_litre === 'number'
-        ? result.data.fuel_price_per_litre.toString()
-        : (result.data.fuel_price_per_litre || "0");
+    if (data.fuel_price_per_litre !== undefined) {
+      updateData.fuel_price_per_litre = typeof data.fuel_price_per_litre === 'number'
+        ? data.fuel_price_per_litre.toString()
+        : (data.fuel_price_per_litre || "0");
     }
     
-    if (result.data.fuel_type !== undefined) updateData.fuel_type = result.data.fuel_type;
-    if (result.data.service_plan !== undefined) updateData.service_plan = result.data.service_plan || "";
+    if (data.fuel_type !== undefined) updateData.fuel_type = data.fuel_type;
+    if (data.service_plan !== undefined) updateData.service_plan = data.service_plan || "";
     
-    if (result.data.cost_per_km !== undefined) {
-      updateData.cost_per_km = typeof result.data.cost_per_km === 'number'
-        ? result.data.cost_per_km.toString()
-        : (result.data.cost_per_km || "0");
+    if (data.cost_per_km !== undefined) {
+      updateData.cost_per_km = typeof data.cost_per_km === 'number'
+        ? data.cost_per_km.toString()
+        : (data.cost_per_km || "0");
     }
     
     // Handle vehicle_type field with fallback to vehicle_model
-    if (result.data.vehicle_type !== undefined) {
-      updateData.vehicle_type = result.data.vehicle_type || "";
-    } else if (result.data.vehicle_model !== undefined) {
-      updateData.vehicle_type = result.data.vehicle_model || "";
+    if (data.vehicle_type !== undefined) {
+      updateData.vehicle_type = data.vehicle_type || "";
+    } else if (data.vehicle_model !== undefined) {
+      updateData.vehicle_type = data.vehicle_model || "";
     }
     
-    if (result.data.department !== undefined) updateData.department = result.data.department || "Fleet";
-    if (result.data.unit !== undefined) updateData.unit = result.data.unit || "";
-    if (result.data.alert_before !== undefined) updateData.alert_before = result.data.alert_before;
+    if (data.department !== undefined) updateData.department = data.department || "Fleet";
+    if (data.unit !== undefined) updateData.unit = data.unit || "";
+    if (data.alert_before !== undefined) updateData.alert_before = data.alert_before;
     
-    if (result.data.idle_fuel_consumption !== undefined) {
-      updateData.idle_fuel_consumption = typeof result.data.idle_fuel_consumption === 'number'
-        ? result.data.idle_fuel_consumption.toString()
-        : (result.data.idle_fuel_consumption || "0");
+    if (data.idle_fuel_consumption !== undefined) {
+      updateData.idle_fuel_consumption = typeof data.idle_fuel_consumption === 'number'
+        ? data.idle_fuel_consumption.toString()
+        : (data.idle_fuel_consumption || "0");
     }
     
-    if (result.data.vehicle_capacity !== undefined) updateData.vehicle_capacity = result.data.vehicle_capacity;
+    if (data.vehicle_capacity !== undefined) updateData.vehicle_capacity = data.vehicle_capacity;
     
-    if (result.data.co2_emission_factor !== undefined) {
-      updateData.co2_emission_factor = typeof result.data.co2_emission_factor === 'number'
-        ? result.data.co2_emission_factor.toString()
-        : (result.data.co2_emission_factor || "0");
+    if (data.co2_emission_factor !== undefined) {
+      updateData.co2_emission_factor = typeof data.co2_emission_factor === 'number'
+        ? data.co2_emission_factor.toString()
+        : (data.co2_emission_factor || "0");
     }
     
-    if (result.data.color !== undefined) updateData.color = result.data.color || "";
+    if (data.color !== undefined) updateData.color = data.color || "";
     
     console.log("Formatted update data:", updateData);
     

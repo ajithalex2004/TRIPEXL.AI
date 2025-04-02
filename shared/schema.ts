@@ -223,7 +223,11 @@ export const VehicleFuelType = {
   ELECTRIC: "Electric",
   HYBRID: "Hybrid",
   CNG: "CNG",
-  LPG: "LPG"
+  LPG: "LPG",
+  // Add the new UAE-specific fuel types
+  PREMIUM: "Premium",
+  OCTANE_95: "Octane 95",
+  E_PLUS_91: "E-Plus 91"
 } as const;
 
 // Fuel type metadata table for pricing and emissions data

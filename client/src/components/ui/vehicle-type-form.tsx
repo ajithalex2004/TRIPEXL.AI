@@ -118,7 +118,7 @@ export function VehicleTypeForm({ onSubmit, initialData, isEditing = false }: Ve
       region: initialData?.region || "ABU_DHABI", // Default region
       fuel_efficiency: initialData?.fuel_efficiency ? Number(initialData.fuel_efficiency) : 0,
       fuel_price_per_litre: initialData?.fuel_price_per_litre ? Number(initialData.fuel_price_per_litre) : 3.75, // Default fuel price
-      fuel_type: initialData?.fuel_type || "SPECIAL_95", // Default fuel type
+      fuel_type: initialData?.fuel_type || "Petrol", // Default fuel type
       service_plan: initialData?.service_plan || "",
       cost_per_km: initialData?.cost_per_km ? Number(initialData.cost_per_km) : 0, // Fix type conversion
       department: initialData?.department || "FLEET", // Default department
