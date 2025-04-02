@@ -41,13 +41,15 @@ export function VehicleTypeForm({
 }: VehicleTypeFormProps) {
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [selectedManufacturer, setSelectedManufacturer] = useState<string | null>(null);
-  const [selectedModel, setSelectedModel] = useState<string | null>(null);
-  const [selectedFuelType, setSelectedFuelType] = useState<string | null>(null);
-  const [formReady, setFormReady] = useState(false);
-  const [debugValues, setDebugValues] = useState<any>({});
-  
-  console.log("VehicleTypeForm Rendering - initialData:", initialData);
+  const [selectedManufacturer, setSelectedManufacturer] = useState<string | null>(
+    initialData?.manufacturer || null
+  );
+  const [selectedModel, setSelectedModel] = useState<string | null>(
+    initialData?.vehicle_model || null
+  );
+  const [selectedFuelType, setSelectedFuelType] = useState<string | null>(
+    initialData?.fuel_type || null
+  );
 
   // Enhanced schema with validation
   const formSchema = insertVehicleTypeMasterSchema.extend({
@@ -64,15 +66,14 @@ export function VehicleTypeForm({
       .max(new Date().getFullYear() + 1, "Year cannot be in the future"),
   });
 
-  // Prepare initial values, converting all nulls and ensuring proper types
-  const prepareInitialValues = (data?: VehicleTypeMaster) => {
+  // Helper to clean initial values
+  const cleanInitialData = (data?: VehicleTypeMaster) => {
     if (!data) {
       return {
         group_id: 0,
         vehicle_type_name: "",
         manufacturer: "",
         vehicle_model: "",
-        vehicle_type: "",
         model_year: new Date().getFullYear(),
         color: "",
         number_of_passengers: 0,
@@ -89,39 +90,40 @@ export function VehicleTypeForm({
         unit: "",
         alert_before: 0,
         vehicle_type_code: "",
+        vehicle_type: "",
       };
     }
 
-    // Convert string numbers to actual numbers and ensure no nulls
+    // Ensure all properties are correctly typed and no nulls
     return {
       group_id: Number(data.group_id || 0),
       vehicle_type_name: String(data.vehicle_type_name || ""),
       manufacturer: String(data.manufacturer || ""),
       vehicle_model: String(data.vehicle_model || ""),
-      vehicle_type: String(data.vehicle_type || ""),
-      vehicle_type_code: String(data.vehicle_type_code || ""),
       model_year: Number(data.model_year || new Date().getFullYear()),
       color: String(data.color || ""),
       number_of_passengers: Number(data.number_of_passengers || 0),
       vehicle_capacity: Number(data.vehicle_capacity || 0),
       fuel_type: String(data.fuel_type || ""),
-      fuel_efficiency: parseFloat(String(data.fuel_efficiency || 0)),
-      fuel_price_per_litre: parseFloat(String(data.fuel_price_per_litre || 0)),
-      idle_fuel_consumption: parseFloat(String(data.idle_fuel_consumption || 0)),
-      co2_emission_factor: parseFloat(String(data.co2_emission_factor || 0)),
-      cost_per_km: parseFloat(String(data.cost_per_km || 0)),
+      fuel_efficiency: Number(String(data.fuel_efficiency) || 0),
+      fuel_price_per_litre: Number(String(data.fuel_price_per_litre) || 0),
+      idle_fuel_consumption: Number(String(data.idle_fuel_consumption) || 0),
+      co2_emission_factor: Number(String(data.co2_emission_factor) || 0),
+      cost_per_km: Number(String(data.cost_per_km) || 0),
       service_plan: String(data.service_plan || ""),
       region: String(data.region || "Abu Dhabi"),
       department: String(data.department || "Fleet"),
       unit: String(data.unit || ""),
       alert_before: Number(data.alert_before || 0),
+      vehicle_type_code: String(data.vehicle_type_code || ""),
+      vehicle_type: String(data.vehicle_type || ""),
     };
   };
 
   // Form with default values
   const form = useForm<InsertVehicleTypeMaster>({
     resolver: zodResolver(formSchema),
-    defaultValues: prepareInitialValues(initialData),
+    defaultValues: cleanInitialData(initialData),
   });
 
   // Fetch master data (manufacturers, models, etc.)
@@ -139,45 +141,22 @@ export function VehicleTypeForm({
     queryKey: ["/api/fuel-types"]
   });
 
-  // Debug useEffect to log form values 
-  useEffect(() => {
-    const formValues = form.getValues();
-    console.log("CURRENT FORM VALUES:", formValues);
-    setDebugValues(formValues);
-  }, [form]);
-
   // Initialize form with existing data if editing
   useEffect(() => {
     if (initialData && isEditing) {
       console.log("Setting initial form data:", initialData);
       
-      // Reset form with specially prepared initial values
-      const preparedValues = prepareInitialValues(initialData);
-      console.log("Prepared initial values for reset:", preparedValues);
-      form.reset(preparedValues);
+      const cleanedData = cleanInitialData(initialData);
+      form.reset(cleanedData);
       
-      // Manually set all values to force proper display 
-      Object.entries(preparedValues).forEach(([key, value]) => {
-        // @ts-ignore - we're dynamically setting form values
-        form.setValue(key, value);
-      });
-      
-      // Set select fields state
-      setSelectedManufacturer(initialData.manufacturer || "");
-      setSelectedModel(initialData.vehicle_model || "");
-      setSelectedFuelType(initialData.fuel_type || "");
-      
-      console.log("Form values after setting:", form.getValues());
-      setFormReady(true);
-    } else {
-      setFormReady(true);
+      setSelectedManufacturer(cleanedData.manufacturer);
+      setSelectedModel(cleanedData.vehicle_model);
+      setSelectedFuelType(cleanedData.fuel_type);
     }
   }, [initialData, isEditing, form]);
 
   // Handle manufacturer change
   const handleManufacturerChange = (value: string) => {
-    console.log("Manufacturer changed to:", value);
-    
     setSelectedManufacturer(value);
     form.setValue("manufacturer", value);
     
@@ -188,8 +167,6 @@ export function VehicleTypeForm({
 
   // Handle model change
   const handleModelChange = (value: string) => {
-    console.log("Model changed to:", value);
-    
     setSelectedModel(value);
     form.setValue("vehicle_model", value);
     form.setValue("vehicle_type", value); // Also set vehicle_type for compatibility
@@ -203,35 +180,29 @@ export function VehicleTypeForm({
     }
     
     // Find model data to auto-populate fields
-    if (selectedManufacturer && masterData?.vehicleModels?.[selectedManufacturer]) {
+    if (selectedManufacturer && masterData?.vehicleModels && masterData.vehicleModels[selectedManufacturer]) {
       const models = masterData.vehicleModels[selectedManufacturer].models || [];
       const modelData = models.find((m: any) => m.name === value);
       
       if (modelData) {
-        console.log("Found model data:", modelData);
-        
         // Update form with model data
         if (modelData.efficiency) {
           const efficiency = parseFloat(modelData.efficiency);
-          console.log("Setting efficiency:", efficiency);
           form.setValue("fuel_efficiency", efficiency);
         }
         
         if (modelData.capacity) {
           const capacity = parseFloat(modelData.capacity);
-          console.log("Setting capacity:", capacity);
           form.setValue("vehicle_capacity", capacity);
         }
         
         if (modelData.idleConsumption) {
           const idleConsumption = parseFloat(modelData.idleConsumption);
-          console.log("Setting idle consumption:", idleConsumption);
           form.setValue("idle_fuel_consumption", idleConsumption);
         }
         
         if (modelData.passengerCapacity) {
           const passengers = parseInt(modelData.passengerCapacity);
-          console.log("Setting passengers:", passengers);
           form.setValue("number_of_passengers", passengers);
         }
         
@@ -243,46 +214,33 @@ export function VehicleTypeForm({
 
   // Handle fuel type change
   const handleFuelTypeChange = (value: string) => {
-    if (!value) {
-      console.warn("Empty fuel type value received");
-      return;
-    }
+    if (!value) return;
 
-    console.log("Fuel type changed to:", value);
     setSelectedFuelType(value);
     form.setValue("fuel_type", value);
     
-    if (!fuelTypes || !Array.isArray(fuelTypes) || !fuelTypes.length) {
-      console.warn("No fuel types data available");
-      return;
-    }
+    if (!fuelTypes || !Array.isArray(fuelTypes)) return;
     
-    // Find the matching fuel type with case-insensitive search
+    // Find the matching fuel type
     let fuelData = fuelTypes.find((ft: any) => 
-      ft?.type && 
-      typeof ft.type === 'string' && 
-      ft.type.toLowerCase() === value.toLowerCase()
+      ft?.type && ft.type.toLowerCase() === value.toLowerCase()
     );
 
     // If no exact match, try partial match
     if (!fuelData) {
       fuelData = fuelTypes.find((ft: any) => 
         ft?.type && 
-        typeof ft.type === 'string' && 
         (ft.type.toLowerCase().includes(value.toLowerCase()) ||
          value.toLowerCase().includes(ft.type.toLowerCase()))
       );
       
       if (fuelData) {
-        console.log(`Found partial match: "${fuelData.type}" for "${value}"`);
         setSelectedFuelType(fuelData.type);
         form.setValue("fuel_type", fuelData.type);
       }
     }
     
     if (fuelData) {
-      console.log("Found fuel data:", fuelData);
-      
       // Extract price
       let price = 0;
       if (fuelData.price !== undefined) {
@@ -321,8 +279,6 @@ export function VehicleTypeForm({
         }
       }
       
-      console.log("Setting values - Price:", price, "CO2 Factor:", co2Factor);
-      
       // Update form with extracted values
       form.setValue("fuel_price_per_litre", price);
       form.setValue("co2_emission_factor", co2Factor);
@@ -339,9 +295,14 @@ export function VehicleTypeForm({
     
     if (fuelPrice && efficiency && efficiency > 0) {
       const costPerKm = Number((fuelPrice / efficiency).toFixed(2));
-      console.log("Calculated cost per km:", costPerKm);
       form.setValue("cost_per_km", costPerKm);
     }
+  };
+
+  // Format display values
+  const formatValue = (value: any) => {
+    if (value === null || value === undefined) return "";
+    return String(value);
   };
 
   // Form submission handler
@@ -351,37 +312,17 @@ export function VehicleTypeForm({
       
       // Ensure vehicle_model is set from vehicle_type if not present
       if (!data.vehicle_model && data.vehicle_type) {
-        console.log("Setting vehicle_model from vehicle_type:", data.vehicle_type);
         data.vehicle_model = data.vehicle_type;
       }
       
       // Ensure all required fields are present
-      if (!data.vehicle_type_code) {
-        console.error("Missing vehicle_type_code");
-        throw new Error("Vehicle type code is required");
-      }
+      if (!data.vehicle_type_code) throw new Error("Vehicle type code is required");
+      if (!data.vehicle_type_name) throw new Error("Vehicle type name is required");
+      if (!data.manufacturer) throw new Error("Manufacturer is required");
+      if (!data.vehicle_model) throw new Error("Vehicle model is required");
+      if (!data.fuel_type) throw new Error("Fuel type is required");
       
-      if (!data.vehicle_type_name) {
-        console.error("Missing vehicle_type_name");
-        throw new Error("Vehicle type name is required");
-      }
-      
-      if (!data.manufacturer) {
-        console.error("Missing manufacturer");
-        throw new Error("Manufacturer is required");
-      }
-      
-      if (!data.vehicle_model) {
-        console.error("Missing vehicle_model");
-        throw new Error("Vehicle model is required");
-      }
-      
-      if (!data.fuel_type) {
-        console.error("Missing fuel_type");
-        throw new Error("Fuel type is required");
-      }
-      
-      // Convert string values to numbers
+      // Format data for submission
       const formattedData = {
         ...data,
         group_id: Number(data.group_id),
@@ -405,8 +346,6 @@ export function VehicleTypeForm({
         service_plan: data.service_plan || ""
       };
       
-      console.log("FormData before formatting:", data);
-      console.log("Formatted data for submission:", formattedData);
       await onSubmit(formattedData);
       
       toast({
@@ -421,7 +360,6 @@ export function VehicleTypeForm({
         setSelectedFuelType(null);
       }
     } catch (error) {
-      console.error("Form submission error:", error);
       toast({
         title: "Error",
         description: error instanceof Error ? error.message : "Failed to save vehicle type",
@@ -432,17 +370,8 @@ export function VehicleTypeForm({
     }
   };
 
-  // Format display values correctly for the form fields
-  const formatDisplayValue = (value: any) => {
-    if (value === null || value === undefined) return "";
-    return String(value);
-  };
-
-  // For debugging: Display current form values
-  console.log("Current form values before rendering inputs:", form.getValues());
-
-  // Show loading state while fetching data
-  if (isLoadingMasterData || isLoadingVehicleGroups || isLoadingFuelTypes || !formReady) {
+  // Show loading state
+  if (isLoadingMasterData || isLoadingVehicleGroups || isLoadingFuelTypes) {
     return (
       <div className="flex justify-center items-center p-6">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
@@ -451,7 +380,6 @@ export function VehicleTypeForm({
     );
   }
 
-  // Render form with table layout
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-4">
@@ -470,7 +398,6 @@ export function VehicleTypeForm({
                         <Select
                           onValueChange={(value) => field.onChange(Number(value))}
                           value={field.value?.toString() || "0"}
-                          defaultValue={field.value?.toString() || "0"}
                         >
                           <FormControl>
                             <SelectTrigger>
@@ -478,7 +405,7 @@ export function VehicleTypeForm({
                             </SelectTrigger>
                           </FormControl>
                           <SelectContent>
-                            {vehicleGroups?.map((group: any) => (
+                            {vehicleGroups && vehicleGroups.map((group: any) => (
                               <SelectItem key={group.id} value={group.id.toString()}>
                                 {group.name}
                               </SelectItem>
@@ -496,7 +423,6 @@ export function VehicleTypeForm({
                     <Select
                       onValueChange={handleManufacturerChange}
                       value={selectedManufacturer || ""}
-                      defaultValue={selectedManufacturer || ""}
                     >
                       <FormControl>
                         <SelectTrigger>
@@ -504,7 +430,7 @@ export function VehicleTypeForm({
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        {masterData?.manufacturers?.map((manufacturer: string) => (
+                        {masterData?.manufacturers && masterData.manufacturers.map((manufacturer: string) => (
                           <SelectItem key={manufacturer} value={manufacturer}>
                             {manufacturer}
                           </SelectItem>
@@ -524,7 +450,6 @@ export function VehicleTypeForm({
                     <Select
                       onValueChange={handleModelChange}
                       value={selectedModel || ""}
-                      defaultValue={selectedModel || ""}
                     >
                       <FormControl>
                         <SelectTrigger>
@@ -533,7 +458,8 @@ export function VehicleTypeForm({
                       </FormControl>
                       <SelectContent>
                         {selectedManufacturer &&
-                          masterData?.vehicleModels?.[selectedManufacturer]?.models?.map(
+                          masterData?.vehicleModels && 
+                          masterData.vehicleModels[selectedManufacturer]?.models?.map(
                             (model: any) => (
                               <SelectItem key={model.name} value={model.name}>
                                 {model.name}
@@ -556,7 +482,7 @@ export function VehicleTypeForm({
                           <Input
                             type="number"
                             {...field}
-                            value={formatDisplayValue(field.value)}
+                            value={formatValue(field.value)}
                           />
                         </FormControl>
                         <FormMessage />
@@ -578,7 +504,6 @@ export function VehicleTypeForm({
                         <Select
                           onValueChange={field.onChange}
                           value={field.value || ""}
-                          defaultValue={field.value || ""}
                         >
                           <FormControl>
                             <SelectTrigger>
@@ -586,7 +511,7 @@ export function VehicleTypeForm({
                             </SelectTrigger>
                           </FormControl>
                           <SelectContent>
-                            {masterData?.vehicleTypes?.map((type: string) => (
+                            {masterData?.vehicleTypes && masterData.vehicleTypes.map((type: string) => (
                               <SelectItem key={type} value={type}>
                                 {type}
                               </SelectItem>
@@ -608,7 +533,7 @@ export function VehicleTypeForm({
                         <FormControl>
                           <Input
                             {...field}
-                            value={formatDisplayValue(field.value)}
+                            value={formatValue(field.value)}
                           />
                         </FormControl>
                         <FormMessage />
@@ -626,7 +551,6 @@ export function VehicleTypeForm({
                     <Select
                       onValueChange={handleFuelTypeChange}
                       value={selectedFuelType || ""}
-                      defaultValue={selectedFuelType || ""}
                     >
                       <FormControl>
                         <SelectTrigger>
@@ -634,7 +558,7 @@ export function VehicleTypeForm({
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        {fuelTypes?.map((ft: any) => (
+                        {fuelTypes && fuelTypes.map((ft: any) => (
                           <SelectItem key={ft.id} value={ft.type}>
                             {ft.type}
                           </SelectItem>
@@ -656,7 +580,7 @@ export function VehicleTypeForm({
                             type="number"
                             step="0.01"
                             {...field}
-                            value={formatDisplayValue(field.value)}
+                            value={formatValue(field.value)}
                             readOnly
                           />
                         </FormControl>
@@ -681,7 +605,7 @@ export function VehicleTypeForm({
                             type="number"
                             step="0.01"
                             {...field}
-                            value={formatDisplayValue(field.value)}
+                            value={formatValue(field.value)}
                             onChange={(e) => {
                               field.onChange(e);
                               updateCostPerKm();
@@ -705,7 +629,7 @@ export function VehicleTypeForm({
                             type="number"
                             step="0.01"
                             {...field}
-                            value={formatDisplayValue(field.value)}
+                            value={formatValue(field.value)}
                             readOnly
                           />
                         </FormControl>
@@ -730,7 +654,7 @@ export function VehicleTypeForm({
                             type="number"
                             step="0.01"
                             {...field}
-                            value={formatDisplayValue(field.value)}
+                            value={formatValue(field.value)}
                           />
                         </FormControl>
                         <FormMessage />
@@ -750,7 +674,7 @@ export function VehicleTypeForm({
                             type="number"
                             step="0.01"
                             {...field}
-                            value={formatDisplayValue(field.value)}
+                            value={formatValue(field.value)}
                             readOnly
                           />
                         </FormControl>
@@ -774,7 +698,7 @@ export function VehicleTypeForm({
                           <Input
                             type="number"
                             {...field}
-                            value={formatDisplayValue(field.value)}
+                            value={formatValue(field.value)}
                           />
                         </FormControl>
                         <FormMessage />
@@ -793,7 +717,7 @@ export function VehicleTypeForm({
                           <Input
                             type="number"
                             {...field}
-                            value={formatDisplayValue(field.value)}
+                            value={formatValue(field.value)}
                           />
                         </FormControl>
                         <FormMessage />
@@ -815,7 +739,6 @@ export function VehicleTypeForm({
                         <Select
                           onValueChange={field.onChange}
                           value={field.value || ""}
-                          defaultValue={field.value || ""}
                         >
                           <FormControl>
                             <SelectTrigger>
@@ -823,7 +746,7 @@ export function VehicleTypeForm({
                             </SelectTrigger>
                           </FormControl>
                           <SelectContent>
-                            {masterData?.servicePlans?.map((plan: string) => (
+                            {masterData?.servicePlans && masterData.servicePlans.map((plan: string) => (
                               <SelectItem key={plan} value={plan}>
                                 {plan}
                               </SelectItem>
@@ -846,7 +769,7 @@ export function VehicleTypeForm({
                           <Input
                             type="number"
                             {...field}
-                            value={formatDisplayValue(field.value)}
+                            value={formatValue(field.value)}
                           />
                         </FormControl>
                         <FormMessage />
@@ -868,7 +791,6 @@ export function VehicleTypeForm({
                         <Select
                           onValueChange={field.onChange}
                           value={field.value || "Abu Dhabi"}
-                          defaultValue={field.value || "Abu Dhabi"}
                         >
                           <FormControl>
                             <SelectTrigger>
@@ -900,7 +822,6 @@ export function VehicleTypeForm({
                         <Select
                           onValueChange={field.onChange}
                           value={field.value || "Fleet"}
-                          defaultValue={field.value || "Fleet"}
                         >
                           <FormControl>
                             <SelectTrigger>
@@ -936,7 +857,6 @@ export function VehicleTypeForm({
                         <Select
                           onValueChange={field.onChange}
                           value={field.value || ""}
-                          defaultValue={field.value || ""}
                         >
                           <FormControl>
                             <SelectTrigger>
@@ -944,7 +864,7 @@ export function VehicleTypeForm({
                             </SelectTrigger>
                           </FormControl>
                           <SelectContent>
-                            {masterData?.units?.map((unit: string) => (
+                            {masterData?.units && masterData.units.map((unit: string) => (
                               <SelectItem key={unit} value={unit}>
                                 {unit}
                               </SelectItem>
@@ -966,7 +886,7 @@ export function VehicleTypeForm({
                         <FormControl>
                           <Input
                             {...field}
-                            value={formatDisplayValue(field.value)}
+                            value={formatValue(field.value)}
                             readOnly={isEditing}
                           />
                         </FormControl>
@@ -979,7 +899,7 @@ export function VehicleTypeForm({
             </tbody>
           </table>
         </div>
-        
+
         <div className="flex justify-end px-6 pb-3">
           <Button 
             type="submit" 
@@ -990,574 +910,6 @@ export function VehicleTypeForm({
               <Loader2 className="mr-2 h-4 w-4 animate-spin" />
             )}
             {isEditing ? "Update" : "Create"} Vehicle Type
-          </Button>
-        </div>
-      </form>
-    </Form>
-  );
-}
-
-  // Show loading state while fetching data
-  if (isLoadingMasterData || isLoadingVehicleGroups || isLoadingFuelTypes) {
-    return (
-      <div className="flex justify-center items-center p-6">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
-        <span className="ml-2">Loading form data...</span>
-      </div>
-    );
-  }
-
-  // Render form with table layout
-  return (
-    <Form {...form}>
-      <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-4">
-        <div className="max-h-[calc(100vh-200px)] overflow-y-auto px-6">
-          <table className="w-full border-collapse">
-            <tbody>
-              {/* Row 1: Vehicle Group | Manufacturer */}
-              <tr>
-                <td className="border p-2">
-                  <FormField
-                    control={form.control}
-                    name="group_id"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Vehicle Group</FormLabel>
-                        <Select
-                          onValueChange={(value) => field.onChange(Number(value))}
-                          value={field.value?.toString()}
-                        >
-                          <FormControl>
-                            <SelectTrigger>
-                              <SelectValue placeholder="Select vehicle group" />
-                            </SelectTrigger>
-                          </FormControl>
-                          <SelectContent>
-                            {vehicleGroups?.map((group: any) => (
-                              <SelectItem key={group.id} value={group.id.toString()}>
-                                {group.name}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                </td>
-                <td className="border p-2">
-                  <FormItem>
-                    <FormLabel>Manufacturer</FormLabel>
-                    <Select
-                      onValueChange={handleManufacturerChange}
-                      value={selectedManufacturer || ""}
-                    >
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select manufacturer" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        {masterData?.manufacturers?.map((manufacturer: string) => (
-                          <SelectItem key={manufacturer} value={manufacturer}>
-                            {manufacturer}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <FormMessage>
-                      {form.formState.errors.manufacturer?.message}
-                    </FormMessage>
-                  </FormItem>
-                </td>
-              </tr>
-
-              {/* Row 2: Vehicle Model | Model Year */}
-              <tr>
-                <td className="border p-2">
-                  <FormItem>
-                    <FormLabel>Vehicle Model</FormLabel>
-                    <Select
-                      onValueChange={handleModelChange}
-                      value={selectedModel || ""}
-                      disabled={!selectedManufacturer}
-                    >
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder={selectedManufacturer ? "Select model" : "Select manufacturer first"} />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        {selectedManufacturer && masterData?.vehicleModels &&
-                          masterData.vehicleModels[selectedManufacturer]?.models?.map((model: any) => (
-                            <SelectItem key={model.name} value={model.name}>
-                              {model.name}
-                            </SelectItem>
-                          ))}
-                      </SelectContent>
-                    </Select>
-                    <FormMessage>
-                      {form.formState.errors.vehicle_model?.message}
-                    </FormMessage>
-                  </FormItem>
-                </td>
-                <td className="border p-2">
-                  <FormField
-                    control={form.control}
-                    name="model_year"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Model Year</FormLabel>
-                        <FormControl>
-                          <Input
-                            {...field}
-                            type="number"
-                            min={2000}
-                            max={new Date().getFullYear() + 1}
-                            onChange={(e) => field.onChange(Number(e.target.value))}
-                            placeholder="Enter model year"
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                </td>
-              </tr>
-
-              {/* Row 2.5: Color */}
-              <tr>
-                <td className="border p-2">
-                  <FormField
-                    control={form.control}
-                    name="color"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Vehicle Color</FormLabel>
-                        <FormControl>
-                          <Input
-                            {...field}
-                            type="text"
-                            placeholder="Enter vehicle color"
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                </td>
-                <td className="border p-2">
-                  {/* Placeholder to maintain grid structure */}
-                </td>
-              </tr>
-
-              {/* Row 3: Vehicle Category | Vehicle Type Name */}
-              <tr>
-                <td className="border p-2">
-                  <FormItem>
-                    <FormLabel>Vehicle Category</FormLabel>
-                    <FormControl>
-                      <Input 
-                        type="text"
-                        disabled
-                        placeholder="Auto-populated from group" 
-                      />
-                    </FormControl>
-                  </FormItem>
-                </td>
-                <td className="border p-2">
-                  <FormField
-                    control={form.control}
-                    name="vehicle_type_name"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Vehicle Type Name</FormLabel>
-                        <FormControl>
-                          <Input {...field} placeholder="Enter vehicle type name" />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                </td>
-              </tr>
-
-              {/* Row 4: Fuel Type | Fuel Price Per Litre */}
-              <tr>
-                <td className="border p-2">
-                  <FormItem>
-                    <FormLabel>Fuel Type</FormLabel>
-                    <Select
-                      onValueChange={handleFuelTypeChange}
-                      value={selectedFuelType || ""}
-                    >
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select fuel type" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        {fuelTypes?.map((type: any) => (
-                          <SelectItem key={type.id} value={type.type}>
-                            <div className="flex items-center gap-2">
-                              <span className="font-medium">{type.type}</span>
-                              <span className="text-xs text-muted-foreground">
-                                {parseFloat(type.price).toFixed(2)} AED/L
-                              </span>
-                            </div>
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <FormMessage>
-                      {form.formState.errors.fuel_type?.message}
-                    </FormMessage>
-                  </FormItem>
-                </td>
-                <td className="border p-2">
-                  <FormField
-                    control={form.control}
-                    name="fuel_price_per_litre"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Fuel Price Per Litre (AED)</FormLabel>
-                        <FormControl>
-                          <Input
-                            {...field}
-                            type="number"
-                            step="0.01"
-                            value={field.value}
-                            onChange={(e) => {
-                              field.onChange(parseFloat(e.target.value));
-                              updateCostPerKm();
-                            }}
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                </td>
-              </tr>
-
-              {/* Row 5: Fuel Efficiency | Cost Per KM */}
-              <tr>
-                <td className="border p-2">
-                  <FormField
-                    control={form.control}
-                    name="fuel_efficiency"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Fuel Efficiency (km/l)</FormLabel>
-                        <FormControl>
-                          <Input
-                            {...field}
-                            type="number"
-                            step="0.01"
-                            value={field.value}
-                            onChange={(e) => {
-                              field.onChange(parseFloat(e.target.value));
-                              updateCostPerKm();
-                            }}
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                </td>
-                <td className="border p-2">
-                  <FormField
-                    control={form.control}
-                    name="cost_per_km"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Cost Per KM</FormLabel>
-                        <FormControl>
-                          <Input
-                            {...field}
-                            type="number"
-                            step="0.01"
-                            value={field.value}
-                            readOnly
-                            className="bg-muted"
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                </td>
-              </tr>
-
-              {/* Row 6: Idle Fuel Consumption | CO2 Emission Factor */}
-              <tr>
-                <td className="border p-2">
-                  <FormField
-                    control={form.control}
-                    name="idle_fuel_consumption"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Idle Fuel Consumption (l/h)</FormLabel>
-                        <FormControl>
-                          <Input
-                            {...field}
-                            type="number"
-                            step="0.01"
-                            value={field.value}
-                            onChange={(e) => field.onChange(parseFloat(e.target.value))}
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                </td>
-                <td className="border p-2">
-                  <FormField
-                    control={form.control}
-                    name="co2_emission_factor"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>CO2 Emission Factor</FormLabel>
-                        <FormControl>
-                          <Input
-                            {...field}
-                            type="number"
-                            step="0.01"
-                            value={field.value}
-                            onChange={(e) => field.onChange(parseFloat(e.target.value))}
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                </td>
-              </tr>
-
-              {/* Row 7: Number of Passengers | Vehicle Capacity */}
-              <tr>
-                <td className="border p-2">
-                  <FormField
-                    control={form.control}
-                    name="number_of_passengers"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Number of Passengers</FormLabel>
-                        <FormControl>
-                          <Input
-                            {...field}
-                            type="number"
-                            value={field.value}
-                            onChange={(e) => field.onChange(parseInt(e.target.value))}
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                </td>
-                <td className="border p-2">
-                  <FormField
-                    control={form.control}
-                    name="vehicle_capacity"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Vehicle Capacity</FormLabel>
-                        <FormControl>
-                          <Input
-                            {...field}
-                            type="number"
-                            step="0.01"
-                            value={field.value}
-                            onChange={(e) => field.onChange(parseFloat(e.target.value))}
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                </td>
-              </tr>
-
-              {/* Row 8: Service Plan | Alert Before */}
-              <tr>
-                <td className="border p-2">
-                  <FormField
-                    control={form.control}
-                    name="service_plan"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Service Plan</FormLabel>
-                        <Select
-                          onValueChange={field.onChange}
-                          value={field.value || ""}
-                        >
-                          <FormControl>
-                            <SelectTrigger>
-                              <SelectValue placeholder="Select service plan" />
-                            </SelectTrigger>
-                          </FormControl>
-                          <SelectContent>
-                            {['Basic', 'Standard', 'Premium', 'Elite'].map((plan) => (
-                              <SelectItem key={plan} value={plan}>
-                                {plan}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                </td>
-                <td className="border p-2">
-                  <FormField
-                    control={form.control}
-                    name="alert_before"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Alert Before Value (KM)</FormLabel>
-                        <FormControl>
-                          <Input
-                            {...field}
-                            type="number"
-                            value={field.value}
-                            onChange={(e) => field.onChange(parseInt(e.target.value))}
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                </td>
-              </tr>
-
-              {/* Row 9: Region | Department */}
-              <tr>
-                <td className="border p-2">
-                  <FormField
-                    control={form.control}
-                    name="region"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Region</FormLabel>
-                        <Select
-                          onValueChange={field.onChange}
-                          value={field.value || ""}
-                        >
-                          <FormControl>
-                            <SelectTrigger>
-                              <SelectValue placeholder="Select region" />
-                            </SelectTrigger>
-                          </FormControl>
-                          <SelectContent>
-                            {['Abu Dhabi', 'Dubai', 'Sharjah', 'Ajman', 'Umm Al Quwain', 'Ras Al Khaimah', 'Fujairah'].map((region) => (
-                              <SelectItem key={region} value={region}>
-                                {region}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                </td>
-                <td className="border p-2">
-                  <FormField
-                    control={form.control}
-                    name="department"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Department</FormLabel>
-                        <Select
-                          onValueChange={field.onChange}
-                          value={field.value || ""}
-                        >
-                          <FormControl>
-                            <SelectTrigger>
-                              <SelectValue placeholder="Select department" />
-                            </SelectTrigger>
-                          </FormControl>
-                          <SelectContent>
-                            {['Operations', 'Finance', 'HR', 'IT', 'Sales', 'Marketing', 'Legal'].map((dept) => (
-                              <SelectItem key={dept} value={dept}>
-                                {dept}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                </td>
-              </tr>
-
-              {/* Row 10: Unit | Vehicle Type Code */}
-              <tr>
-                <td className="border p-2">
-                  <FormField
-                    control={form.control}
-                    name="unit"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Unit</FormLabel>
-                        <Select
-                          onValueChange={field.onChange}
-                          value={field.value || ""}
-                        >
-                          <FormControl>
-                            <SelectTrigger>
-                              <SelectValue placeholder="Select unit" />
-                            </SelectTrigger>
-                          </FormControl>
-                          <SelectContent>
-                            {['Head Office', 'Branch Office', 'Field Unit', 'Mobile Unit'].map((unit) => (
-                              <SelectItem key={unit} value={unit}>
-                                {unit}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                </td>
-                <td className="border p-2">
-                  <FormField
-                    control={form.control}
-                    name="vehicle_type_code"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Vehicle Type Code</FormLabel>
-                        <FormControl>
-                          <Input 
-                            {...field} 
-                            placeholder="Enter vehicle type code"
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                </td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-
-        <div className="flex justify-end pt-4 px-6">
-          <Button
-            type="submit"
-            disabled={isSubmitting}
-            className="min-w-[120px]"
-          >
-            {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-            {isEditing ? "Update" : "Create"}
           </Button>
         </div>
       </form>
