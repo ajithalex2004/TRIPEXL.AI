@@ -30,7 +30,7 @@ load_dotenv()
 
 # Constants
 WAM_FUEL_PRICES_URL = "https://wam.ae/en/search?query=fuel+prices"
-TRIPXL_API_URL = os.getenv('APP_URL', 'http://localhost:5000') + "/api/fuel-prices/update"
+TRIPXL_API_URL = os.getenv('APP_URL', 'http://localhost:5000') + "/api/fuel-types/update"
 
 # Fuel types mapping
 FUEL_TYPE_MAPPING = {

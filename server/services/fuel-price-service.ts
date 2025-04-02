@@ -26,14 +26,14 @@ export async function runWamFuelPriceScraper(): Promise<boolean> {
     console.log('Running WAM fuel price scraper...');
     
     // Get the absolute path to the Python script
-    const scriptPath = path.join(__dirname, '..', 'services', 'wam_fuel_scraper.py');
+    const scriptPath = path.resolve(__dirname, '../services/wam_fuel_scraper.py');
     console.log(`Executing Python script at: ${scriptPath}`);
     
     // Store stdout data
     let stdoutData = '';
     
     // Spawn the Python process
-    const pythonProcess = spawn('python', [scriptPath]);
+    const pythonProcess = spawn('python3', [scriptPath]);
     
     // Capture stdout data
     pythonProcess.stdout.on('data', (data) => {
