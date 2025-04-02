@@ -315,82 +315,113 @@ export function VehicleTypeForm({ onSubmit, initialData, isEditing = false }: Ve
     }
   };
 
-  // Handle fuel type change
+  // Improved fuel type change handler
   const handleFuelTypeChange = (value: string) => {
-    console.log("Fuel type changed to:", value);
+    if (!value) {
+      console.warn("Empty fuel type value received");
+      return;
+    }
+
+    console.log(`Fuel type changed to: "${value}"`);
     setSelectedFuelType(value);
     form.setValue("fuel_type", value);
     
-    // Find fuel type data and update price and co2 factor
-    if (!fuelTypes || !Array.isArray(fuelTypes) || fuelTypes.length === 0) {
-      console.warn("No fuel types data available or not in the expected format:", fuelTypes);
+    // Enhanced validation for fuel types data
+    if (!fuelTypes) {
+      console.warn("Fuel types data is not available");
       return;
     }
     
-    console.log("Looking for fuel type in available fuel types:", 
-      fuelTypes.map((ft: any) => ft.type || "unknown").join(", ")
+    if (!Array.isArray(fuelTypes)) {
+      console.warn("Fuel types is not an array:", typeof fuelTypes);
+      return;
+    }
+    
+    if (fuelTypes.length === 0) {
+      console.warn("Fuel types array is empty");
+      return;
+    }
+    
+    console.log(`Looking for fuel type "${value}" in ${fuelTypes.length} available fuel types:`, 
+      fuelTypes.map((ft: any) => ft?.type || "unknown").join(", ")
     );
     
-    // Case-insensitive search to handle any capitalization issues
+    // Find exact match (case-insensitive)
     let fuelData = fuelTypes.find((ft: any) => 
-      ft.type && typeof ft.type === 'string' && 
+      ft?.type && typeof ft.type === 'string' && 
       ft.type.toLowerCase() === value.toLowerCase()
     );
 
-    // If exact match not found, try to find closest match
-    if (!fuelData && value) {
-      console.log("No exact match found, trying closest match");
+    // If exact match not found, try partial match
+    if (!fuelData) {
+      console.log(`No exact match found for "${value}", trying partial matches`);
       
-      // Try partial match (e.g., "Petrol" might match "PETROL 95")
       fuelData = fuelTypes.find((ft: any) => 
-        ft.type && typeof ft.type === 'string' && 
+        ft?.type && typeof ft.type === 'string' && 
         (ft.type.toLowerCase().includes(value.toLowerCase()) ||
          value.toLowerCase().includes(ft.type.toLowerCase()))
       );
       
       if (fuelData) {
-        console.log(`Found closest match: "${fuelData.type}" for input "${value}"`);
+        console.log(`Found partial match: "${fuelData.type}" for input "${value}"`);
         
-        // Update the fuel type value to match the database value
+        // Update form with the exact fuel type from database
         setSelectedFuelType(fuelData.type);
         form.setValue("fuel_type", fuelData.type);
+      } else {
+        console.warn(`No partial match found for "${value}" in fuel types`);
       }
+    } else {
+      console.log(`Found exact match for "${value}"`);
     }
     
     if (fuelData) {
-      console.log("Fuel data found:", fuelData);
+      console.log("Fuel data found:", JSON.stringify(fuelData, null, 2));
       
       try {
-        // Parse values as numbers - ensure we handle string values properly
+        // Extract price with improved error handling
         let price = 0;
         
-        // Check for price property
-        if (fuelData.price !== undefined) {
-          price = typeof fuelData.price === 'string' 
-            ? parseFloat(fuelData.price) 
-            : typeof fuelData.price === 'number'
-              ? fuelData.price
-              : 0;
+        if (fuelData.price !== undefined && fuelData.price !== null) {
+          if (typeof fuelData.price === 'string') {
+            price = parseFloat(fuelData.price) || 0;
+          } else if (typeof fuelData.price === 'number') {
+            price = fuelData.price;
+          } else {
+            console.warn(`Unexpected price type: ${typeof fuelData.price}`, fuelData.price);
+          }
+        } else {
+          console.warn("Price data is missing in fuel data");
         }
         
-        console.log("Extracted price:", price, "from fuel data:", fuelData);
-            
-        // Try various property names for CO2 factor with better error handling
+        console.log(`Extracted price: ${price} (${typeof price})`);
+        
+        // Extract CO2 factor with comprehensive property checking
         let co2Factor = null;
         
-        // Check for co2_factor (from /api/fuel-types endpoint)
-        if (fuelData.co2_factor !== undefined) {
-          console.log("Found co2_factor in fuel data:", fuelData.co2_factor);
-          co2Factor = typeof fuelData.co2_factor === 'string'
-            ? parseFloat(fuelData.co2_factor)
-            : fuelData.co2_factor;
+        // Check snake_case property (from API)
+        if (fuelData.co2_factor !== undefined && fuelData.co2_factor !== null) {
+          console.log(`Found co2_factor (snake_case): ${fuelData.co2_factor} (${typeof fuelData.co2_factor})`);
+          
+          if (typeof fuelData.co2_factor === 'string') {
+            co2Factor = parseFloat(fuelData.co2_factor) || 0;
+          } else if (typeof fuelData.co2_factor === 'number') {
+            co2Factor = fuelData.co2_factor;
+          } else {
+            console.warn(`Unexpected co2_factor type: ${typeof fuelData.co2_factor}`);
+          }
         } 
-        // Check for co2Factor (from /api/vehicle-masters endpoint)
-        else if (fuelData.co2Factor !== undefined) {
-          console.log("Found co2Factor in fuel data:", fuelData.co2Factor);
-          co2Factor = typeof fuelData.co2Factor === 'string'
-            ? parseFloat(fuelData.co2Factor)
-            : fuelData.co2Factor;
+        // Check camelCase property (from form data)
+        else if (fuelData.co2Factor !== undefined && fuelData.co2Factor !== null) {
+          console.log(`Found co2Factor (camelCase): ${fuelData.co2Factor} (${typeof fuelData.co2Factor})`);
+          
+          if (typeof fuelData.co2Factor === 'string') {
+            co2Factor = parseFloat(fuelData.co2Factor) || 0;
+          } else if (typeof fuelData.co2Factor === 'number') {
+            co2Factor = fuelData.co2Factor;
+          } else {
+            console.warn(`Unexpected co2Factor type: ${typeof fuelData.co2Factor}`);
+          }
         } else {
           // Use standard CO2 emission factors by fuel type if not found in database
           const knownFactors: Record<string, number> = {
