@@ -50,11 +50,27 @@ export function VehicleTypeForm({ onSubmit, initialData, isEditing = false }: Ve
     }
   });
 
-  // Load master data
+  // Load master data with debugMasterData setting
   const { data: masterData, isLoading: isLoadingMasterData } = useQuery({
     queryKey: ["/api/vehicle-masters"],
+    refetchOnMount: true,
+    refetchOnWindowFocus: true,
+    retry: 3,
     onSuccess: (data) => {
-      console.log("MASTER DATA LOADED:", data);
+      console.log("MASTER DATA LOADED:", JSON.stringify(data, null, 2));
+      
+      // Debug specific properties
+      if (data) {
+        console.log("Master data received with properties:", Object.keys(data));
+        console.log("Groups:", Array.isArray(data.groups) ? data.groups.length : 'Not an array');
+        console.log("Manufacturers:", Array.isArray(data.manufacturers) ? data.manufacturers.length : 'Not an array');
+        console.log("VehicleModels:", data.vehicleModels ? Object.keys(data.vehicleModels).length : 'Not an object');
+        console.log("Regions:", Array.isArray(data.regions) ? data.regions.length : 'Not an array');
+        console.log("Departments:", Array.isArray(data.departments) ? data.departments.length : 'Not an array');
+        console.log("FuelTypes:", Array.isArray(data.fuelTypes) ? data.fuelTypes.length : 'Not an array');
+      } else {
+        console.warn("Master data is null or undefined");
+      }
     },
     onError: (error) => {
       console.error("Error loading master data:", error);
@@ -96,26 +112,78 @@ export function VehicleTypeForm({ onSubmit, initialData, isEditing = false }: Ve
     }
   }, [form.watch("manufacturer"), form.watch("vehicle_type"), form.watch("model_year"), form]);
 
-  // Handle manufacturer change
+  // Handle manufacturer change with improved error handling
   const handleManufacturerChange = (value: string) => {
     console.log("Manufacturer changed to:", value);
+    
+    if (!value) {
+      console.warn("Invalid manufacturer value received");
+      return;
+    }
+    
+    // Update state and form values
     setSelectedManufacturer(value);
     form.setValue("manufacturer", value);
-    form.setValue("vehicle_type", ""); // Reset model when manufacturer changes
+    
+    // Reset model-related fields
+    form.setValue("vehicle_type", ""); 
     setSelectedModel(null);
+    
+    console.log("Reset model selection after manufacturer change");
+    
+    // Verify manufacturer is in the list (case-insensitive)
+    if (masterData?.manufacturers) {
+      const matchingManufacturer = masterData.manufacturers.find(
+        (m: string) => m.toLowerCase() === value.toLowerCase()
+      );
+      
+      if (!matchingManufacturer) {
+        console.warn(`Manufacturer "${value}" not found in available list:`, masterData.manufacturers);
+      } else {
+        console.log(`Manufacturer "${value}" verified in the available list`);
+      }
+    }
   };
 
-  // Handle model change
+  // Handle model change with improved error handling
   const handleModelChange = (value: string) => {
     console.log("Model changed to:", value);
     setSelectedModel(value);
     form.setValue("vehicle_type", value);
     
-    // Find model data and update related fields
-    if (masterData?.vehicleModels && selectedManufacturer) {
-      const modelData = masterData.vehicleModels[selectedManufacturer]?.models.find(
-        (model: any) => model.name === value
-      );
+    if (!masterData) {
+      console.warn("No master data available");
+      return;
+    }
+    
+    if (!selectedManufacturer) {
+      console.warn("No manufacturer selected");
+      return;
+    }
+    
+    console.log("Checking for model data in:", masterData);
+    console.log("Master data vehicleModels:", masterData.vehicleModels);
+    console.log("Selected manufacturer:", selectedManufacturer);
+    
+    // Check if the vehicleModels and the specific manufacturer exist
+    if (masterData.vehicleModels && masterData.vehicleModels[selectedManufacturer]) {
+      console.log("Found manufacturer in vehicleModels:", masterData.vehicleModels[selectedManufacturer]);
+      
+      // Access models array safely
+      const models = masterData.vehicleModels[selectedManufacturer].models;
+      if (!models || !Array.isArray(models)) {
+        console.warn("Models is not an array:", models);
+        return;
+      }
+      
+      // Find the specific model data
+      const modelData = models.find((model: any) => {
+        if (!model || typeof model !== 'object') {
+          console.warn("Invalid model object:", model);
+          return false;
+        }
+        return model.name === value;
+      });
       
       if (modelData) {
         console.log("Model data found:", modelData);
@@ -129,14 +197,43 @@ export function VehicleTypeForm({ onSubmit, initialData, isEditing = false }: Ve
             const currentFormState = form.getValues();
             console.log("Current form state before update:", currentFormState);
             
-            // Directly update efficiency value
-            const efficiency = Number(modelData.efficiency);
-            form.setValue("fuel_efficiency", efficiency);
+            // Safely get numeric values with fallbacks
+            const efficiency = typeof modelData.efficiency === 'number' 
+              ? modelData.efficiency 
+              : typeof modelData.efficiency === 'string' 
+                ? parseFloat(modelData.efficiency) 
+                : 0;
+                
+            const capacity = typeof modelData.capacity === 'number' 
+              ? modelData.capacity 
+              : typeof modelData.capacity === 'string' 
+                ? parseFloat(modelData.capacity) 
+                : 0;
+                
+            const idleConsumption = typeof modelData.idleConsumption === 'number' 
+              ? modelData.idleConsumption 
+              : typeof modelData.idleConsumption === 'string' 
+                ? parseFloat(modelData.idleConsumption) 
+                : 0;
+                
+            const passengerCapacity = typeof modelData.passengerCapacity === 'number' 
+              ? modelData.passengerCapacity 
+              : typeof modelData.passengerCapacity === 'string' 
+                ? parseFloat(modelData.passengerCapacity) 
+                : 0;
             
-            // Update all other model-specific fields
-            form.setValue("vehicle_capacity", Number(modelData.capacity));
-            form.setValue("idle_fuel_consumption", Number(modelData.idleConsumption));
-            form.setValue("number_of_passengers", Number(modelData.passengerCapacity));
+            console.log("Parsed values:", {
+              efficiency,
+              capacity,
+              idleConsumption,
+              passengerCapacity
+            });
+            
+            // Update form fields with the extracted values
+            form.setValue("fuel_efficiency", efficiency);
+            form.setValue("vehicle_capacity", capacity);
+            form.setValue("idle_fuel_consumption", idleConsumption);
+            form.setValue("number_of_passengers", passengerCapacity);
             
             // Get fuel price and calculate cost per km
             const fuelPrice = form.getValues("fuel_price_per_litre");
@@ -152,7 +249,11 @@ export function VehicleTypeForm({ onSubmit, initialData, isEditing = false }: Ve
             console.error("Error updating form values:", error);
           }
         }, 50);
+      } else {
+        console.warn(`Could not find model data for ${value} in ${selectedManufacturer} models`);
       }
+    } else {
+      console.warn(`No models found for manufacturer: ${selectedManufacturer}`);
     }
   };
 
@@ -163,8 +264,14 @@ export function VehicleTypeForm({ onSubmit, initialData, isEditing = false }: Ve
     form.setValue("fuel_type", value);
     
     // Find fuel type data and update price and co2 factor
-    if (fuelTypes) {
-      const fuelData = fuelTypes.find((ft: any) => ft.type === value);
+    if (fuelTypes && Array.isArray(fuelTypes)) {
+      console.log("Looking for fuel type in:", fuelTypes);
+      
+      // Case-insensitive search to handle any capitalization issues
+      const fuelData = fuelTypes.find((ft: any) => 
+        ft.type.toLowerCase() === value.toLowerCase()
+      );
+      
       if (fuelData) {
         console.log("Fuel data found:", fuelData);
         
@@ -177,9 +284,16 @@ export function VehicleTypeForm({ onSubmit, initialData, isEditing = false }: Ve
             const currentFormState = form.getValues();
             console.log("Current form state before fuel update:", currentFormState);
             
-            // Parse values as numbers
-            const price = parseFloat(fuelData.price);
-            const co2Factor = parseFloat(fuelData.co2_factor);
+            // Parse values as numbers - ensure we handle string values properly
+            const price = typeof fuelData.price === 'string' 
+              ? parseFloat(fuelData.price) 
+              : fuelData.price;
+              
+            const co2Factor = typeof fuelData.co2_factor === 'string' 
+              ? parseFloat(fuelData.co2_factor) 
+              : fuelData.co2_factor;
+            
+            console.log("Extracted values - Price:", price, "CO2 Factor:", co2Factor);
             
             // Update form values
             form.setValue("fuel_price_per_litre", price);
@@ -199,7 +313,12 @@ export function VehicleTypeForm({ onSubmit, initialData, isEditing = false }: Ve
             console.error("Error updating fuel values:", error);
           }
         }, 50);
+      } else {
+        console.warn(`Could not find fuel data for type: ${value}`);
+        console.log("Available fuel types:", fuelTypes.map(ft => ft.type));
       }
+    } else {
+      console.warn("No fuel types data available or not in the expected format:", fuelTypes);
     }
   };
 
