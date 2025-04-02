@@ -138,9 +138,8 @@ export function VehicleTypeForm({ onSubmit, initialData, isEditing = false }: Ve
   // Auto-generate vehicle type code
   useEffect(() => {
     if (selectedManufacturer && selectedModel && modelYear) {
-      // Generate a unique code including a timestamp for uniqueness
-      const timestamp = new Date().getTime().toString().substring(9, 13); // Last 4 digits of timestamp
-      const typeCode = `${selectedManufacturer.substring(0,3)}-${selectedModel.substring(0,3)}-${modelYear}-${timestamp}`.toUpperCase();
+      // Generate a code that combines manufacturer, vehicle model, and model year
+      const typeCode = `${selectedManufacturer.substring(0,3)}-${selectedModel.substring(0,3)}-${modelYear}`.toUpperCase();
       form.setValue("vehicle_type_code", typeCode);
     }
   }, [selectedManufacturer, selectedModel, modelYear, form]);
