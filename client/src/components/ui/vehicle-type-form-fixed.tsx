@@ -138,6 +138,15 @@ export function VehicleTypeForm({
     
     setSelectedModel(value);
     form.setValue("vehicle_model", value);
+    form.setValue("vehicle_type", value); // Also set vehicle_type for compatibility
+    
+    // Generate a unique code including a timestamp for uniqueness
+    if (selectedManufacturer && value) {
+      const timestamp = new Date().getTime().toString().substring(9, 13); // Last 4 digits of timestamp
+      const typeCode = `${selectedManufacturer.substring(0,3)}-${value.substring(0,3)}-${form.getValues("model_year")}-${timestamp}`.toUpperCase();
+      form.setValue("vehicle_type_code", typeCode);
+      form.setValue("vehicle_type_name", `${selectedManufacturer} ${value}`);
+    }
     
     // Find model data to auto-populate fields
     if (selectedManufacturer && masterData?.vehicleModels?.[selectedManufacturer]) {
@@ -160,8 +169,14 @@ export function VehicleTypeForm({
           form.setValue("vehicle_capacity", capacity);
         }
         
-        if (modelData.passengers) {
-          const passengers = parseInt(modelData.passengers);
+        if (modelData.idleConsumption) {
+          const idleConsumption = parseFloat(modelData.idleConsumption);
+          console.log("Setting idle consumption:", idleConsumption);
+          form.setValue("idle_fuel_consumption", idleConsumption);
+        }
+        
+        if (modelData.passengerCapacity) {
+          const passengers = parseInt(modelData.passengerCapacity);
           console.log("Setting passengers:", passengers);
           form.setValue("number_of_passengers", passengers);
         }

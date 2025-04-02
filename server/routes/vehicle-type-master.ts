@@ -150,7 +150,7 @@ router.post("/api/vehicle-types", async (req, res) => {
       fuel_type: result.data.fuel_type,
       service_plan: result.data.service_plan,
       cost_per_km: result.data.cost_per_km?.toString(),
-      vehicle_type: result.data.vehicle_type,
+      vehicle_type: result.data.vehicle_type || result.data.vehicle_model, // Use vehicle_model as fallback
       department: result.data.department,
       unit: result.data.unit || "",
       alert_before: result.data.alert_before,
@@ -161,6 +161,12 @@ router.post("/api/vehicle-types", async (req, res) => {
     };
     
     console.log("Formatted data for insert:", formattedData);
+    
+    // Double check that vehicle_model and color are properly set
+    if (!formattedData.vehicle_model) {
+      console.log("Setting vehicle_model from vehicle_type as fallback");
+      formattedData.vehicle_model = formattedData.vehicle_type;
+    }
     
     const [newType] = await db
       .insert(vehicleTypeMaster)
@@ -249,6 +255,7 @@ router.patch("/api/vehicle-types/:id", async (req, res) => {
     if (result.data.service_plan !== undefined) updateData.service_plan = result.data.service_plan;
     if (result.data.cost_per_km !== undefined) updateData.cost_per_km = result.data.cost_per_km.toString();
     if (result.data.vehicle_type !== undefined) updateData.vehicle_type = result.data.vehicle_type;
+    else if (result.data.vehicle_model !== undefined) updateData.vehicle_type = result.data.vehicle_model; // Use vehicle_model as fallback
     if (result.data.department !== undefined) updateData.department = result.data.department;
     if (result.data.unit !== undefined) updateData.unit = result.data.unit;
     if (result.data.alert_before !== undefined) updateData.alert_before = result.data.alert_before;
