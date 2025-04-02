@@ -52,8 +52,14 @@ export default function VehicleTypeManagement() {
   const queryClient = useQueryClient();
 
   // Query vehicle types
-  const { data: vehicleTypes, isLoading } = useQuery<VehicleTypeMaster[]>({
+  const { data: vehicleTypes, isLoading, refetch } = useQuery<VehicleTypeMaster[]>({
     queryKey: ["/api/vehicle-types"],
+    onSuccess: (data) => {
+      console.log("Vehicle types loaded successfully:", data?.length, data);
+    },
+    onError: (error) => {
+      console.error("Error loading vehicle types:", error);
+    }
   });
 
   // Extract unique filter options from data
@@ -121,7 +127,14 @@ export default function VehicleTypeManagement() {
       return response.json();
     },
     onSuccess: () => {
+      // First invalidate the query
       queryClient.invalidateQueries({ queryKey: ["/api/vehicle-types"] });
+      
+      // Then explicitly refetch to ensure we get fresh data
+      refetch();
+      
+      console.log("Vehicle type created, refetching data...");
+      
       toast({
         title: "Success",
         description: "Vehicle type created successfully",
@@ -150,7 +163,14 @@ export default function VehicleTypeManagement() {
       return response.json();
     },
     onSuccess: () => {
+      // First invalidate the query
       queryClient.invalidateQueries({ queryKey: ["/api/vehicle-types"] });
+      
+      // Then explicitly refetch to ensure we get fresh data
+      refetch();
+      
+      console.log("Vehicle type updated, refetching data...");
+      
       toast({
         title: "Success",
         description: "Vehicle type updated successfully",
@@ -267,6 +287,35 @@ export default function VehicleTypeManagement() {
                   variants={animationUtils.fadeIn("up", 0.15)}
                   className="flex flex-col md:flex-row gap-3 items-start md:items-center"
                 >
+                  {/* Refresh button */}
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    onClick={() => {
+                      console.log("Manual refresh requested");
+                      refetch();
+                    }}
+                    title="Refresh vehicle types"
+                  >
+                    <svg 
+                      xmlns="http://www.w3.org/2000/svg" 
+                      width="16" 
+                      height="16" 
+                      viewBox="0 0 24 24" 
+                      fill="none" 
+                      stroke="currentColor" 
+                      strokeWidth="2" 
+                      strokeLinecap="round" 
+                      strokeLinejoin="round"
+                      className="lucide lucide-refresh-cw"
+                    >
+                      <path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"></path>
+                      <path d="M21 3v5h-5"></path>
+                      <path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"></path>
+                      <path d="M8 16H3v5"></path>
+                    </svg>
+                  </Button>
+                  
                   {/* Search box */}
                   <div className="relative flex-1 min-w-[240px]">
                     <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
