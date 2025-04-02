@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback } from "react";
+import { useState, useMemo, useCallback, useEffect } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { VehicleTypeMaster, InsertVehicleTypeMaster } from "@shared/schema";
 import { apiRequest } from "@/lib/queryClient";
@@ -54,6 +54,7 @@ export default function VehicleTypeManagement() {
   // Query vehicle types
   const { data: vehicleTypes, isLoading, refetch } = useQuery<VehicleTypeMaster[]>({
     queryKey: ["/api/vehicle-types"],
+    staleTime: 10000, // Consider data fresh for 10 seconds
     onSuccess: (data) => {
       console.log("Vehicle types loaded successfully:", data?.length, data);
     },
@@ -61,6 +62,12 @@ export default function VehicleTypeManagement() {
       console.error("Error loading vehicle types:", error);
     }
   });
+  
+  // Force refetch when component mounts to ensure fresh data
+  useEffect(() => {
+    console.log("Component mounted, refetching vehicle types...");
+    refetch();
+  }, [refetch]);
 
   // Extract unique filter options from data
   const regionOptions = useMemo(() => {
