@@ -46,7 +46,7 @@ export function FuelPriceHistory() {
 
   // Fetch real historical fuel price data from the API
   const { data: history, isLoading } = useQuery<FuelPriceHistory[]>({
-    queryKey: ["/api/fuel-prices/history"],
+    queryKey: ["/api/fuel-types/history"],
   });
 
   if (isLoading) {

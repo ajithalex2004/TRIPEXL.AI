@@ -81,10 +81,11 @@ const fuelTypeColors = {
 };
 
 export function PerformanceSnapshotDashboard() {
+  // All state hooks first
   const [selectedRegion, setSelectedRegion] = useState<string>("all");
   const [selectedPeriod, setSelectedPeriod] = useState<string>("6m");
   
-  // Fetch all performance data in one call
+  // All useQuery hooks next
   const { data, isLoading } = useQuery<{
     vehicles: any[];
     fuelTypes: any[];
@@ -102,7 +103,6 @@ export function PerformanceSnapshotDashboard() {
     queryKey: ["/api/performance-snapshot"],
   });
   
-  // Fetch detailed top performers data with ratings
   const { data: topPerformersData, isLoading: isLoadingTopPerformers } = useQuery<any[]>({
     queryKey: ["/api/performance-snapshot/top-performers"],
   });
@@ -112,10 +112,71 @@ export function PerformanceSnapshotDashboard() {
   const fuelPriceHistory = data?.fuelPriceHistory || [];
   const fuelTypes = data?.fuelTypes || [];
   const performanceMetrics = data?.performanceMetrics;
+  const recommendations = performanceMetrics?.recommendations || [];
+  
+  // Define regions constant
+  const regions = ["Dubai", "Abu Dhabi", "Sharjah", "Ajman", "Fujairah", "Ras Al Khaimah", "Umm Al Quwain"];
 
-  // We will define these variables below, after the if(isLoading) check
+  // All useMemo hooks must be defined before any conditional returns
+  // Calculate fuel price trends
+  const fuelTrends = useMemo(() => {
+    if (!fuelTypes || fuelTypes.length === 0) return {};
+    
+    const trends: Record<string, {change: number, direction: string}> = {};
+    
+    fuelTypes.forEach((fuel: any) => {
+      if (fuel.historical_prices && fuel.historical_prices.length >= 2) {
+        const latest = parseFloat(fuel.price);
+        const previous = parseFloat(fuel.historical_prices[fuel.historical_prices.length - 2].price);
+        const change = ((latest - previous) / previous) * 100;
+        trends[fuel.type] = {
+          change: parseFloat(change.toFixed(2)),
+          direction: change >= 0 ? 'up' : 'down'
+        };
+      } else {
+        trends[fuel.type] = { change: 0, direction: 'neutral' };
+      }
+    });
+    
+    return trends;
+  }, [fuelTypes]);
 
-  // Loading state
+  // Convert historical price data for the line chart
+  const fuelPriceTrendChartData = useMemo(() => {
+    if (!fuelPriceHistory || fuelPriceHistory.length === 0) return [];
+    
+    // Sort by date
+    const sorted = [...fuelPriceHistory].sort((a: any, b: any) => {
+      return new Date(a.date).getTime() - new Date(b.date).getTime();
+    });
+    
+    // Group by date and fuel type
+    const result: any[] = [];
+    let lastDate = '';
+    let currentEntry: any = null;
+    
+    sorted.forEach((record: any) => {
+      const date = format(new Date(record.date), 'MMM yyyy');
+      
+      if (date !== lastDate) {
+        if (currentEntry) {
+          result.push(currentEntry);
+        }
+        currentEntry = { date };
+        lastDate = date;
+      }
+      
+      currentEntry[record.fuel_type] = parseFloat(record.price);
+    });
+    
+    if (currentEntry) {
+      result.push(currentEntry);
+    }
+    
+    return result;
+  }, [fuelPriceHistory]);
+
+  // Loading state - now we can use conditional rendering
   if (isLoading) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
@@ -124,8 +185,7 @@ export function PerformanceSnapshotDashboard() {
     );
   }
   
-
-
+  // All the derived data calculations below (not hooks)
   const filteredVehicleTypes = selectedRegion === "all" 
     ? vehicleTypes
     : vehicleTypes.filter((vt) => vt.region === selectedRegion);
@@ -169,9 +229,6 @@ export function PerformanceSnapshotDashboard() {
   const avgCO2EmissionFactor = performanceMetrics?.avgCO2EmissionFactor || 
     filteredVehicleTypes
       .reduce((acc, vt) => acc + Number(vt.co2_emission_factor), 0) / filteredVehicleTypes.length;
-    
-  // Get recommendations from the backend
-  const recommendations = performanceMetrics?.recommendations || [];
 
   const fuelTypeCounts = filteredVehicleTypes.reduce((acc, vt) => {
     acc[vt.fuel_type] = (acc[vt.fuel_type] || 0) + 1;
@@ -182,31 +239,6 @@ export function PerformanceSnapshotDashboard() {
     name,
     value,
   }));
-
-  const regions = ["Dubai", "Abu Dhabi", "Sharjah", "Ajman", "Fujairah", "Ras Al Khaimah", "Umm Al Quwain"];
-
-  // Calculate fuel price trends
-  const fuelTrends = useMemo(() => {
-    if (!fuelTypes || fuelTypes.length === 0) return {};
-    
-    const trends: Record<string, {change: number, direction: string}> = {};
-    
-    fuelTypes.forEach((fuel: any) => {
-      if (fuel.historical_prices && fuel.historical_prices.length >= 2) {
-        const latest = parseFloat(fuel.price);
-        const previous = parseFloat(fuel.historical_prices[fuel.historical_prices.length - 2].price);
-        const change = ((latest - previous) / previous) * 100;
-        trends[fuel.type] = {
-          change: parseFloat(change.toFixed(2)),
-          direction: change >= 0 ? 'up' : 'down'
-        };
-      } else {
-        trends[fuel.type] = { change: 0, direction: 'neutral' };
-      }
-    });
-    
-    return trends;
-  }, [fuelTypes]);
 
   // Create fuel price trend cards data
   const fuelPriceTrendCards = fuelTypes
@@ -220,41 +252,6 @@ export function PerformanceSnapshotDashboard() {
         direction: trend.direction,
       };
     });
-
-  // Convert historical price data for the line chart
-  const fuelPriceTrendChartData = useMemo(() => {
-    if (!fuelPriceHistory || fuelPriceHistory.length === 0) return [];
-    
-    // Sort by date
-    const sorted = [...fuelPriceHistory].sort((a: any, b: any) => {
-      return new Date(a.date).getTime() - new Date(b.date).getTime();
-    });
-    
-    // Group by date and fuel type
-    const result: any[] = [];
-    let lastDate = '';
-    let currentEntry: any = null;
-    
-    sorted.forEach((record: any) => {
-      const date = format(new Date(record.date), 'MMM yyyy');
-      
-      if (date !== lastDate) {
-        if (currentEntry) {
-          result.push(currentEntry);
-        }
-        currentEntry = { date };
-        lastDate = date;
-      }
-      
-      currentEntry[record.fuel_type] = parseFloat(record.price);
-    });
-    
-    if (currentEntry) {
-      result.push(currentEntry);
-    }
-    
-    return result;
-  }, [fuelPriceHistory]);
   
   return (
     <motion.div

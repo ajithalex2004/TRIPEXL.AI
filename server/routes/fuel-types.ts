@@ -148,6 +148,17 @@ router.delete("/:id", async (req, res) => {
   }
 });
 
+// Get fuel price history
+router.get("/history", async (_req, res) => {
+  try {
+    const history = await storage.getFuelPriceHistory();
+    res.json(history);
+  } catch (error) {
+    console.error("Error fetching fuel price history:", error);
+    res.status(500).json({ error: "Failed to fetch fuel price history" });
+  }
+});
+
 // WAM Scraper endpoint to fetch UAE fuel prices
 router.post("/wam-scrape", async (req, res) => {
   try {

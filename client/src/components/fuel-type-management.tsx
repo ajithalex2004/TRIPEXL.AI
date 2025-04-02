@@ -111,7 +111,7 @@ export function FuelTypeManagement() {
   // Mutation for running WAM scraper to get latest UAE fuel prices
   const wamScraperMutation = useMutation({
     mutationFn: async () => {
-      const response = await apiRequest("POST", "/api/fuel-prices/wam-scrape");
+      const response = await apiRequest("POST", "/api/fuel-types/wam-scrape");
       return await response.json();
     },
     onMutate: () => {

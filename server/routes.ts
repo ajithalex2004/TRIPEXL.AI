@@ -440,7 +440,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     log("Registering fuel types router...");
     app.use("/api/fuel-types", fuelTypesRouter);
     // Also add the route for fuel-prices/update endpoint from fuelTypesRouter
-    app.use("/api/fuel-prices", fuelTypesRouter);
+    // Fuel price endpoints already registered as /api/fuel-types above
     log("Fuel types router registered");
     
     // Add fuel price endpoints
@@ -449,6 +449,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     // Note: GET /api/fuel-types is now handled by the fuelTypesRouter
     
     // Get fuel price history
+    // This route is redundant, as the same functionality exists in the fuelTypesRouter
+    // Keeping it for backward compatibility
     app.get("/api/fuel-prices/history", async (_req, res) => {
       try {
         const history = await getFuelPriceHistory();
@@ -460,6 +462,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     });
     
     // Trigger manual update of fuel prices (requires admin)
+    // This route is redundant, as the same functionality exists in the fuelTypesRouter
+    // Keeping it for backward compatibility
     app.post("/api/fuel-prices/update", async (req, res) => {
       try {
         // TODO: Add proper authentication check here
@@ -483,6 +487,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     });
     
     // Endpoint to manually trigger WAM scraper (requires admin)
+    // This route is redundant, as the same functionality exists in the fuelTypesRouter
+    // Keeping it for backward compatibility
     app.post("/api/fuel-prices/wam-scrape", async (req, res) => {
       try {
         // TODO: Add proper authentication check here

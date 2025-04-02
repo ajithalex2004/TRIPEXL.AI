@@ -49,7 +49,7 @@ export function FuelPriceDashboard() {
   // Mutation for updating fuel prices
   const updateFuelPricesMutation = useMutation({
     mutationFn: async () => {
-      const response = await apiRequest("POST", "/api/fuel-prices/update");
+      const response = await apiRequest("POST", "/api/fuel-types/update");
       return await response.json();
     },
     onMutate: () => {
@@ -78,7 +78,7 @@ export function FuelPriceDashboard() {
   // Mutation for running WAM scraper
   const wamScraperMutation = useMutation({
     mutationFn: async () => {
-      const response = await apiRequest("POST", "/api/fuel-prices/wam-scrape");
+      const response = await apiRequest("POST", "/api/fuel-types/wam-scrape");
       return await response.json();
     },
     onMutate: () => {
