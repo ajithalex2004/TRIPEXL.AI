@@ -27,26 +27,26 @@ export function VehicleTypeForm({ onSubmit, initialData, isEditing = false }: Ve
   // Initialize form
   const form = useForm<InsertVehicleTypeMaster>({
     resolver: zodResolver(insertVehicleTypeMasterSchema),
-    defaultValues: initialData || {
-      group_id: 0,
-      vehicle_type_code: "",
-      vehicle_type_name: "",
-      vehicle_type: "",
-      manufacturer: "",
-      model_year: new Date().getFullYear(),
-      number_of_passengers: 0,
-      region: "ABU_DHABI",
-      fuel_efficiency: 0,
-      fuel_price_per_litre: 0,
-      fuel_type: "",
-      service_plan: "",
-      cost_per_km: 0,
-      department: "FLEET",
-      unit: "",
-      alert_before: 0,
-      idle_fuel_consumption: 0,
-      vehicle_capacity: 0,
-      co2_emission_factor: 0
+    defaultValues: {
+      group_id: initialData?.group_id || 0,
+      vehicle_type_code: initialData?.vehicle_type_code || "",
+      vehicle_type_name: initialData?.vehicle_type_name || "",
+      vehicle_type: initialData?.vehicle_type || "",
+      manufacturer: initialData?.manufacturer || "",
+      model_year: initialData?.model_year || new Date().getFullYear(),
+      number_of_passengers: initialData?.number_of_passengers || 0,
+      region: initialData?.region || "ABU_DHABI",
+      fuel_efficiency: initialData?.fuel_efficiency ? Number(initialData.fuel_efficiency) : 0,
+      fuel_price_per_litre: initialData?.fuel_price_per_litre ? Number(initialData.fuel_price_per_litre) : 3.75,
+      fuel_type: initialData?.fuel_type || "SPECIAL_95",
+      service_plan: initialData?.service_plan || "",
+      cost_per_km: initialData?.cost_per_km ? Number(initialData.cost_per_km) : 0,
+      department: initialData?.department || "FLEET",
+      unit: initialData?.unit || "",
+      alert_before: initialData?.alert_before || 0,
+      idle_fuel_consumption: initialData?.idle_fuel_consumption ? Number(initialData.idle_fuel_consumption) : 0,
+      vehicle_capacity: initialData?.vehicle_capacity || 0,
+      co2_emission_factor: initialData?.co2_emission_factor ? Number(initialData.co2_emission_factor) : 0
     }
   });
 
@@ -283,7 +283,7 @@ export function VehicleTypeForm({ onSubmit, initialData, isEditing = false }: Ve
                     name="group_id"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Vehicle Group *</FormLabel>
+                        <FormLabel>Vehicle Group</FormLabel>
                         <Select
                           onValueChange={(value) => field.onChange(Number(value))}
                           value={field.value?.toString()}
@@ -308,7 +308,7 @@ export function VehicleTypeForm({ onSubmit, initialData, isEditing = false }: Ve
                 </td>
                 <td className="border p-2">
                   <FormItem>
-                    <FormLabel>Manufacturer *</FormLabel>
+                    <FormLabel>Manufacturer</FormLabel>
                     <Select
                       onValueChange={handleManufacturerChange}
                       value={selectedManufacturer || ""}
@@ -337,7 +337,7 @@ export function VehicleTypeForm({ onSubmit, initialData, isEditing = false }: Ve
               <tr>
                 <td className="border p-2">
                   <FormItem>
-                    <FormLabel>Vehicle Model *</FormLabel>
+                    <FormLabel>Vehicle Model</FormLabel>
                     <Select
                       onValueChange={handleModelChange}
                       value={selectedModel || ""}
@@ -368,7 +368,7 @@ export function VehicleTypeForm({ onSubmit, initialData, isEditing = false }: Ve
                     name="model_year"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Model Year *</FormLabel>
+                        <FormLabel>Model Year</FormLabel>
                         <FormControl>
                           <Input
                             {...field}
@@ -406,7 +406,7 @@ export function VehicleTypeForm({ onSubmit, initialData, isEditing = false }: Ve
                     name="vehicle_type_name"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Vehicle Type Name *</FormLabel>
+                        <FormLabel>Vehicle Type Name</FormLabel>
                         <FormControl>
                           <Input {...field} placeholder="Enter vehicle type name" />
                         </FormControl>
@@ -421,7 +421,7 @@ export function VehicleTypeForm({ onSubmit, initialData, isEditing = false }: Ve
               <tr>
                 <td className="border p-2">
                   <FormItem>
-                    <FormLabel>Fuel Type *</FormLabel>
+                    <FormLabel>Fuel Type</FormLabel>
                     <Select
                       onValueChange={handleFuelTypeChange}
                       value={selectedFuelType || ""}
@@ -455,7 +455,7 @@ export function VehicleTypeForm({ onSubmit, initialData, isEditing = false }: Ve
                     name="fuel_price_per_litre"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Fuel Price Per Litre (AED) *</FormLabel>
+                        <FormLabel>Fuel Price Per Litre (AED)</FormLabel>
                         <FormControl>
                           <Input
                             {...field}
@@ -483,7 +483,7 @@ export function VehicleTypeForm({ onSubmit, initialData, isEditing = false }: Ve
                     name="fuel_efficiency"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Fuel Efficiency (km/l) *</FormLabel>
+                        <FormLabel>Fuel Efficiency (km/l)</FormLabel>
                         <FormControl>
                           <Input
                             {...field}
@@ -533,7 +533,7 @@ export function VehicleTypeForm({ onSubmit, initialData, isEditing = false }: Ve
                     name="idle_fuel_consumption"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Idle Fuel Consumption (l/h) *</FormLabel>
+                        <FormLabel>Idle Fuel Consumption (l/h)</FormLabel>
                         <FormControl>
                           <Input
                             {...field}
@@ -579,7 +579,7 @@ export function VehicleTypeForm({ onSubmit, initialData, isEditing = false }: Ve
                     name="number_of_passengers"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Number of Passengers *</FormLabel>
+                        <FormLabel>Number of Passengers</FormLabel>
                         <FormControl>
                           <Input
                             {...field}
@@ -665,7 +665,7 @@ export function VehicleTypeForm({ onSubmit, initialData, isEditing = false }: Ve
                     name="department"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Department *</FormLabel>
+                        <FormLabel>Department</FormLabel>
                         <Select onValueChange={field.onChange} value={field.value}>
                           <FormControl>
                             <SelectTrigger>
