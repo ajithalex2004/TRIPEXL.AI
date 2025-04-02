@@ -65,6 +65,10 @@ export function VehicleMasterForm({ isOpen, onClose, initialData }: VehicleMaste
   // Keep all useState hooks at the top level
   const [selectedEmirate, setSelectedEmirate] = React.useState<string>(initialData?.emirate || "");
   const [selectedCategory, setSelectedCategory] = React.useState<string>(initialData?.plate_category || "");
+  const [selectedManufacturer, setSelectedManufacturer] = React.useState<string>(initialData?.manufacturer || "");
+  const [selectedModelYear, setSelectedModelYear] = React.useState<number>(initialData?.model_year || 0);
+  const [availableModels, setAvailableModels] = React.useState<string[]>([]);
+  const [selectedModel, setSelectedModel] = React.useState<string>(initialData?.vehicle_model || "");
 
   // Query hooks - keep at top level
   const { data: vehicleTypes, isLoading: isLoadingVehicleTypes } = useQuery<VehicleTypeMaster[]>({
@@ -227,6 +231,83 @@ export function VehicleMasterForm({ isOpen, onClose, initialData }: VehicleMaste
     const emirateInfo = EmiratesPlateInfo[selectedEmirate as keyof typeof EmiratesPlateInfo];
     return emirateInfo.plate_codes[selectedCategory as keyof typeof EmiratesPlateInfo[keyof typeof EmiratesPlateInfo]['plate_codes']] || [];
   }, [selectedEmirate, selectedCategory]);
+
+  // Handle manufacturer change
+  const handleManufacturerChange = React.useCallback((value: string) => {
+    setSelectedManufacturer(value);
+    form.setValue("manufacturer", value);
+    
+    // Reset vehicle model when manufacturer changes
+    setSelectedModel("");
+    form.setValue("vehicle_model", "");
+    
+    // Update available models for the selected manufacturer
+    const modelInfo = DEFAULT_VEHICLE_MODELS[value as keyof typeof DEFAULT_VEHICLE_MODELS];
+    const modelNames = modelInfo ? Object.keys(modelInfo) : [];
+    setAvailableModels(modelNames);
+    
+    // Reset vehicle type code and name if manufacturer changes
+    form.setValue("vehicle_type_code", "");
+    form.setValue("vehicle_type_name", "");
+    
+    // Generate vehicle type code if model and year are already set
+    if (selectedModel && selectedModelYear) {
+      const generatedTypeCode = generateVehicleTypeCode(
+        value,
+        selectedModel,
+        selectedModelYear
+      );
+      
+      // Set the type code
+      form.setValue("vehicle_type_code", generatedTypeCode);
+      
+      // Also set vehicle type name in a readable format
+      form.setValue("vehicle_type_name", `${value} ${selectedModel} ${selectedModelYear}`);
+    }
+  }, [form, selectedModel, selectedModelYear]);
+
+  // Handle model year change
+  const handleModelYearChange = React.useCallback((value: string) => {
+    const yearValue = parseInt(value, 10);
+    setSelectedModelYear(yearValue);
+    form.setValue("model_year", yearValue);
+    
+    // Generate vehicle type code if manufacturer and model are already set
+    if (selectedManufacturer && selectedModel && yearValue) {
+      const generatedTypeCode = generateVehicleTypeCode(
+        selectedManufacturer,
+        selectedModel,
+        yearValue
+      );
+      
+      // Set the type code
+      form.setValue("vehicle_type_code", generatedTypeCode);
+      
+      // Also set vehicle type name in a readable format
+      form.setValue("vehicle_type_name", `${selectedManufacturer} ${selectedModel} ${yearValue}`);
+    }
+  }, [form, selectedManufacturer, selectedModel]);
+
+  // Handle vehicle model change
+  const handleVehicleModelChange = React.useCallback((value: string) => {
+    setSelectedModel(value);
+    form.setValue("vehicle_model", value);
+    
+    // Generate vehicle type code if manufacturer, model, and year are set
+    if (selectedManufacturer && value && selectedModelYear) {
+      const generatedTypeCode = generateVehicleTypeCode(
+        selectedManufacturer,
+        value,
+        selectedModelYear
+      );
+      
+      // Set the type code
+      form.setValue("vehicle_type_code", generatedTypeCode);
+      
+      // Also set vehicle type name in a readable format
+      form.setValue("vehicle_type_name", `${selectedManufacturer} ${value} ${selectedModelYear}`);
+    }
+  }, [form, selectedManufacturer, selectedModelYear]);
 
   // Show loading spinner while vehicle types are being fetched
   if (isLoadingVehicleTypes) {
@@ -465,41 +546,59 @@ export function VehicleMasterForm({ isOpen, onClose, initialData }: VehicleMaste
                 )}
               />
 
-              {/* Model Year - Read only */}
-              <FormField
-                control={form.control}
-                name="model_year"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Model Year</FormLabel>
-                    <FormControl>
-                      <Input 
-                        placeholder="Model Year" 
-                        {...field} 
-                        readOnly 
-                        value={field.value ? field.value.toString() : ""} 
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              {/* Manufacturer - Read only */}
+              {/* Manufacturer */}
               <FormField
                 control={form.control}
                 name="manufacturer"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Manufacturer</FormLabel>
-                    <FormControl>
-                      <Input 
-                        placeholder="Manufacturer" 
-                        {...field} 
-                        readOnly 
-                        className="bg-muted"
-                      />
-                    </FormControl>
+                    <FormLabel>Manufacturer *</FormLabel>
+                    <Select 
+                      onValueChange={handleManufacturerChange} 
+                      value={field.value}
+                    >
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select manufacturer" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {DEFAULT_MANUFACTURERS.map((manufacturer) => (
+                          <SelectItem key={manufacturer} value={manufacturer}>
+                            {manufacturer}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              {/* Model Year */}
+              <FormField
+                control={form.control}
+                name="model_year"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Model Year *</FormLabel>
+                    <Select
+                      onValueChange={handleModelYearChange}
+                      value={field.value ? field.value.toString() : ""}
+                    >
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select model year" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {DEFAULT_YEARS.map((year) => (
+                          <SelectItem key={year} value={year.toString()}>
+                            {year}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                     <FormMessage />
                   </FormItem>
                 )}
@@ -734,21 +833,37 @@ export function VehicleMasterForm({ isOpen, onClose, initialData }: VehicleMaste
                 )}
               />
 
-              {/* Vehicle Model - Read only */}
+              {/* Vehicle Model */}
               <FormField
                 control={form.control}
                 name="vehicle_model"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Vehicle Model</FormLabel>
-                    <FormControl>
-                      <Input 
-                        placeholder="Vehicle Model" 
-                        {...field} 
-                        readOnly 
-                        className="bg-muted"
-                      />
-                    </FormControl>
+                    <FormLabel>Vehicle Model *</FormLabel>
+                    <Select
+                      onValueChange={handleVehicleModelChange}
+                      value={field.value}
+                      disabled={!selectedManufacturer || availableModels.length === 0}
+                    >
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select vehicle model" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {availableModels.length === 0 ? (
+                          <SelectItem value="none" disabled>
+                            {selectedManufacturer ? "No models available" : "Select manufacturer first"}
+                          </SelectItem>
+                        ) : (
+                          availableModels.map((model) => (
+                            <SelectItem key={model} value={model}>
+                              {model}
+                            </SelectItem>
+                          ))
+                        )}
+                      </SelectContent>
+                    </Select>
                     <FormMessage />
                   </FormItem>
                 )}
