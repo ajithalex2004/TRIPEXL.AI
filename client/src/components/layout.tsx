@@ -25,7 +25,9 @@ import {
   UserCog,
   Network,
   GitFork,
-  Database // Import the Database icon
+  Database,
+  Droplet, // Import the Droplet icon for fuel management
+  Gauge
 } from "lucide-react";
 import { motion } from "framer-motion";
 
@@ -191,6 +193,14 @@ export function Layout({ children }: { children: React.ReactNode }) {
                         <SidebarMenuButton className="w-full text-white hover:bg-white/10 text-[15px] font-bold pl-8">
                           <GitFork className="w-4 h-4" />
                           <span>Workflow Management</span>
+                        </SidebarMenuButton>
+                      </Link>
+                    </SidebarMenuItem>
+                    <SidebarMenuItem>
+                      <Link href="/fuel-management">
+                        <SidebarMenuButton className="w-full text-white hover:bg-white/10 text-[15px] font-bold pl-8">
+                          <Droplet className="w-4 h-4" />
+                          <span>Fuel Management</span>
                         </SidebarMenuButton>
                       </Link>
                     </SidebarMenuItem>

@@ -19,6 +19,7 @@ import { eq, sql } from 'drizzle-orm';
 import mastersRouter from "./routes/masters"; // Added import statement
 import { initializeFuelPriceService, updateFuelPrices, getFuelPriceHistory, triggerFuelPriceUpdate, runWamFuelPriceScraper } from "./services/fuel-price-service";
 import { performanceRouter } from "./routes/performance-snapshot";
+import fuelTypesRouter from "./routes/fuel-types";
 
 // Configure multer for handling file uploads
 const upload = multer({
@@ -435,19 +436,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
     app.use(ecoRoutesRouter);
     log("Eco-routes registered");
     
+    // Add fuel types router
+    log("Registering fuel types router...");
+    app.use("/api/fuel-types", fuelTypesRouter);
+    log("Fuel types router registered");
+    
     // Add fuel price endpoints
     log("Registering fuel price API endpoints...");
     
-    // Get all fuel types with current prices
-    app.get("/api/fuel-types", async (_req, res) => {
-      try {
-        const fuelTypes = await storage.getAllFuelTypes();
-        res.json(fuelTypes);
-      } catch (error: any) {
-        console.error("Error fetching fuel types:", error);
-        res.status(500).json({ error: "Failed to fetch fuel types" });
-      }
-    });
+    // Note: GET /api/fuel-types is now handled by the fuelTypesRouter
     
     // Get fuel price history
     app.get("/api/fuel-prices/history", async (_req, res) => {

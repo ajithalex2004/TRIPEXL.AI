@@ -85,9 +85,14 @@ export interface IStorage {
   
   // Fuel-related methods
   getAllFuelTypes(): Promise<FuelType[]>;
+  getFuelTypeById(id: number): Promise<FuelType | null>;
+  getFuelTypeByType(type: string): Promise<FuelType | null>;
+  createFuelType(data: any): Promise<FuelType>;
+  updateFuelType(id: number, data: Partial<FuelType>): Promise<FuelType>;
   updateFuelTypePrice(fuelType: string, price: number): Promise<void>;
   recalculateVehicleCosts(): Promise<void>;
   getFuelPriceHistory(): Promise<any[]>; // Get historical fuel price data
+  deleteFuelType(id: number): Promise<void>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -266,6 +271,186 @@ export class DatabaseStorage implements IStorage {
       return result;
     } catch (error) {
       console.error("Error fetching fuel price history:", error);
+      throw error;
+    }
+  }
+  
+  // Get a specific fuel type by ID
+  async getFuelTypeById(id: number): Promise<FuelType | null> {
+    try {
+      console.log(`Fetching fuel type with ID: ${id}`);
+      const [fuelType] = await db
+        .select()
+        .from(schema.fuelTypes)
+        .where(eq(schema.fuelTypes.id, id));
+      
+      return fuelType || null;
+    } catch (error) {
+      console.error(`Error fetching fuel type by ID ${id}:`, error);
+      throw error;
+    }
+  }
+  
+  // Get a specific fuel type by type name
+  async getFuelTypeByType(type: string): Promise<FuelType | null> {
+    try {
+      console.log(`Fetching fuel type with type: ${type}`);
+      const [fuelType] = await db
+        .select()
+        .from(schema.fuelTypes)
+        .where(eq(schema.fuelTypes.type, type));
+      
+      return fuelType || null;
+    } catch (error) {
+      console.error(`Error fetching fuel type by type ${type}:`, error);
+      throw error;
+    }
+  }
+  
+  // Create a new fuel type
+  async createFuelType(data: any): Promise<FuelType> {
+    try {
+      console.log("Creating new fuel type:", data);
+      
+      // Process the historical_prices field if it's a string
+      let historicalPrices = data.historical_prices;
+      if (typeof historicalPrices === 'string') {
+        // Already a string, keep as is
+      } else if (Array.isArray(historicalPrices)) {
+        // Convert array to JSON string
+        historicalPrices = JSON.stringify(historicalPrices);
+      } else {
+        // Default to empty array
+        historicalPrices = '[]';
+      }
+      
+      const [newFuelType] = await db
+        .insert(schema.fuelTypes)
+        .values({
+          type: data.type,
+          price: data.price.toString(),
+          co2_factor: data.co2_factor.toString(),
+          efficiency: data.efficiency ? data.efficiency.toString() : "0",
+          idle_consumption: data.idle_consumption ? data.idle_consumption.toString() : "0",
+          updated_at: data.updated_at || new Date(),
+          last_fetched_at: data.last_fetched_at || new Date(),
+          historical_prices: historicalPrices,
+          created_at: data.created_at || new Date()
+        })
+        .returning();
+        
+      console.log("Successfully created fuel type:", newFuelType);
+      return newFuelType;
+    } catch (error) {
+      console.error("Error creating fuel type:", error);
+      throw error;
+    }
+  }
+  
+  // Update an existing fuel type
+  async updateFuelType(id: number, data: Partial<FuelType>): Promise<FuelType> {
+    try {
+      console.log(`Updating fuel type with ID ${id}:`, data);
+      
+      // Create an update object with processed fields
+      const updateData: Record<string, any> = {};
+      
+      // Only include fields that are present in the request and properly format them
+      if (data.type !== undefined) updateData.type = data.type;
+      
+      if (data.price !== undefined) {
+        updateData.price = typeof data.price === 'string' ? data.price : data.price.toString();
+      }
+      
+      if (data.co2_factor !== undefined) {
+        updateData.co2_factor = typeof data.co2_factor === 'string' ? data.co2_factor : data.co2_factor.toString();
+      }
+      
+      if (data.efficiency !== undefined) {
+        updateData.efficiency = typeof data.efficiency === 'string' ? data.efficiency : data.efficiency.toString();
+      }
+      
+      if (data.idle_consumption !== undefined) {
+        updateData.idle_consumption = typeof data.idle_consumption === 'string' ? 
+          data.idle_consumption : data.idle_consumption.toString();
+      }
+      
+      if (data.historical_prices !== undefined) {
+        if (typeof data.historical_prices === 'string') {
+          updateData.historical_prices = data.historical_prices;
+        } else if (Array.isArray(data.historical_prices)) {
+          updateData.historical_prices = JSON.stringify(data.historical_prices);
+        }
+      }
+      
+      // Always update the timestamps
+      updateData.updated_at = new Date();
+      
+      // If last_fetched_at is provided, use it
+      if (data.last_fetched_at) {
+        updateData.last_fetched_at = data.last_fetched_at;
+      }
+      
+      console.log("Update data:", updateData);
+      
+      const [updatedFuelType] = await db
+        .update(schema.fuelTypes)
+        .set(updateData)
+        .where(eq(schema.fuelTypes.id, id))
+        .returning();
+        
+      if (!updatedFuelType) {
+        throw new Error(`Fuel type with ID ${id} not found`);
+      }
+      
+      console.log("Successfully updated fuel type:", updatedFuelType);
+      
+      // After updating fuel type, recalculate vehicle costs
+      if (data.price !== undefined) {
+        console.log("Fuel price changed, scheduling vehicle cost recalculation");
+        // Schedule for later to not block the response
+        setTimeout(() => {
+          this.recalculateVehicleCosts()
+            .catch(err => console.error("Error recalculating vehicle costs after fuel price update:", err));
+        }, 100);
+      }
+      
+      return updatedFuelType;
+    } catch (error) {
+      console.error("Error updating fuel type:", error);
+      throw error;
+    }
+  }
+  
+  // Delete a fuel type
+  async deleteFuelType(id: number): Promise<void> {
+    try {
+      console.log(`Deleting fuel type with ID ${id}`);
+      
+      // Check if the fuel type exists first
+      const fuelType = await this.getFuelTypeById(id);
+      if (!fuelType) {
+        throw new Error(`Fuel type with ID ${id} not found`);
+      }
+      
+      // Check if there are any vehicles using this fuel type
+      const [vehicleCount] = await db
+        .select({ count: sql`count(*)` })
+        .from(schema.vehicleTypeMaster)
+        .where(eq(schema.vehicleTypeMaster.fuel_type, fuelType.type));
+        
+      if (vehicleCount && Number(vehicleCount.count) > 0) {
+        throw new Error(`Cannot delete fuel type "${fuelType.type}" as it is being used by ${vehicleCount.count} vehicles`);
+      }
+      
+      // Delete the fuel type
+      await db
+        .delete(schema.fuelTypes)
+        .where(eq(schema.fuelTypes.id, id));
+        
+      console.log(`Successfully deleted fuel type with ID ${id}`);
+    } catch (error) {
+      console.error(`Error deleting fuel type with ID ${id}:`, error);
       throw error;
     }
   }

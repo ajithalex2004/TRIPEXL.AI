@@ -20,6 +20,7 @@ import WorkflowManagementPage from "@/pages/workflow-management";
 import { Layout } from "@/components/layout";
 import PerformanceSnapshotPage from "@/pages/performance-snapshot";
 import FuelPricePage from "@/pages/fuel-price-page";
+import FuelManagementPage from "@/pages/fuel-management-page";
 
 
 // Initialize QueryClient
@@ -76,6 +77,7 @@ function Router() {
       <Route path="/workflows" component={() => <ProtectedRoute component={WorkflowManagementPage} />} />
       <Route path="/performance" component={() => <ProtectedRoute component={PerformanceSnapshotPage} />} />
       <Route path="/fuel-prices" component={() => <ProtectedRoute component={FuelPricePage} />} />
+      <Route path="/fuel-management" component={() => <ProtectedRoute component={FuelManagementPage} />} />
 
       {/* 404 Route */}
       <Route component={NotFound} />
