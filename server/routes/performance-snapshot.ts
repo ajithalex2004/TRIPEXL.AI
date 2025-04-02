@@ -1,7 +1,63 @@
 import express from "express";
 import { storage } from "../storage";
+import { VehicleTypeMaster } from "@shared/schema";
 
 export const performanceRouter = express.Router();
+
+// Get detailed top performing vehicles data
+performanceRouter.get("/api/performance-snapshot/top-performers", async (req, res) => {
+  try {
+    // Get all vehicle types
+    const vehicles = await storage.getAllVehicleTypes();
+    const fuelTypes = await storage.getAllFuelTypes();
+    
+    if (!vehicles || vehicles.length === 0) {
+      return res.json([]);
+    }
+    
+    // Get top performers - prioritize high efficiency and low cost
+    const topPerformers = [...vehicles]
+      .sort((a, b) => {
+        // Calculate a score based on efficiency and cost
+        const scoreA = (Number(a.fuel_efficiency) / 2) - Number(a.cost_per_km);
+        const scoreB = (Number(b.fuel_efficiency) / 2) - Number(b.cost_per_km);
+        return scoreB - scoreA; // Higher score is better
+      })
+      .slice(0, 3) // Get top 3 performers
+      .map(vehicle => {
+        // Find the associated fuel type
+        const fuelType = fuelTypes.find(f => f.type === vehicle.fuel_type) || null;
+        
+        return {
+          id: vehicle.id,
+          name: vehicle.vehicle_type_name,
+          code: vehicle.vehicle_type_code,
+          manufacturer: vehicle.manufacturer,
+          modelYear: vehicle.model_year,
+          fuelType: vehicle.fuel_type,
+          fuelTypeDetails: fuelType,
+          fuelEfficiency: Number(vehicle.fuel_efficiency),
+          costPerKm: Number(vehicle.cost_per_km),
+          co2EmissionFactor: Number(vehicle.co2_emission_factor),
+          idleFuelConsumption: Number(vehicle.idle_fuel_consumption),
+          passengerCapacity: Number(vehicle.number_of_passengers),
+          region: vehicle.region,
+          department: vehicle.department,
+          performance: {
+            efficiencyRating: calculateEfficiencyRating(vehicle, vehicles),
+            costRating: calculateCostRating(vehicle, vehicles),
+            emissionsRating: calculateEmissionsRating(vehicle, vehicles),
+            overallScore: calculateOverallScore(vehicle, vehicles)
+          }
+        };
+      });
+    
+    res.json(topPerformers);
+  } catch (error) {
+    console.error("Error getting top performers:", error);
+    res.status(500).json({ message: "Failed to get top performers data" });
+  }
+});
 
 // Get performance snapshot data
 performanceRouter.get("/api/performance-snapshot", async (req, res) => {
@@ -109,6 +165,88 @@ function calculatePerformanceMetrics(vehicles: any[], fuelTypes: any[]) {
     underperformers,
     recommendations
   };
+}
+
+// Helper functions to calculate performance ratings (1-10 scale)
+function calculateEfficiencyRating(vehicle: VehicleTypeMaster, allVehicles: VehicleTypeMaster[]): number {
+  if (vehicle.fuel_type.toLowerCase() === "electric") {
+    return 10; // Electric vehicles get top rating for efficiency
+  }
+  
+  // Get all non-electric vehicles for comparison
+  const nonElectricVehicles = allVehicles.filter(v => 
+    v.fuel_type.toLowerCase() !== "electric"
+  );
+  
+  if (nonElectricVehicles.length === 0) {
+    return 8; // Fallback if no comparison vehicles
+  }
+  
+  // Find min and max efficiency values
+  const efficiencies = nonElectricVehicles.map(v => Number(v.fuel_efficiency));
+  const minEfficiency = Math.min(...efficiencies);
+  const maxEfficiency = Math.max(...efficiencies);
+  
+  // Avoid division by zero
+  if (maxEfficiency === minEfficiency) {
+    return 5;
+  }
+  
+  // Calculate rating on 1-10 scale
+  const normalized = (Number(vehicle.fuel_efficiency) - minEfficiency) / (maxEfficiency - minEfficiency);
+  return Math.round(1 + normalized * 9);
+}
+
+function calculateCostRating(vehicle: VehicleTypeMaster, allVehicles: VehicleTypeMaster[]): number {
+  // Get all costs for comparison
+  const costs = allVehicles.map(v => Number(v.cost_per_km));
+  const minCost = Math.min(...costs);
+  const maxCost = Math.max(...costs);
+  
+  // Avoid division by zero
+  if (maxCost === minCost) {
+    return 5;
+  }
+  
+  // For cost, lower is better, so invert the scale
+  const normalized = 1 - ((Number(vehicle.cost_per_km) - minCost) / (maxCost - minCost));
+  return Math.round(1 + normalized * 9);
+}
+
+function calculateEmissionsRating(vehicle: VehicleTypeMaster, allVehicles: VehicleTypeMaster[]): number {
+  if (vehicle.fuel_type.toLowerCase() === "electric") {
+    return 10; // Electric vehicles get top rating for emissions
+  }
+  
+  // Get all emissions for comparison
+  const emissions = allVehicles.map(v => Number(v.co2_emission_factor));
+  const minEmission = Math.min(...emissions);
+  const maxEmission = Math.max(...emissions);
+  
+  // Avoid division by zero
+  if (maxEmission === minEmission) {
+    return 5;
+  }
+  
+  // For emissions, lower is better, so invert the scale
+  const normalized = 1 - ((Number(vehicle.co2_emission_factor) - minEmission) / (maxEmission - minEmission));
+  return Math.round(1 + normalized * 9);
+}
+
+function calculateOverallScore(vehicle: VehicleTypeMaster, allVehicles: VehicleTypeMaster[]): number {
+  const efficiencyWeight = 0.4;
+  const costWeight = 0.35;
+  const emissionsWeight = 0.25;
+  
+  const efficiencyScore = calculateEfficiencyRating(vehicle, allVehicles);
+  const costScore = calculateCostRating(vehicle, allVehicles);
+  const emissionsScore = calculateEmissionsRating(vehicle, allVehicles);
+  
+  return parseFloat((
+    (efficiencyScore * efficiencyWeight) +
+    (costScore * costWeight) +
+    (emissionsScore * emissionsWeight)
+  ).toFixed(1));
 }
 
 // Generate intelligent recommendations based on fleet data

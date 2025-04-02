@@ -46,12 +46,24 @@ import {
   Info, 
   DollarSign,
   Calendar,
-  PieChart as PieChartIcon
+  PieChart as PieChartIcon,
+  Car,
+  Fuel,
+  Building2,
+  BoxesIcon,
+  Users,
+  Bell,
+  Home,
+  Factory,
+  Wrench,
+  Tag,
+  CircleDollarSign
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { motion } from "framer-motion";
 import * as animationUtils from "@/lib/animation-utils";
 import { format } from "date-fns";
+import { VehicleDetailsCard } from "@/components/ui/vehicle-details-card";
 
 // Fuel type color mapping for visualization consistency
 const fuelTypeColors = {
@@ -88,6 +100,11 @@ export function PerformanceSnapshotDashboard() {
     }
   }>({
     queryKey: ["/api/performance-snapshot"],
+  });
+  
+  // Fetch detailed top performers data with ratings
+  const { data: topPerformersData, isLoading: isLoadingTopPerformers } = useQuery<any[]>({
+    queryKey: ["/api/performance-snapshot/top-performers"],
   });
   
   // Extract data from the response
@@ -432,6 +449,7 @@ export function PerformanceSnapshotDashboard() {
             <TabsTrigger value="emissions">CO₂ Emissions</TabsTrigger>
             <TabsTrigger value="idle">Idle Consumption</TabsTrigger>
             <TabsTrigger value="distribution">Fuel Distribution</TabsTrigger>
+            <TabsTrigger value="top-performers">Top Performers</TabsTrigger>
             <TabsTrigger value="recommendations">Recommendations</TabsTrigger>
           </TabsList>
           
@@ -677,6 +695,69 @@ export function PerformanceSnapshotDashboard() {
                   <div className="text-sm text-muted-foreground pt-4 border-t">
                     <p>A balanced distribution of fuel types allows for flexibility in assignments based on trip requirements.</p>
                   </div>
+                </div>
+              </div>
+            </div>
+          </TabsContent>
+          
+          <TabsContent value="top-performers" className="p-4 border rounded-lg">
+            <h3 className="text-lg font-medium mb-4">Top Performing Vehicles</h3>
+            
+            {isLoadingTopPerformers ? (
+              <div className="flex items-center justify-center min-h-[350px]">
+                <Loader2 className="h-8 w-8 animate-spin" />
+              </div>
+            ) : !topPerformersData || topPerformersData.length === 0 ? (
+              <div className="flex flex-col items-center justify-center min-h-[350px] text-muted-foreground">
+                <AlertTriangle className="h-8 w-8 mb-2" />
+                <p>No performance data available</p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {topPerformersData.map((vehicle: any, index: number) => (
+                  <div key={index} className="relative">
+                    {index < 3 && (
+                      <div className="absolute -top-4 -right-4 w-10 h-10 rounded-full bg-primary flex items-center justify-center text-white text-lg font-bold shadow-lg z-10">
+                        {index + 1}
+                      </div>
+                    )}
+                    <div className="vehicle-card-container h-full">
+                      <VehicleDetailsCard vehicleData={vehicle} />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+            
+            <div className="mt-6 bg-muted/30 p-4 rounded-lg">
+              <h4 className="text-sm font-semibold mb-3">About Performance Ratings</h4>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
+                <div className="space-y-1">
+                  <h5 className="font-medium flex items-center text-primary">
+                    <Fuel className="h-4 w-4 mr-2" />
+                    Efficiency Rating
+                  </h5>
+                  <p className="text-muted-foreground">
+                    Measures how efficiently a vehicle converts fuel to distance. Higher numbers indicate better fuel economy.
+                  </p>
+                </div>
+                <div className="space-y-1">
+                  <h5 className="font-medium flex items-center text-primary">
+                    <CircleDollarSign className="h-4 w-4 mr-2" />
+                    Cost Rating
+                  </h5>
+                  <p className="text-muted-foreground">
+                    Evaluates operational cost per kilometer. Lower costs result in higher ratings.
+                  </p>
+                </div>
+                <div className="space-y-1">
+                  <h5 className="font-medium flex items-center text-primary">
+                    <BarChart className="h-4 w-4 mr-2" />
+                    Emissions Rating
+                  </h5>
+                  <p className="text-muted-foreground">
+                    Measures environmental impact based on CO2 emissions. Electric vehicles earn the highest ratings.
+                  </p>
                 </div>
               </div>
             </div>

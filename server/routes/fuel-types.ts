@@ -1,6 +1,8 @@
 import { Router } from "express";
 import { storage } from "../storage";
 import { z } from "zod";
+import { spawn } from "child_process";
+import path from "path";
 
 const router = Router();
 
@@ -143,6 +145,124 @@ router.delete("/:id", async (req, res) => {
   } catch (error) {
     console.error("Error deleting fuel type:", error);
     res.status(500).json({ error: "Failed to delete fuel type" });
+  }
+});
+
+// WAM Scraper endpoint to fetch UAE fuel prices
+router.post("/wam-scrape", async (req, res) => {
+  try {
+    console.log("Starting WAM fuel price scraper...");
+    
+    // Determine the path to the python script
+    const scriptPath = path.resolve(__dirname, "../services/wam_fuel_scraper.py");
+    console.log(`Script path: ${scriptPath}`);
+    
+    // Spawn python process to run the scraper
+    const pythonProcess = spawn("python3", [scriptPath]);
+    
+    let dataString = "";
+    let errorString = "";
+    
+    // Collect data from script
+    pythonProcess.stdout.on("data", (data) => {
+      dataString += data.toString();
+      console.log(`Python stdout: ${data}`);
+    });
+    
+    // Collect errors from script
+    pythonProcess.stderr.on("data", (data) => {
+      errorString += data.toString();
+      console.error(`Python stderr: ${data}`);
+    });
+    
+    // Handle script completion
+    pythonProcess.on("close", async (code) => {
+      console.log(`Python process exited with code ${code}`);
+      
+      if (code !== 0) {
+        return res.status(500).json({
+          success: false,
+          message: "WAM scraper failed",
+          error: errorString,
+        });
+      }
+      
+      // After successful scraping, recalculate vehicle costs
+      try {
+        await storage.recalculateVehicleCosts();
+        console.log("Successfully recalculated vehicle costs based on new fuel prices");
+      } catch (recalcError) {
+        console.error("Error recalculating vehicle costs:", recalcError);
+      }
+      
+      res.json({
+        success: true,
+        message: "WAM scraper ran successfully and fuel prices have been updated",
+        data: dataString,
+      });
+    });
+    
+  } catch (error: any) {
+    console.error("Error running WAM scraper:", error);
+    res.status(500).json({
+      success: false,
+      message: "Failed to run WAM scraper",
+      error: error.message,
+    });
+  }
+});
+
+// Update fuel prices endpoint
+router.post("/update", async (req, res) => {
+  try {
+    const priceData = req.body;
+    console.log("Received fuel price update:", priceData);
+    
+    if (!priceData || !priceData.prices) {
+      return res.status(400).json({ error: "Invalid price data" });
+    }
+    
+    // Process each fuel type
+    const updates = [];
+    for (const [fuelType, price] of Object.entries(priceData.prices)) {
+      const existingFuelType = await storage.getFuelTypeByType(fuelType);
+      if (existingFuelType) {
+        // Update existing fuel type
+        console.log(`Updating fuel type ${fuelType} with price ${price}`);
+        await storage.updateFuelTypePrice(fuelType, Number(price));
+        updates.push({ type: fuelType, price, updated: true });
+      } else {
+        // Create new fuel type with default CO2 factor
+        console.log(`Creating new fuel type ${fuelType} with price ${price}`);
+        const co2Factor = 2.33; // Default CO2 factor, could be refined based on fuel type
+        const newFuelType = await storage.createFuelType({
+          type: fuelType,
+          price: String(price),
+          co2_factor: String(co2Factor),
+          created_at: new Date(),
+          updated_at: new Date(),
+          historical_prices: JSON.stringify([{
+            date: new Date().toISOString(),
+            price
+          }])
+        });
+        updates.push({ type: fuelType, price, created: true, id: newFuelType.id });
+      }
+    }
+    
+    // Recalculate vehicle costs based on new fuel prices
+    await storage.recalculateVehicleCosts();
+    
+    res.json({
+      success: true,
+      message: "Fuel prices updated successfully",
+      updates,
+      source: priceData.source,
+      date: priceData.date
+    });
+  } catch (error: any) {
+    console.error("Error updating fuel prices:", error);
+    res.status(500).json({ error: "Failed to update fuel prices" });
   }
 });
 

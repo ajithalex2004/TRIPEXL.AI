@@ -439,6 +439,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     // Add fuel types router
     log("Registering fuel types router...");
     app.use("/api/fuel-types", fuelTypesRouter);
+    // Also add the route for fuel-prices/update endpoint from fuelTypesRouter
+    app.use("/api/fuel-prices", fuelTypesRouter);
     log("Fuel types router registered");
     
     // Add fuel price endpoints

@@ -27,6 +27,7 @@ import {
   DialogContent,
 } from "./dialog";
 import { ProgressIndicator } from "./progress-indicator";
+import { Car, Fuel, Building2, BoxesIcon, Users, Bell, Home, Factory, Wrench, Tag, CircleDollarSign } from "lucide-react";
 
 interface VehicleTypeFormProps {
   onSubmit: (data: InsertVehicleTypeMaster) => Promise<void>;

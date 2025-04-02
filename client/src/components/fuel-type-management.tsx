@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   Card,
@@ -43,6 +43,8 @@ import {
   RefreshCw,
   Save,
   Trash2,
+  Download,
+  Search,
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
@@ -53,6 +55,13 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import { Badge } from "@/components/ui/badge";
 
 // Define the fuel type interface
 interface FuelType {
@@ -62,6 +71,7 @@ interface FuelType {
   co2_factor: number;
   updated_at: string;
   created_at: string;
+  historical_prices?: string;
 }
 
 // Define the schema for the fuel type form
@@ -80,6 +90,8 @@ export function FuelTypeManagement() {
   const [selectedFuelType, setSelectedFuelType] = useState<FuelType | null>(null);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
+  const [isScrapingWam, setIsScrapingWam] = useState(false);
+  const [showUaeFuels, setShowUaeFuels] = useState(false);
 
   // Form for adding/editing fuel types
   const form = useForm<FuelTypeFormValues>({
@@ -94,6 +106,41 @@ export function FuelTypeManagement() {
   // Fetch fuel types data
   const { data: fuelTypes, isLoading, isError } = useQuery<FuelType[]>({
     queryKey: ["/api/fuel-types"],
+  });
+  
+  // Mutation for running WAM scraper to get latest UAE fuel prices
+  const wamScraperMutation = useMutation({
+    mutationFn: async () => {
+      const response = await apiRequest("POST", "/api/fuel-prices/wam-scrape");
+      return await response.json();
+    },
+    onMutate: () => {
+      setIsScrapingWam(true);
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ["/api/fuel-types"] });
+      toast({
+        title: "Success",
+        description: "WAM fuel prices scraped successfully",
+      });
+      // Update form with the latest UAE fuel prices if in add mode
+      if (!isEditing && data.success) {
+        setTimeout(() => {
+          setShowUaeFuels(true);
+        }, 1000);
+      }
+    },
+    onError: (error) => {
+      console.error("Error running WAM fuel price scraper:", error);
+      toast({
+        title: "Error",
+        description: "Failed to fetch UAE fuel prices",
+        variant: "destructive",
+      });
+    },
+    onSettled: () => {
+      setIsScrapingWam(false);
+    },
   });
 
   // Mutation for creating a new fuel type
@@ -193,12 +240,31 @@ export function FuelTypeManagement() {
   // Handle add new fuel type button click
   const handleAddClick = () => {
     setIsEditing(false);
+    setShowUaeFuels(false);
     form.reset({
       type: "",
       price: 0,
       co2_factor: 0,
     });
     setEditDialogOpen(true);
+  };
+  
+  // Function to handle the WAM scraper button click
+  const handleScrapeWam = () => {
+    wamScraperMutation.mutate();
+  };
+  
+  // Function to apply a UAE fuel type to the form
+  const applyUaeFuelType = (fuelType: FuelType) => {
+    form.setValue("type", fuelType.type);
+    form.setValue("price", fuelType.price);
+    form.setValue("co2_factor", fuelType.co2_factor);
+    setShowUaeFuels(false);
+    
+    toast({
+      title: "Fuel Type Applied",
+      description: `${fuelType.type} with current UAE price and CO2 factor applied to form`,
+    });
   };
 
   // Handle form submission
@@ -402,6 +468,71 @@ export function FuelTypeManagement() {
                   </FormItem>
                 )}
               />
+              
+              {!isEditing && (
+                <div className="mt-6 mb-4">
+                  <div className="flex justify-between items-center mb-3">
+                    <h3 className="text-sm font-medium text-muted-foreground">
+                      UAE Fuel Types
+                    </h3>
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            onClick={handleScrapeWam}
+                            disabled={isScrapingWam}
+                            className="h-8"
+                          >
+                            {isScrapingWam ? (
+                              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                            ) : (
+                              <Search className="h-4 w-4 mr-2" />
+                            )}
+                            <span>
+                              {isScrapingWam
+                                ? "Fetching..."
+                                : "Fetch UAE Fuel Prices"}
+                            </span>
+                          </Button>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          <p>
+                            Fetch latest UAE fuel prices from WAM (Emirates News Agency) using web scraper
+                          </p>
+                        </TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
+                  </div>
+                  
+                  {showUaeFuels && fuelTypes && fuelTypes.length > 0 && (
+                    <motion.div
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      className="bg-accent/30 p-3 rounded-md border"
+                    >
+                      <p className="text-xs text-muted-foreground mb-3">
+                        Select a UAE fuel type to automatically fill in price and CO₂ factor:
+                      </p>
+                      <div className="flex flex-wrap gap-2">
+                        {fuelTypes.map((fuel) => (
+                          <Badge
+                            key={fuel.id}
+                            variant="outline"
+                            className="cursor-pointer hover:bg-primary/10 flex gap-1 py-1.5"
+                            onClick={() => applyUaeFuelType(fuel)}
+                          >
+                            <span>{fuel.type}</span>
+                            <span className="opacity-70">({fuel.price.toFixed(2)} AED)</span>
+                          </Badge>
+                        ))}
+                      </div>
+                    </motion.div>
+                  )}
+                </div>
+              )}
 
               <DialogFooter>
                 <Button

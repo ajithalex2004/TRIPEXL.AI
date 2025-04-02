@@ -5,6 +5,7 @@ import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { VehicleTypeForm } from "@/components/ui/vehicle-type-form-new";
 import { VehicleTypeFAB } from "@/components/ui/vehicle-type-fab";
+import { VehicleDetailsCard } from "@/components/ui/vehicle-details-card";
 import {
   Card,
   CardContent,
@@ -478,6 +479,13 @@ export default function VehicleTypeManagement() {
               </DialogTitle>
             </motion.div>
           </DialogHeader>
+          
+          {selectedType && (
+            <div className="mb-6">
+              <VehicleDetailsCard vehicleData={selectedType} />
+            </div>
+          )}
+          
           <VehicleTypeForm
             onSubmit={handleSubmit}
             initialData={selectedType || undefined}
