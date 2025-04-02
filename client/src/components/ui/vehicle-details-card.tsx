@@ -3,6 +3,7 @@ import { Car, Fuel, Building2, BoxesIcon, Users, Bell, Home, Factory, Wrench, Ta
 
 interface VehicleDetailsCardProps {
   vehicleData: any;
+  getVehicleGroupName?: (id: number) => string;
 }
 
 interface DetailRowProps {
@@ -21,7 +22,7 @@ const DetailRow: React.FC<DetailRowProps> = ({ label, value, icon }) => (
   </div>
 );
 
-export function VehicleDetailsCard({ vehicleData }: VehicleDetailsCardProps) {
+export function VehicleDetailsCard({ vehicleData, getVehicleGroupName }: VehicleDetailsCardProps) {
   // Format currency values
   const formatCurrency = (value: number | string | null | undefined) => {
     if (value === null || value === undefined || value === '') return '0.00 AED';
@@ -90,7 +91,7 @@ export function VehicleDetailsCard({ vehicleData }: VehicleDetailsCardProps) {
         <div className="space-y-1">
           <DetailRow 
             label="Vehicle Group" 
-            value={vehicleData.group_name || "Not specified"} 
+            value={vehicleData.group_name || (getVehicleGroupName && vehicleData.group_id ? getVehicleGroupName(vehicleData.group_id) : "Not specified")} 
             icon={<BoxesIcon size={16} />} 
           />
           <DetailRow 

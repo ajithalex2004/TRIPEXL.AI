@@ -58,6 +58,7 @@ export default function VehicleTypeManagement() {
   const [regionFilter, setRegionFilter] = useState<string>("all");
   const [vehicleTypeFilter, setVehicleTypeFilter] = useState<string>("all");
   const [departmentFilter, setDepartmentFilter] = useState<string>("all");
+  const [vehicleGroupFilter, setVehicleGroupFilter] = useState<string>("all");
   const [vehicleGroups, setVehicleGroups] = useState<any[]>([]);
   const [showFilters, setShowFilters] = useState(false);
   const { toast } = useToast();
@@ -174,6 +175,19 @@ export default function VehicleTypeManagement() {
     if (!vehicleTypes) return [];
     return Array.from(new Set(vehicleTypes.map(type => type.department))).filter(Boolean);
   }, [vehicleTypes]);
+  
+  // Get vehicle group options from the loaded vehicleGroups
+  const vehicleGroupOptions = useMemo(() => {
+    if (!vehicleGroups || !vehicleGroups.length) return [];
+    return vehicleGroups.map(group => ({ id: group.id, name: group.name }));
+  }, [vehicleGroups]);
+  
+  // Helper function to get vehicle group name by ID
+  const getVehicleGroupNameById = useCallback((id: number): string => {
+    if (!vehicleGroups) return "Unknown";
+    const group = vehicleGroups.find(g => g.id === id);
+    return group ? group.name : "Unknown";
+  }, [vehicleGroups]);
 
   // Filter functionality
   const filteredVehicleTypes = useMemo(() => {
@@ -192,17 +206,19 @@ export default function VehicleTypeManagement() {
       const regionMatches = regionFilter === "" || regionFilter === "all" || type.region === regionFilter;
       const vehicleTypeMatches = vehicleTypeFilter === "" || vehicleTypeFilter === "all" || type.vehicle_type === vehicleTypeFilter;
       const departmentMatches = departmentFilter === "" || departmentFilter === "all" || type.department === departmentFilter;
+      const vehicleGroupMatches = vehicleGroupFilter === "" || vehicleGroupFilter === "all" || type.group_id === parseInt(vehicleGroupFilter);
       
-      return searchMatches && regionMatches && vehicleTypeMatches && departmentMatches;
+      return searchMatches && regionMatches && vehicleTypeMatches && departmentMatches && vehicleGroupMatches;
     });
-  }, [vehicleTypes, searchQuery, regionFilter, vehicleTypeFilter, departmentFilter]);
+  }, [vehicleTypes, searchQuery, regionFilter, vehicleTypeFilter, departmentFilter, vehicleGroupFilter]);
   
   // Check if any filters are active
   const isFiltering = 
     searchQuery !== "" || 
     (regionFilter !== "" && regionFilter !== "all") || 
     (vehicleTypeFilter !== "" && vehicleTypeFilter !== "all") || 
-    (departmentFilter !== "" && departmentFilter !== "all");
+    (departmentFilter !== "" && departmentFilter !== "all") ||
+    (vehicleGroupFilter !== "" && vehicleGroupFilter !== "all");
   
   // Function to clear all filters
   const clearFilters = useCallback(() => {
@@ -210,6 +226,7 @@ export default function VehicleTypeManagement() {
     setRegionFilter("all");
     setVehicleTypeFilter("all");
     setDepartmentFilter("all");
+    setVehicleGroupFilter("all");
   }, []);
 
   // Create mutation
@@ -530,7 +547,7 @@ export default function VehicleTypeManagement() {
                       transition={{ duration: 0.3 }}
                       className="overflow-hidden"
                     >
-                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 py-3">
+                      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 py-3">
                         {/* Region filter */}
                         <div className="space-y-2">
                           <label className="text-sm font-medium">Region</label>
@@ -593,6 +610,27 @@ export default function VehicleTypeManagement() {
                             </SelectContent>
                           </Select>
                         </div>
+                        
+                        {/* Vehicle Group filter */}
+                        <div className="space-y-2">
+                          <label className="text-sm font-medium">Vehicle Group</label>
+                          <Select
+                            value={vehicleGroupFilter}
+                            onValueChange={setVehicleGroupFilter}
+                          >
+                            <SelectTrigger>
+                              <SelectValue placeholder="All groups" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="all">All groups</SelectItem>
+                              {vehicleGroupOptions.map((group) => (
+                                <SelectItem key={group.id} value={group.id.toString()}>
+                                  {group.name}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
                       </div>
                     </motion.div>
                   )}
@@ -637,6 +675,15 @@ export default function VehicleTypeManagement() {
                         <X 
                           className="h-3 w-3 cursor-pointer" 
                           onClick={() => setDepartmentFilter("all")}
+                        />
+                      </Badge>
+                    )}
+                    {vehicleGroupFilter && vehicleGroupFilter !== "all" && (
+                      <Badge variant="outline" className="flex gap-1 items-center">
+                        <span>Group: {getVehicleGroupNameById(parseInt(vehicleGroupFilter))}</span>
+                        <X 
+                          className="h-3 w-3 cursor-pointer" 
+                          onClick={() => setVehicleGroupFilter("all")}
                         />
                       </Badge>
                     )}
@@ -789,7 +836,10 @@ export default function VehicleTypeManagement() {
           
           {selectedType && (
             <div className="mb-6">
-              <VehicleDetailsCard vehicleData={selectedType} />
+              <VehicleDetailsCard 
+                vehicleData={selectedType} 
+                getVehicleGroupName={getVehicleGroupNameById} 
+              />
             </div>
           )}
           
@@ -813,7 +863,7 @@ export default function VehicleTypeManagement() {
                   <p><strong>Code:</strong> {selectedType.vehicle_type_code}</p>
                   <p><strong>Name:</strong> {selectedType.vehicle_type_name}</p>
                   <p><strong>Type:</strong> {selectedType.vehicle_type}</p>
-                  <p><strong>Group:</strong> {vehicleGroups.find(group => group.id === selectedType.group_id)?.name || `Group ${selectedType.group_id}`}</p>
+                  <p><strong>Group:</strong> {getVehicleGroupNameById(selectedType.group_id)}</p>
                 </div>
               )}
             </AlertDialogDescription>
