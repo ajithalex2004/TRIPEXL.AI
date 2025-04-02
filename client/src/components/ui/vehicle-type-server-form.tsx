@@ -109,6 +109,7 @@ export function VehicleTypeForm({
     
     try {
       setIsSubmitting(true);
+      console.log("Submitting form with data:", formData);
       
       // Validate required fields
       if (!formData.vehicle_type_code) {
@@ -124,8 +125,39 @@ export function VehicleTypeForm({
         throw new Error("Fuel type is required");
       }
       
+      // Prepare the submission data
+      const submissionData = {
+        ...formData,
+        // Ensure string values are not null
+        vehicle_type_code: formData.vehicle_type_code || "",
+        vehicle_type_name: formData.vehicle_type_name || "",
+        manufacturer: formData.manufacturer || "",
+        vehicle_model: formData.vehicle_model || "",
+        region: formData.region || "Abu Dhabi",
+        fuel_type: formData.fuel_type || "",
+        service_plan: formData.service_plan || "",
+        vehicle_type: formData.vehicle_type || "",
+        department: formData.department || "Fleet",
+        unit: formData.unit || "",
+        color: formData.color || "",
+        
+        // Ensure numeric values
+        group_id: formData.group_id || 0,
+        model_year: formData.model_year || new Date().getFullYear(),
+        number_of_passengers: Number(formData.number_of_passengers) || 0,
+        fuel_efficiency: Number(formData.fuel_efficiency) || 0,
+        fuel_price_per_litre: Number(formData.fuel_price_per_litre) || 0,
+        cost_per_km: Number(formData.cost_per_km) || 0,
+        alert_before: Number(formData.alert_before) || 0,
+        idle_fuel_consumption: Number(formData.idle_fuel_consumption) || 0,
+        vehicle_capacity: Number(formData.vehicle_capacity) || 0,
+        co2_emission_factor: Number(formData.co2_emission_factor) || 0,
+      };
+      
+      console.log("Prepared submission data:", submissionData);
+      
       // Call the parent's submit handler
-      await onSubmit(formData);
+      await onSubmit(submissionData);
       
       // Show success message
       toast({

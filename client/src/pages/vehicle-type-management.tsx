@@ -170,7 +170,7 @@ export default function VehicleTypeManagement() {
 
   const handleSubmit = async (data: InsertVehicleTypeMaster) => {
     try {
-      console.log("Vehicle Type Management - Submitting data:", data);
+      console.log("Vehicle Type Management - Received data from form:", data);
       
       // Additional validation and formatting
       if (!data.vehicle_model) {
@@ -186,22 +186,55 @@ export default function VehicleTypeManagement() {
       // Format data for API consistency
       const formattedData = {
         ...data,
+        // Ensure all required fields have proper types
+        group_id: Number(data.group_id) || 0,
+        model_year: Number(data.model_year) || new Date().getFullYear(),
+        number_of_passengers: Number(data.number_of_passengers) || 0,
+        vehicle_capacity: Number(data.vehicle_capacity) || 0,
+        alert_before: Number(data.alert_before) || 0,
+        
         // Convert any nulls to empty strings for text fields
-        color: data.color || "",
-        vehicle_model: data.vehicle_model || "",
-        vehicle_type: data.vehicle_type || "",
-        vehicle_type_name: data.vehicle_type_name || "",
-        unit: data.unit || "",
-        service_plan: data.service_plan || "",
-        department: data.department || "Fleet",
-        region: data.region || "Abu Dhabi"
+        vehicle_type_code: String(data.vehicle_type_code || ""),
+        vehicle_type_name: String(data.vehicle_type_name || ""),
+        manufacturer: String(data.manufacturer || ""),
+        vehicle_model: String(data.vehicle_model || ""),
+        region: String(data.region || "Abu Dhabi"),
+        fuel_type: String(data.fuel_type || ""),
+        service_plan: String(data.service_plan || ""),
+        vehicle_type: String(data.vehicle_type || ""),
+        department: String(data.department || "Fleet"),
+        unit: String(data.unit || ""),
+        color: String(data.color || ""),
+        
+        // Handle numeric string fields for database compatibility
+        fuel_efficiency: typeof data.fuel_efficiency === 'number'
+          ? data.fuel_efficiency.toString()
+          : String(data.fuel_efficiency || "0"),
+          
+        fuel_price_per_litre: typeof data.fuel_price_per_litre === 'number'
+          ? data.fuel_price_per_litre.toString()
+          : String(data.fuel_price_per_litre || "0"),
+          
+        cost_per_km: typeof data.cost_per_km === 'number'
+          ? data.cost_per_km.toString()
+          : String(data.cost_per_km || "0"),
+          
+        idle_fuel_consumption: typeof data.idle_fuel_consumption === 'number'
+          ? data.idle_fuel_consumption.toString()
+          : String(data.idle_fuel_consumption || "0"),
+          
+        co2_emission_factor: typeof data.co2_emission_factor === 'number'
+          ? data.co2_emission_factor.toString()
+          : String(data.co2_emission_factor || "0"),
       };
       
-      console.log("Vehicle Type Management - Formatted data:", formattedData);
+      console.log("Vehicle Type Management - Formatted data for API:", formattedData);
       
       if (selectedType) {
+        console.log("Updating vehicle type with ID:", selectedType.id);
         await updateMutation.mutateAsync({ ...formattedData, id: selectedType.id });
       } else {
+        console.log("Creating new vehicle type");
         await createMutation.mutateAsync(formattedData);
       }
     } catch (error) {
