@@ -212,10 +212,9 @@ export function VehicleTypeForm({
     updateFormField("vehicle_model", "");
     
     if (value) {
-      const randomNumber = Math.floor(Math.random() * 100).toString().padStart(2, '0');
       const prefix = value.substring(0, 3).toUpperCase();
       const year = formState.model_year;
-      updateFormField("vehicle_type_code", `${prefix}-GEN-${year}-${randomNumber}`);
+      updateFormField("vehicle_type_code", `${prefix}-GEN-${year}`);
       console.log("Generated initial vehicle type code after manufacturer change");
     }
   };
@@ -227,17 +226,16 @@ export function VehicleTypeForm({
     // Auto-generate vehicle type name
     updateFormField("vehicle_type_name", `${formState.manufacturer} ${value}`);
     
-    // Update code with a random suffix for uniqueness
+    // Update code format to MFR-MODEL-YEAR
     const mfr = formState.manufacturer.substring(0, 3);
     const model = value.substring(0, 3);
     const year = formState.model_year;
-    const randomNumber = Math.floor(Math.random() * 100).toString().padStart(2, '0');
     
-    // Generate a unique code combining manufacturer, model, year and a random number
-    const uniqueCode = `${mfr}-${model}-${year}-${randomNumber}`.toUpperCase();
+    // Generate code combining manufacturer, model, and year
+    const uniqueCode = `${mfr}-${model}-${year}`.toUpperCase();
     updateFormField("vehicle_type_code", uniqueCode);
     
-    console.log("Generated unique vehicle type code:", uniqueCode);
+    console.log("Generated vehicle type code:", uniqueCode);
     
     // Load model data if available
     if (vehicleModels[formState.manufacturer]) {
