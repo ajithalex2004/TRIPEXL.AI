@@ -220,21 +220,42 @@ export function VehicleMasterForm({ isOpen, onClose, initialData }: VehicleMaste
     if (selectedType) {
       // Set the form fields based on the selected vehicle type
       form.setValue("vehicle_type_code", selectedType.vehicle_type_code);
-      form.setValue("vehicle_type_name", `${selectedType.manufacturer} ${selectedType.vehicle_type_name}`);
-      form.setValue("fuel_type", selectedType.fuel_type);
-      form.setValue("model_year", selectedType.model_year);
-      form.setValue("manufacturer", selectedType.manufacturer);
-      form.setValue("vehicle_model", selectedType.vehicle_model);
+      form.setValue("vehicle_type_name", selectedType.vehicle_type_name || `${selectedType.manufacturer} ${selectedType.vehicle_model}`);
       
-      // Also update the state variables to ensure dropdowns reflect the selected values
-      setSelectedManufacturer(selectedType.manufacturer);
-      setSelectedModelYear(selectedType.model_year);
-      setSelectedModel(selectedType.vehicle_model);
+      // Only set fuel_type if it's not null or empty
+      if (selectedType.fuel_type) {
+        form.setValue("fuel_type", selectedType.fuel_type);
+      }
       
-      // Update available models for the selected manufacturer
-      const modelInfo = DEFAULT_VEHICLE_MODELS[selectedType.manufacturer as keyof typeof DEFAULT_VEHICLE_MODELS];
-      const modelNames = modelInfo ? Object.keys(modelInfo) : [];
-      setAvailableModels(modelNames);
+      // Only set model_year if it's not null
+      if (selectedType.model_year) {
+        form.setValue("model_year", selectedType.model_year);
+      }
+      
+      // Only set manufacturer if it's not null or empty
+      if (selectedType.manufacturer) {
+        form.setValue("manufacturer", selectedType.manufacturer);
+        setSelectedManufacturer(selectedType.manufacturer);
+        
+        // Update available models for the selected manufacturer
+        const modelInfo = DEFAULT_VEHICLE_MODELS[selectedType.manufacturer as keyof typeof DEFAULT_VEHICLE_MODELS];
+        const modelNames = modelInfo ? Object.keys(modelInfo) : [];
+        setAvailableModels(modelNames);
+      }
+      
+      // Only set vehicle_model if it's not null or empty
+      if (selectedType.vehicle_model) {
+        form.setValue("vehicle_model", selectedType.vehicle_model);
+        setSelectedModel(selectedType.vehicle_model);
+      }
+      
+      // Update model year state if available
+      if (selectedType.model_year) {
+        setSelectedModelYear(selectedType.model_year);
+      }
+      
+      // Log the values to help with debugging
+      console.log("Selected vehicle type:", selectedType);
     }
   }, [vehicleTypes, form]);
 
