@@ -47,7 +47,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { motion, AnimatePresence } from "framer-motion";
-import { Loader2, Search, X, Filter, ChevronDown, Trash2 } from "lucide-react";
+import { Loader2, Search, X, Filter, ChevronDown, Trash2, Pencil } from "lucide-react";
 import * as animationUtils from "@/lib/animation-utils";
 
 export default function VehicleTypeManagement() {
@@ -788,18 +788,34 @@ export default function VehicleTypeManagement() {
                                 }}
                               >{type.department}</TableCell>
                               <TableCell className="text-right">
-                                <Button
-                                  variant="ghost"
-                                  size="icon"
-                                  className="h-8 w-8 text-destructive hover:text-destructive/90 hover:bg-destructive/10"
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    setSelectedType(type);
-                                    setDeleteConfirmOpen(true);
-                                  }}
-                                >
-                                  <Trash2 className="h-4 w-4" />
-                                </Button>
+                                <div className="flex justify-end gap-2">
+                                  {/* Edit button */}
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    className="h-8 w-8 text-primary hover:text-primary/90 hover:bg-primary/10"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      setSelectedType(type);
+                                      setIsFormOpen(true);
+                                    }}
+                                  >
+                                    <Pencil className="h-4 w-4" />
+                                  </Button>
+                                  {/* Delete button */}
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    className="h-8 w-8 text-destructive hover:text-destructive/90 hover:bg-destructive/10"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      setSelectedType(type);
+                                      setDeleteConfirmOpen(true);
+                                    }}
+                                  >
+                                    <Trash2 className="h-4 w-4" />
+                                  </Button>
+                                </div>
                               </TableCell>
                             </motion.tr>
                           ))}
