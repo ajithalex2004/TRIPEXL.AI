@@ -111,7 +111,7 @@ export default function VehicleTypeManagement() {
 
   // Create mutation
   const createMutation = useMutation({
-    mutationFn: async (data: InsertVehicleTypeMaster) => {
+    mutationFn: async (data: any) => {
       console.log("Creating vehicle type with data:", data);
       const response = await apiRequest("POST", "/api/vehicle-types", data);
       if (!response.ok) {
@@ -140,7 +140,7 @@ export default function VehicleTypeManagement() {
 
   // Update mutation
   const updateMutation = useMutation({
-    mutationFn: async ({ id, ...data }: InsertVehicleTypeMaster & { id: number }) => {
+    mutationFn: async ({ id, ...data }: any) => {
       console.log("Updating vehicle type:", id, "with data:", data);
       const response = await apiRequest("PATCH", `/api/vehicle-types/${id}`, data);
       if (!response.ok) {
@@ -168,7 +168,7 @@ export default function VehicleTypeManagement() {
     },
   });
 
-  const handleSubmit = async (data: InsertVehicleTypeMaster) => {
+  const handleSubmit = async (data: any) => {
     try {
       console.log("Vehicle Type Management - Received data from form:", data);
       
@@ -184,16 +184,16 @@ export default function VehicleTypeManagement() {
       }
       
       // Format data for API consistency
+      // We'll use a regular object without type annotation first
       const formattedData = {
-        ...data,
-        // Ensure all required fields have proper types
+        // Integer fields
         group_id: Number(data.group_id) || 0,
         model_year: Number(data.model_year) || new Date().getFullYear(),
         number_of_passengers: Number(data.number_of_passengers) || 0,
         vehicle_capacity: Number(data.vehicle_capacity) || 0,
         alert_before: Number(data.alert_before) || 0,
         
-        // Convert any nulls to empty strings for text fields
+        // Text fields
         vehicle_type_code: String(data.vehicle_type_code || ""),
         vehicle_type_name: String(data.vehicle_type_name || ""),
         manufacturer: String(data.manufacturer || ""),
@@ -206,35 +206,28 @@ export default function VehicleTypeManagement() {
         unit: String(data.unit || ""),
         color: String(data.color || ""),
         
-        // Handle numeric string fields for database compatibility
-        fuel_efficiency: typeof data.fuel_efficiency === 'number'
-          ? data.fuel_efficiency.toString()
-          : String(data.fuel_efficiency || "0"),
-          
-        fuel_price_per_litre: typeof data.fuel_price_per_litre === 'number'
-          ? data.fuel_price_per_litre.toString()
-          : String(data.fuel_price_per_litre || "0"),
-          
-        cost_per_km: typeof data.cost_per_km === 'number'
-          ? data.cost_per_km.toString()
-          : String(data.cost_per_km || "0"),
-          
-        idle_fuel_consumption: typeof data.idle_fuel_consumption === 'number'
-          ? data.idle_fuel_consumption.toString()
-          : String(data.idle_fuel_consumption || "0"),
-          
-        co2_emission_factor: typeof data.co2_emission_factor === 'number'
-          ? data.co2_emission_factor.toString()
-          : String(data.co2_emission_factor || "0"),
+        // Decimal fields - use strings for database compatibility
+        fuel_efficiency: String(data.fuel_efficiency || "0"),
+        fuel_price_per_litre: String(data.fuel_price_per_litre || "0"),
+        cost_per_km: String(data.cost_per_km || "0"),
+        idle_fuel_consumption: String(data.idle_fuel_consumption || "0"),
+        co2_emission_factor: String(data.co2_emission_factor || "0"),
       };
       
       console.log("Vehicle Type Management - Formatted data for API:", formattedData);
       
       if (selectedType) {
         console.log("Updating vehicle type with ID:", selectedType.id);
-        await updateMutation.mutateAsync({ ...formattedData, id: selectedType.id });
+        // Just pass the data directly without type assertion
+        // The server will handle any necessary conversions
+        await updateMutation.mutateAsync({ 
+          ...formattedData, 
+          id: selectedType.id 
+        });
       } else {
         console.log("Creating new vehicle type");
+        // Just pass the data directly without type assertion
+        // The server will handle any necessary conversions
         await createMutation.mutateAsync(formattedData);
       }
     } catch (error) {

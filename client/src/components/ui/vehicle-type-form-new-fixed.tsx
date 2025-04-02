@@ -71,13 +71,34 @@ export function VehicleTypeForm({
         setVehicleGroups(groupsData || []);
         
         // Load masters data (manufacturers, models, etc.)
-        const mastersResponse = await fetch('/api/masters');
+        const mastersResponse = await fetch('/api/vehicle-masters');
         const mastersData = await mastersResponse.json();
+        console.log("Loaded masters data:", mastersData);
         setManufacturers(mastersData?.manufacturers || []);
         setVehicleModels(mastersData?.vehicleModels || {});
-        setVehicleTypes(mastersData?.vehicleTypes || []);
-        setServicePlans(mastersData?.servicePlans || []);
-        setUnits(mastersData?.units || []);
+        // Try to extract vehicle types from model categories or use defaults
+        const extractedTypes = mastersData?.vehicleModels ? 
+          Array.from(new Set([].concat(...Object.values(mastersData.vehicleModels)
+            .flatMap((brand: any) => brand.models?.flatMap((model: any) => model.categories) || [])))) 
+          : [];
+          
+        setVehicleTypes(extractedTypes.length > 0 ? extractedTypes : [
+          "SEDAN", "SUV", "VAN", "TRUCK", "COUPE", "HATCHBACK", "WAGON", "CONVERTIBLE", 
+          "MINIVAN", "PICKUP", "BUS", "CROSSOVER", "LUXURY", "SPORT"
+        ]);
+        // Extract service plans or use defaults
+        const extractedPlans = (mastersData?.servicePlans || []).map((plan: any) => plan.name);
+        setServicePlans(extractedPlans.length > 0 ? extractedPlans : [
+          "Basic Service Plan", "Standard Service Plan", "Premium Service Plan", 
+          "BASIC", "STANDARD", "PREMIUM"
+        ]);
+        
+        // Extract units or use defaults
+        const extractedUnits = mastersData?.units || [];
+        setUnits(extractedUnits.length > 0 ? extractedUnits : [
+          "Fleet Operations", "Maintenance", "Emergency Response", "Patient Transport",
+          "Special Operations", "General Transport", "VIP Services"
+        ]);
         
         // Load fuel types
         const fuelResponse = await fetch('/api/fuel-types');
