@@ -39,7 +39,7 @@ import {
 import {
   Select,
   SelectContent,
-  SelectItem as BaseSelectItem,
+  SelectItem,
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
@@ -49,16 +49,6 @@ import { Badge } from "@/components/ui/badge";
 import { motion, AnimatePresence } from "framer-motion";
 import { Loader2, Search, X, Filter, ChevronDown, Trash2, Pencil, Plus } from "lucide-react";
 import * as animationUtils from "@/lib/animation-utils";
-
-// Create a safe wrapper for SelectItem
-const SelectItem = (props: React.ComponentProps<typeof BaseSelectItem>) => {
-  // Ensure value is never an empty string
-  const safeValue = props.value && String(props.value).trim() !== '' 
-    ? props.value 
-    : `item-${Math.random().toString(36).substring(2, 11)}`;
-  
-  return <BaseSelectItem {...props} value={safeValue} />;
-};
 
 export default function VehicleTypeManagement() {
   const [selectedType, setSelectedType] = useState<VehicleTypeMaster | null>(null);

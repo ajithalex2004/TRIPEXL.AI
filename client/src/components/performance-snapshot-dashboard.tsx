@@ -25,16 +25,6 @@ import {
   PolarRadiusAxis,
 } from "recharts";
 
-// Safe wrapper for SelectItem to prevent empty string values
-const SafeSelectItem = (props: React.ComponentProps<typeof SelectItem>) => {
-  // Ensure value is never an empty string
-  const safeValue = props.value && String(props.value).trim() !== '' 
-    ? props.value 
-    : `item-${Math.random().toString(36).substring(2, 11)}`;
-  
-  return <SelectItem {...props} value={safeValue} />;
-};
-
 export function PerformanceSnapshotDashboard() {
   const [selectedPeriod, setSelectedPeriod] = useState("monthly");
   const [selectedMetric, setSelectedMetric] = useState("fuel_efficiency");
@@ -176,11 +166,11 @@ export function PerformanceSnapshotDashboard() {
                 <SelectValue placeholder="Select Period" />
               </SelectTrigger>
               <SelectContent>
-                <SafeSelectItem value="daily">Daily</SafeSelectItem>
-                <SafeSelectItem value="weekly">Weekly</SafeSelectItem>
-                <SafeSelectItem value="monthly">Monthly</SafeSelectItem>
-                <SafeSelectItem value="quarterly">Quarterly</SafeSelectItem>
-                <SafeSelectItem value="yearly">Yearly</SafeSelectItem>
+                <SelectItem value="daily">Daily</SelectItem>
+                <SelectItem value="weekly">Weekly</SelectItem>
+                <SelectItem value="monthly">Monthly</SelectItem>
+                <SelectItem value="quarterly">Quarterly</SelectItem>
+                <SelectItem value="yearly">Yearly</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -194,9 +184,9 @@ export function PerformanceSnapshotDashboard() {
                 <SelectValue placeholder="Select Metric" />
               </SelectTrigger>
               <SelectContent>
-                <SafeSelectItem value="fuel_efficiency">Fuel Efficiency</SafeSelectItem>
-                <SafeSelectItem value="cost_per_km">Cost per KM</SafeSelectItem>
-                <SafeSelectItem value="co2_emission_factor">CO₂ Emissions</SafeSelectItem>
+                <SelectItem value="fuel_efficiency">Fuel Efficiency</SelectItem>
+                <SelectItem value="cost_per_km">Cost per KM</SelectItem>
+                <SelectItem value="co2_emission_factor">CO₂ Emissions</SelectItem>
               </SelectContent>
             </Select>
           </div>

@@ -7,21 +7,10 @@ import { useToast } from "@/hooks/use-toast";
 import {
   Select,
   SelectContent,
-  SelectItem as BaseSelectItem,
+  SelectItem,
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-
-// Create a safe version of SelectItem to use everywhere in this component
-// This ensures no empty string values are used, which cause runtime errors
-const SelectItem = (props: React.ComponentProps<typeof BaseSelectItem>) => {
-  // Ensure value is never an empty string
-  const safeValue = props.value && String(props.value).trim() !== '' 
-    ? props.value 
-    : `item-${Math.random().toString(36).substring(2, 11)}`;
-  
-  return <BaseSelectItem {...props} value={safeValue} />;
-};
 
 interface VehicleTypeFormProps {
   onSubmit: (data: any) => Promise<void>;
