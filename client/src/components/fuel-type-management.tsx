@@ -108,6 +108,7 @@ export function FuelTypeManagement() {
   // Fetch fuel types data
   const { data: fuelTypes, isLoading, isError, error } = useQuery<FuelType[]>({
     queryKey: ["/api/fuel-types"],
+    queryFn: getQueryFn({ on401: "throw" }),
     retry: 1,
   });
   
