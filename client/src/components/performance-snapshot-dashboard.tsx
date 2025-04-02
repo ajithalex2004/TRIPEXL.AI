@@ -113,6 +113,9 @@ export function PerformanceSnapshotDashboard() {
   const fuelTypes = data?.fuelTypes || [];
   const performanceMetrics = data?.performanceMetrics;
 
+  // We will define these variables below, after the if(isLoading) check
+
+  // Loading state
   if (isLoading) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
@@ -121,55 +124,7 @@ export function PerformanceSnapshotDashboard() {
     );
   }
   
-  // Prepare data for fuel price trends chart
-  const fuelPriceData = useMemo(() => {
-    if (!fuelPriceHistory || fuelPriceHistory.length === 0) {
-      return [];
-    }
-    
-    // Group by date (month-year)
-    const groupedData: Record<string, Record<string, number>> = {};
-    
-    fuelPriceHistory.forEach((record: any) => {
-      const date = new Date(record.date);
-      const formattedDate = format(date, 'MMM yyyy');
-      
-      if (!groupedData[formattedDate]) {
-        groupedData[formattedDate] = {};
-      }
-      
-      groupedData[formattedDate][record.fuel_type] = parseFloat(record.price);
-    });
-    
-    // Convert to array format for the chart
-    return Object.entries(groupedData).map(([date, prices]) => ({
-      date,
-      ...prices,
-    }));
-  }, [fuelPriceHistory]);
-  
-  // Calculate fuel price trends
-  const fuelTrends = useMemo(() => {
-    if (!fuelTypes || fuelTypes.length === 0) return {};
-    
-    const trends: Record<string, {change: number, direction: string}> = {};
-    
-    fuelTypes.forEach((fuel: any) => {
-      if (fuel.historical_prices && fuel.historical_prices.length >= 2) {
-        const latest = parseFloat(fuel.price);
-        const previous = parseFloat(fuel.historical_prices[fuel.historical_prices.length - 2].price);
-        const change = ((latest - previous) / previous) * 100;
-        trends[fuel.type] = {
-          change: parseFloat(change.toFixed(2)),
-          direction: change >= 0 ? 'up' : 'down'
-        };
-      } else {
-        trends[fuel.type] = { change: 0, direction: 'neutral' };
-      }
-    });
-    
-    return trends;
-  }, [fuelTypes]);
+
 
   const filteredVehicleTypes = selectedRegion === "all" 
     ? vehicleTypes
@@ -229,6 +184,29 @@ export function PerformanceSnapshotDashboard() {
   }));
 
   const regions = ["Dubai", "Abu Dhabi", "Sharjah", "Ajman", "Fujairah", "Ras Al Khaimah", "Umm Al Quwain"];
+
+  // Calculate fuel price trends
+  const fuelTrends = useMemo(() => {
+    if (!fuelTypes || fuelTypes.length === 0) return {};
+    
+    const trends: Record<string, {change: number, direction: string}> = {};
+    
+    fuelTypes.forEach((fuel: any) => {
+      if (fuel.historical_prices && fuel.historical_prices.length >= 2) {
+        const latest = parseFloat(fuel.price);
+        const previous = parseFloat(fuel.historical_prices[fuel.historical_prices.length - 2].price);
+        const change = ((latest - previous) / previous) * 100;
+        trends[fuel.type] = {
+          change: parseFloat(change.toFixed(2)),
+          direction: change >= 0 ? 'up' : 'down'
+        };
+      } else {
+        trends[fuel.type] = { change: 0, direction: 'neutral' };
+      }
+    });
+    
+    return trends;
+  }, [fuelTypes]);
 
   // Create fuel price trend cards data
   const fuelPriceTrendCards = fuelTypes
