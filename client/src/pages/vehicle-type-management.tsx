@@ -170,10 +170,39 @@ export default function VehicleTypeManagement() {
 
   const handleSubmit = async (data: InsertVehicleTypeMaster) => {
     try {
+      console.log("Vehicle Type Management - Submitting data:", data);
+      
+      // Additional validation and formatting
+      if (!data.vehicle_model) {
+        console.warn("Missing vehicle_model, using vehicle_type");
+        data.vehicle_model = data.vehicle_type;
+      }
+      
+      if (!data.vehicle_type) {
+        console.warn("Missing vehicle_type, using vehicle_model");
+        data.vehicle_type = data.vehicle_model;
+      }
+      
+      // Format data for API consistency
+      const formattedData = {
+        ...data,
+        // Convert any nulls to empty strings for text fields
+        color: data.color || "",
+        vehicle_model: data.vehicle_model || "",
+        vehicle_type: data.vehicle_type || "",
+        vehicle_type_name: data.vehicle_type_name || "",
+        unit: data.unit || "",
+        service_plan: data.service_plan || "",
+        department: data.department || "Fleet",
+        region: data.region || "Abu Dhabi"
+      };
+      
+      console.log("Vehicle Type Management - Formatted data:", formattedData);
+      
       if (selectedType) {
-        await updateMutation.mutateAsync({ ...data, id: selectedType.id });
+        await updateMutation.mutateAsync({ ...formattedData, id: selectedType.id });
       } else {
-        await createMutation.mutateAsync(data);
+        await createMutation.mutateAsync(formattedData);
       }
     } catch (error) {
       console.error("Submit error:", error);

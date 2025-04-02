@@ -136,38 +136,52 @@ router.post("/api/vehicle-types", async (req, res) => {
     }
 
     // Ensure all data is properly formatted for database
+    // First, create the base object with correct string values for required fields
     const formattedData = {
       group_id: result.data.group_id,
       vehicle_type_code: result.data.vehicle_type_code,
       vehicle_type_name: result.data.vehicle_type_name,
       manufacturer: result.data.manufacturer,
-      vehicle_model: result.data.vehicle_model || "",
       model_year: result.data.model_year,
       number_of_passengers: result.data.number_of_passengers,
-      region: result.data.region,
-      fuel_efficiency: result.data.fuel_efficiency?.toString(),
-      fuel_price_per_litre: result.data.fuel_price_per_litre?.toString(),
+      region: result.data.region || "Abu Dhabi",
       fuel_type: result.data.fuel_type,
-      service_plan: result.data.service_plan,
-      cost_per_km: result.data.cost_per_km?.toString(),
-      vehicle_type: result.data.vehicle_type || result.data.vehicle_model, // Use vehicle_model as fallback
-      department: result.data.department,
-      unit: result.data.unit || "",
-      alert_before: result.data.alert_before,
-      idle_fuel_consumption: result.data.idle_fuel_consumption?.toString(),
+      department: result.data.department || "Fleet",
       vehicle_capacity: result.data.vehicle_capacity,
-      co2_emission_factor: result.data.co2_emission_factor?.toString() || "0",
-      color: result.data.color || ""
+      alert_before: result.data.alert_before,
+      
+      // Ensure all string fields have values
+      vehicle_model: result.data.vehicle_model || (result.data.vehicle_type || ""),
+      vehicle_type: result.data.vehicle_type || (result.data.vehicle_model || ""),
+      service_plan: result.data.service_plan || "",
+      unit: result.data.unit || "",
+      color: result.data.color || "",
+      
+      // Convert numeric fields to strings
+      fuel_efficiency: typeof result.data.fuel_efficiency === 'number' 
+        ? result.data.fuel_efficiency.toString()
+        : (result.data.fuel_efficiency || "0"),
+        
+      fuel_price_per_litre: typeof result.data.fuel_price_per_litre === 'number'
+        ? result.data.fuel_price_per_litre.toString()
+        : (result.data.fuel_price_per_litre || "0"),
+        
+      cost_per_km: typeof result.data.cost_per_km === 'number'
+        ? result.data.cost_per_km.toString()
+        : (result.data.cost_per_km || "0"),
+        
+      idle_fuel_consumption: typeof result.data.idle_fuel_consumption === 'number'
+        ? result.data.idle_fuel_consumption.toString()
+        : (result.data.idle_fuel_consumption || "0"),
+        
+      co2_emission_factor: typeof result.data.co2_emission_factor === 'number'
+        ? result.data.co2_emission_factor.toString()
+        : (result.data.co2_emission_factor || "0")
     };
     
     console.log("Formatted data for insert:", formattedData);
     
-    // Double check that vehicle_model and color are properly set
-    if (!formattedData.vehicle_model) {
-      console.log("Setting vehicle_model from vehicle_type as fallback");
-      formattedData.vehicle_model = formattedData.vehicle_type;
-    }
-    
+    // Insert using await db.insert() pattern
     const [newType] = await db
       .insert(vehicleTypeMaster)
       .values(formattedData)
@@ -245,24 +259,64 @@ router.patch("/api/vehicle-types/:id", async (req, res) => {
     if (result.data.vehicle_type_code !== undefined) updateData.vehicle_type_code = result.data.vehicle_type_code;
     if (result.data.vehicle_type_name !== undefined) updateData.vehicle_type_name = result.data.vehicle_type_name;
     if (result.data.manufacturer !== undefined) updateData.manufacturer = result.data.manufacturer;
-    if (result.data.vehicle_model !== undefined) updateData.vehicle_model = result.data.vehicle_model;
+    
+    // Handle special text fields
+    if (result.data.vehicle_model !== undefined) {
+      updateData.vehicle_model = result.data.vehicle_model || "";
+    }
+    
     if (result.data.model_year !== undefined) updateData.model_year = result.data.model_year;
     if (result.data.number_of_passengers !== undefined) updateData.number_of_passengers = result.data.number_of_passengers;
-    if (result.data.region !== undefined) updateData.region = result.data.region;
-    if (result.data.fuel_efficiency !== undefined) updateData.fuel_efficiency = result.data.fuel_efficiency.toString();
-    if (result.data.fuel_price_per_litre !== undefined) updateData.fuel_price_per_litre = result.data.fuel_price_per_litre.toString();
+    if (result.data.region !== undefined) updateData.region = result.data.region || "Abu Dhabi";
+    
+    // Handle numeric fields with proper string conversion
+    if (result.data.fuel_efficiency !== undefined) {
+      updateData.fuel_efficiency = typeof result.data.fuel_efficiency === 'number'
+        ? result.data.fuel_efficiency.toString()
+        : (result.data.fuel_efficiency || "0");
+    }
+    
+    if (result.data.fuel_price_per_litre !== undefined) {
+      updateData.fuel_price_per_litre = typeof result.data.fuel_price_per_litre === 'number'
+        ? result.data.fuel_price_per_litre.toString()
+        : (result.data.fuel_price_per_litre || "0");
+    }
+    
     if (result.data.fuel_type !== undefined) updateData.fuel_type = result.data.fuel_type;
-    if (result.data.service_plan !== undefined) updateData.service_plan = result.data.service_plan;
-    if (result.data.cost_per_km !== undefined) updateData.cost_per_km = result.data.cost_per_km.toString();
-    if (result.data.vehicle_type !== undefined) updateData.vehicle_type = result.data.vehicle_type;
-    else if (result.data.vehicle_model !== undefined) updateData.vehicle_type = result.data.vehicle_model; // Use vehicle_model as fallback
-    if (result.data.department !== undefined) updateData.department = result.data.department;
-    if (result.data.unit !== undefined) updateData.unit = result.data.unit;
+    if (result.data.service_plan !== undefined) updateData.service_plan = result.data.service_plan || "";
+    
+    if (result.data.cost_per_km !== undefined) {
+      updateData.cost_per_km = typeof result.data.cost_per_km === 'number'
+        ? result.data.cost_per_km.toString()
+        : (result.data.cost_per_km || "0");
+    }
+    
+    // Handle vehicle_type field with fallback to vehicle_model
+    if (result.data.vehicle_type !== undefined) {
+      updateData.vehicle_type = result.data.vehicle_type || "";
+    } else if (result.data.vehicle_model !== undefined) {
+      updateData.vehicle_type = result.data.vehicle_model || "";
+    }
+    
+    if (result.data.department !== undefined) updateData.department = result.data.department || "Fleet";
+    if (result.data.unit !== undefined) updateData.unit = result.data.unit || "";
     if (result.data.alert_before !== undefined) updateData.alert_before = result.data.alert_before;
-    if (result.data.idle_fuel_consumption !== undefined) updateData.idle_fuel_consumption = result.data.idle_fuel_consumption.toString();
+    
+    if (result.data.idle_fuel_consumption !== undefined) {
+      updateData.idle_fuel_consumption = typeof result.data.idle_fuel_consumption === 'number'
+        ? result.data.idle_fuel_consumption.toString()
+        : (result.data.idle_fuel_consumption || "0");
+    }
+    
     if (result.data.vehicle_capacity !== undefined) updateData.vehicle_capacity = result.data.vehicle_capacity;
-    if (result.data.co2_emission_factor !== undefined) updateData.co2_emission_factor = result.data.co2_emission_factor.toString();
-    if (result.data.color !== undefined) updateData.color = result.data.color;
+    
+    if (result.data.co2_emission_factor !== undefined) {
+      updateData.co2_emission_factor = typeof result.data.co2_emission_factor === 'number'
+        ? result.data.co2_emission_factor.toString()
+        : (result.data.co2_emission_factor || "0");
+    }
+    
+    if (result.data.color !== undefined) updateData.color = result.data.color || "";
     
     console.log("Formatted update data:", updateData);
     

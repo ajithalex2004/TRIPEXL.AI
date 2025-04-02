@@ -295,6 +295,38 @@ export function VehicleTypeForm({
     try {
       setIsSubmitting(true);
       
+      // Ensure vehicle_model is set from vehicle_type if not present
+      if (!data.vehicle_model && data.vehicle_type) {
+        console.log("Setting vehicle_model from vehicle_type:", data.vehicle_type);
+        data.vehicle_model = data.vehicle_type;
+      }
+      
+      // Ensure all required fields are present
+      if (!data.vehicle_type_code) {
+        console.error("Missing vehicle_type_code");
+        throw new Error("Vehicle type code is required");
+      }
+      
+      if (!data.vehicle_type_name) {
+        console.error("Missing vehicle_type_name");
+        throw new Error("Vehicle type name is required");
+      }
+      
+      if (!data.manufacturer) {
+        console.error("Missing manufacturer");
+        throw new Error("Manufacturer is required");
+      }
+      
+      if (!data.vehicle_model) {
+        console.error("Missing vehicle_model");
+        throw new Error("Vehicle model is required");
+      }
+      
+      if (!data.fuel_type) {
+        console.error("Missing fuel_type");
+        throw new Error("Fuel type is required");
+      }
+      
       // Convert string values to numbers
       const formattedData = {
         ...data,
@@ -307,10 +339,20 @@ export function VehicleTypeForm({
         idle_fuel_consumption: Number(data.idle_fuel_consumption),
         co2_emission_factor: Number(data.co2_emission_factor),
         cost_per_km: Number(data.cost_per_km),
-        alert_before: Number(data.alert_before || 0)
+        alert_before: Number(data.alert_before || 0),
+        // Ensure null values are converted to empty strings for text fields
+        color: data.color || "",
+        vehicle_model: data.vehicle_model || "",
+        vehicle_type: data.vehicle_type || data.vehicle_model || "",
+        vehicle_type_name: data.vehicle_type_name || `${data.manufacturer} ${data.vehicle_model}`,
+        unit: data.unit || "",
+        region: data.region || "Abu Dhabi",
+        department: data.department || "Fleet",
+        service_plan: data.service_plan || ""
       };
       
-      console.log("Submitting data:", formattedData);
+      console.log("FormData before formatting:", data);
+      console.log("Formatted data for submission:", formattedData);
       await onSubmit(formattedData);
       
       toast({
