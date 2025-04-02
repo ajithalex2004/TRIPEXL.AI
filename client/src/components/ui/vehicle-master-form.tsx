@@ -56,7 +56,7 @@ export function VehicleMasterForm({ isOpen, onClose, initialData }: VehicleMaste
 
   // Keep all useState hooks at the top level
   const [selectedEmirate, setSelectedEmirate] = React.useState<string>(initialData?.emirate || "");
-  const [selectedCategory, setSelectedCategory] = React.useState<string>(initialData?.plateCategory || "");
+  const [selectedCategory, setSelectedCategory] = React.useState<string>(initialData?.plate_category || "");
 
   // Query hooks - keep at top level
   const { data: vehicleTypes, isLoading: isLoadingVehicleTypes } = useQuery<VehicleTypeMaster[]>({
@@ -102,7 +102,7 @@ export function VehicleMasterForm({ isOpen, onClose, initialData }: VehicleMaste
   // Update mutation
   const updateMutation = useMutation({
     mutationFn: async (data: any) => {
-      const response = await apiRequest("PATCH", `/api/vehicle-master/${initialData?.vehicleId}`, data);
+      const response = await apiRequest("PATCH", `/api/vehicle-master/${initialData?.vehicle_id}`, data);
       if (!response.ok) {
         const error = await response.json();
         throw new Error(error.message || "Failed to update vehicle");
@@ -169,38 +169,38 @@ export function VehicleMasterForm({ isOpen, onClose, initialData }: VehicleMaste
   }, []);
 
   // Update registration number whenever emirate, plate code, or plate number changes
-  const updateRegistrationNumber = React.useCallback((emirate: string, plateCode: string, plateNumber: string) => {
-    if (emirate && plateCode && plateNumber) {
+  const updateRegistrationNumber = React.useCallback((emirate: string, plate_code: string, plate_number: string) => {
+    if (emirate && plate_code && plate_number) {
       const emirateCode = getEmirateCode(emirate);
-      const registrationNumber = `${emirateCode}-${plateCode}-${plateNumber}`;
-      form.setValue("registrationNumber", registrationNumber);
+      const registrationNumber = `${emirateCode}-${plate_code}-${plate_number}`;
+      form.setValue("registration_number", registrationNumber);
     }
   }, [form, getEmirateCode]);
 
   const handleEmirateChange = React.useCallback((value: string) => {
     form.setValue("emirate", value);
-    form.setValue("plateCategory", "");
-    form.setValue("plateCode", "");
+    form.setValue("plate_category", "");
+    form.setValue("plate_code", "");
     setSelectedEmirate(value);
     setSelectedCategory("");
-    updateRegistrationNumber(value, form.getValues("plateCode"), form.getValues("plateNumber"));
+    updateRegistrationNumber(value, form.getValues("plate_code"), form.getValues("plate_number"));
   }, [form, updateRegistrationNumber, setSelectedEmirate, setSelectedCategory]);
 
   const handlePlateCategoryChange = React.useCallback((value: string) => {
-    form.setValue("plateCategory", value);
-    form.setValue("plateCode", "");
+    form.setValue("plate_category", value);
+    form.setValue("plate_code", "");
     setSelectedCategory(value);
   }, [form, setSelectedCategory]);
 
   const handlePlateCodeChange = React.useCallback((value: string) => {
-    form.setValue("plateCode", value);
-    updateRegistrationNumber(form.getValues("emirate"), value, form.getValues("plateNumber"));
+    form.setValue("plate_code", value);
+    updateRegistrationNumber(form.getValues("emirate"), value, form.getValues("plate_number"));
   }, [form, updateRegistrationNumber]);
 
   const handlePlateNumberChange = React.useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
-    form.setValue("plateNumber", value);
-    updateRegistrationNumber(form.getValues("emirate"), form.getValues("plateCode"), value);
+    form.setValue("plate_number", value);
+    updateRegistrationNumber(form.getValues("emirate"), form.getValues("plate_code"), value);
   }, [form, updateRegistrationNumber]);
 
   const handleVehicleTypeSelect = React.useCallback((typeCode: string) => {
@@ -217,7 +217,7 @@ export function VehicleMasterForm({ isOpen, onClose, initialData }: VehicleMaste
   const getAvailablePlateCodes = React.useCallback(() => {
     if (!selectedEmirate || !selectedCategory) return [];
     const emirateInfo = EmiratesPlateInfo[selectedEmirate as keyof typeof EmiratesPlateInfo];
-    return emirateInfo.plateCodes[selectedCategory as keyof typeof EmiratesPlateInfo[keyof typeof EmiratesPlateInfo]['plateCodes']] || [];
+    return emirateInfo.plate_codes[selectedCategory as keyof typeof EmiratesPlateInfo[keyof typeof EmiratesPlateInfo]['plate_codes']] || [];
   }, [selectedEmirate, selectedCategory]);
 
   // Show loading spinner while vehicle types are being fetched
@@ -245,7 +245,7 @@ export function VehicleMasterForm({ isOpen, onClose, initialData }: VehicleMaste
               {/* Vehicle ID */}
               <FormField
                 control={form.control}
-                name="vehicleId"
+                name="vehicle_id"
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Vehicle ID *</FormLabel>
@@ -286,7 +286,7 @@ export function VehicleMasterForm({ isOpen, onClose, initialData }: VehicleMaste
               {/* Plate Category */}
               <FormField
                 control={form.control}
-                name="plateCategory"
+                name="plate_category"
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Plate Category *</FormLabel>
@@ -312,7 +312,7 @@ export function VehicleMasterForm({ isOpen, onClose, initialData }: VehicleMaste
               {/* Plate Code */}
               <FormField
                 control={form.control}
-                name="plateCode"
+                name="plate_code"
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Plate Code *</FormLabel>
@@ -338,7 +338,7 @@ export function VehicleMasterForm({ isOpen, onClose, initialData }: VehicleMaste
               {/* Plate Number */}
               <FormField
                 control={form.control}
-                name="plateNumber"
+                name="plate_number"
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Plate Number *</FormLabel>
@@ -360,7 +360,7 @@ export function VehicleMasterForm({ isOpen, onClose, initialData }: VehicleMaste
               {/* Registration Number - Read only */}
               <FormField
                 control={form.control}
-                name="registrationNumber"
+                name="registration_number"
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Registration Number</FormLabel>
@@ -375,7 +375,7 @@ export function VehicleMasterForm({ isOpen, onClose, initialData }: VehicleMaste
               {/* Vehicle Type Code */}
               <FormField
                 control={form.control}
-                name="vehicleTypeCode"
+                name="vehicle_type_code"
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Vehicle Type Code *</FormLabel>
@@ -404,7 +404,7 @@ export function VehicleMasterForm({ isOpen, onClose, initialData }: VehicleMaste
               {/* Vehicle Type Name - Read only */}
               <FormField
                 control={form.control}
-                name="vehicleTypeName"
+                name="vehicle_type_name"
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Vehicle Type Name</FormLabel>
@@ -460,7 +460,7 @@ export function VehicleMasterForm({ isOpen, onClose, initialData }: VehicleMaste
               {/* Model Year - Read only */}
               <FormField
                 control={form.control}
-                name="modelYear"
+                name="model_year"
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Model Year</FormLabel>
@@ -490,7 +490,7 @@ export function VehicleMasterForm({ isOpen, onClose, initialData }: VehicleMaste
               {/* Current Odometer */}
               <FormField
                 control={form.control}
-                name="currentOdometer"
+                name="current_odometer"
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Current Odometer *</FormLabel>
@@ -511,7 +511,7 @@ export function VehicleMasterForm({ isOpen, onClose, initialData }: VehicleMaste
               {/* Transmission Type */}
               <FormField
                 control={form.control}
-                name="transmissionType"
+                name="transmission_type"
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Transmission Type *</FormLabel>
@@ -587,17 +587,17 @@ export function VehicleMasterForm({ isOpen, onClose, initialData }: VehicleMaste
               />
 
               {/* YES/NO Fields */}
-              {["isCanConnected", "isWeightSensorConnected", "isTemperatureSensorConnected", "isPtoConnected"].map((fieldName) => (
+              {["is_can_connected", "is_weight_sensor_connected", "is_temperature_sensor_connected", "is_pto_connected"].map((fieldName) => (
                 <FormField
                   key={fieldName}
                   control={form.control}
-                  name={fieldName as any}
+                  name={fieldName}
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>
-                        {fieldName === "isCanConnected" ? "Is CAN Connected" :
-                          fieldName === "isWeightSensorConnected" ? "Is Weight Sensor Connected" :
-                            fieldName === "isTemperatureSensorConnected" ? "Is Temperature Sensor Connected" :
+                        {fieldName === "is_can_connected" ? "Is CAN Connected" :
+                          fieldName === "is_weight_sensor_connected" ? "Is Weight Sensor Connected" :
+                            fieldName === "is_temperature_sensor_connected" ? "Is Temperature Sensor Connected" :
                               "Is PTO Connected"}
                       </FormLabel>
                       <Select onValueChange={field.onChange} value={field.value}>
@@ -623,7 +623,7 @@ export function VehicleMasterForm({ isOpen, onClose, initialData }: VehicleMaste
               {/* Asset Type */}
               <FormField
                 control={form.control}
-                name="assetType"
+                name="asset_type"
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Asset Type *</FormLabel>
@@ -648,11 +648,11 @@ export function VehicleMasterForm({ isOpen, onClose, initialData }: VehicleMaste
 
               {/* Other required fields */}
               {[
-                { name: "chassisNumber", label: "Chassis Number", type: "text" },
-                { name: "engineNumber", label: "Engine Number", type: "text" },
+                { name: "chassis_number", label: "Chassis Number", type: "text" },
+                { name: "engine_number", label: "Engine Number", type: "text" },
                 { name: "unit", label: "Unit", type: "text" },
-                { name: "vehicleModel", label: "Vehicle Model", type: "text" },
-                { name: "vehicleUsage", label: "Vehicle Usage", type: "text" },
+                { name: "vehicle_model", label: "Vehicle Model", type: "text" },
+                { name: "vehicle_usage", label: "Vehicle Usage", type: "text" },
               ].map((field) => (
                 <FormField
                   key={field.name}
