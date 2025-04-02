@@ -368,7 +368,7 @@ export function VehicleTypeForm({ onSubmit, initialData, isEditing = false }: Ve
             ? fuelData.price
             : 0;
             
-        // Try various property names for CO2 factor
+        // Try various property names for CO2 factor with better error handling
         let co2Factor = null;
         if (fuelData.co2_factor !== undefined) {
           co2Factor = typeof fuelData.co2_factor === 'string'
@@ -379,9 +379,32 @@ export function VehicleTypeForm({ onSubmit, initialData, isEditing = false }: Ve
             ? parseFloat(fuelData.co2Factor)
             : fuelData.co2Factor;
         } else {
-          // Default CO2 factor if not found
-          co2Factor = 2.0;
-          console.warn("CO2 factor not found in fuel data, using default value:", co2Factor);
+          // Use standard CO2 emission factors by fuel type if not found in database
+          const knownFactors: Record<string, number> = {
+            'petrol': 2.31,
+            'diesel': 2.68,
+            'electric': 0.05,
+            'hybrid': 1.52,
+            'cng': 1.25,
+            'lpg': 1.35,
+            'premium': 2.20,
+            'octane 95': 2.30
+          };
+          
+          // Try to find the closest match in the known factors
+          const fuelTypeLower = value.toLowerCase();
+          const matchedKey = Object.keys(knownFactors).find(key => 
+            fuelTypeLower.includes(key) || key.includes(fuelTypeLower)
+          );
+          
+          if (matchedKey) {
+            co2Factor = knownFactors[matchedKey];
+            console.log(`Using standard CO2 factor for ${matchedKey}: ${co2Factor}`);
+          } else {
+            // Default CO2 factor if no match found
+            co2Factor = 2.0;
+            console.warn("CO2 factor not found for this fuel type, using default value:", co2Factor);
+          }
         }
         
         console.log("Extracted values - Price:", price, "CO2 Factor:", co2Factor);
@@ -765,14 +788,16 @@ export function VehicleTypeForm({ onSubmit, initialData, isEditing = false }: Ve
                     name="co2_emission_factor"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>CO2 Emission Factor</FormLabel>
+                        <FormLabel>CO2 Emission Factor (Auto)</FormLabel>
                         <FormControl>
                           <Input
                             {...field}
                             type="number"
                             step="0.01"
                             value={field.value}
-                            onChange={(e) => field.onChange(parseFloat(e.target.value))}
+                            readOnly
+                            className="bg-gray-50 border-gray-300 cursor-not-allowed"
+                            title="This value is automatically calculated based on the fuel type"
                           />
                         </FormControl>
                         <FormMessage />
