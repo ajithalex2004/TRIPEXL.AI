@@ -14,6 +14,13 @@ import {
   AssetType,
   FuelType,
 } from "@shared/schema";
+import { 
+  DEFAULT_MANUFACTURERS, 
+  DEFAULT_VEHICLE_MODELS, 
+  DEFAULT_YEARS, 
+  generateVehicleTypeCode,
+  type VehicleModelInfo
+} from "@/lib/vehicle-constants";
 import { useQuery } from "@tanstack/react-query";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
@@ -466,7 +473,12 @@ export function VehicleMasterForm({ isOpen, onClose, initialData }: VehicleMaste
                   <FormItem>
                     <FormLabel>Model Year</FormLabel>
                     <FormControl>
-                      <Input placeholder="Model Year" {...field} readOnly />
+                      <Input 
+                        placeholder="Model Year" 
+                        {...field} 
+                        readOnly 
+                        value={field.value ? field.value.toString() : ""} 
+                      />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -481,7 +493,12 @@ export function VehicleMasterForm({ isOpen, onClose, initialData }: VehicleMaste
                   <FormItem>
                     <FormLabel>Manufacturer</FormLabel>
                     <FormControl>
-                      <Input placeholder="Manufacturer" {...field} readOnly />
+                      <Input 
+                        placeholder="Manufacturer" 
+                        {...field} 
+                        readOnly 
+                        className="bg-muted"
+                      />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -587,39 +604,109 @@ export function VehicleMasterForm({ isOpen, onClose, initialData }: VehicleMaste
                 )}
               />
 
-              {/* YES/NO Fields */}
-              {["is_can_connected", "is_weight_sensor_connected", "is_temperature_sensor_connected", "is_pto_connected"].map((fieldName) => (
-                <FormField
-                  key={fieldName}
-                  control={form.control}
-                  name={fieldName}
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>
-                        {fieldName === "is_can_connected" ? "Is CAN Connected" :
-                          fieldName === "is_weight_sensor_connected" ? "Is Weight Sensor Connected" :
-                            fieldName === "is_temperature_sensor_connected" ? "Is Temperature Sensor Connected" :
-                              "Is PTO Connected"}
-                      </FormLabel>
-                      <Select onValueChange={field.onChange} value={field.value}>
-                        <FormControl>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Select Yes/No" />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          {Object.values(YesNo).map((value) => (
-                            <SelectItem key={value} value={value}>
-                              {value}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              ))}
+              {/* Is CAN Connected */}
+              <FormField
+                control={form.control}
+                name="is_can_connected"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Is CAN Connected</FormLabel>
+                    <Select onValueChange={field.onChange} value={field.value}>
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select Yes/No" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {Object.values(YesNo).map((value) => (
+                          <SelectItem key={value} value={value}>
+                            {value}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              
+              {/* Is Weight Sensor Connected */}
+              <FormField
+                control={form.control}
+                name="is_weight_sensor_connected"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Is Weight Sensor Connected</FormLabel>
+                    <Select onValueChange={field.onChange} value={field.value}>
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select Yes/No" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {Object.values(YesNo).map((value) => (
+                          <SelectItem key={value} value={value}>
+                            {value}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              
+              {/* Is Temperature Sensor Connected */}
+              <FormField
+                control={form.control}
+                name="is_temperature_sensor_connected"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Is Temperature Sensor Connected</FormLabel>
+                    <Select onValueChange={field.onChange} value={field.value}>
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select Yes/No" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {Object.values(YesNo).map((value) => (
+                          <SelectItem key={value} value={value}>
+                            {value}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              
+              {/* Is PTO Connected */}
+              <FormField
+                control={form.control}
+                name="is_pto_connected"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Is PTO Connected</FormLabel>
+                    <Select onValueChange={field.onChange} value={field.value}>
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select Yes/No" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {Object.values(YesNo).map((value) => (
+                          <SelectItem key={value} value={value}>
+                            {value}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
 
               {/* Asset Type */}
               <FormField
@@ -647,12 +734,31 @@ export function VehicleMasterForm({ isOpen, onClose, initialData }: VehicleMaste
                 )}
               />
 
+              {/* Vehicle Model - Read only */}
+              <FormField
+                control={form.control}
+                name="vehicle_model"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Vehicle Model</FormLabel>
+                    <FormControl>
+                      <Input 
+                        placeholder="Vehicle Model" 
+                        {...field} 
+                        readOnly 
+                        className="bg-muted"
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
               {/* Other required fields */}
               {[
                 { name: "chassis_number", label: "Chassis Number", type: "text" },
                 { name: "engine_number", label: "Engine Number", type: "text" },
                 { name: "unit", label: "Unit", type: "text" },
-                { name: "vehicle_model", label: "Vehicle Model", type: "text" },
                 { name: "vehicle_usage", label: "Vehicle Usage", type: "text" },
               ].map((field) => (
                 <FormField
