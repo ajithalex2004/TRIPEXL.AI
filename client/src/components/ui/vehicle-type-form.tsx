@@ -139,7 +139,9 @@ export function VehicleTypeForm({ onSubmit, initialData, isEditing = false }: Ve
   useEffect(() => {
     if (selectedManufacturer && selectedModel && modelYear) {
       // Generate a code that combines manufacturer, vehicle model, and model year
-      const typeCode = `${selectedManufacturer.substring(0,3)}-${selectedModel.substring(0,3)}-${modelYear}`.toUpperCase();
+      // Add a short suffix to ensure uniqueness (-xx where xx is a 2-digit random number)
+      const randomSuffix = Math.floor(Math.random() * 100).toString().padStart(2, '0');
+      const typeCode = `${selectedManufacturer.substring(0,3)}-${selectedModel.substring(0,3)}-${modelYear}-${randomSuffix}`.toUpperCase();
       form.setValue("vehicle_type_code", typeCode);
     }
   }, [selectedManufacturer, selectedModel, modelYear, form]);

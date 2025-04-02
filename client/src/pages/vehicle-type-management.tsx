@@ -51,22 +51,26 @@ export default function VehicleTypeManagement() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
-  // Query vehicle types
+  // Query vehicle types with better caching and retry strategy
   const { data: vehicleTypes, isLoading, refetch } = useQuery<VehicleTypeMaster[]>({
     queryKey: ["/api/vehicle-types"],
-    staleTime: 10000, // Consider data fresh for 10 seconds
-    onSuccess: (data) => {
-      console.log("Vehicle types loaded successfully:", data?.length, data);
-    },
-    onError: (error) => {
-      console.error("Error loading vehicle types:", error);
-    }
+    staleTime: 0, // Always consider data stale (fetch on mount)
+    refetchOnMount: true, // Refetch when component mounts
+    refetchOnWindowFocus: true, // Refetch when window gets focus
+    retry: 3, // Retry 3 times if the request fails
+    retryDelay: 1000, // Wait 1 second between retries
   });
   
   // Force refetch when component mounts to ensure fresh data
   useEffect(() => {
     console.log("Component mounted, refetching vehicle types...");
-    refetch();
+    // Add a small delay to ensure the fetch happens after any previous operations complete
+    const timer = setTimeout(() => {
+      refetch();
+      console.log("Explicit refetch triggered");
+    }, 500);
+    
+    return () => clearTimeout(timer);
   }, [refetch]);
 
   // Extract unique filter options from data
@@ -133,19 +137,28 @@ export default function VehicleTypeManagement() {
       }
       return response.json();
     },
-    onSuccess: () => {
+    onSuccess: (newItem) => {
       // First invalidate the query
       queryClient.invalidateQueries({ queryKey: ["/api/vehicle-types"] });
       
       // Then explicitly refetch to ensure we get fresh data
-      refetch();
+      refetch().then(() => {
+        // Add a manual toast to confirm data refresh too
+        toast({
+          title: "Refreshed",
+          description: "Vehicle types data refreshed",
+        });
+      });
       
+      console.log("Vehicle type created:", newItem);
       console.log("Vehicle type created, refetching data...");
       
       toast({
         title: "Success",
-        description: "Vehicle type created successfully",
+        description: "New vehicle type created",
       });
+      
+      // Close the form
       setIsFormOpen(false);
     },
     onError: (error: Error) => {
@@ -169,19 +182,28 @@ export default function VehicleTypeManagement() {
       }
       return response.json();
     },
-    onSuccess: () => {
+    onSuccess: (updatedItem) => {
       // First invalidate the query
       queryClient.invalidateQueries({ queryKey: ["/api/vehicle-types"] });
       
       // Then explicitly refetch to ensure we get fresh data
-      refetch();
+      refetch().then(() => {
+        // Add a manual toast to confirm data refresh too
+        toast({
+          title: "Refreshed",
+          description: "Vehicle types data refreshed",
+        });
+      });
       
+      console.log("Vehicle type updated:", updatedItem);
       console.log("Vehicle type updated, refetching data...");
       
       toast({
         title: "Success",
         description: "Vehicle type updated successfully",
       });
+      
+      // Close the form and reset selection
       setIsFormOpen(false);
       setSelectedType(null);
     },
