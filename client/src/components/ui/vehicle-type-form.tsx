@@ -12,9 +12,10 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 
-// Create a safe version of SelectItem that guarantees the value is not an empty string
+// Create a safe version of SelectItem to use everywhere in this component
+// This ensures no empty string values are used, which cause runtime errors
 const SelectItem = (props: React.ComponentProps<typeof BaseSelectItem>) => {
-  // If value is empty or undefined, use a default value
+  // Ensure value is never an empty string
   const safeValue = props.value && String(props.value).trim() !== '' 
     ? props.value 
     : `item-${Math.random().toString(36).substring(2, 11)}`;

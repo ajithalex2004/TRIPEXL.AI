@@ -4,7 +4,7 @@ import { VehicleTypeMaster, InsertVehicleTypeMaster } from "@shared/schema";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { VehicleTypeForm } from "@/components/ui/vehicle-type-form";
-import { VehicleTypeFAB } from "@/components/ui/vehicle-type-fab";
+
 import { VehicleDetailsCard } from "@/components/ui/vehicle-details-card";
 import {
   Card,
@@ -47,7 +47,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { motion, AnimatePresence } from "framer-motion";
-import { Loader2, Search, X, Filter, ChevronDown, Trash2, Pencil } from "lucide-react";
+import { Loader2, Search, X, Filter, ChevronDown, Trash2, Pencil, Plus } from "lucide-react";
 import * as animationUtils from "@/lib/animation-utils";
 
 // Create a safe wrapper for SelectItem
@@ -819,10 +819,16 @@ export default function VehicleTypeManagement() {
             exit={{ scale: 0, opacity: 0 }}
             transition={{ type: "spring", stiffness: 500, damping: 30 }}
           >
-            <VehicleTypeFAB onClick={() => {
-              setSelectedType(null);
-              setIsFormOpen(true);
-            }} />
+            <Button
+              size="lg"
+              className="rounded-full h-14 w-14 bg-gradient-to-br from-primary to-primary/80 shadow-lg hover:shadow-xl transition-all duration-300 hover:from-primary/90 hover:to-primary border-2 border-primary/20"
+              onClick={() => {
+                setSelectedType(null);
+                setIsFormOpen(true);
+              }}
+            >
+              <Plus className="h-6 w-6 text-white" />
+            </Button>
           </motion.div>
         )}
       </AnimatePresence>
