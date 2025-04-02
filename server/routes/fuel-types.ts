@@ -159,6 +159,39 @@ router.get("/history", async (_req, res) => {
   }
 });
 
+// Endpoint to get UAE fuel types from a predefined list
+router.get("/uae-fuel-types", async (req, res) => {
+  try {
+    // Standard UAE fuel types
+    const uaeFuelTypes = [
+      { type: "Petrol", display: "Petrol (Super 95)" },
+      { type: "Diesel", display: "Diesel" },
+      { type: "Premium", display: "Premium (Super 98)" },
+      { type: "Electric", display: "Electric" },
+      { type: "Hybrid", display: "Hybrid" },
+      { type: "CNG", display: "CNG (Compressed Natural Gas)" },
+      { type: "LPG", display: "LPG (Liquefied Petroleum Gas)" },
+      { type: "E-Plus 91", display: "E-Plus 91" },
+      { type: "Super 98", display: "Super 98" },
+      { type: "Special 95", display: "Special 95 (Super 95)" }
+    ];
+    
+    // Return the UAE fuel types
+    return res.status(200).json({
+      success: true,
+      data: uaeFuelTypes
+    });
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : "Unknown error";
+    console.error("Error fetching UAE fuel types:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Failed to get UAE fuel types",
+      error: errorMessage
+    });
+  }
+});
+
 // WAM Scraper endpoint to fetch UAE fuel prices
 router.post("/wam-scrape", async (req, res) => {
   try {
@@ -213,12 +246,13 @@ router.post("/wam-scrape", async (req, res) => {
       });
     });
     
-  } catch (error: any) {
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : "Unknown error";
     console.error("Error running WAM scraper:", error);
     res.status(500).json({
       success: false,
       message: "Failed to run WAM scraper",
-      error: error.message,
+      error: errorMessage,
     });
   }
 });
@@ -271,9 +305,10 @@ router.post("/update", async (req, res) => {
       source: priceData.source,
       date: priceData.date
     });
-  } catch (error: any) {
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : "Unknown error";
     console.error("Error updating fuel prices:", error);
-    res.status(500).json({ error: "Failed to update fuel prices" });
+    res.status(500).json({ error: "Failed to update fuel prices", details: errorMessage });
   }
 });
 

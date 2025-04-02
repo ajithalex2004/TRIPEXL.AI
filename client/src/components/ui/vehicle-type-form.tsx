@@ -97,6 +97,12 @@ export function VehicleTypeForm({ onSubmit, initialData, isEditing = false }: Ve
   const { data: fuelTypes } = useQuery<FuelTypeData[]>({
     queryKey: ["/api/fuel-types"]
   });
+  
+  // Fetch UAE fuel types for dropdown
+  const { data: uaeFuelTypes } = useQuery<{ type: string; display: string }[]>({
+    queryKey: ["/api/fuel-types/uae-fuel-types"],
+    enabled: false // Only fetch when explicitly requested
+  });
 
   // Initialize form with the correct types that match the zod schema
   const form = useForm<InsertVehicleTypeMaster>({
