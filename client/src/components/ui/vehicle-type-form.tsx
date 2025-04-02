@@ -3,6 +3,12 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { 
+  DEFAULT_MANUFACTURERS, 
+  DEFAULT_VEHICLE_MODELS, 
+  DEFAULT_YEARS, 
+  generateVehicleTypeCode 
+} from "@/lib/vehicle-constants";
 
 import {
   Select,
@@ -80,37 +86,50 @@ export function VehicleTypeForm({
         const mastersData = await mastersResponse.json();
         console.log("Loaded masters data:", mastersData);
         
-        // Ensure manufacturers are valid strings
-        const validManufacturers = (mastersData?.manufacturers || [])
+        // Set manufacturers - use data from API if available, otherwise use defaults
+        const mastersManufacturers = (mastersData?.manufacturers || [])
           .filter((m: any) => m && typeof m === 'string' && m.trim() !== '');
-        setManufacturers(validManufacturers);
         
-        setVehicleModels(mastersData?.vehicleModels || {});
+        // Use API data if available, otherwise use defaults
+        const manufacturersList = mastersManufacturers.length > 0 
+          ? mastersManufacturers 
+          : DEFAULT_MANUFACTURERS;
         
-        // Extract vehicle types or use defaults, ensuring no empty values
-        const extractedTypes = mastersData?.vehicleModels ? 
-          Array.from(new Set([].concat(...Object.values(mastersData.vehicleModels)
-            .flatMap((brand: any) => brand.models?.flatMap((model: any) => model.categories) || [])))) 
-          : [];
+        setManufacturers(manufacturersList);
         
+        // Set vehicle models
+        const apiVehicleModels = mastersData?.vehicleModels || {};
+        
+        // Merge API models with defaults to ensure consistent data
+        const mergedVehicleModels = { ...DEFAULT_VEHICLE_MODELS };
+        
+        // If we have API models, add/override defaults
+        if (Object.keys(apiVehicleModels).length > 0) {
+          Object.keys(apiVehicleModels).forEach(manufacturer => {
+            mergedVehicleModels[manufacturer] = apiVehicleModels[manufacturer];
+          });
+        }
+        
+        setVehicleModels(mergedVehicleModels);
+        
+        // Extract and set vehicle types
         const defaultVehicleTypes = [
           "SEDAN", "SUV", "VAN", "TRUCK", "COUPE", "HATCHBACK", "WAGON", "CONVERTIBLE", 
           "MINIVAN", "PICKUP", "BUS", "CROSSOVER", "LUXURY", "SPORT"
         ];
         
-        let vehicleTypesToUse = extractedTypes.length > 0 ? extractedTypes : defaultVehicleTypes;
-        vehicleTypesToUse = vehicleTypesToUse.filter((vt: any) => 
-          vt && typeof vt === 'string' && vt.trim() !== ''
-        );
+        const extractedTypes = Object.values(mergedVehicleModels)
+          .flatMap((brand: any) => brand.models?.flatMap((model: any) => model.categories || []) || [])
+          .filter((type: any) => type && typeof type === 'string' && type.trim() !== '');
         
-        // If we filtered everything out, use default types
-        if (vehicleTypesToUse.length === 0) {
-          vehicleTypesToUse = defaultVehicleTypes;
-        }
+        // Use extracted types if available, otherwise use defaults
+        const vehicleTypesToUse = extractedTypes.length > 0 
+          ? Array.from(new Set(extractedTypes))
+          : defaultVehicleTypes;
         
         setVehicleTypes(vehicleTypesToUse);
         
-        // Extract service plans or use defaults, ensuring no empty values
+        // Extract service plans or use defaults
         const extractedPlans = (mastersData?.servicePlans || [])
           .map((plan: any) => plan.name)
           .filter((name: any) => name && typeof name === 'string' && name.trim() !== '');
@@ -122,7 +141,7 @@ export function VehicleTypeForm({
         
         setServicePlans(extractedPlans.length > 0 ? extractedPlans : defaultServicePlans);
         
-        // Extract units or use defaults, ensuring no empty values
+        // Extract units or use defaults
         const extractedUnits = (mastersData?.units || [])
           .filter((unit: any) => unit && typeof unit === 'string' && unit.trim() !== '');
         
@@ -248,12 +267,8 @@ export function VehicleTypeForm({
       return;
     }
     
-    // Update code format to MFR-MODEL-YEAR
-    const mfr = manufacturer.substring(0, 3);
-    const modelPrefix = model.substring(0, 3);
-    
-    // Generate code combining manufacturer, model, and year
-    const uniqueCode = `${mfr}-${modelPrefix}-${year}`.toUpperCase();
+    // Use the shared code generator function from vehicle-constants.ts
+    const uniqueCode = generateVehicleTypeCode(manufacturer, model, year);
     updateFormField("vehicle_type_code", uniqueCode);
     
     console.log("Generated vehicle type code:", uniqueCode);
@@ -488,20 +503,28 @@ export function VehicleTypeForm({
               <td className="border p-2">
                 <div className="space-y-1">
                   <label className="text-sm font-medium">Model Year</label>
-                  <Input
-                    type="number"
-                    value={formState.model_year}
-                    onChange={(e) => {
-                      const year = parseInt(e.target.value) || new Date().getFullYear();
+                  <Select
+                    value={String(formState.model_year)}
+                    onValueChange={(value) => {
+                      const year = parseInt(value);
                       updateFormField("model_year", year);
                       
                       if (formState.manufacturer && formState.vehicle_model && year) {
                         updateVehicleTypeCode(formState.manufacturer, formState.vehicle_model, year);
                       }
                     }}
-                    min={1950}
-                    max={new Date().getFullYear() + 1}
-                  />
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select year" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {DEFAULT_YEARS.map((year) => (
+                        <SelectItem key={year} value={String(year)}>
+                          {year}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
               </td>
             </tr>

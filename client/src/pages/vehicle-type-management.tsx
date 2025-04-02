@@ -4,6 +4,7 @@ import { VehicleTypeMaster, InsertVehicleTypeMaster } from "@shared/schema";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { VehicleTypeForm } from "@/components/ui/vehicle-type-form";
+import { DEFAULT_MANUFACTURERS, DEFAULT_VEHICLE_MODELS, DEFAULT_YEARS } from "@/lib/vehicle-constants";
 
 import { VehicleDetailsCard } from "@/components/ui/vehicle-details-card";
 import {
