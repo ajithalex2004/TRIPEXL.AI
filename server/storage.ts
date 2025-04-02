@@ -70,6 +70,7 @@ export interface IStorage {
   getVehicleType(id: number): Promise<VehicleTypeMaster | null>;
   createVehicleType(type: InsertVehicleTypeMaster): Promise<VehicleTypeMaster>;
   updateVehicleType(id: number, data: Partial<InsertVehicleTypeMaster>): Promise<VehicleTypeMaster>;
+  deleteVehicleType(id: number): Promise<void>;
 
   // Vehicle Master operations
   getAllVehicleMaster(): Promise<VehicleMaster[]>;
@@ -521,6 +522,38 @@ export class DatabaseStorage implements IStorage {
       .where(eq(schema.vehicleTypeMaster.id, id))
       .returning();
     return updatedType;
+  }
+  
+  async deleteVehicleType(id: number): Promise<void> {
+    try {
+      console.log(`Deleting vehicle type with ID ${id}`);
+      
+      // Check if the vehicle type exists first
+      const vehicleType = await this.getVehicleType(id);
+      if (!vehicleType) {
+        throw new Error(`Vehicle type with ID ${id} not found`);
+      }
+      
+      // Check if this vehicle type is being used by any vehicles
+      const [vehicleCount] = await db
+        .select({ count: sql`count(*)` })
+        .from(schema.vehicleMaster)
+        .where(eq(schema.vehicleMaster.vehicle_type_id, id));
+        
+      if (vehicleCount && Number(vehicleCount.count) > 0) {
+        throw new Error(`Cannot delete vehicle type "${vehicleType.vehicle_type_name}" as it is being used by ${vehicleCount.count} vehicles`);
+      }
+      
+      // Delete the vehicle type
+      await db
+        .delete(schema.vehicleTypeMaster)
+        .where(eq(schema.vehicleTypeMaster.id, id));
+        
+      console.log(`Successfully deleted vehicle type with ID ${id}`);
+    } catch (error) {
+      console.error(`Error deleting vehicle type with ID ${id}:`, error);
+      throw error;
+    }
   }
 
   // Vehicle Group methods

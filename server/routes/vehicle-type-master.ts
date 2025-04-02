@@ -539,4 +539,41 @@ router.post("/api/fuel-prices/update", async (_req, res) => {
   }
 });
 
+// Delete vehicle type
+router.delete("/api/vehicle-types/:id", async (req, res) => {
+  try {
+    const id = parseInt(req.params.id);
+    if (isNaN(id)) {
+      return res.status(400).json({ error: "Invalid ID format" });
+    }
+
+    console.log("Deleting vehicle type with ID:", id);
+    
+    // First check if the vehicle type exists
+    const [vehicleType] = await db
+      .select()
+      .from(vehicleTypeMaster)
+      .where(eq(vehicleTypeMaster.id, id));
+      
+    if (!vehicleType) {
+      console.log("Vehicle type not found with ID:", id);
+      return res.status(404).json({ error: "Vehicle type not found" });
+    }
+    
+    // Delete the vehicle type
+    await db
+      .delete(vehicleTypeMaster)
+      .where(eq(vehicleTypeMaster.id, id));
+    
+    console.log("Successfully deleted vehicle type with ID:", id);
+    res.status(200).json({ message: "Vehicle type deleted successfully" });
+  } catch (error: any) {
+    console.error("Error deleting vehicle type:", error);
+    res.status(500).json({ 
+      error: "Failed to delete vehicle type",
+      message: error.message
+    });
+  }
+});
+
 export default router;

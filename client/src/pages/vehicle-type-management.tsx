@@ -27,6 +27,16 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import {
   Select,
   SelectContent,
   SelectItem,
@@ -37,12 +47,13 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { motion, AnimatePresence } from "framer-motion";
-import { Loader2, Search, X, Filter, ChevronDown } from "lucide-react";
+import { Loader2, Search, X, Filter, ChevronDown, Trash2 } from "lucide-react";
 import * as animationUtils from "@/lib/animation-utils";
 
 export default function VehicleTypeManagement() {
   const [selectedType, setSelectedType] = useState<VehicleTypeMaster | null>(null);
   const [isFormOpen, setIsFormOpen] = useState(false);
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [regionFilter, setRegionFilter] = useState<string>("all");
   const [vehicleTypeFilter, setVehicleTypeFilter] = useState<string>("all");
@@ -91,9 +102,10 @@ export default function VehicleTypeManagement() {
           console.log("API data parsed successfully:", data);
           console.log("Number of vehicle types:", data.length);
           return data;
-        } catch (parseError) {
-          console.error("Error parsing JSON:", parseError);
-          throw new Error(`Invalid JSON response: ${parseError.message}`);
+        } catch (parseError: unknown) {
+          const error = parseError as Error;
+          console.error("Error parsing JSON:", error);
+          throw new Error(`Invalid JSON response: ${error.message}`);
         }
       } catch (err) {
         console.error("Error fetching vehicle types:", err);
@@ -265,6 +277,51 @@ export default function VehicleTypeManagement() {
       toast({
         title: "Error",
         description: error.message || "Failed to update vehicle type",
+        variant: "destructive",
+      });
+    },
+  });
+  
+  // Delete mutation
+  const deleteMutation = useMutation({
+    mutationFn: async (id: number) => {
+      console.log("Deleting vehicle type with ID:", id);
+      const response = await apiRequest("DELETE", `/api/vehicle-types/${id}`);
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || "Failed to delete vehicle type");
+      }
+      return response.json();
+    },
+    onSuccess: () => {
+      // First invalidate the query
+      queryClient.invalidateQueries({ queryKey: ["/api/vehicle-types"] });
+      
+      // Then explicitly refetch to ensure we get fresh data
+      refetch().then(() => {
+        toast({
+          title: "Refreshed",
+          description: "Vehicle types data refreshed",
+        });
+      });
+      
+      console.log("Vehicle type deleted successfully");
+      
+      toast({
+        title: "Success",
+        description: "Vehicle type deleted successfully",
+      });
+      
+      // Reset selection if needed
+      if (selectedType) {
+        setSelectedType(null);
+      }
+    },
+    onError: (error: Error) => {
+      console.error("Error deleting vehicle type:", error);
+      toast({
+        title: "Error",
+        description: error.message || "Failed to delete vehicle type",
         variant: "destructive",
       });
     },
@@ -589,6 +646,7 @@ export default function VehicleTypeManagement() {
                         <TableHead>Vehicle Type</TableHead>
                         <TableHead>Region</TableHead>
                         <TableHead>Department</TableHead>
+                        <TableHead className="text-right">Actions</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -614,11 +672,7 @@ export default function VehicleTypeManagement() {
                           {filteredVehicleTypes.map((type, index) => (
                             <motion.tr
                               key={type.id}
-                              className="cursor-pointer hover:bg-accent/50 transition-colors"
-                              onClick={() => {
-                                setSelectedType(type);
-                                setIsFormOpen(true);
-                              }}
+                              className="hover:bg-accent/50 transition-colors"
                               variants={animationUtils.listItem(index, 0.05)}
                               initial="hidden"
                               animate="visible"
@@ -628,11 +682,55 @@ export default function VehicleTypeManagement() {
                                 transition: { duration: 0.1 }
                               }}
                             >
-                              <TableCell>{type.group_id}</TableCell>
-                              <TableCell>{type.vehicle_type_code}</TableCell>
-                              <TableCell>{type.vehicle_type}</TableCell>
-                              <TableCell>{type.region}</TableCell>
-                              <TableCell>{type.department}</TableCell>
+                              <TableCell 
+                                className="cursor-pointer"
+                                onClick={() => {
+                                  setSelectedType(type);
+                                  setIsFormOpen(true);
+                                }}
+                              >{type.group_id}</TableCell>
+                              <TableCell 
+                                className="cursor-pointer"
+                                onClick={() => {
+                                  setSelectedType(type);
+                                  setIsFormOpen(true);
+                                }}
+                              >{type.vehicle_type_code}</TableCell>
+                              <TableCell 
+                                className="cursor-pointer"
+                                onClick={() => {
+                                  setSelectedType(type);
+                                  setIsFormOpen(true);
+                                }}
+                              >{type.vehicle_type}</TableCell>
+                              <TableCell 
+                                className="cursor-pointer"
+                                onClick={() => {
+                                  setSelectedType(type);
+                                  setIsFormOpen(true);
+                                }}
+                              >{type.region}</TableCell>
+                              <TableCell 
+                                className="cursor-pointer"
+                                onClick={() => {
+                                  setSelectedType(type);
+                                  setIsFormOpen(true);
+                                }}
+                              >{type.department}</TableCell>
+                              <TableCell className="text-right">
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-8 w-8 text-destructive hover:text-destructive/90 hover:bg-destructive/10"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setSelectedType(type);
+                                    setDeleteConfirmOpen(true);
+                                  }}
+                                >
+                                  <Trash2 className="h-4 w-4" />
+                                </Button>
+                              </TableCell>
                             </motion.tr>
                           ))}
                         </AnimatePresence>
@@ -679,6 +777,39 @@ export default function VehicleTypeManagement() {
           />
         </DialogContent>
       </Dialog>
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={deleteConfirmOpen} onOpenChange={setDeleteConfirmOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Confirm Deletion</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete this vehicle type? This action cannot be undone.
+              {selectedType && (
+                <div className="mt-2 p-3 bg-background rounded-md border">
+                  <p><strong>Code:</strong> {selectedType.vehicle_type_code}</p>
+                  <p><strong>Name:</strong> {selectedType.vehicle_type_name}</p>
+                  <p><strong>Type:</strong> {selectedType.vehicle_type}</p>
+                </div>
+              )}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction 
+              className="bg-destructive hover:bg-destructive/90 text-white"
+              onClick={() => {
+                if (selectedType) {
+                  deleteMutation.mutate(selectedType.id);
+                }
+                setDeleteConfirmOpen(false);
+              }}
+            >
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       <motion.div
         initial={{ scale: 0, opacity: 0 }}
