@@ -111,6 +111,26 @@ export function VehicleTypeForm({ onSubmit, initialData, isEditing = false }: Ve
       form.setValue("vehicle_type_code", code);
     }
   }, [form.watch("manufacturer"), form.watch("vehicle_type"), form.watch("model_year"), form]);
+  
+  // Initialize form with data for editing mode
+  useEffect(() => {
+    if (isEditing && initialData) {
+      console.log("Initializing edit mode with data:", initialData);
+      
+      // Set state variables for select fields
+      if (initialData.manufacturer) {
+        setSelectedManufacturer(initialData.manufacturer);
+      }
+      
+      if (initialData.vehicle_type) {
+        setSelectedModel(initialData.vehicle_type);
+      }
+      
+      if (initialData.fuel_type) {
+        setSelectedFuelType(initialData.fuel_type);
+      }
+    }
+  }, [isEditing, initialData]);
 
   // Handle manufacturer change with improved error handling
   const handleManufacturerChange = (value: string) => {
@@ -131,16 +151,31 @@ export function VehicleTypeForm({ onSubmit, initialData, isEditing = false }: Ve
     
     console.log("Reset model selection after manufacturer change");
     
-    // Verify manufacturer is in the list (case-insensitive)
+    // Find exact match or case-insensitive match in manufacturer list
     if (masterData?.manufacturers) {
-      const matchingManufacturer = masterData.manufacturers.find(
-        (m: string) => m.toLowerCase() === value.toLowerCase()
+      // First try exact match
+      let matchingManufacturer = masterData.manufacturers.find(
+        (m: string) => m === value
       );
+      
+      // If no exact match, try case-insensitive match
+      if (!matchingManufacturer) {
+        matchingManufacturer = masterData.manufacturers.find(
+          (m: string) => m.toLowerCase() === value.toLowerCase()
+        );
+        
+        // If found a case-insensitive match, update to correct case
+        if (matchingManufacturer) {
+          setSelectedManufacturer(matchingManufacturer);
+          form.setValue("manufacturer", matchingManufacturer);
+          console.log(`Updated manufacturer to proper case: "${matchingManufacturer}"`);
+        }
+      }
       
       if (!matchingManufacturer) {
         console.warn(`Manufacturer "${value}" not found in available list:`, masterData.manufacturers);
       } else {
-        console.log(`Manufacturer "${value}" verified in the available list`);
+        console.log(`Manufacturer "${matchingManufacturer}" verified in the available list`);
       }
     }
   };
@@ -161,99 +196,122 @@ export function VehicleTypeForm({ onSubmit, initialData, isEditing = false }: Ve
       return;
     }
     
-    console.log("Checking for model data in:", masterData);
-    console.log("Master data vehicleModels:", masterData.vehicleModels);
-    console.log("Selected manufacturer:", selectedManufacturer);
+    console.log("Checking for model data in masterData for:", selectedManufacturer);
     
-    // Check if the vehicleModels and the specific manufacturer exist
-    if (masterData.vehicleModels && masterData.vehicleModels[selectedManufacturer]) {
-      console.log("Found manufacturer in vehicleModels:", masterData.vehicleModels[selectedManufacturer]);
+    // First verify we have vehicle models data
+    if (!masterData.vehicleModels) {
+      console.warn("No vehicleModels data in masterData");
+      return;
+    }
+    
+    // Find exact manufacturer match, try case sensitivity fixes if needed
+    const manufacturerKey = Object.keys(masterData.vehicleModels).find(
+      (m) => m.toLowerCase() === selectedManufacturer.toLowerCase()
+    );
+    
+    if (!manufacturerKey) {
+      console.warn(`No manufacturer ${selectedManufacturer} found in vehicleModels:`, 
+        Object.keys(masterData.vehicleModels).join(", ")
+      );
+      return;
+    }
+    
+    // If the case is different, update the form and state
+    if (manufacturerKey !== selectedManufacturer) {
+      console.log(`Updating manufacturer from "${selectedManufacturer}" to "${manufacturerKey}" to match case`);
+      setSelectedManufacturer(manufacturerKey);
+      form.setValue("manufacturer", manufacturerKey);
+    }
+    
+    // Safely get the models array
+    const manufacturerData = masterData.vehicleModels[manufacturerKey];
+    if (!manufacturerData || !manufacturerData.models || !Array.isArray(manufacturerData.models)) {
+      console.warn(`Models data not found or invalid for ${manufacturerKey}`);
+      return;
+    }
+    
+    // Find the specific model - first try exact case match
+    let modelData = manufacturerData.models.find((model: any) => 
+      model && typeof model === 'object' && model.name === value
+    );
+    
+    // If not found, try case-insensitive match
+    if (!modelData) {
+      modelData = manufacturerData.models.find((model: any) => 
+        model && typeof model === 'object' && model.name.toLowerCase() === value.toLowerCase()
+      );
       
-      // Access models array safely
-      const models = masterData.vehicleModels[selectedManufacturer].models;
-      if (!models || !Array.isArray(models)) {
-        console.warn("Models is not an array:", models);
-        return;
-      }
-      
-      // Find the specific model data
-      const modelData = models.find((model: any) => {
-        if (!model || typeof model !== 'object') {
-          console.warn("Invalid model object:", model);
-          return false;
-        }
-        return model.name === value;
-      });
-      
+      // If found with different case, update form value to correct case
       if (modelData) {
-        console.log("Model data found:", modelData);
+        console.log(`Updating model from "${value}" to "${modelData.name}" to match case`);
+        setSelectedModel(modelData.name);
+        form.setValue("vehicle_type", modelData.name);
+      }
+    }
+    
+    // If model data found, update form values
+    if (modelData) {
+      console.log("Model data found:", modelData);
+      
+      try {
+        // Safely get numeric values with fallbacks
+        const efficiency = typeof modelData.efficiency === 'number' 
+          ? modelData.efficiency 
+          : typeof modelData.efficiency === 'string' 
+            ? parseFloat(modelData.efficiency) 
+            : 0;
+            
+        const capacity = typeof modelData.capacity === 'number' 
+          ? modelData.capacity 
+          : typeof modelData.capacity === 'string' 
+            ? parseFloat(modelData.capacity) 
+            : 0;
+            
+        const idleConsumption = typeof modelData.idleConsumption === 'number' 
+          ? modelData.idleConsumption 
+          : typeof modelData.idleConsumption === 'string' 
+            ? parseFloat(modelData.idleConsumption) 
+            : 0;
+            
+        const passengerCapacity = typeof modelData.passengerCapacity === 'number' 
+          ? modelData.passengerCapacity 
+          : typeof modelData.passengerCapacity === 'string' 
+            ? parseFloat(modelData.passengerCapacity) 
+            : 0;
         
-        // Create a timeout to ensure DOM update has processed
-        setTimeout(() => {
-          try {
-            console.log("Setting model-specific values");
-            
-            // Get current form state
-            const currentFormState = form.getValues();
-            console.log("Current form state before update:", currentFormState);
-            
-            // Safely get numeric values with fallbacks
-            const efficiency = typeof modelData.efficiency === 'number' 
-              ? modelData.efficiency 
-              : typeof modelData.efficiency === 'string' 
-                ? parseFloat(modelData.efficiency) 
-                : 0;
-                
-            const capacity = typeof modelData.capacity === 'number' 
-              ? modelData.capacity 
-              : typeof modelData.capacity === 'string' 
-                ? parseFloat(modelData.capacity) 
-                : 0;
-                
-            const idleConsumption = typeof modelData.idleConsumption === 'number' 
-              ? modelData.idleConsumption 
-              : typeof modelData.idleConsumption === 'string' 
-                ? parseFloat(modelData.idleConsumption) 
-                : 0;
-                
-            const passengerCapacity = typeof modelData.passengerCapacity === 'number' 
-              ? modelData.passengerCapacity 
-              : typeof modelData.passengerCapacity === 'string' 
-                ? parseFloat(modelData.passengerCapacity) 
-                : 0;
-            
-            console.log("Parsed values:", {
-              efficiency,
-              capacity,
-              idleConsumption,
-              passengerCapacity
-            });
-            
-            // Update form fields with the extracted values
-            form.setValue("fuel_efficiency", efficiency);
-            form.setValue("vehicle_capacity", capacity);
-            form.setValue("idle_fuel_consumption", idleConsumption);
-            form.setValue("number_of_passengers", passengerCapacity);
-            
-            // Get fuel price and calculate cost per km
-            const fuelPrice = form.getValues("fuel_price_per_litre");
-            if (fuelPrice && efficiency > 0) {
-              const costPerKm = Number((fuelPrice / efficiency).toFixed(2));
-              console.log("Setting cost per km to:", costPerKm, "based on price:", fuelPrice, "and efficiency:", efficiency);
-              form.setValue("cost_per_km", costPerKm);
-            }
-            
-            // Log the updated form state
-            console.log("Form state after update:", form.getValues());
-          } catch (error) {
-            console.error("Error updating form values:", error);
-          }
-        }, 50);
-      } else {
-        console.warn(`Could not find model data for ${value} in ${selectedManufacturer} models`);
+        console.log("Parsed model values:", {
+          efficiency,
+          capacity,
+          idleConsumption,
+          passengerCapacity
+        });
+        
+        // Update form fields with the extracted values
+        form.setValue("fuel_efficiency", efficiency);
+        form.setValue("vehicle_capacity", capacity);
+        form.setValue("idle_fuel_consumption", idleConsumption);
+        form.setValue("number_of_passengers", passengerCapacity);
+        
+        // Get fuel price and calculate cost per km
+        const fuelPrice = form.getValues("fuel_price_per_litre");
+        if (fuelPrice && efficiency > 0) {
+          const costPerKm = Number((fuelPrice / efficiency).toFixed(2));
+          console.log("Setting cost per km to:", costPerKm);
+          form.setValue("cost_per_km", costPerKm);
+        }
+        
+        // Set a reasonable vehicle type name if not already set
+        if (!form.getValues("vehicle_type_name")) {
+          const typeName = `${manufacturerKey} ${modelData.name}`;
+          form.setValue("vehicle_type_name", typeName);
+          console.log("Set vehicle type name to:", typeName);
+        }
+        
+      } catch (error) {
+        console.error("Error updating form values:", error);
       }
     } else {
-      console.warn(`No models found for manufacturer: ${selectedManufacturer}`);
+      console.warn(`Could not find model data for "${value}" in ${manufacturerKey} models`);
     }
   };
 
@@ -264,61 +322,95 @@ export function VehicleTypeForm({ onSubmit, initialData, isEditing = false }: Ve
     form.setValue("fuel_type", value);
     
     // Find fuel type data and update price and co2 factor
-    if (fuelTypes && Array.isArray(fuelTypes)) {
-      console.log("Looking for fuel type in:", fuelTypes);
+    if (!fuelTypes || !Array.isArray(fuelTypes) || fuelTypes.length === 0) {
+      console.warn("No fuel types data available or not in the expected format:", fuelTypes);
+      return;
+    }
+    
+    console.log("Looking for fuel type in available fuel types:", 
+      fuelTypes.map((ft: any) => ft.type || "unknown").join(", ")
+    );
+    
+    // Case-insensitive search to handle any capitalization issues
+    let fuelData = fuelTypes.find((ft: any) => 
+      ft.type && typeof ft.type === 'string' && 
+      ft.type.toLowerCase() === value.toLowerCase()
+    );
+
+    // If exact match not found, try to find closest match
+    if (!fuelData && value) {
+      console.log("No exact match found, trying closest match");
       
-      // Case-insensitive search to handle any capitalization issues
-      const fuelData = fuelTypes.find((ft: any) => 
-        ft.type.toLowerCase() === value.toLowerCase()
+      // Try partial match (e.g., "Petrol" might match "PETROL 95")
+      fuelData = fuelTypes.find((ft: any) => 
+        ft.type && typeof ft.type === 'string' && 
+        (ft.type.toLowerCase().includes(value.toLowerCase()) ||
+         value.toLowerCase().includes(ft.type.toLowerCase()))
       );
       
       if (fuelData) {
-        console.log("Fuel data found:", fuelData);
+        console.log(`Found closest match: "${fuelData.type}" for input "${value}"`);
         
-        // Create a timeout to ensure DOM update has processed
-        setTimeout(() => {
-          try {
-            console.log("Setting fuel type-specific values");
+        // Update the fuel type value to match the database value
+        setSelectedFuelType(fuelData.type);
+        form.setValue("fuel_type", fuelData.type);
+      }
+    }
+    
+    if (fuelData) {
+      console.log("Fuel data found:", fuelData);
+      
+      try {
+        // Parse values as numbers - ensure we handle string values properly
+        const price = typeof fuelData.price === 'string' 
+          ? parseFloat(fuelData.price) 
+          : typeof fuelData.price === 'number'
+            ? fuelData.price
+            : 0;
             
-            // Get current form state
-            const currentFormState = form.getValues();
-            console.log("Current form state before fuel update:", currentFormState);
-            
-            // Parse values as numbers - ensure we handle string values properly
-            const price = typeof fuelData.price === 'string' 
-              ? parseFloat(fuelData.price) 
-              : fuelData.price;
-              
-            const co2Factor = typeof fuelData.co2_factor === 'string' 
-              ? parseFloat(fuelData.co2_factor) 
-              : fuelData.co2_factor;
-            
-            console.log("Extracted values - Price:", price, "CO2 Factor:", co2Factor);
-            
-            // Update form values
-            form.setValue("fuel_price_per_litre", price);
-            form.setValue("co2_emission_factor", co2Factor);
-            
-            // Calculate cost per km based on current efficiency
-            const efficiency = form.getValues("fuel_efficiency");
-            if (price && efficiency && efficiency > 0) {
-              const costPerKm = Number((price / efficiency).toFixed(2));
-              console.log("Setting cost per km to:", costPerKm, "based on price:", price, "and efficiency:", efficiency);
-              form.setValue("cost_per_km", costPerKm);
-            }
-            
-            // Log updated form state
-            console.log("Form state after fuel update:", form.getValues());
-          } catch (error) {
-            console.error("Error updating fuel values:", error);
-          }
-        }, 50);
-      } else {
-        console.warn(`Could not find fuel data for type: ${value}`);
-        console.log("Available fuel types:", fuelTypes.map(ft => ft.type));
+        // Try various property names for CO2 factor
+        let co2Factor = null;
+        if (fuelData.co2_factor !== undefined) {
+          co2Factor = typeof fuelData.co2_factor === 'string'
+            ? parseFloat(fuelData.co2_factor)
+            : fuelData.co2_factor;
+        } else if (fuelData.co2Factor !== undefined) {
+          co2Factor = typeof fuelData.co2Factor === 'string'
+            ? parseFloat(fuelData.co2Factor)
+            : fuelData.co2Factor;
+        } else {
+          // Default CO2 factor if not found
+          co2Factor = 2.0;
+          console.warn("CO2 factor not found in fuel data, using default value:", co2Factor);
+        }
+        
+        console.log("Extracted values - Price:", price, "CO2 Factor:", co2Factor);
+        
+        // Update form values
+        form.setValue("fuel_price_per_litre", price);
+        form.setValue("co2_emission_factor", co2Factor);
+        
+        // Calculate cost per km based on current efficiency
+        const efficiency = form.getValues("fuel_efficiency");
+        if (price && efficiency && efficiency > 0) {
+          const costPerKm = Number((price / efficiency).toFixed(2));
+          console.log("Setting cost per km to:", costPerKm);
+          form.setValue("cost_per_km", costPerKm);
+        }
+        
+        // Log updated form state
+        console.log("Form state after fuel update:", form.getValues());
+      } catch (error) {
+        console.error("Error updating fuel values:", error);
       }
     } else {
-      console.warn("No fuel types data available or not in the expected format:", fuelTypes);
+      console.warn(`Could not find fuel data for type: ${value}`);
+      // Show available fuel types for debugging
+      if (fuelTypes.length > 0) {
+        console.log("Available fuel types:", 
+          fuelTypes.map((ft: any) => ft.type || "unknown").join(", ")
+        );
+      }
     }
   };
 
