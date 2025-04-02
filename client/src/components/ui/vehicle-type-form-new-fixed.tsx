@@ -195,6 +195,24 @@ export function VehicleTypeForm({
     }
   };
 
+  // Function to update vehicle type code
+  const updateVehicleTypeCode = (manufacturer: string, model: string, year: number) => {
+    if (!manufacturer || !model || !year) {
+      console.log("Missing data for code generation");
+      return;
+    }
+    
+    // Update code format to MFR-MODEL-YEAR
+    const mfr = manufacturer.substring(0, 3);
+    const modelPrefix = model.substring(0, 3);
+    
+    // Generate code combining manufacturer, model, and year
+    const uniqueCode = `${mfr}-${modelPrefix}-${year}`.toUpperCase();
+    updateFormField("vehicle_type_code", uniqueCode);
+    
+    console.log("Generated vehicle type code:", uniqueCode);
+  };
+
   // Calculate cost per km based on fuel efficiency and price
   const calculateCostPerKm = () => {
     const efficiency = formState.fuel_efficiency;
@@ -211,12 +229,8 @@ export function VehicleTypeForm({
     updateFormField("manufacturer", value);
     updateFormField("vehicle_model", "");
     
-    if (value) {
-      const prefix = value.substring(0, 3).toUpperCase();
-      const year = formState.model_year;
-      updateFormField("vehicle_type_code", `${prefix}-GEN-${year}`);
-      console.log("Generated initial vehicle type code after manufacturer change");
-    }
+    // Don't generate code yet, wait for model year to be selected
+    console.log("Manufacturer changed, waiting for model year to update vehicle type code");
   };
 
   // Handle model change
@@ -226,16 +240,12 @@ export function VehicleTypeForm({
     // Auto-generate vehicle type name
     updateFormField("vehicle_type_name", `${formState.manufacturer} ${value}`);
     
-    // Update code format to MFR-MODEL-YEAR
-    const mfr = formState.manufacturer.substring(0, 3);
-    const model = value.substring(0, 3);
-    const year = formState.model_year;
-    
-    // Generate code combining manufacturer, model, and year
-    const uniqueCode = `${mfr}-${model}-${year}`.toUpperCase();
-    updateFormField("vehicle_type_code", uniqueCode);
-    
-    console.log("Generated vehicle type code:", uniqueCode);
+    // Only generate the code if we have manufacturer, model and year
+    if (formState.manufacturer && value && formState.model_year) {
+      updateVehicleTypeCode(formState.manufacturer, value, formState.model_year);
+    } else {
+      console.log("Need manufacturer, model and year to generate vehicle type code");
+    }
     
     // Load model data if available
     if (vehicleModels[formState.manufacturer]) {
@@ -437,7 +447,15 @@ export function VehicleTypeForm({
                   <Input
                     type="number"
                     value={formState.model_year}
-                    onChange={(e) => updateFormField("model_year", parseInt(e.target.value) || new Date().getFullYear())}
+                    onChange={(e) => {
+                      const year = parseInt(e.target.value) || new Date().getFullYear();
+                      updateFormField("model_year", year);
+                      
+                      // Update vehicle type code if manufacturer and model are selected
+                      if (formState.manufacturer && formState.vehicle_model) {
+                        updateVehicleTypeCode(formState.manufacturer, formState.vehicle_model, year);
+                      }
+                    }}
                   />
                 </div>
               </td>
