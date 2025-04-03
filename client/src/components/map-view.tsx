@@ -4,7 +4,7 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { LoadScriptNext, GoogleMap, Marker, InfoWindow, DirectionsRenderer, Libraries } from "@react-google-maps/api";
 import { VehicleLoadingIndicator } from "@/components/ui/vehicle-loading-indicator";
 import { Button } from "@/components/ui/button";
-import { MapPin, Clock, Search, Locate, AlertCircle } from "lucide-react";
+import { MapPin, Clock, Search, Locate, AlertCircle, CircleCheck } from "lucide-react";
 import { Input } from "@/components/ui/input";
 
 const defaultCenter = {
@@ -130,7 +130,7 @@ export function MapView({
   }, [pickupLocation, dropoffLocation, map, mapsInitialized]);
 
   const handleMapClick = async (e: google.maps.MapMouseEvent) => {
-    if (!e.latLng || !onLocationSelect || !mapsInitialized || typeof google === 'undefined') return;
+    if (!e.latLng || !mapsInitialized || typeof google === 'undefined') return;
 
     try {
       setIsLoading(true);
@@ -144,13 +144,25 @@ export function MapView({
 
       if (result.results[0]) {
         const place = result.results[0];
+        console.log("Map click geocode result:", place);
         setPopupLocation({
           lat: e.latLng.lat(),
           lng: e.latLng.lng(),
           address: place.formatted_address || "",
           place_id: place.place_id,
-          name: (place as any).name,
+          name: (place as any).name || place.formatted_address,
           formatted_address: place.formatted_address
+        });
+      } else {
+        console.warn("No geocode results found for clicked location");
+        // Still show popup even without detailed address
+        setPopupLocation({
+          lat: e.latLng.lat(),
+          lng: e.latLng.lng(),
+          address: "Selected location",
+          place_id: "",
+          name: "Selected location",
+          formatted_address: `Lat: ${e.latLng.lat().toFixed(6)}, Lng: ${e.latLng.lng().toFixed(6)}`
         });
       }
     } catch (error) {
@@ -175,6 +187,7 @@ export function MapView({
       place_id: popupLocation.place_id
     };
 
+    console.log(`Setting ${type} location:`, location);
     onLocationSelect?.(location, type);
     setPopupLocation(null);
   };
@@ -200,18 +213,22 @@ export function MapView({
       if (typeof google === 'undefined') {
         throw new Error("Google Maps API is not initialized in handleSearch");
       }
+      
       const geocoder = new google.maps.Geocoder();
+      console.log("Searching for location:", searchQuery);
       const result = await geocoder.geocode({ address: searchQuery });
       
       if (result.results.length > 0) {
         const place = result.results[0];
+        console.log("Search result:", place);
+        
         // Add type casting to handle missing properties in typings
         const location = {
           lat: place.geometry.location.lat(),
           lng: place.geometry.location.lng(),
           address: place.formatted_address || searchQuery,
           place_id: place.place_id,
-          name: (place as any).name,
+          name: (place as any).name || place.formatted_address,
           formatted_address: place.formatted_address
         };
         
@@ -221,7 +238,9 @@ export function MapView({
         
         // Show the location popup
         setPopupLocation(location);
+        console.log("Set popup location to:", location);
       } else {
+        console.warn("No locations found for search:", searchQuery);
         setMapError("No locations found for your search");
       }
     } catch (error) {
@@ -503,35 +522,38 @@ export function MapView({
                   position={{ lat: popupLocation.lat, lng: popupLocation.lng }}
                   onCloseClick={() => setPopupLocation(null)}
                   options={{
-                    maxWidth: 320,
+                    maxWidth: 350,
                     pixelOffset: typeof google !== 'undefined' ? new google.maps.Size(0, -5) : undefined
                   }}
                 >
-                  <div className="p-2 space-y-3 min-w-[250px]">
-                    <div className="border-b pb-2">
-                      <p className="text-sm font-medium flex items-center gap-2">
-                        <MapPin className="h-4 w-4 text-primary" />
-                        {popupLocation.formatted_address || popupLocation.name || popupLocation.address}
+                  <div className="p-3 space-y-3 min-w-[280px]">
+                    <div className="border-b pb-3">
+                      <h4 className="font-medium text-base mb-1">Selected Location</h4>
+                      <p className="text-sm flex items-start gap-2">
+                        <MapPin className="h-4 w-4 text-primary mt-1 flex-shrink-0" />
+                        <span>{popupLocation.formatted_address || popupLocation.name || popupLocation.address}</span>
                       </p>
                     </div>
-                    <div className="flex gap-2 flex-col sm:flex-row">
+                    <div className="flex gap-3 flex-col">
                       <Button
                         size="sm"
                         onClick={() => handleLocationTypeSelect('pickup')}
                         variant="default"
                         disabled={!!pickupLocation}
-                        className="w-full sm:w-auto bg-green-600 hover:bg-green-700"
+                        className="w-full bg-green-600 hover:bg-green-700 flex items-center justify-center gap-2"
                       >
-                        Set as Pickup
+                        <CircleCheck className="h-4 w-4" />
+                        <span>Set as Pickup Location</span>
                       </Button>
                       <Button
                         size="sm"
                         onClick={() => handleLocationTypeSelect('dropoff')}
                         variant={pickupLocation && !dropoffLocation ? "default" : "outline"}
                         disabled={!pickupLocation || !!dropoffLocation}
-                        className={`w-full sm:w-auto ${pickupLocation && !dropoffLocation ? "bg-red-600 hover:bg-red-700" : ""}`}
+                        className={`w-full flex items-center justify-center gap-2 ${pickupLocation && !dropoffLocation ? "bg-red-600 hover:bg-red-700" : ""}`}
                       >
-                        Set as Dropoff
+                        <CircleCheck className="h-4 w-4" />
+                        <span>Set as Dropoff Location</span>
                       </Button>
                     </div>
                   </div>
