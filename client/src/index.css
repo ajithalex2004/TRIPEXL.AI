@@ -11,3 +11,8 @@
     @apply font-sans antialiased bg-background text-foreground;
   }
 }
+
+/* Hide Google Maps InfoWindow close button */
+.gm-style-iw-c button.gm-ui-hover-effect {
+  display: none !important;
+}
