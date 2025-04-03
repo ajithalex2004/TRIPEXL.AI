@@ -44,7 +44,9 @@ export default function LoginPage() {
   const onSubmit = async (data: LoginFormData) => {
     try {
       setIsLoading(true);
-      const response = await fetch("/api/login", {
+      console.log("Attempting login with:", { email: data.email_id });
+      
+      const response = await fetch("/api/auth/login", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -59,6 +61,7 @@ export default function LoginPage() {
 
       if (!response.ok) {
         console.error("Login failed:", responseData);
+        // Set form errors to display the message
         form.setError("email_id", { 
           message: responseData.error || "Invalid email or password"
         });
