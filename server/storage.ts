@@ -5,8 +5,9 @@ import { type Employee, type InsertEmployee } from '@shared/schema';
 import { type User, type InsertUser } from '@shared/schema';
 import { type OtpVerification, type InsertOtpVerification } from '@shared/schema';
 import { type VehicleTypeMaster, type InsertVehicleTypeMaster, type FuelType, VehicleFuelType } from '@shared/schema';
+import { type ApprovalWorkflow, type InsertApprovalWorkflow } from '@shared/schema';
 import { db } from "./db";
-import { eq, desc } from "drizzle-orm";
+import { eq, desc, and } from "drizzle-orm";
 import * as schema from "@shared/schema";
 import { sql } from 'drizzle-orm';
 
@@ -37,6 +38,7 @@ export interface IStorage {
   ): Promise<Booking>;
 
   // Employee methods
+  createEmployee(employeeData: InsertEmployee): Promise<Employee>;
   findEmployeeByIdAndEmail(employeeId: string, email: string): Promise<Employee | null>;
   findEmployeeByEmployeeId(employeeId: string): Promise<Employee | null>;
   findUserByEmployeeId(employeeId: string): Promise<User | null>;
@@ -68,6 +70,11 @@ export interface IStorage {
   getVehicleGroup(id: number): Promise<VehicleGroup | null>;
   createVehicleGroup(group: InsertVehicleGroup): Promise<VehicleGroup>;
   updateVehicleGroup(id: number, data: Partial<InsertVehicleGroup>): Promise<VehicleGroup>;
+  
+  // Approval Workflow methods
+  createWorkflow(workflow: InsertApprovalWorkflow): Promise<ApprovalWorkflow>;
+  getWorkflows(): Promise<ApprovalWorkflow[]>;
+  updateWorkflow(id: number, data: Partial<InsertApprovalWorkflow>): Promise<ApprovalWorkflow>;
 
   // Vehicle Type Master methods
   getAllVehicleTypes(): Promise<VehicleTypeMaster[]>;
@@ -1164,6 +1171,46 @@ export class DatabaseStorage implements IStorage {
       throw error;
     }
   }
+  
+  async createEmployee(employeeData: InsertEmployee): Promise<Employee> {
+    try {
+      console.log('Creating employee:', employeeData);
+      
+      // Validate that the employee ID doesn't already exist
+      const existingEmployee = await this.findEmployeeByEmployeeId(employeeData.employee_id.toString());
+      if (existingEmployee) {
+        console.error('Employee ID already exists:', employeeData.employee_id);
+        throw new Error(`Employee with ID ${employeeData.employee_id} already exists`);
+      }
+      
+      // Check if email already exists
+      const existingEmail = await db
+        .select()
+        .from(schema.employees)
+        .where(eq(schema.employees.email_id, employeeData.email_id));
+        
+      if (existingEmail.length > 0) {
+        console.error('Email already exists:', employeeData.email_id);
+        throw new Error(`Email ${employeeData.email_id} is already in use`);
+      }
+      
+      // Insert the new employee
+      const [newEmployee] = await db
+        .insert(schema.employees)
+        .values({
+          ...employeeData,
+          created_at: new Date(),
+          updated_at: new Date()
+        })
+        .returning();
+        
+      console.log('Employee created successfully:', newEmployee);
+      return newEmployee;
+    } catch (error) {
+      console.error('Error creating employee:', error);
+      throw error;
+    }
+  }
 
   async getEmployeeById(id: number): Promise<Employee | null> {
     try {
@@ -1296,6 +1343,95 @@ export class DatabaseStorage implements IStorage {
     } catch (error) {
       console.error('Error updating user password:', error);
       throw new Error(`Failed to update password: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
+  }
+  
+  // Approval Workflow methods
+  async createWorkflow(workflow: InsertApprovalWorkflow): Promise<ApprovalWorkflow> {
+    try {
+      console.log('Creating new approval workflow:', workflow);
+      
+      // Check if workflow already exists for the same region/department/unit combination
+      const existingWorkflow = await db
+        .select()
+        .from(schema.approvalWorkflows)
+        .where(
+          and(
+            eq(schema.approvalWorkflows.region, workflow.region),
+            eq(schema.approvalWorkflows.department, workflow.department),
+            eq(schema.approvalWorkflows.unit, workflow.unit)
+          )
+        );
+      
+      if (existingWorkflow.length > 0) {
+        console.error('Workflow for this region/department/unit combination already exists');
+        throw new Error('A workflow for this region, department, and unit combination already exists');
+      }
+      
+      // Set timestamps
+      const workflowWithTimestamps = {
+        ...workflow,
+        created_at: new Date(),
+        updated_at: new Date()
+      };
+      
+      // Insert the new workflow
+      const [newWorkflow] = await db
+        .insert(schema.approvalWorkflows)
+        .values(workflowWithTimestamps)
+        .returning();
+        
+      console.log('Workflow created successfully:', newWorkflow);
+      return newWorkflow;
+    } catch (error) {
+      console.error('Error creating workflow:', error);
+      throw error;
+    }
+  }
+  
+  async getWorkflows(): Promise<ApprovalWorkflow[]> {
+    try {
+      console.log('Fetching all approval workflows');
+      
+      // Get all workflows
+      const workflows = await db
+        .select()
+        .from(schema.approvalWorkflows);
+      
+      console.log(`Found ${workflows.length} workflows`);
+      return workflows;
+    } catch (error) {
+      console.error('Error fetching approval workflows:', error);
+      throw error;
+    }
+  }
+  
+  async updateWorkflow(id: number, data: Partial<InsertApprovalWorkflow>): Promise<ApprovalWorkflow> {
+    try {
+      console.log(`Updating workflow with ID ${id}:`, data);
+      
+      // Set the updated_at timestamp
+      const updateData = {
+        ...data,
+        updated_at: new Date()
+      };
+      
+      // Update the workflow
+      const [updatedWorkflow] = await db
+        .update(schema.approvalWorkflows)
+        .set(updateData)
+        .where(eq(schema.approvalWorkflows.id, id))
+        .returning();
+        
+      if (!updatedWorkflow) {
+        throw new Error(`Workflow with ID ${id} not found`);
+      }
+      
+      console.log('Workflow updated successfully:', updatedWorkflow);
+      return updatedWorkflow;
+    } catch (error) {
+      console.error(`Error updating workflow with ID ${id}:`, error);
+      throw error;
     }
   }
 
