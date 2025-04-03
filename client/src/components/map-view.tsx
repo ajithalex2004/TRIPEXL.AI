@@ -72,6 +72,12 @@ export function MapView({
     // Clear any previous errors first
     setMapError(null);
     
+    // Additional logging to debug route drawing issues
+    console.log("DrawRoute called - Map initialized:", !!map);
+    console.log("Pickup location:", pickupLocation);
+    console.log("Dropoff location:", dropoffLocation);
+    console.log("Maps API initialized:", mapsInitialized && typeof google !== 'undefined');
+    
     // Comprehensive pre-check before attempting to draw route
     if (!map) {
       console.error("Map instance is not available");
@@ -162,7 +168,10 @@ export function MapView({
       
       // Make the route request
       try {
+        console.log("Sending directions request with travelMode:", google.maps.TravelMode.DRIVING);
         const result = await directionsService.route(request);
+        
+        console.log("DirectionsService returned result:", result);
         
         if (!result) {
           throw new Error("Directions service returned null result");
@@ -176,7 +185,7 @@ export function MapView({
           throw new Error("No route legs found in directions result");
         }
         
-        console.log("Route found successfully:", result);
+        console.log("Route found successfully. Route count:", result.routes.length);
         
         // Set the directions result
         setDirectionsResult(result);
