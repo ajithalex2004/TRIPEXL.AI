@@ -148,10 +148,10 @@ export function MapView({
         setPopupLocation({
           lat: e.latLng.lat(),
           lng: e.latLng.lng(),
-          address: place.formatted_address || "",
-          place_id: place.place_id,
-          name: (place as any).name || place.formatted_address,
-          formatted_address: place.formatted_address
+          address: place.formatted_address || "Selected location",
+          place_id: place.place_id || "",
+          name: (place as any).name || place.formatted_address || "Selected location",
+          formatted_address: place.formatted_address || "Selected location"
         });
       } else {
         console.warn("No geocode results found for clicked location");
@@ -174,7 +174,14 @@ export function MapView({
   };
 
   const handleLocationTypeSelect = (type: 'pickup' | 'dropoff') => {
-    if (!popupLocation || !map) return;
+    if (!popupLocation || !map) {
+      console.error("Cannot set location: missing popupLocation or map", { popupLocation, mapExists: !!map });
+      return;
+    }
+
+    // Ensure we always have values for required fields even if they're marked as optional in the interface
+    const locationName = popupLocation.name || popupLocation.address;
+    const formattedAddress = popupLocation.formatted_address || popupLocation.address;
 
     const location: Location = {
       address: popupLocation.address,
@@ -182,13 +189,22 @@ export function MapView({
         lat: popupLocation.lat,
         lng: popupLocation.lng
       },
-      name: popupLocation.name || popupLocation.address,
-      formatted_address: popupLocation.formatted_address || popupLocation.address,
-      place_id: popupLocation.place_id
+      // Always provide values for these properties, even though they're marked as optional in the interface
+      name: locationName,
+      formatted_address: formattedAddress,
+      place_id: popupLocation.place_id || ""
     };
 
     console.log(`Setting ${type} location:`, location);
-    onLocationSelect?.(location, type);
+    
+    // Check if the callback exists
+    if (onLocationSelect) {
+      console.log("Calling onLocationSelect callback with location data");
+      onLocationSelect(location, type);
+    } else {
+      console.error("onLocationSelect callback is not defined");
+    }
+    
     setPopupLocation(null);
   };
 
@@ -227,9 +243,9 @@ export function MapView({
           lat: place.geometry.location.lat(),
           lng: place.geometry.location.lng(),
           address: place.formatted_address || searchQuery,
-          place_id: place.place_id,
-          name: (place as any).name || place.formatted_address,
-          formatted_address: place.formatted_address
+          place_id: place.place_id || "",
+          name: (place as any).name || place.formatted_address || searchQuery, // Ensure name always has a value
+          formatted_address: place.formatted_address || searchQuery // Ensure formatted_address always has a value
         };
         
         // Center the map on the found location
@@ -285,9 +301,9 @@ export function MapView({
                 lat: coords.lat,
                 lng: coords.lng,
                 address: place.formatted_address || "Your location",
-                place_id: place.place_id,
-                name: (place as any).name,
-                formatted_address: place.formatted_address
+                place_id: place.place_id || "",
+                name: (place as any).name || place.formatted_address || "Your location",
+                formatted_address: place.formatted_address || "Your location"
               };
               
               // Center the map on the found location
@@ -301,6 +317,9 @@ export function MapView({
                 lat: coords.lat,
                 lng: coords.lng,
                 address: "Your location",
+                place_id: "",
+                name: "Your location",
+                formatted_address: "Your location"
               });
               map.setCenter(coords);
               map.setZoom(15);
@@ -311,6 +330,9 @@ export function MapView({
               lat: coords.lat,
               lng: coords.lng,
               address: "Your location",
+              place_id: "",
+              name: "Your location",
+              formatted_address: "Your location"
             });
             map.setCenter(coords);
             map.setZoom(15);
@@ -523,7 +545,9 @@ export function MapView({
                   onCloseClick={() => setPopupLocation(null)}
                   options={{
                     maxWidth: 350,
-                    pixelOffset: typeof google !== 'undefined' ? new google.maps.Size(0, -5) : undefined
+                    pixelOffset: typeof google !== 'undefined' ? new google.maps.Size(0, -5) : undefined,
+                    // Hide the default close button
+                    disableCloseButton: true
                   }}
                 >
                   <div className="p-3 space-y-3 min-w-[280px]">

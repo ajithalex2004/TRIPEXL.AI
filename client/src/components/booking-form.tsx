@@ -1076,7 +1076,15 @@ export function BookingForm() {
                                     value={field.value?.address || ""}
                                     placeholder="Enter pickup location"
                                     onLocationSelect={(location) => {
-                                      form.setValue("pickupLocation", location, {
+                                      // Ensure all optional properties are present with default values
+                                      const completeLocation = {
+                                        ...location,
+                                        place_id: location.place_id || "",
+                                        name: location.name || location.address,
+                                        formatted_address: location.formatted_address || location.address
+                                      };
+                                      console.log("Setting pickupLocation with:", completeLocation);
+                                      form.setValue("pickupLocation", completeLocation, {
                                         shouldValidate: true,
                                         shouldDirty: true,
                                         shouldTouch: true
@@ -1107,7 +1115,15 @@ export function BookingForm() {
                                     value={field.value?.address || ""}
                                     placeholder="Enter dropoff location"
                                     onLocationSelect={(location) => {
-                                      form.setValue("dropoffLocation", location, {
+                                      // Ensure all optional properties are present with default values
+                                      const completeLocation = {
+                                        ...location,
+                                        place_id: location.place_id || "",
+                                        name: location.name || location.address,
+                                        formatted_address: location.formatted_address || location.address
+                                      };
+                                      console.log("Setting dropoffLocation with:", completeLocation);
+                                      form.setValue("dropoffLocation", completeLocation, {
                                         shouldValidate: true,
                                         shouldDirty: true,
                                         shouldTouch: true
@@ -1182,11 +1198,24 @@ export function BookingForm() {
                               dropoffLocation={form.watch("dropoffLocation")}
                               onLocationSelect={(location, type) => {
                                 const fieldName = type === 'pickup' ? "pickupLocation" : "dropoffLocation";
-                                form.setValue(fieldName, location, {
+                                console.log(`Setting form field "${fieldName}" with location:`, location);
+                                // Ensure all optional properties are present with default values
+                                const completeLocation = {
+                                  ...location,
+                                  place_id: location.place_id || "",
+                                  name: location.name || location.address,
+                                  formatted_address: location.formatted_address || location.address
+                                };
+                                console.log(`MapView onLocationSelect: Setting ${fieldName} with:`, completeLocation);
+                                form.setValue(fieldName, completeLocation, {
                                   shouldValidate: true,
                                   shouldDirty: true,
                                   shouldTouch: true
                                 });
+                                
+                                // Log the form values after setting to verify it was updated
+                                console.log(`Form field "${fieldName}" current value:`, form.getValues(fieldName));
+                                console.log("All form values:", form.getValues());
                               }}
                               onRouteCalculated={handleRouteCalculated}
                             />
