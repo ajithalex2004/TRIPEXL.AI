@@ -161,6 +161,7 @@ export function EmployeeEmailSearch({
       </Form>
 
       {/* Employee data display */}
+      {/* Only show loading indicator while searching */}
       {(isSearching || isFetching) && (
         <div className="space-y-2 mt-4">
           <Skeleton className="h-4 w-full" />
@@ -168,29 +169,7 @@ export function EmployeeEmailSearch({
         </div>
       )}
       
-      {employee && !isSearching && !isFetching && (
-        <div className="mt-4 p-3 bg-secondary/30 rounded-md border">
-          <p className="font-medium">Employee found:</p>
-          <div className="grid grid-cols-2 gap-2 mt-2">
-            <div>
-              <p className="text-sm font-medium">Employee ID:</p>
-              <p className="text-sm">{employee.employeeId}</p>
-            </div>
-            <div>
-              <p className="text-sm font-medium">Name:</p>
-              <p className="text-sm">{employee.employeeName}</p>
-            </div>
-            <div>
-              <p className="text-sm font-medium">Department:</p>
-              <p className="text-sm">{employee.department || "N/A"}</p>
-            </div>
-            <div>
-              <p className="text-sm font-medium">Designation:</p>
-              <p className="text-sm">{employee.designation || "N/A"}</p>
-            </div>
-          </div>
-        </div>
-      )}
+      {/* Employee info is no longer displayed but still processed in the background */}
     </div>
   );
 }

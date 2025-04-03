@@ -645,8 +645,9 @@ export function BookingForm() {
                             }
                             
                             toast({
-                              title: "Employee Found",
-                              description: `Found details for ${employeeData.employeeName || 'employee'}`,
+                              title: "Employee Details Auto-filled",
+                              description: `Successfully retrieved details for ${employeeData.employeeName || 'employee'}`,
+                              variant: "default",
                             });
                           }
                         }}
