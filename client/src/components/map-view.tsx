@@ -70,31 +70,62 @@ export function MapView({
 
   const drawRoute = async () => {
     if (!pickupLocation || !dropoffLocation || !map || !mapsInitialized || typeof google === 'undefined') {
-      console.log("Missing location data or Google Maps not initialized:", { pickupLocation, dropoffLocation, googleDefined: typeof google !== 'undefined', mapsInitialized });
+      console.log("Missing location data or Google Maps not initialized:", { 
+        pickupLocationExists: !!pickupLocation, 
+        dropoffLocationExists: !!dropoffLocation, 
+        mapExists: !!map, 
+        googleDefined: typeof google !== 'undefined', 
+        mapsInitialized 
+      });
       return;
     }
+
+    console.log("Drawing route between:", {
+      pickup: `${pickupLocation.coordinates.lat}, ${pickupLocation.coordinates.lng}`,
+      dropoff: `${dropoffLocation.coordinates.lat}, ${dropoffLocation.coordinates.lng}`
+    });
 
     try {
       setIsLoading(true);
       setMapError(null);
 
-      const directionsService = new google.maps.DirectionsService();
-      const result = await directionsService.route({
-        origin: pickupLocation.coordinates,
-        destination: dropoffLocation.coordinates,
-        travelMode: google.maps.TravelMode.DRIVING,
-        optimizeWaypoints: true,
-        provideRouteAlternatives: false,
-        avoidHighways: false,
-        avoidTolls: false,
-      });
-
-      if (!result.routes.length) {
-        throw new Error("No route found");
+      // Validate coordinates to ensure they're valid numbers
+      if (
+        isNaN(pickupLocation.coordinates.lat) || 
+        isNaN(pickupLocation.coordinates.lng) || 
+        isNaN(dropoffLocation.coordinates.lat) || 
+        isNaN(dropoffLocation.coordinates.lng)
+      ) {
+        throw new Error("Invalid coordinates detected");
       }
 
+      const directionsService = new google.maps.DirectionsService();
+      
+      const request = {
+        origin: {
+          lat: pickupLocation.coordinates.lat,
+          lng: pickupLocation.coordinates.lng
+        },
+        destination: {
+          lat: dropoffLocation.coordinates.lat, 
+          lng: dropoffLocation.coordinates.lng
+        },
+        travelMode: google.maps.TravelMode.DRIVING
+      };
+      
+      console.log("Sending directions request:", request);
+      
+      const result = await directionsService.route(request);
+
+      if (!result || !result.routes || !result.routes.length) {
+        throw new Error("No route found in results");
+      }
+
+      console.log("Route found:", result);
       setDirectionsResult(result);
-      const durationInSeconds = result.routes[0].legs[0].duration?.value || 0;
+      
+      const leg = result.routes[0].legs[0];
+      const durationInSeconds = leg.duration?.value || 0;
       console.log("Route duration calculated:", durationInSeconds);
 
       // Always notify parent component about route duration
@@ -103,8 +134,8 @@ export function MapView({
       }
 
       setRouteInfo({
-        distance: result.routes[0].legs[0].distance?.text || "Unknown",
-        duration: result.routes[0].legs[0].duration?.text || "Unknown"
+        distance: leg.distance?.text || "Unknown",
+        duration: leg.duration?.text || "Unknown"
       });
 
       // Fit map to show the entire route
