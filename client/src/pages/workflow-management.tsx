@@ -26,8 +26,18 @@ export default function WorkflowManagementPage() {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingWorkflow, setEditingWorkflow] = useState<ApprovalWorkflow | null>(null);
 
-  const { data: workflows, isLoading } = useQuery<ApprovalWorkflow[]>({
+  const { data: workflows, isLoading, error } = useQuery<ApprovalWorkflow[]>({
     queryKey: ['/api/approval-workflows'],
+    queryFn: async () => {
+      console.log("Fetching workflows from /api/approval-workflows");
+      const response = await fetch('/api/approval-workflows');
+      if (!response.ok) {
+        throw new Error(`Failed to fetch workflows: ${response.status}`);
+      }
+      const data = await response.json();
+      console.log("Received workflows data:", data);
+      return data;
+    }
   });
 
   const handleEdit = (workflow: ApprovalWorkflow) => {
