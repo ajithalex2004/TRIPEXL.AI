@@ -29,6 +29,7 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 import { LoadingIndicator } from "@/components/ui/loading-indicator";
 import { MapView } from "@/components/map-view";
+import { SimpleMapView } from "@/components/simple-map-view";
 import { motion, AnimatePresence } from "framer-motion";
 import { VehicleLoadingIndicator } from "@/components/ui/vehicle-loading-indicator";
 import { DateTimePicker } from "@/components/ui/date-time-picker";
@@ -1176,7 +1177,7 @@ export function BookingForm() {
                         {/* Map View */}
                         <div className="space-y-4">
                           <div className="h-[500px] relative rounded-lg overflow-hidden border">
-                            <MapView
+                            <SimpleMapView
                               pickupLocation={form.watch("pickupLocation")}
                               dropoffLocation={form.watch("dropoffLocation")}
                               onLocationSelect={(location, type) => {
