@@ -51,14 +51,17 @@ export function WorkflowManagementForm({ onSuccess, initialData }: WorkflowManag
 
   // Query to fetch available approvers (Level 1 and Level 2 employees)
   const { data: approversData } = useQuery({
-    queryKey: ['/api/approvers'],
+    queryKey: ['/api/employees/approvers'],
     queryFn: async () => {
       try {
-        const response = await fetch('/api/approvers');
+        console.log("Fetching approvers...");
+        const response = await fetch('/api/employees/approvers');
         if (!response.ok) {
           throw new Error('Failed to fetch approvers');
         }
-        return response.json();
+        const data = await response.json();
+        console.log(`Found ${data.length} approvers`);
+        return data;
       } catch (error) {
         console.error('Error fetching approvers:', error);
         throw error;
@@ -235,7 +238,9 @@ export function WorkflowManagementForm({ onSuccess, initialData }: WorkflowManag
                     </SelectTrigger>
                   </FormControl>
                   <SelectContent>
-                    {approversData?.level1?.map((employee) => (
+                    {approversData?.filter(employee => 
+                      employee.hierarchy_level === 'Level 1' || employee.designation === 'Approval Authority'
+                    ).map((employee) => (
                       <SelectItem key={employee.id} value={employee.id.toString()}>
                         {employee.employee_name}
                       </SelectItem>
@@ -264,7 +269,9 @@ export function WorkflowManagementForm({ onSuccess, initialData }: WorkflowManag
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      {approversData?.level2?.map((employee) => (
+                      {approversData?.filter(employee => 
+                        employee.hierarchy_level === 'Level 2'
+                      ).map((employee) => (
                         <SelectItem key={employee.id} value={employee.id.toString()}>
                           {employee.employee_name}
                         </SelectItem>

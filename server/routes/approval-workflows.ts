@@ -6,14 +6,16 @@ import { approvalWorkflows } from '@shared/schema';
 const router = Router();
 
 // Get all approval workflows
-router.get('/api/approval-workflows', async (_req, res) => {
+router.get('/', async (_req, res) => {
   try {
+    console.log("Fetching all approval workflows");
     const workflows = await db.query.approvalWorkflows.findMany({
       with: {
         level1Approver: true,
         level2Approver: true,
       },
     });
+    console.log(`Found ${workflows.length} workflows`);
     res.json(workflows);
   } catch (error: any) {
     console.error("Error fetching approval workflows:", error);
@@ -22,8 +24,9 @@ router.get('/api/approval-workflows', async (_req, res) => {
 });
 
 // Create new approval workflow
-router.post('/api/approval-workflows', async (req, res) => {
+router.post('/', async (req, res) => {
   try {
+    console.log("Creating new approval workflow:", req.body);
     // Check if workflow already exists for this combination
     const existing = await db.query.approvalWorkflows.findFirst({
       where: and(
@@ -44,6 +47,7 @@ router.post('/api/approval-workflows', async (req, res) => {
       .values(req.body)
       .returning();
 
+    console.log("Created workflow:", workflow);
     res.status(201).json(workflow);
   } catch (error: any) {
     console.error("Error creating approval workflow:", error);
@@ -52,7 +56,7 @@ router.post('/api/approval-workflows', async (req, res) => {
 });
 
 // Update approval workflow
-router.put('/api/approval-workflows/:id', async (req, res) => {
+router.put('/:id', async (req, res) => {
   try {
     const [workflow] = await db
       .update(approvalWorkflows)
@@ -72,7 +76,7 @@ router.put('/api/approval-workflows/:id', async (req, res) => {
 });
 
 // Delete approval workflow
-router.delete('/api/approval-workflows/:id', async (req, res) => {
+router.delete('/:id', async (req, res) => {
   try {
     const [workflow] = await db
       .delete(approvalWorkflows)
