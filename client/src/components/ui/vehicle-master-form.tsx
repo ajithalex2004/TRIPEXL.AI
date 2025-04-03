@@ -254,29 +254,45 @@ export function VehicleMasterForm({ isOpen, onClose, initialData }: VehicleMaste
       form.setValue("vehicle_type_code", selectedType.vehicle_type_code);
       form.setValue("vehicle_type_name", selectedType.vehicle_type_name || `${selectedType.manufacturer} ${selectedType.vehicle_model}`);
       
+      // Force form revalidation to update UI state
+      form.trigger("vehicle_type_code");
+      form.trigger("vehicle_type_name");
+      
       // IMPORTANT: Always set fuel_type if it's available - this is a key requirement
       if (selectedType.fuel_type) {
         console.log("Setting fuel type to:", selectedType.fuel_type);
-        form.setValue("fuel_type", selectedType.fuel_type);
-        // Trigger any logic dependent on fuel type changes
-        toast({
-          title: "Fuel Type Set",
-          description: `Fuel type set to ${selectedType.fuel_type}`,
-          variant: "default",
-          duration: 2000,
-        });
+        // Use direct DOM update to ensure the select component updates
+        form.setValue("fuel_type", selectedType.fuel_type, { shouldDirty: true, shouldTouch: true, shouldValidate: true });
+        
+        // Force the form to update the UI
+        setTimeout(() => {
+          // Force rerender of this field
+          form.trigger("fuel_type");
+          
+          // Trigger any logic dependent on fuel type changes
+          toast({
+            title: "Fuel Type Set",
+            description: `Fuel type set to ${selectedType.fuel_type}`,
+            variant: "default",
+            duration: 2000,
+          });
+        }, 0);
       }
       
       // Only set model_year if it's not null
       if (selectedType.model_year) {
-        form.setValue("model_year", selectedType.model_year);
+        form.setValue("model_year", selectedType.model_year, { shouldDirty: true, shouldTouch: true, shouldValidate: true });
         setSelectedModelYear(selectedType.model_year);
+        setTimeout(() => form.trigger("model_year"), 0);
       }
       
       // Set manufacturer first so available models can be populated
       if (selectedType.manufacturer) {
-        form.setValue("manufacturer", selectedType.manufacturer);
+        form.setValue("manufacturer", selectedType.manufacturer, { shouldDirty: true, shouldTouch: true, shouldValidate: true });
         setSelectedManufacturer(selectedType.manufacturer);
+        
+        // Force rerender of this field
+        setTimeout(() => form.trigger("manufacturer"), 0);
         
         // Update available models for the selected manufacturer
         const modelInfo = DEFAULT_VEHICLE_MODELS[selectedType.manufacturer as keyof typeof DEFAULT_VEHICLE_MODELS];
@@ -288,8 +304,12 @@ export function VehicleMasterForm({ isOpen, onClose, initialData }: VehicleMaste
           console.log("Setting vehicle model to:", selectedType.vehicle_model);
           // Small delay to ensure the manufacturer change has processed and models are loaded
           setTimeout(() => {
-            form.setValue("vehicle_model", selectedType.vehicle_model);
+            form.setValue("vehicle_model", selectedType.vehicle_model, { shouldDirty: true, shouldTouch: true, shouldValidate: true });
             setSelectedModel(selectedType.vehicle_model);
+            
+            // Force rerender of the vehicle model field
+            form.trigger("vehicle_model");
+            
             toast({
               title: "Vehicle Model Set",
               description: `Vehicle model set to ${selectedType.vehicle_model}`,
@@ -302,17 +322,25 @@ export function VehicleMasterForm({ isOpen, onClose, initialData }: VehicleMaste
       
       // Set region if available
       if (selectedType.region) {
-        form.setValue("region", selectedType.region);
+        form.setValue("region", selectedType.region, { shouldDirty: true, shouldTouch: true, shouldValidate: true });
+        setTimeout(() => form.trigger("region"), 0);
       }
       
       // Set department if available
       if (selectedType.department) {
-        form.setValue("department", selectedType.department);
+        form.setValue("department", selectedType.department, { shouldDirty: true, shouldTouch: true, shouldValidate: true });
+        setTimeout(() => form.trigger("department"), 0);
       }
       
       // Set default values for fields that exist in vehicle master but not in vehicle type
-      form.setValue("transmission_type", "AUTOMATIC"); // Default transmission type
-      form.setValue("vehicle_usage", "OPERATIONAL"); // Default vehicle usage
+      form.setValue("transmission_type", "AUTOMATIC", { shouldDirty: true, shouldTouch: true, shouldValidate: true }); // Default transmission type
+      form.setValue("vehicle_usage", "OPERATIONAL", { shouldDirty: true, shouldTouch: true, shouldValidate: true }); // Default vehicle usage
+      
+      // Force rerender of these fields
+      setTimeout(() => {
+        form.trigger("transmission_type");
+        form.trigger("vehicle_usage");
+      }, 0);
     }
   }, [vehicleTypes, form, toast]);
 
@@ -587,9 +615,16 @@ export function VehicleMasterForm({ isOpen, onClose, initialData }: VehicleMaste
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Fuel Type *</FormLabel>
-                    <Select onValueChange={field.onChange} value={field.value}>
+                    <Select 
+                      onValueChange={(value) => {
+                        console.log("Fuel type selected manually:", value);
+                        field.onChange(value);
+                      }} 
+                      value={field.value || ""}
+                      defaultValue={field.value || ""}
+                    >
                       <FormControl>
-                        <SelectTrigger>
+                        <SelectTrigger className={field.value ? "bg-primary/5 border-primary/20" : ""}>
                           <SelectValue placeholder="Select fuel type" />
                         </SelectTrigger>
                       </FormControl>
@@ -913,12 +948,16 @@ export function VehicleMasterForm({ isOpen, onClose, initialData }: VehicleMaste
                   <FormItem>
                     <FormLabel>Vehicle Model *</FormLabel>
                     <Select
-                      onValueChange={handleVehicleModelChange}
-                      value={field.value}
+                      onValueChange={(value) => {
+                        console.log("Vehicle model selected manually:", value);
+                        handleVehicleModelChange(value);
+                      }}
+                      value={field.value || ""}
+                      defaultValue={field.value || ""}
                       disabled={!selectedManufacturer || availableModels.length === 0}
                     >
                       <FormControl>
-                        <SelectTrigger>
+                        <SelectTrigger className={field.value ? "bg-primary/5 border-primary/20" : ""}>
                           <SelectValue placeholder="Select vehicle model" />
                         </SelectTrigger>
                       </FormControl>
