@@ -57,30 +57,40 @@ if (!existingUser) {
 
 router.post("/login", async (req, res) => {
   try {
-    const { email_id, password } = req.body;
+    const { userName, password } = req.body;
 
-    if (!email_id || !password) {
+    console.log('Login attempt with username:', userName);
+
+    if (!userName || !password) {
       return res.status(400).json({
-        error: "Email and password are required"
+        error: "Username and password are required"
       });
     }
 
-    const user = await storage.findUserByEmail(email_id);
+    // Find user by either email or username
+    let user;
+    if (userName.includes('@')) {
+      user = await storage.findUserByEmail(userName);
+    } else {
+      user = await storage.getUserByUserName(userName);
+    }
 
     if (!user) {
-      console.error('User not found:', email_id);
+      console.error('User not found:', userName);
       return res.status(401).json({
-        error: "Invalid email or password"
+        error: "Invalid username or password"
       });
     }
+
+    console.log('User found:', user.id, user.user_name);
 
     // Compare the provided password with the stored password
     const isValidPassword = await bcrypt.compare(password, user.password);
 
     if (!isValidPassword) {
-      console.error('Password validation failed for user:', email_id);
+      console.error('Password validation failed for user:', userName);
       return res.status(401).json({
-        error: "Invalid email or password"
+        error: "Invalid username or password"
       });
     }
 
@@ -88,6 +98,7 @@ router.post("/login", async (req, res) => {
 
     // Update last login
     await storage.updateUserLastLogin(user.id);
+    console.log('Login successful for user:', user.id, user.user_name);
 
     return res.status(200).json({
       token,

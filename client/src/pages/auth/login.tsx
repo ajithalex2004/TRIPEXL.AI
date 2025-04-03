@@ -21,7 +21,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { PersonalizedGreeting } from "@/components/personalized-greeting";
 
 const loginSchema = z.object({
-  email_id: z.string().min(1, "Email is required").email("Invalid email format"),
+  userName: z.string().min(1, "Username or Email is required"),
   password: z.string().min(1, "Password is required"),
 });
 
@@ -36,7 +36,7 @@ export default function LoginPage() {
   const form = useForm<LoginFormData>({
     resolver: zodResolver(loginSchema),
     defaultValues: {
-      email_id: "",
+      userName: "",
       password: "",
     },
   });
@@ -44,7 +44,7 @@ export default function LoginPage() {
   const onSubmit = async (data: LoginFormData) => {
     try {
       setIsLoading(true);
-      console.log("Attempting login with:", { email: data.email_id });
+      console.log("Attempting login with:", { userName: data.userName });
       
       const response = await fetch("/api/auth/login", {
         method: "POST",
@@ -52,7 +52,7 @@ export default function LoginPage() {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          email_id: data.email_id,
+          userName: data.userName,
           password: data.password,
         }),
       });
@@ -62,13 +62,13 @@ export default function LoginPage() {
       if (!response.ok) {
         console.error("Login failed:", responseData);
         // Set form errors to display the message
-        form.setError("email_id", { 
-          message: responseData.error || "Invalid email or password"
+        form.setError("userName", { 
+          message: responseData.error || "Invalid username or password"
         });
         form.setError("password", { 
           message: " " // Add space to trigger the error styling without repeating the message
         });
-        throw new Error(responseData.error || "Invalid email or password");
+        throw new Error(responseData.error || "Invalid username or password");
       }
 
       localStorage.setItem("token", responseData.token);
@@ -111,16 +111,16 @@ export default function LoginPage() {
               <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
                 <FormField
                   control={form.control}
-                  name="email_id"
+                  name="userName"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Email</FormLabel>
+                      <FormLabel>Username or Email</FormLabel>
                       <FormControl>
                         <Input
                           {...field}
-                          type="email"
-                          placeholder="Enter your email"
-                          autoComplete="email"
+                          type="text"
+                          placeholder="Enter your username or email"
+                          autoComplete="username"
                         />
                       </FormControl>
                       <FormMessage />

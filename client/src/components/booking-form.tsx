@@ -122,16 +122,32 @@ export function BookingForm() {
   const [, setLocation] = useLocation();
   const [activeTab, setActiveTab] = React.useState("booking");
 
-  // Simplified employee data query
-  const { data: employee } = useQuery({
+  // Employee data query with logging
+  const { data: employee, isLoading: employeeLoading, error: employeeError } = useQuery({
     queryKey: ["/api/employee/current"],
     queryFn: async () => {
+      console.log("Fetching employee data...");
       const response = await apiRequest("GET", "/api/employee/current");
-      return response.json();
+      if (!response.ok) {
+        const errorData = await response.json();
+        console.error("Error fetching employee data:", errorData);
+        throw new Error(errorData.error || "Failed to fetch employee data");
+      }
+      const data = await response.json();
+      console.log("Employee data received:", data);
+      return data;
     },
     retry: false,
     staleTime: Infinity // Only fetch once per session
   });
+  
+  // Debug output for employee data
+  React.useEffect(() => {
+    console.log("Current employee data in component:", employee);
+    if (employeeError) {
+      console.error("Employee data error:", employeeError);
+    }
+  }, [employee, employeeError]);
 
   const form = useForm({
     resolver: zodResolver(insertBookingSchema),
