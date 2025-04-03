@@ -4,7 +4,7 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { LoadScriptNext, GoogleMap, Marker, InfoWindow, DirectionsRenderer, Libraries } from "@react-google-maps/api";
 import { VehicleLoadingIndicator } from "@/components/ui/vehicle-loading-indicator";
 import { Button } from "@/components/ui/button";
-import { MapPin, Clock, Search, Locate, AlertCircle, CircleCheck } from "lucide-react";
+import { MapPin, Clock, Search, Locate, AlertCircle, CircleCheck, Info as InfoIcon } from "lucide-react";
 import { Input } from "@/components/ui/input";
 
 const defaultCenter = {
@@ -238,6 +238,92 @@ export function MapView({
         // Use a more specific error message if available
         const errorMessage = routeError?.message || "Could not calculate route between these locations";
         
+        // Handle REQUEST_DENIED error from directions service
+        if (errorMessage.includes("REQUEST_DENIED") || routeError?.code === "REQUEST_DENIED") {
+          console.warn("Direction service access denied. Using straight line distance calculation as fallback");
+          
+          // Calculate straight-line distance as a fallback
+          const R = 6371; // Earth's radius in km
+          const dLat = (dropoffLocation.coordinates.lat - pickupLocation.coordinates.lat) * Math.PI / 180;
+          const dLon = (dropoffLocation.coordinates.lng - pickupLocation.coordinates.lng) * Math.PI / 180;
+          const a = 
+            Math.sin(dLat/2) * Math.sin(dLat/2) +
+            Math.cos(pickupLocation.coordinates.lat * Math.PI / 180) * Math.cos(dropoffLocation.coordinates.lat * Math.PI / 180) * 
+            Math.sin(dLon/2) * Math.sin(dLon/2);
+          const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+          const distance = R * c; // Distance in km
+          
+          // Estimate duration (assuming average speed of 40 km/h in urban areas)
+          const durationInMinutes = Math.ceil((distance / 40) * 60);
+          const durationInSeconds = durationInMinutes * 60;
+          
+          // Format distance and duration
+          const distanceText = distance < 1 ? 
+            `${Math.round(distance * 1000)} m` : 
+            `${distance.toFixed(1)} km`;
+          
+          const durationText = durationInMinutes < 60 ? 
+            `${durationInMinutes} mins` : 
+            `${Math.floor(durationInMinutes / 60)} hr ${durationInMinutes % 60} mins`;
+          
+          // Update route info with our calculation
+          setRouteInfo({
+            distance: distanceText,
+            duration: durationText
+          });
+          
+          // Draw a simple straight line between points
+          const straightLineOptions = {
+            path: [
+              pickupLocation.coordinates,
+              dropoffLocation.coordinates
+            ],
+            geodesic: true,
+            strokeColor: "#0033CC",
+            strokeOpacity: 0.8,
+            strokeWeight: 6
+          };
+          
+          // Create and add a polyline to show a direct path
+          const polyline = new google.maps.Polyline(straightLineOptions);
+          polyline.setMap(map);
+          
+          // Store the polyline in the DirectionsRenderer's state to clear it if needed
+          const simpleDirectionsResult = {
+            routes: [{
+              overview_path: [
+                new google.maps.LatLng(pickupLocation.coordinates.lat, pickupLocation.coordinates.lng),
+                new google.maps.LatLng(dropoffLocation.coordinates.lat, dropoffLocation.coordinates.lng)
+              ],
+              legs: [{
+                distance: { text: distanceText, value: distance * 1000 },
+                duration: { text: durationText, value: durationInSeconds }
+              }]
+            }]
+          } as google.maps.DirectionsResult;
+          
+          setDirectionsResult(simpleDirectionsResult);
+          
+          // Notify parent component about the calculated duration
+          if (onRouteCalculated) {
+            onRouteCalculated(durationInSeconds);
+          }
+          
+          // Fit the map bounds to show both markers
+          const bounds = new google.maps.LatLngBounds();
+          bounds.extend(pickupLocation.coordinates);
+          bounds.extend(dropoffLocation.coordinates);
+          map.fitBounds(bounds);
+          
+          // Show an informational message about the straight-line calculation using separate state
+          // We're reusing mapError state but will display it differently in the UI
+          setMapError("FALLBACK:Using straight-line distance estimate. Actual driving route not available.");
+          
+          // Don't throw an error - we've handled it with our fallback
+          return;
+        }
+        
+        // Handle other specific errors
         if (errorMessage.includes("ZERO_RESULTS")) {
           throw new Error("No driving route found between these locations");
         } else if (errorMessage.includes("NOT_FOUND")) {
@@ -545,10 +631,23 @@ export function MapView({
       )}
       
       {mapError && (
-        <Alert variant="destructive" className="mb-4">
-          <AlertCircle className="h-4 w-4" />
-          <AlertTitle>Error</AlertTitle>
-          <AlertDescription>{mapError}</AlertDescription>
+        <Alert 
+          variant={mapError.startsWith("FALLBACK:") ? "default" : "destructive"} 
+          className="mb-4"
+        >
+          {mapError.startsWith("FALLBACK:") ? (
+            <>
+              <InfoIcon className="h-4 w-4 text-blue-600" />
+              <AlertTitle>Information</AlertTitle>
+              <AlertDescription>{mapError.substring(9)}</AlertDescription>
+            </>
+          ) : (
+            <>
+              <AlertCircle className="h-4 w-4" />
+              <AlertTitle>Error</AlertTitle>
+              <AlertDescription>{mapError}</AlertDescription>
+            </>
+          )}
         </Alert>
       )}
       
@@ -669,7 +768,8 @@ export function MapView({
                 ]
               }}
             >
-              {directionsResult && (
+              {/* Only render DirectionsRenderer for real directions results (not our fallback) */}
+              {directionsResult && directionsResult.routes[0]?.overview_polyline && (
                 <DirectionsRenderer
                   directions={directionsResult}
                   options={{
@@ -770,11 +870,7 @@ export function MapView({
         )}
       </LoadScriptNext>
 
-      {mapError && (
-        <Alert variant="destructive" className="mt-2">
-          <AlertDescription>{mapError}</AlertDescription>
-        </Alert>
-      )}
+      {/* Alert for mapError is now handled at the top of the component */}
 
       {routeInfo && pickupLocation && dropoffLocation && (
         <div className="mt-4 p-4 border rounded-lg shadow-sm">
