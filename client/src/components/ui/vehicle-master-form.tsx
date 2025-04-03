@@ -70,9 +70,16 @@ export function VehicleMasterForm({ isOpen, onClose, initialData }: VehicleMaste
   const [availableModels, setAvailableModels] = React.useState<string[]>([]);
   const [selectedModel, setSelectedModel] = React.useState<string>(initialData?.vehicle_model || "");
 
+  // Define a custom interface extending VehicleTypeMaster for our component
+  interface ExtendedVehicleType extends VehicleTypeMaster {
+    // Add missing fields that we're trying to access but are not in the original type
+    transmission_type?: string;
+    vehicle_usage?: string;
+  }
+  
   // Query hooks - keep at top level
-  const { data: vehicleTypes, isLoading: isLoadingVehicleTypes } = useQuery<VehicleTypeMaster[]>({
-    queryKey: ["/api/vehicle-type-master"],
+  const { data: vehicleTypes, isLoading: isLoadingVehicleTypes } = useQuery<ExtendedVehicleType[]>({
+    queryKey: ["/api/vehicle-types"],
   });
   
   const { data: fuelTypes, isLoading: isLoadingFuelTypes } = useQuery<FuelType[]>({
@@ -218,6 +225,8 @@ export function VehicleMasterForm({ isOpen, onClose, initialData }: VehicleMaste
   const handleVehicleTypeSelect = React.useCallback((typeCode: string) => {
     const selectedType = vehicleTypes?.find(type => type.vehicle_type_code === typeCode);
     if (selectedType) {
+      console.log("Vehicle Type selected:", selectedType);
+      
       // Set the form fields based on the selected vehicle type
       form.setValue("vehicle_type_code", selectedType.vehicle_type_code);
       form.setValue("vehicle_type_name", selectedType.vehicle_type_name || `${selectedType.manufacturer} ${selectedType.vehicle_model}`);
@@ -230,6 +239,7 @@ export function VehicleMasterForm({ isOpen, onClose, initialData }: VehicleMaste
       // Only set model_year if it's not null
       if (selectedType.model_year) {
         form.setValue("model_year", selectedType.model_year);
+        setSelectedModelYear(selectedType.model_year);
       }
       
       // Only set manufacturer if it's not null or empty
@@ -249,21 +259,6 @@ export function VehicleMasterForm({ isOpen, onClose, initialData }: VehicleMaste
         setSelectedModel(selectedType.vehicle_model);
       }
       
-      // Update model year state if available
-      if (selectedType.model_year) {
-        setSelectedModelYear(selectedType.model_year);
-      }
-      
-      // Set transmission_type if available
-      if (selectedType.transmission_type) {
-        form.setValue("transmission_type", selectedType.transmission_type);
-      }
-      
-      // Set vehicle_usage if available
-      if (selectedType.vehicle_usage) {
-        form.setValue("vehicle_usage", selectedType.vehicle_usage);
-      }
-      
       // Set region if available
       if (selectedType.region) {
         form.setValue("region", selectedType.region);
@@ -274,8 +269,10 @@ export function VehicleMasterForm({ isOpen, onClose, initialData }: VehicleMaste
         form.setValue("department", selectedType.department);
       }
       
-      // Log the values to help with debugging
-      console.log("Selected vehicle type:", selectedType);
+      // Set default values for fields that exist in vehicle master but not in vehicle type
+      // No need to check if these exist in the selected type
+      form.setValue("transmission_type", "AUTOMATIC"); // Default transmission type
+      form.setValue("vehicle_usage", "OPERATIONAL"); // Default vehicle usage
     }
   }, [vehicleTypes, form]);
 
