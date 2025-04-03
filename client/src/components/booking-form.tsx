@@ -668,19 +668,23 @@ export function BookingForm() {
                           </FormItem>
                         )}
                       />
-                      <FormItem>
-                        <FormLabel>Employee Name</FormLabel>
-                        <FormControl>
-                          <Input 
-                            value={
-                              form.getValues("employeeId") !== employee?.employeeId && form.getValues("employeeId") 
-                                ? form.getValues("employeeName") // If set by email search
-                                : employee?.employeeName || employee?.name || ""
-                            } 
-                            disabled 
-                          />
-                        </FormControl>
-                      </FormItem>
+                      <FormField
+                        control={form.control}
+                        name="employeeName"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Employee Name</FormLabel>
+                            <FormControl>
+                              <Input 
+                                {...field}
+                                readOnly 
+                                value={field.value || employee?.employeeName || employee?.name || ""}
+                              />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
                     </div>
 
                     <FormField

@@ -136,7 +136,12 @@ export function EmployeeEmailSearch({
                       disabled={disabled || isSearching || isFetching}
                       onChange={(e) => {
                         field.onChange(e);
-                        // Don't trigger search on every keystroke, let the form submission handle it
+                        // Trigger the debounced search on each keystroke for better UX
+                        const newValue = e.target.value;
+                        if (newValue && newValue.includes('@')) {
+                          setEmail(newValue);
+                          debouncedSearch(newValue);
+                        }
                       }}
                     />
                   </FormControl>
