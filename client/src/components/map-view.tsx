@@ -1,10 +1,11 @@
 import { useState, useRef, useEffect } from "react";
 import { Card } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { LoadScriptNext, GoogleMap, Marker, InfoWindow, DirectionsRenderer } from "@react-google-maps/api";
+import { LoadScriptNext, GoogleMap, Marker, InfoWindow, DirectionsRenderer, Libraries } from "@react-google-maps/api";
 import { VehicleLoadingIndicator } from "@/components/ui/vehicle-loading-indicator";
 import { Button } from "@/components/ui/button";
-import { MapPin, Clock } from "lucide-react";
+import { MapPin, Clock, Search, Locate } from "lucide-react";
+import { Input } from "@/components/ui/input";
 
 const defaultCenter = {
   lat: 24.466667,
@@ -13,7 +14,8 @@ const defaultCenter = {
 
 const defaultZoom = 11;
 
-const libraries: ("places" | "geometry" | "drawing" | "visualization")[] = ["places", "geometry"];
+// Define libraries once outside the component to avoid reloading issues
+const libraries: Libraries = ["places", "geometry"];
 
 const MAPS_API_KEY = "AIzaSyAtNTq_ILPC8Y5M_bJAiMORDf02sGoK84I";
 
@@ -60,6 +62,8 @@ export function MapView({
     distance: string;
     duration: string;
   } | null>(null);
+  const [searchQuery, setSearchQuery] = useState("");
+  const searchBoxRef = useRef<HTMLInputElement>(null);
 
   const drawRoute = async () => {
     if (!pickupLocation || !dropoffLocation || !map) {
@@ -137,7 +141,7 @@ export function MapView({
           lng: e.latLng.lng(),
           address: place.formatted_address || "",
           place_id: place.place_id,
-          name: place.name,
+          name: (place as any).name,
           formatted_address: place.formatted_address
         });
       }
@@ -174,6 +178,122 @@ export function MapView({
     map.setZoom(defaultZoom);
   };
 
+  const handleSearch = async () => {
+    if (!searchQuery.trim() || !map || !mapsInitialized) return;
+
+    try {
+      setIsLoading(true);
+      setMapError(null);
+      
+      const geocoder = new google.maps.Geocoder();
+      const result = await geocoder.geocode({ address: searchQuery });
+      
+      if (result.results.length > 0) {
+        const place = result.results[0];
+        // Add type casting to handle missing properties in typings
+        const location = {
+          lat: place.geometry.location.lat(),
+          lng: place.geometry.location.lng(),
+          address: place.formatted_address || searchQuery,
+          place_id: place.place_id,
+          name: (place as any).name,
+          formatted_address: place.formatted_address
+        };
+        
+        // Center the map on the found location
+        map.setCenter(location);
+        map.setZoom(15);
+        
+        // Show the location popup
+        setPopupLocation(location);
+      } else {
+        setMapError("No locations found for your search");
+      }
+    } catch (error) {
+      console.error("Error searching for location:", error);
+      setMapError("Failed to search for location");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleSearchKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      handleSearch();
+    }
+  };
+  
+  const handleGetCurrentLocation = () => {
+    if (!map || !mapsInitialized) return;
+    
+    setIsLoading(true);
+    setMapError(null);
+    
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        async (position) => {
+          const coords = {
+            lat: position.coords.latitude,
+            lng: position.coords.longitude
+          };
+          
+          try {
+            const geocoder = new google.maps.Geocoder();
+            const result = await geocoder.geocode({ location: coords });
+            
+            if (result.results.length > 0) {
+              const place = result.results[0];
+              const location = {
+                lat: coords.lat,
+                lng: coords.lng,
+                address: place.formatted_address || "Your location",
+                place_id: place.place_id,
+                name: (place as any).name,
+                formatted_address: place.formatted_address
+              };
+              
+              // Center the map on the found location
+              map.setCenter(coords);
+              map.setZoom(15);
+              
+              // Show the location popup
+              setPopupLocation(location);
+            } else {
+              setPopupLocation({
+                lat: coords.lat,
+                lng: coords.lng,
+                address: "Your location",
+              });
+              map.setCenter(coords);
+              map.setZoom(15);
+            }
+          } catch (error) {
+            console.error("Error reverse geocoding location:", error);
+            setPopupLocation({
+              lat: coords.lat,
+              lng: coords.lng,
+              address: "Your location",
+            });
+            map.setCenter(coords);
+            map.setZoom(15);
+          } finally {
+            setIsLoading(false);
+          }
+        },
+        (error) => {
+          console.error("Geolocation error:", error);
+          setMapError("Could not access your location. Please check browser permissions.");
+          setIsLoading(false);
+        },
+        { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+      );
+    } else {
+      setMapError("Geolocation is not supported by your browser");
+      setIsLoading(false);
+    }
+  };
+
   return (
     <Card className="p-4 h-full relative shadow-lg">
       {isLoading && (
@@ -182,9 +302,55 @@ export function MapView({
         </div>
       )}
 
-      <div className="mb-4">
+      <div className="mb-4 space-y-2">
+        <h3 className="font-medium text-lg">Interactive Map</h3>
+        <div className="flex items-center gap-2 mb-3">
+          <div className="flex items-center gap-1">
+            <div className="w-4 h-4 rounded-full bg-green-600 flex items-center justify-center text-[10px] text-white font-bold">P</div>
+            <span className="text-sm">Pickup</span>
+          </div>
+          <div className="flex items-center gap-1">
+            <div className="w-4 h-4 rounded-full bg-red-600 flex items-center justify-center text-[10px] text-white font-bold">D</div>
+            <span className="text-sm">Drop-off</span>
+          </div>
+        </div>
+
+        <div className="relative mb-2">
+          <div className="flex">
+            <Input
+              ref={searchBoxRef}
+              placeholder="Search for a location..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              onKeyDown={handleSearchKeyDown}
+              className="pr-10"
+            />
+            <Button 
+              variant="ghost" 
+              size="icon"
+              type="button"
+              onClick={handleSearch}
+              className="absolute right-0 top-0 h-full"
+            >
+              <Search className="h-4 w-4" />
+            </Button>
+          </div>
+        </div>
+        
+        <div className="mb-3">
+          <Button 
+            variant="outline" 
+            size="sm" 
+            onClick={handleGetCurrentLocation}
+            className="w-full flex items-center gap-2 mt-2 text-primary"
+          >
+            <Locate className="h-4 w-4" />
+            <span>Use my current location</span>
+          </Button>
+        </div>
+        
         <p className="text-sm text-muted-foreground">
-          Click on the map or select a point of interest to set locations
+          Click on the map or search for a location to set pickup and drop-off points
         </p>
       </div>
 
@@ -212,14 +378,15 @@ export function MapView({
             options={{
               zoomControl: true,
               streetViewControl: false,
-              mapTypeControl: false,
-              fullscreenControl: false,
+              mapTypeControl: true,
+              fullscreenControl: true,
               clickableIcons: true,
+              mapTypeId: google.maps.MapTypeId.ROADMAP,
               styles: [
                 {
                   featureType: "poi",
                   elementType: "labels",
-                  stylers: [{ visibility: "off" }]
+                  stylers: [{ visibility: "on" }]
                 }
               ]
             }}
@@ -241,10 +408,19 @@ export function MapView({
             {pickupLocation && (
               <Marker
                 position={pickupLocation.coordinates}
+                icon={{
+                  path: google.maps.SymbolPath.CIRCLE,
+                  fillColor: "#22c55e",
+                  fillOpacity: 1,
+                  strokeWeight: 1,
+                  strokeColor: "#ffffff",
+                  scale: 12,
+                }}
                 label={{
                   text: "P",
                   color: "white",
-                  className: "font-bold"
+                  fontWeight: "bold",
+                  fontSize: "14px"
                 }}
               />
             )}
@@ -252,10 +428,19 @@ export function MapView({
             {dropoffLocation && (
               <Marker
                 position={dropoffLocation.coordinates}
+                icon={{
+                  path: google.maps.SymbolPath.CIRCLE,
+                  fillColor: "#ef4444",
+                  fillOpacity: 1,
+                  strokeWeight: 1,
+                  strokeColor: "#ffffff",
+                  scale: 12,
+                }}
                 label={{
                   text: "D",
                   color: "white",
-                  className: "font-bold"
+                  fontWeight: "bold",
+                  fontSize: "14px"
                 }}
               />
             )}
@@ -264,18 +449,25 @@ export function MapView({
               <InfoWindow
                 position={{ lat: popupLocation.lat, lng: popupLocation.lng }}
                 onCloseClick={() => setPopupLocation(null)}
+                options={{
+                  maxWidth: 320,
+                  pixelOffset: new google.maps.Size(0, -5)
+                }}
               >
-                <div className="p-2 space-y-2">
-                  <p className="text-sm font-medium flex items-center gap-2">
-                    <MapPin className="h-4 w-4" />
-                    {popupLocation.formatted_address || popupLocation.name || popupLocation.address}
-                  </p>
-                  <div className="flex gap-2">
+                <div className="p-2 space-y-3 min-w-[250px]">
+                  <div className="border-b pb-2">
+                    <p className="text-sm font-medium flex items-center gap-2">
+                      <MapPin className="h-4 w-4 text-primary" />
+                      {popupLocation.formatted_address || popupLocation.name || popupLocation.address}
+                    </p>
+                  </div>
+                  <div className="flex gap-2 flex-col sm:flex-row">
                     <Button
                       size="sm"
                       onClick={() => handleLocationTypeSelect('pickup')}
                       variant="default"
                       disabled={!!pickupLocation}
+                      className="w-full sm:w-auto bg-green-600 hover:bg-green-700"
                     >
                       Set as Pickup
                     </Button>
@@ -284,6 +476,7 @@ export function MapView({
                       onClick={() => handleLocationTypeSelect('dropoff')}
                       variant={pickupLocation && !dropoffLocation ? "default" : "outline"}
                       disabled={!pickupLocation || !!dropoffLocation}
+                      className={`w-full sm:w-auto ${pickupLocation && !dropoffLocation ? "bg-red-600 hover:bg-red-700" : ""}`}
                     >
                       Set as Dropoff
                     </Button>
@@ -302,21 +495,49 @@ export function MapView({
       )}
 
       {routeInfo && pickupLocation && dropoffLocation && (
-        <div className="mt-4 p-4 border rounded-lg space-y-2">
-          <h3 className="font-medium mb-2">Route Information</h3>
-          <div className="flex items-center gap-2 text-sm text-muted-foreground">
-            <Clock className="h-4 w-4" />
-            <span>Estimated Time: {routeInfo.duration}</span>
-            <span>•</span>
-            <span>Distance: {routeInfo.distance}</span>
+        <div className="mt-4 p-4 border rounded-lg shadow-sm">
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="font-medium text-lg">Route Information</h3>
+            <div className="bg-primary/10 rounded-full px-3 py-1.5 text-sm font-medium text-primary">
+              {routeInfo.distance}
+            </div>
           </div>
-          <div className="mt-2">
-            <p className="text-sm text-muted-foreground">
-              From: {pickupLocation.formatted_address || pickupLocation.name || pickupLocation.address}
-            </p>
-            <p className="text-sm text-muted-foreground">
-              To: {dropoffLocation.formatted_address || dropoffLocation.name || dropoffLocation.address}
-            </p>
+
+          <div className="flex items-center gap-2 mb-4">
+            <div className="bg-primary/10 p-2 rounded-full">
+              <Clock className="h-5 w-5 text-primary" />
+            </div>
+            <div>
+              <p className="font-medium">Travel Time</p>
+              <p className="text-sm text-muted-foreground">{routeInfo.duration}</p>
+            </div>
+          </div>
+
+          <div className="space-y-3 border-t pt-3">
+            <div className="flex gap-3">
+              <div className="min-w-[24px] flex flex-col items-center">
+                <div className="w-6 h-6 rounded-full bg-green-600 flex items-center justify-center text-[10px] text-white font-bold">P</div>
+                <div className="h-full border-l-2 border-dashed border-muted-foreground/30 my-1"></div>
+              </div>
+              <div>
+                <p className="font-medium">Pickup Location</p>
+                <p className="text-sm text-muted-foreground">
+                  {pickupLocation.formatted_address || pickupLocation.name || pickupLocation.address}
+                </p>
+              </div>
+            </div>
+
+            <div className="flex gap-3">
+              <div className="min-w-[24px]">
+                <div className="w-6 h-6 rounded-full bg-red-600 flex items-center justify-center text-[10px] text-white font-bold">D</div>
+              </div>
+              <div>
+                <p className="font-medium">Drop-off Location</p>
+                <p className="text-sm text-muted-foreground">
+                  {dropoffLocation.formatted_address || dropoffLocation.name || dropoffLocation.address}
+                </p>
+              </div>
+            </div>
           </div>
         </div>
       )}
