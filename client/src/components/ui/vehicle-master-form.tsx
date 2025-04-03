@@ -254,9 +254,17 @@ export function VehicleMasterForm({ isOpen, onClose, initialData }: VehicleMaste
       form.setValue("vehicle_type_code", selectedType.vehicle_type_code);
       form.setValue("vehicle_type_name", selectedType.vehicle_type_name || `${selectedType.manufacturer} ${selectedType.vehicle_model}`);
       
-      // Only set fuel_type if it's not null or empty
+      // IMPORTANT: Always set fuel_type if it's available - this is a key requirement
       if (selectedType.fuel_type) {
+        console.log("Setting fuel type to:", selectedType.fuel_type);
         form.setValue("fuel_type", selectedType.fuel_type);
+        // Trigger any logic dependent on fuel type changes
+        toast({
+          title: "Fuel Type Set",
+          description: `Fuel type set to ${selectedType.fuel_type}`,
+          variant: "default",
+          duration: 2000,
+        });
       }
       
       // Only set model_year if it's not null
@@ -265,7 +273,7 @@ export function VehicleMasterForm({ isOpen, onClose, initialData }: VehicleMaste
         setSelectedModelYear(selectedType.model_year);
       }
       
-      // Only set manufacturer if it's not null or empty
+      // Set manufacturer first so available models can be populated
       if (selectedType.manufacturer) {
         form.setValue("manufacturer", selectedType.manufacturer);
         setSelectedManufacturer(selectedType.manufacturer);
@@ -274,12 +282,22 @@ export function VehicleMasterForm({ isOpen, onClose, initialData }: VehicleMaste
         const modelInfo = DEFAULT_VEHICLE_MODELS[selectedType.manufacturer as keyof typeof DEFAULT_VEHICLE_MODELS];
         const modelNames = modelInfo ? Object.keys(modelInfo) : [];
         setAvailableModels(modelNames);
-      }
-      
-      // Only set vehicle_model if it's not null or empty
-      if (selectedType.vehicle_model) {
-        form.setValue("vehicle_model", selectedType.vehicle_model);
-        setSelectedModel(selectedType.vehicle_model);
+        
+        // IMPORTANT: Then set vehicle_model if it's available - this is a key requirement
+        if (selectedType.vehicle_model) {
+          console.log("Setting vehicle model to:", selectedType.vehicle_model);
+          // Small delay to ensure the manufacturer change has processed and models are loaded
+          setTimeout(() => {
+            form.setValue("vehicle_model", selectedType.vehicle_model);
+            setSelectedModel(selectedType.vehicle_model);
+            toast({
+              title: "Vehicle Model Set",
+              description: `Vehicle model set to ${selectedType.vehicle_model}`,
+              variant: "default",
+              duration: 2000,
+            });
+          }, 100);
+        }
       }
       
       // Set region if available
@@ -293,11 +311,10 @@ export function VehicleMasterForm({ isOpen, onClose, initialData }: VehicleMaste
       }
       
       // Set default values for fields that exist in vehicle master but not in vehicle type
-      // No need to check if these exist in the selected type
       form.setValue("transmission_type", "AUTOMATIC"); // Default transmission type
       form.setValue("vehicle_usage", "OPERATIONAL"); // Default vehicle usage
     }
-  }, [vehicleTypes, form]);
+  }, [vehicleTypes, form, toast]);
 
   const getAvailablePlateCodes = React.useCallback(() => {
     if (!selectedEmirate || !selectedCategory) return [];
