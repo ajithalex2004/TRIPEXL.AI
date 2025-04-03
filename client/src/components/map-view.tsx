@@ -198,11 +198,11 @@ export function MapView({
     if (onLocationSelect) {
       console.log(`Calling onLocationSelect callback with ${type} location data`);
       
-      // Set the appropriate state variable directly as well
-      if (type === 'pickup') {
-        setPickupLocation(location);
-      } else {
-        setDropoffLocation(location);
+      // Update state directly through the props if available
+      if (type === 'pickup' && pickupLocation !== location) {
+        // Only update through the callback
+      } else if (type === 'dropoff' && dropoffLocation !== location) {
+        // Only update through the callback
       }
       
       // Call the parent component's callback
