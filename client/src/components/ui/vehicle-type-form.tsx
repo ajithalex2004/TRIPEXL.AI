@@ -239,8 +239,8 @@ export function VehicleTypeForm({
     }));
   };
 
-  // Handler for fuel type change
-  const handleFuelTypeChange = (value: string) => {
+  // Handler for fuel type change with automatic price fetching
+  const handleFuelTypeChange = async (value: string) => {
     if (value === "default-fuel-option") {
       // Don't update if it's the default placeholder option
       return;
@@ -248,18 +248,72 @@ export function VehicleTypeForm({
     
     updateFormField("fuel_type", value);
     
-    const fuelTypeData = fuelTypes.find(ft => ft.type === value);
-    if (fuelTypeData) {
-      const price = typeof fuelTypeData.price === 'string' ? 
-        parseFloat(fuelTypeData.price) : fuelTypeData.price;
-      updateFormField("fuel_price_per_litre", price || 0);
+    try {
+      // First try to find the fuel type in our loaded data
+      const fuelTypeData = fuelTypes.find(ft => ft.type === value);
       
-      const co2Factor = typeof fuelTypeData.co2_factor === 'string' ?
-        parseFloat(fuelTypeData.co2_factor) : fuelTypeData.co2_factor;
-      updateFormField("co2_emission_factor", co2Factor || 0);
-      
-      // Update cost per km
-      setTimeout(calculateCostPerKm, 0);
+      if (fuelTypeData) {
+        console.log(`Found fuel type data for ${value}:`, fuelTypeData);
+        
+        // Extract price and format it properly
+        const price = typeof fuelTypeData.price === 'string' ? 
+          parseFloat(fuelTypeData.price) : fuelTypeData.price;
+        
+        console.log(`Setting fuel price to ${price} AED for ${value}`);
+        updateFormField("fuel_price_per_litre", price || 0);
+        
+        // Extract CO2 emission factor and format it properly
+        const co2Factor = typeof fuelTypeData.co2_factor === 'string' ?
+          parseFloat(fuelTypeData.co2_factor) : fuelTypeData.co2_factor;
+        
+        console.log(`Setting CO2 emission factor to ${co2Factor} for ${value}`);
+        updateFormField("co2_emission_factor", co2Factor || 0);
+        
+        // Recalculate cost per KM if we have fuel efficiency data
+        setTimeout(calculateCostPerKm, 0);
+      } else {
+        // If we don't have data in our local state, fetch it from the server
+        console.log(`No local data found for ${value}, fetching from server...`);
+        try {
+          const response = await fetch('/api/fuel-prices');
+          if (response.ok) {
+            const prices = await response.json();
+            console.log('Fetched fuel prices from server:', prices);
+            
+            // Match the fuel type ignoring case
+            const matchingFuelType = Object.keys(prices).find(
+              key => key.toLowerCase() === value.toLowerCase()
+            );
+            
+            if (matchingFuelType) {
+              const currentPrice = prices[matchingFuelType];
+              console.log(`Found matching fuel type ${matchingFuelType} with price ${currentPrice}`);
+              updateFormField("fuel_price_per_litre", currentPrice);
+              
+              // Set default CO2 factor based on fuel type
+              let co2Factor = 0;
+              if (value.toLowerCase().includes('petrol')) co2Factor = 2.31;
+              else if (value.toLowerCase().includes('diesel')) co2Factor = 2.68;
+              else if (value.toLowerCase().includes('electric')) co2Factor = 0;
+              else if (value.toLowerCase().includes('hybrid')) co2Factor = 1.85;
+              
+              console.log(`Setting default CO2 factor to ${co2Factor} for ${value}`);
+              updateFormField("co2_emission_factor", co2Factor);
+              
+              // Recalculate cost per KM
+              setTimeout(calculateCostPerKm, 0);
+            } else {
+              console.warn(`Could not find matching fuel price for ${value} in response`);
+            }
+          } else {
+            console.error('Failed to fetch fuel prices:', response.statusText);
+          }
+        } catch (error) {
+          console.error('Error fetching fuel prices:', error);
+        }
+      }
+    } catch (error) {
+      console.error('Error processing fuel type change:', error);
     }
   };
 
