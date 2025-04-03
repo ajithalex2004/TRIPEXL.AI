@@ -70,6 +70,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
     app.use(vehicleTypeMasterRouter);
     log("Vehicle type master routes registered");
 
+    // Register approval workflows routes
+    log("Registering approval workflows routes...");
+    app.use(approvalWorkflowsRouter);
+    log("Approval workflows routes registered");
+
     app.use(mastersRouter); // Added mastersRouter
 
     // Auth routes
