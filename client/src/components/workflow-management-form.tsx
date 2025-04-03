@@ -49,13 +49,28 @@ export function WorkflowManagementForm({ onSuccess, initialData }: WorkflowManag
     },
   });
 
-  // Query to fetch available approvers (Level 1 and Level 2 employees)
+  // Watch form values for region, department, and unit
+  const region = form.watch('region');
+  const department = form.watch('department');
+  const unit = form.watch('unit');
+
+  // Query to fetch available approvers (Level 1 and Level 2 employees) filtered by region, department, and unit
   const { data: approversData } = useQuery({
-    queryKey: ['/api/employees/approvers'],
+    queryKey: ['/api/employees/approvers', region, department, unit],
     queryFn: async () => {
       try {
-        console.log("Fetching approvers...");
-        const response = await fetch('/api/employees/approvers');
+        console.log("Fetching approvers with filters:", { region, department, unit });
+        
+        // Build query params
+        const params = new URLSearchParams();
+        if (region) params.append('region', region);
+        if (department) params.append('department', department);
+        if (unit) params.append('unit', unit);
+        
+        const url = `/api/employees/approvers${params.toString() ? `?${params.toString()}` : ''}`;
+        console.log("Fetching from URL:", url);
+        
+        const response = await fetch(url);
         if (!response.ok) {
           throw new Error('Failed to fetch approvers');
         }
@@ -67,6 +82,8 @@ export function WorkflowManagementForm({ onSuccess, initialData }: WorkflowManag
         throw error;
       }
     },
+    // Only run this query when at least region is selected
+    enabled: Boolean(region),
   });
 
   const mutation = useMutation({
@@ -239,7 +256,9 @@ export function WorkflowManagementForm({ onSuccess, initialData }: WorkflowManag
                   </FormControl>
                   <SelectContent>
                     {approversData?.filter(employee => 
-                      employee.hierarchy_level === 'Level 1' || employee.designation === 'Approval Authority'
+                      employee.hierarchy_level === 'Level 1' || 
+                      employee.employee_role === 'Approval Authority' || 
+                      employee.employee_role === 'Approving Authority'
                     ).map((employee) => (
                       <SelectItem key={employee.id} value={employee.id.toString()}>
                         {employee.employee_name}

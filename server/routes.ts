@@ -956,21 +956,44 @@ If you didn't request this reset, please ignore this email.
     app.use('/api/approval-workflows', approvalWorkflowsRouter);
 
     // Add employee routes for workflow management
-    app.get("/api/employees/approvers", async (_req, res) => {
+    app.get("/api/employees/approvers", async (req, res) => {
       try {
-        // Get employees who are Level 1 or Level 2 hierarchy OR have Approval Authority designation
+        const { region, department, unit } = req.query;
+        console.log("Fetching all employees");
+        
+        // Build the WHERE clause dynamically
+        let whereClause = sql`(${employees.hierarchy_level} IN ('Level 1', 'Level 2') OR ${employees.employee_role} IN ('Approval Authority', 'Approving Authority')) AND ${employees.is_active} = true`;
+        
+        // Add region filter if provided
+        if (region) {
+          whereClause = sql`${whereClause} AND ${employees.region} = ${region}`;
+        }
+        
+        // Add department filter if provided
+        if (department) {
+          whereClause = sql`${whereClause} AND ${employees.department} = ${department}`;
+        }
+        
+        // Add unit filter if provided
+        if (unit) {
+          whereClause = sql`${whereClause} AND ${employees.unit} = ${unit}`;
+        }
+        
+        // Get approvers based on filters
         const approvers = await db
           .select()
           .from(employees)
-          .where(
-            sql`(${employees.hierarchy_level} IN ('Level 1', 'Level 2') OR ${employees.designation} = 'Approval Authority') AND ${employees.is_active} = true`
-          );
+          .where(whereClause);
         
-        // For employees with "Approval Authority" designation, ensure they have Level 1 hierarchy
+        console.log(`Found ${approvers.length} employees`);
+        
+        // For employees with "Approval Authority" or "Approving Authority" role, ensure they have Level 1 hierarchy
         const mappedApprovers = approvers.map(employee => {
-          // If the employee has the Approval Authority designation but no hierarchy level specified
+          // If the employee has an approval role but no hierarchy level specified
           // Set their hierarchy level to Level 1 for workflow management purposes
-          if (employee.designation === "Approval Authority" && employee.hierarchy_level !== "Level 1") {
+          if ((employee.employee_role === "Approval Authority" || employee.employee_role === "Approving Authority") 
+              && employee.hierarchy_level !== "Level 1") {
+            console.log(`Setting employee ${employee.employee_name} with role ${employee.employee_role} to Level 1 hierarchy`);
             return { ...employee, hierarchy_level: "Level 1" };
           }
           return employee;
