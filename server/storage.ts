@@ -1006,6 +1006,19 @@ export class DatabaseStorage implements IStorage {
         throw new Error(`Missing required fields: ${missingFields.join(', ')}`);
       }
 
+      // Check if mobile number already exists (if provided)
+      if (userData.mobile_number) {
+        const existingMobile = await db
+          .select()
+          .from(schema.users)
+          .where(eq(schema.users.mobile_number, userData.mobile_number));
+          
+        if (existingMobile.length > 0) {
+          console.error('Mobile number already exists:', userData.mobile_number);
+          throw new Error(`Mobile number '${userData.mobile_number}' is already registered`);
+        }
+      }
+
       // Begin transaction
       const newUser = await db.transaction(async (tx) => {
         console.log('Starting database transaction for user creation');
@@ -1023,6 +1036,8 @@ export class DatabaseStorage implements IStorage {
             last_name: userData.last_name,
             full_name: userData.full_name,
             password: userData.password,
+            country_code: userData.country_code,
+            mobile_number: userData.mobile_number,
             is_active: true,
             created_at: new Date(),
             updated_at: new Date()
@@ -1043,6 +1058,47 @@ export class DatabaseStorage implements IStorage {
         username: newUser.user_name,
         timestamp: new Date().toISOString()
       });
+
+      // Check if there's a matching employee record by email or mobile
+      try {
+        let matchingEmployee = null;
+        
+        // Find by email
+        if (userData.email_id) {
+          const employeesByEmail = await db
+            .select()
+            .from(schema.employees)
+            .where(eq(schema.employees.email_id, userData.email_id));
+            
+          if (employeesByEmail.length > 0) {
+            matchingEmployee = employeesByEmail[0];
+          }
+        }
+        
+        // If no match by email, try mobile number
+        if (!matchingEmployee && userData.mobile_number) {
+          const employeesByMobile = await db
+            .select()
+            .from(schema.employees)
+            .where(eq(schema.employees.mobile_number, userData.mobile_number));
+            
+          if (employeesByMobile.length > 0) {
+            matchingEmployee = employeesByMobile[0];
+          }
+        }
+        
+        // Update the employee record with the user_id
+        if (matchingEmployee) {
+          console.log(`Linking user ${newUser.id} with employee ${matchingEmployee.id}`);
+          await db
+            .update(schema.employees)
+            .set({ user_id: newUser.id, updated_at: new Date() })
+            .where(eq(schema.employees.id, matchingEmployee.id));
+        }
+      } catch (linkError) {
+        // Just log the error but don't fail the user creation
+        console.error('Error linking user with employee:', linkError);
+      }
 
       return newUser;
     } catch (error) {
@@ -1405,6 +1461,31 @@ export class DatabaseStorage implements IStorage {
       if (existingEmail.length > 0) {
         console.error('Email already exists:', employeeData.email_id);
         throw new Error(`Email ${employeeData.email_id} is already in use`);
+      }
+      
+      // If user_id is not provided, try to find a user with matching email or mobile number
+      if (!employeeData.user_id) {
+        // Try to match by email first
+        if (employeeData.email_id) {
+          const user = await this.findUserByEmail(employeeData.email_id);
+          if (user) {
+            console.log('Found matching user by email:', user.id);
+            employeeData.user_id = user.id;
+          }
+        }
+        
+        // If no match by email and mobile_number is provided, try matching by mobile number
+        if (!employeeData.user_id && employeeData.mobile_number) {
+          const usersByMobile = await db
+            .select()
+            .from(schema.users)
+            .where(eq(schema.users.mobile_number, employeeData.mobile_number));
+          
+          if (usersByMobile.length > 0) {
+            console.log('Found matching user by mobile:', usersByMobile[0].id);
+            employeeData.user_id = usersByMobile[0].id;
+          }
+        }
       }
       
       // Insert the new employee

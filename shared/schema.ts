@@ -349,8 +349,8 @@ export const employees = pgTable("employees", {
   id: serial("id").primaryKey(),
   employee_id: integer("employee_id").notNull().unique(),
   employee_name: varchar("employee_name", { length: 100 }).notNull(),
-  email_id: varchar("email_id", { length: 50 }).notNull(),
-  mobile_number: varchar("mobile_number", { length: 15 }).notNull(),
+  email_id: varchar("email_id", { length: 50 }).notNull().unique(),
+  mobile_number: varchar("mobile_number", { length: 15 }).notNull().unique(),
   designation: text("designation").notNull(),
   hierarchy_level: text("hierarchy_level").notNull(),
   employee_type: varchar("employee_type", { length: 50 }),
@@ -363,6 +363,7 @@ export const employees = pgTable("employees", {
   password: varchar("password", { length: 50 }),
   communication_language: varchar("communication_language", { length: 50 }),
   supervisor_id: integer("supervisor_id"), // Temporarily remove direct self-reference
+  user_id: integer("user_id").references(() => users.id),
   is_active: boolean("is_active").notNull().default(true),
   created_at: timestamp("created_at").notNull().defaultNow(),
   updated_at: timestamp("updated_at").notNull().defaultNow()
@@ -398,6 +399,10 @@ export const employeesRelations = relations(employees, ({ one, many }) => ({
     fields: [employees.supervisor_id],
     references: [employees.id],
   }),
+  user: one(users, {
+    fields: [employees.user_id],
+    references: [users.id],
+  }),
   subordinates: many(employees),
   bookings: many(bookings)
 }));
@@ -416,11 +421,16 @@ export const users = pgTable("users", {
   password: text("password").notNull(),
   is_active: boolean("is_active").notNull().default(true),
   country_code: text("country_code"),
-  mobile_number: text("mobile_number"),
+  mobile_number: text("mobile_number").unique(),
   created_at: timestamp("created_at").notNull().defaultNow(),
   updated_at: timestamp("updated_at").notNull().defaultNow(),
   reset_token: text("reset_token"),
   reset_token_expiry: timestamp("reset_token_expiry")
+}, (table) => {
+  return {
+    // Create a composite index on country_code and mobile_number for efficient lookup
+    mobile_idx: index("users_mobile_idx").on(table.country_code, table.mobile_number)
+  };
 });
 
 // Update the vehicle groups table definition
@@ -437,6 +447,10 @@ export const vehicleGroups = pgTable("vehicle_groups", {
   created_at: timestamp("created_at").notNull().defaultNow(),
   updated_at: timestamp("updated_at").notNull().defaultNow()
 });
+
+export const usersRelations = relations(users, ({ many }) => ({
+  employees: many(employees)
+}));
 
 export const vehicleGroupsRelations = relations(vehicleGroups, ({ many }) => ({
   vehicleTypes: many(vehicleTypeMaster),
@@ -865,7 +879,8 @@ export const insertEmployeeSchema = createInsertSchema(employees)
     nationality: z.string().optional(),
     password: z.string().max(50).optional(),
     communication_language: z.string().max(50).optional(),
-    supervisor_id: z.number().optional()
+    supervisor_id: z.number().optional(),
+    user_id: z.number().optional()
   });
 
 // Add back the approval workflow relations
