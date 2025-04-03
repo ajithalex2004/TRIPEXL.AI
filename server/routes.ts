@@ -556,11 +556,58 @@ export async function registerRoutes(app: Express): Promise<Server> {
       try {
         console.log("Fetching all employees");
         const employees = await storage.getAllEmployees();
-        console.log("Retrieved employees:", employees);
+        console.log(`Found ${employees.length} employees`);
         res.json(employees);
       } catch (error: any) {
         console.error("Error fetching employees:", error);
         res.status(500).json({ error: "Failed to fetch employees" });
+      }
+    });
+    
+    // Add endpoint to search for employee by email
+    app.get("/api/employee/search", async (req, res) => {
+      try {
+        const { email } = req.query;
+        
+        if (!email) {
+          return res.status(400).json({ error: "Email parameter is required" });
+        }
+        
+        console.log(`Searching for employee with email: ${email}`);
+        
+        // Find employee by email
+        const [employee] = await db
+          .select({
+            id: employees.id,
+            employee_id: employees.employee_id,
+            employee_name: employees.employee_name,
+            email_id: employees.email_id,
+            department: employees.department,
+            designation: employees.designation,
+            mobile_number: employees.mobile_number
+          })
+          .from(employees)
+          .where(eq(employees.email_id, email.toString()));
+        
+        if (!employee) {
+          console.log(`No employee found with email: ${email}`);
+          return res.status(404).json({ error: "No employee found with this email" });
+        }
+        
+        console.log(`Found employee: ${employee.employee_name} (ID: ${employee.employee_id})`);
+        
+        return res.json({
+          id: employee.id,
+          employeeId: employee.employee_id,
+          employeeName: employee.employee_name,
+          emailId: employee.email_id,
+          department: employee.department,
+          designation: employee.designation,
+          mobileNumber: employee.mobile_number
+        });
+      } catch (error: any) {
+        console.error("Error searching for employee by email:", error);
+        res.status(500).json({ error: "Failed to search for employee" });
       }
     });
 

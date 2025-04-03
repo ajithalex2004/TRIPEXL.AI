@@ -45,6 +45,7 @@ import { useLocation } from "wouter";
 import { format } from "date-fns";
 import { BookingConfirmationAnimation } from "@/components/booking-confirmation-animation";
 import { Skeleton } from "@/components/ui/skeleton";
+import { EmployeeEmailSearch } from "@/components/employee-email-search";
 
 // Update the Location interface to match schema requirements
 export interface Location {
@@ -154,6 +155,7 @@ export function BookingForm() {
     mode: "onChange",
     defaultValues: {
       employeeId: employee?.employeeId || "",
+      employeeName: employee?.employeeName || "", // Add employee name field for UI display
       bookingType: "",
       purpose: "",
       priority: "",
@@ -629,6 +631,29 @@ export function BookingForm() {
                     transition={{ duration: 0.5 }}
                     className="space-y-4"
                   >
+                    {/* Add Email Search component above Employee ID/Name fields */}
+                    <div className="mb-4">
+                      <EmployeeEmailSearch 
+                        onEmployeeFound={(employeeData) => {
+                          console.log("Employee found via email search:", employeeData);
+                          if (employeeData?.employeeId) {
+                            form.setValue("employeeId", employeeData.employeeId);
+                            
+                            // Also set employee name for display
+                            if (employeeData?.employeeName) {
+                              form.setValue("employeeName", employeeData.employeeName);
+                            }
+                            
+                            toast({
+                              title: "Employee Found",
+                              description: `Found details for ${employeeData.employeeName || 'employee'}`,
+                            });
+                          }
+                        }}
+                        defaultEmail={employee?.emailId || ""}
+                      />
+                    </div>
+                    
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <FormField
                         control={form.control}
@@ -637,7 +662,7 @@ export function BookingForm() {
                           <FormItem>
                             <FormLabel>Employee ID</FormLabel>
                             <FormControl>
-                              <Input {...field} readOnly value={employee?.employeeId || ""} />
+                              <Input {...field} readOnly value={field.value || employee?.employeeId || ""} />
                             </FormControl>
                             <FormMessage />
                           </FormItem>
@@ -646,7 +671,14 @@ export function BookingForm() {
                       <FormItem>
                         <FormLabel>Employee Name</FormLabel>
                         <FormControl>
-                          <Input value={employee?.employeeName || employee?.name || ""} disabled />
+                          <Input 
+                            value={
+                              form.getValues("employeeId") !== employee?.employeeId && form.getValues("employeeId") 
+                                ? form.getValues("employeeName") // If set by email search
+                                : employee?.employeeName || employee?.name || ""
+                            } 
+                            disabled 
+                          />
                         </FormControl>
                       </FormItem>
                     </div>
