@@ -272,6 +272,10 @@ export function VehicleMasterForm({ isOpen, onClose, initialData }: VehicleMaste
     if (selectedType) {
       console.log("Vehicle Type selected:", selectedType);
       
+      // Store the fuel_type and vehicle_model values to apply later
+      const fuelTypeToSet = selectedType.fuel_type || "";
+      const vehicleModelToSet = selectedType.vehicle_model || "";
+      
       // Set the form fields based on the selected vehicle type
       form.setValue("vehicle_type_code", selectedType.vehicle_type_code);
       form.setValue("vehicle_type_name", selectedType.vehicle_type_name || `${selectedType.manufacturer} ${selectedType.vehicle_model}`);
@@ -282,8 +286,8 @@ export function VehicleMasterForm({ isOpen, onClose, initialData }: VehicleMaste
       
       // IMPORTANT: Set manufacturer first so available models can be populated
       if (selectedType.manufacturer) {
-        form.setValue("manufacturer", selectedType.manufacturer, { shouldDirty: true, shouldTouch: true, shouldValidate: true });
         setSelectedManufacturer(selectedType.manufacturer);
+        form.setValue("manufacturer", selectedType.manufacturer, { shouldDirty: true, shouldTouch: true, shouldValidate: true });
         form.trigger("manufacturer");
         
         // Update available models for the selected manufacturer
@@ -295,35 +299,6 @@ export function VehicleMasterForm({ isOpen, onClose, initialData }: VehicleMaste
       // Only set model_year if it's not null
       if (selectedType.model_year) {
         handleModelYearChange(selectedType.model_year.toString());
-      }
-      
-      // IMPORTANT: Always set fuel_type if it's available using our direct handler
-      if (selectedType.fuel_type) {
-        console.log("Setting fuel type to:", selectedType.fuel_type);
-        handleFuelTypeChange(selectedType.fuel_type);
-        
-        toast({
-          title: "Fuel Type Set",
-          description: `Fuel type set to ${selectedType.fuel_type}`,
-          variant: "default",
-          duration: 2000,
-        });
-      }
-      
-      // Set vehicle_model if it's available - using our direct handler
-      if (selectedType.vehicle_model) {
-        console.log("Setting vehicle model to:", selectedType.vehicle_model);
-        // Small delay to ensure the manufacturer change has processed and models are loaded
-        setTimeout(() => {
-          handleVehicleModelChange(selectedType.vehicle_model);
-          
-          toast({
-            title: "Vehicle Model Set",
-            description: `Vehicle model set to ${selectedType.vehicle_model}`,
-            variant: "default",
-            duration: 2000,
-          });
-        }, 100);
       }
       
       // Set region if available
@@ -345,8 +320,51 @@ export function VehicleMasterForm({ isOpen, onClose, initialData }: VehicleMaste
       // Force rerender of these fields
       form.trigger("transmission_type");
       form.trigger("vehicle_usage");
+      
+      // IMPORTANT: Now set the fuel_type after the form updates are completed
+      if (fuelTypeToSet) {
+        console.log("Setting fuel type to:", fuelTypeToSet);
+        
+        // Short delay to ensure field updates are processed
+        setTimeout(() => {
+          // Set directly in the useState field value first
+          form.setValue("fuel_type", fuelTypeToSet, { shouldDirty: true, shouldTouch: true, shouldValidate: true });
+          
+          // Force trigger to update the UI
+          form.trigger("fuel_type");
+          
+          toast({
+            title: "Fuel Type Set",
+            description: `Fuel type set to ${fuelTypeToSet}`,
+            variant: "default",
+            duration: 2000,
+          });
+        }, 50);
+      }
+      
+      // Set vehicle_model with a slightly longer delay to ensure manufacturer has been processed
+      if (vehicleModelToSet) {
+        console.log("Setting vehicle model to:", vehicleModelToSet);
+        
+        // Longer delay to ensure manufacturer and available models are updated
+        setTimeout(() => {
+          // Set directly in the useState field value first
+          setSelectedModel(vehicleModelToSet);
+          form.setValue("vehicle_model", vehicleModelToSet, { shouldDirty: true, shouldTouch: true, shouldValidate: true });
+          
+          // Force trigger to update the UI
+          form.trigger("vehicle_model");
+          
+          toast({
+            title: "Vehicle Model Set",
+            description: `Vehicle model set to ${vehicleModelToSet}`,
+            variant: "default",
+            duration: 2000,
+          });
+        }, 100);
+      }
     }
-  }, [vehicleTypes, form, toast, handleFuelTypeChange, handleVehicleModelChange, handleModelYearChange]);
+  }, [vehicleTypes, form, toast, setSelectedManufacturer, setAvailableModels, setSelectedModel, handleModelYearChange]);
 
   const getAvailablePlateCodes = React.useCallback(() => {
     if (!selectedEmirate || !selectedCategory) return [];
@@ -603,42 +621,47 @@ export function VehicleMasterForm({ isOpen, onClose, initialData }: VehicleMaste
               <FormField
                 control={form.control}
                 name="fuel_type"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Fuel Type *</FormLabel>
-                    <Select 
-                      onValueChange={handleFuelTypeChange}
-                      value={field.value || ""}
-                      defaultValue={field.value || ""}
-                    >
-                      <FormControl>
-                        <SelectTrigger className={field.value ? "bg-primary/5 border-primary/20" : ""}>
-                          <SelectValue placeholder="Select fuel type" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        {isLoadingFuelTypes ? (
-                          <SelectItem value="loading" disabled>
-                            Loading fuel types...
-                          </SelectItem>
-                        ) : fuelTypes && fuelTypes.length > 0 ? (
-                          fuelTypes
-                            .filter((fuelType: FuelType) => fuelType && fuelType.type && typeof fuelType.type === 'string' && fuelType.type.trim() !== '')
-                            .map((fuelType: FuelType) => (
-                              <SelectItem key={fuelType.id} value={fuelType.type}>
-                                {fuelType.type || "Unknown Fuel Type"}
-                              </SelectItem>
-                            ))
-                        ) : (
-                          <SelectItem value="none" disabled>
-                            No fuel types available
-                          </SelectItem>
-                        )}
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
+                render={({ field }) => {
+                  // Force re-render when field.value changes
+                  return (
+                    <FormItem key={`fuel_type_${field.value}`}>
+                      <FormLabel>Fuel Type *</FormLabel>
+                      <Select 
+                        onValueChange={handleFuelTypeChange}
+                        value={field.value || ""}
+                        defaultValue={field.value || ""}
+                      >
+                        <FormControl>
+                          <SelectTrigger className={field.value ? "bg-primary/5 border-primary/20" : ""}>
+                            <SelectValue placeholder="Select fuel type">
+                              {field.value || "Select fuel type"}
+                            </SelectValue>
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          {isLoadingFuelTypes ? (
+                            <SelectItem value="loading" disabled>
+                              Loading fuel types...
+                            </SelectItem>
+                          ) : fuelTypes && fuelTypes.length > 0 ? (
+                            fuelTypes
+                              .filter((fuelType: FuelType) => fuelType && fuelType.type && typeof fuelType.type === 'string' && fuelType.type.trim() !== '')
+                              .map((fuelType: FuelType) => (
+                                <SelectItem key={fuelType.id} value={fuelType.type}>
+                                  {fuelType.type || "Unknown Fuel Type"}
+                                </SelectItem>
+                              ))
+                          ) : (
+                            <SelectItem value="none" disabled>
+                              No fuel types available
+                            </SelectItem>
+                          )}
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  );
+                }}
               />
 
               {/* Manufacturer */}
@@ -932,37 +955,42 @@ export function VehicleMasterForm({ isOpen, onClose, initialData }: VehicleMaste
               <FormField
                 control={form.control}
                 name="vehicle_model"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Vehicle Model *</FormLabel>
-                    <Select
-                      onValueChange={handleVehicleModelChange}
-                      value={field.value || ""}
-                      defaultValue={field.value || ""}
-                      disabled={!selectedManufacturer || availableModels.length === 0}
-                    >
-                      <FormControl>
-                        <SelectTrigger className={field.value ? "bg-primary/5 border-primary/20" : ""}>
-                          <SelectValue placeholder="Select vehicle model" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        {availableModels.length === 0 ? (
-                          <SelectItem value="none" disabled>
-                            {selectedManufacturer ? "No models available" : "Select manufacturer first"}
-                          </SelectItem>
-                        ) : (
-                          availableModels.map((model) => (
-                            <SelectItem key={model} value={model}>
-                              {model}
+                render={({ field }) => {
+                  // Force re-render when field.value changes
+                  return (
+                    <FormItem key={`vehicle_model_${field.value}`}>
+                      <FormLabel>Vehicle Model *</FormLabel>
+                      <Select
+                        onValueChange={handleVehicleModelChange}
+                        value={field.value || ""}
+                        defaultValue={field.value || ""}
+                        disabled={!selectedManufacturer || availableModels.length === 0}
+                      >
+                        <FormControl>
+                          <SelectTrigger className={field.value ? "bg-primary/5 border-primary/20" : ""}>
+                            <SelectValue placeholder="Select vehicle model">
+                              {field.value || "Select vehicle model"}
+                            </SelectValue>
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          {availableModels.length === 0 ? (
+                            <SelectItem value="none" disabled>
+                              {selectedManufacturer ? "No models available" : "Select manufacturer first"}
                             </SelectItem>
-                          ))
-                        )}
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
+                          ) : (
+                            availableModels.map((model) => (
+                              <SelectItem key={model} value={model}>
+                                {model}
+                              </SelectItem>
+                            ))
+                          )}
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  );
+                }}
               />
 
               {/* Other required fields */}
