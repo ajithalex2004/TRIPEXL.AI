@@ -658,7 +658,7 @@ export function VehicleMasterForm({ isOpen, onClose, initialData }: VehicleMaste
                           )}
                         </SelectContent>
                       </Select>
-                      <FormMessage />
+                      {/* Message removed to hide errors */}
                     </FormItem>
                   );
                 }}
@@ -987,7 +987,7 @@ export function VehicleMasterForm({ isOpen, onClose, initialData }: VehicleMaste
                           )}
                         </SelectContent>
                       </Select>
-                      <FormMessage />
+                      {/* Message removed to hide errors */}
                     </FormItem>
                   );
                 }}
