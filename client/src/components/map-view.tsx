@@ -56,16 +56,17 @@ export function MapView({
 }: MapViewProps) {
   const [mapError, setMapError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
-  const [map, setMap] = useState<any>(null);
+  const [map, setMap] = useState<google.maps.Map | null>(null);
   const [mapsInitialized, setMapsInitialized] = useState(false);
   const [popupLocation, setPopupLocation] = useState<PopupLocation | null>(null);
-  const [directionsResult, setDirectionsResult] = useState<any>(null);
+  const [directionsResult, setDirectionsResult] = useState<google.maps.DirectionsResult | null>(null);
   const [routeInfo, setRouteInfo] = useState<{
     distance: string;
     duration: string;
   } | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const searchBoxRef = useRef<HTMLInputElement>(null);
+  const [loadError, setLoadError] = useState<Error | null>(null);
 
   const drawRoute = async () => {
     if (!pickupLocation || !dropoffLocation || !map || !mapsInitialized || typeof google === 'undefined') {
@@ -128,7 +129,7 @@ export function MapView({
     }
   }, [pickupLocation, dropoffLocation, map, mapsInitialized]);
 
-  const handleMapClick = async (e: any) => {
+  const handleMapClick = async (e: google.maps.MapMouseEvent) => {
     if (!e.latLng || !onLocationSelect || !mapsInitialized || typeof google === 'undefined') return;
 
     try {
@@ -395,15 +396,18 @@ export function MapView({
             <VehicleLoadingIndicator size="lg" />
           </div>
         }
-        onLoad={() => setMapsInitialized(true)}
+        onLoad={() => {
+          console.log("Google Maps script loaded successfully");
+          setMapsInitialized(true);
+        }}
         onError={(error) => {
-          console.error("Google Maps API failed to load:", error);
-          setMapError("Failed to load Google Maps API. Please try again later.");
+          console.error("Google Maps script failed to load:", error);
+          setLoadError(new Error("Failed to load Google Maps"));
         }}
         failureElement={
           <div className="h-[500px] flex flex-col items-center justify-center border border-dashed rounded-md p-5 bg-muted/30">
             <AlertCircle className="h-10 w-10 text-destructive mb-4" />
-            <h3 className="text-lg font-medium mb-2">Map Loading Failed</h3>
+            <h3 className="text-lg font-medium mb-2">Google Maps Failed to Load</h3>
             <p className="text-center text-muted-foreground mb-4">
               Unable to load Google Maps. Please check your internet connection and try again.
             </p>
@@ -413,128 +417,141 @@ export function MapView({
           </div>
         }
       >
-        <div className="h-[500px] relative">
-          <GoogleMap
-            mapContainerStyle={{
-              width: '100%',
-              height: '100%',
-              borderRadius: '8px'
-            }}
-            center={defaultCenter}
-            zoom={defaultZoom}
-            onClick={handleMapClick}
-            onLoad={handleMapLoad}
-            options={{
-              zoomControl: true,
-              streetViewControl: false,
-              mapTypeControl: true,
-              fullscreenControl: true,
-              clickableIcons: true,
-              mapTypeId: typeof google !== 'undefined' ? google.maps.MapTypeId.ROADMAP : 'roadmap',
-              styles: [
-                {
-                  featureType: "poi",
-                  elementType: "labels",
-                  stylers: [{ visibility: "on" }]
-                }
-              ]
-            }}
-          >
-            {directionsResult && (
-              <DirectionsRenderer
-                directions={directionsResult}
-                options={{
-                  suppressMarkers: true,
-                  polylineOptions: {
-                    strokeColor: "#4F46E5",
-                    strokeWeight: 5,
-                    strokeOpacity: 0.8
+        {loadError ? (
+          <div className="h-[500px] flex flex-col items-center justify-center border border-dashed rounded-md p-5 bg-muted/30">
+            <AlertCircle className="h-10 w-10 text-destructive mb-4" />
+            <h3 className="text-lg font-medium mb-2">Google Maps Error</h3>
+            <p className="text-center text-muted-foreground mb-4">
+              {loadError.message || "Failed to load Google Maps. Please check your API key or try again later."}
+            </p>
+            <Button onClick={() => window.location.reload()} variant="outline">
+              Reload
+            </Button>
+          </div>
+        ) : (
+          <div className="h-[500px] relative">
+            <GoogleMap
+              mapContainerStyle={{
+                width: '100%',
+                height: '100%',
+                borderRadius: '8px'
+              }}
+              center={defaultCenter}
+              zoom={defaultZoom}
+              onClick={handleMapClick}
+              onLoad={handleMapLoad}
+              options={{
+                zoomControl: true,
+                streetViewControl: false,
+                mapTypeControl: true,
+                fullscreenControl: true,
+                clickableIcons: true,
+                mapTypeId: typeof google !== 'undefined' ? google.maps.MapTypeId.ROADMAP : 'roadmap',
+                styles: [
+                  {
+                    featureType: "poi",
+                    elementType: "labels",
+                    stylers: [{ visibility: "on" }]
                   }
-                }}
-              />
-            )}
+                ]
+              }}
+            >
+              {directionsResult && (
+                <DirectionsRenderer
+                  directions={directionsResult}
+                  options={{
+                    suppressMarkers: true,
+                    polylineOptions: {
+                      strokeColor: "#4F46E5",
+                      strokeWeight: 5,
+                      strokeOpacity: 0.8
+                    }
+                  }}
+                />
+              )}
 
-            {pickupLocation && (
-              <Marker
-                position={pickupLocation.coordinates}
-                icon={{
-                  path: typeof google !== 'undefined' ? google.maps.SymbolPath.CIRCLE : 0,
-                  fillColor: "#22c55e",
-                  fillOpacity: 1,
-                  strokeWeight: 1,
-                  strokeColor: "#ffffff",
-                  scale: 12,
-                }}
-                label={{
-                  text: "P",
-                  color: "white",
-                  fontWeight: "bold",
-                  fontSize: "14px"
-                }}
-              />
-            )}
+              {pickupLocation && (
+                <Marker
+                  position={pickupLocation.coordinates}
+                  icon={{
+                    path: typeof google !== 'undefined' ? google.maps.SymbolPath.CIRCLE : 0,
+                    fillColor: "#22c55e",
+                    fillOpacity: 1,
+                    strokeWeight: 1,
+                    strokeColor: "#ffffff",
+                    scale: 12,
+                  }}
+                  label={{
+                    text: "P",
+                    color: "white",
+                    fontWeight: "bold",
+                    fontSize: "14px"
+                  }}
+                />
+              )}
 
-            {dropoffLocation && (
-              <Marker
-                position={dropoffLocation.coordinates}
-                icon={{
-                  path: typeof google !== 'undefined' ? google.maps.SymbolPath.CIRCLE : 0,
-                  fillColor: "#ef4444",
-                  fillOpacity: 1,
-                  strokeWeight: 1,
-                  strokeColor: "#ffffff",
-                  scale: 12,
-                }}
-                label={{
-                  text: "D",
-                  color: "white",
-                  fontWeight: "bold",
-                  fontSize: "14px"
-                }}
-              />
-            )}
+              {dropoffLocation && (
+                <Marker
+                  position={dropoffLocation.coordinates}
+                  icon={{
+                    path: typeof google !== 'undefined' ? google.maps.SymbolPath.CIRCLE : 0,
+                    fillColor: "#ef4444",
+                    fillOpacity: 1,
+                    strokeWeight: 1,
+                    strokeColor: "#ffffff",
+                    scale: 12,
+                  }}
+                  label={{
+                    text: "D",
+                    color: "white",
+                    fontWeight: "bold",
+                    fontSize: "14px"
+                  }}
+                />
+              )}
 
-            {popupLocation && (
-              <InfoWindow
-                position={{ lat: popupLocation.lat, lng: popupLocation.lng }}
-                onCloseClick={() => setPopupLocation(null)}
-                options={{
-                  maxWidth: 320,
-                  pixelOffset: typeof google !== 'undefined' ? new google.maps.Size(0, -5) : undefined
-                }}
-              >
-                <div className="p-2 space-y-3 min-w-[250px]">
-                  <div className="border-b pb-2">
-                    <p className="text-sm font-medium flex items-center gap-2">
-                      <MapPin className="h-4 w-4 text-primary" />
-                      {popupLocation.formatted_address || popupLocation.name || popupLocation.address}
-                    </p>
+              {popupLocation && (
+                <InfoWindow
+                  position={{ lat: popupLocation.lat, lng: popupLocation.lng }}
+                  onCloseClick={() => setPopupLocation(null)}
+                  options={{
+                    maxWidth: 320,
+                    pixelOffset: typeof google !== 'undefined' ? new google.maps.Size(0, -5) : undefined
+                  }}
+                >
+                  <div className="p-2 space-y-3 min-w-[250px]">
+                    <div className="border-b pb-2">
+                      <p className="text-sm font-medium flex items-center gap-2">
+                        <MapPin className="h-4 w-4 text-primary" />
+                        {popupLocation.formatted_address || popupLocation.name || popupLocation.address}
+                      </p>
+                    </div>
+                    <div className="flex gap-2 flex-col sm:flex-row">
+                      <Button
+                        size="sm"
+                        onClick={() => handleLocationTypeSelect('pickup')}
+                        variant="default"
+                        disabled={!!pickupLocation}
+                        className="w-full sm:w-auto bg-green-600 hover:bg-green-700"
+                      >
+                        Set as Pickup
+                      </Button>
+                      <Button
+                        size="sm"
+                        onClick={() => handleLocationTypeSelect('dropoff')}
+                        variant={pickupLocation && !dropoffLocation ? "default" : "outline"}
+                        disabled={!pickupLocation || !!dropoffLocation}
+                        className={`w-full sm:w-auto ${pickupLocation && !dropoffLocation ? "bg-red-600 hover:bg-red-700" : ""}`}
+                      >
+                        Set as Dropoff
+                      </Button>
+                    </div>
                   </div>
-                  <div className="flex gap-2 flex-col sm:flex-row">
-                    <Button
-                      size="sm"
-                      onClick={() => handleLocationTypeSelect('pickup')}
-                      variant="default"
-                      disabled={!!pickupLocation}
-                      className="w-full sm:w-auto bg-green-600 hover:bg-green-700"
-                    >
-                      Set as Pickup
-                    </Button>
-                    <Button
-                      size="sm"
-                      onClick={() => handleLocationTypeSelect('dropoff')}
-                      variant={pickupLocation && !dropoffLocation ? "default" : "outline"}
-                      disabled={!pickupLocation || !!dropoffLocation}
-                      className={`w-full sm:w-auto ${pickupLocation && !dropoffLocation ? "bg-red-600 hover:bg-red-700" : ""}`}
-                    >
-                      Set as Dropoff
-                    </Button>
-                  </div>
-                </div>
-              </InfoWindow>
-            )}
-          </GoogleMap>
-        </div>
+                </InfoWindow>
+              )}
+            </GoogleMap>
+          </div>
+        )}
       </LoadScriptNext>
 
       {mapError && (
