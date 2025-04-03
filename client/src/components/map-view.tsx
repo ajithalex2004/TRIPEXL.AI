@@ -215,6 +215,11 @@ export function MapView({
         avoidHighways: routePreferences.avoidHighways,
         avoidTolls: routePreferences.avoidTolls,
         provideRouteAlternatives: routePreferences.provideRouteAlternatives,
+        drivingOptions: {
+          departureTime: new Date(), // Current time
+          trafficModel: google.maps.TrafficModel.BEST_GUESS
+        },
+        unitSystem: google.maps.UnitSystem.METRIC,
       };
       
       // Only add waypoints if there are any to avoid issues with the API
@@ -886,8 +891,12 @@ export function MapView({
                     polylineOptions: {
                       strokeColor: "#0033CC", /* Dark Blue Color */
                       strokeWeight: 6, /* Increased thickness */
-                      strokeOpacity: 1.0 /* Full opacity */
-                    }
+                      strokeOpacity: 1.0, /* Full opacity */
+                      zIndex: 10, /* Ensure route is above other map elements */
+                      geodesic: true /* Follow Earth's curvature for more accurate roads */
+                    },
+                    preserveViewport: false, /* Auto-zoom to fit the entire route */
+                    draggable: false, /* Route is not draggable */
                   }}
                 />
               )}
@@ -939,7 +948,7 @@ export function MapView({
                   position={waypoint.coordinates}
                   icon={{
                     path: (typeof google !== 'undefined' && google.maps && google.maps.SymbolPath) ? google.maps.SymbolPath.CIRCLE : 0,
-                    fillColor: "#f59e0b", // Amber color for waypoints
+                    fillColor: "#3b82f6", // Blue color for waypoints
                     fillOpacity: 1,
                     strokeWeight: 1,
                     strokeColor: "#ffffff",

@@ -1233,6 +1233,13 @@ export function BookingForm() {
                               pickupLocation={form.watch("pickupLocation")}
                               dropoffLocation={form.watch("dropoffLocation")}
                               waypoints={waypoints}
+                              routePreferences={{
+                                optimizeWaypoints: true,
+                                avoidHighways: false,
+                                avoidTolls: false, 
+                                provideRouteAlternatives: true,
+                                travelMode: 'DRIVING'
+                              }}
                               onLocationSelect={(location, type) => {
                                 if (type === 'waypoint') {
                                   // Add new waypoint to the waypoints array
