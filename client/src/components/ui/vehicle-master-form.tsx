@@ -46,10 +46,18 @@ import {
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogHeader,
   DialogTitle,
   DialogFooter,
 } from "@/components/ui/dialog";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import { InfoIcon } from "lucide-react";
 import { EmiratesSpinner } from "@/components/ui/emirates-spinner";
 
 interface VehicleMasterFormProps {
@@ -332,6 +340,9 @@ export function VehicleMasterForm({ isOpen, onClose, initialData }: VehicleMaste
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>{initialData ? "Edit Vehicle" : "Add New Vehicle"}</DialogTitle>
+          <p className="text-sm text-muted-foreground">
+            Enter the vehicle details below. You can select an existing vehicle type to auto-fill many fields.
+          </p>
         </DialogHeader>
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
@@ -472,23 +483,41 @@ export function VehicleMasterForm({ isOpen, onClose, initialData }: VehicleMaste
                 name="vehicle_type_code"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Vehicle Type Code *</FormLabel>
+                    <div className="flex items-center justify-between">
+                      <FormLabel>Vehicle Type Code *</FormLabel>
+                      <span className="text-xs text-primary inline-flex items-center">
+                        <span className="animate-pulse mr-1">•</span> 
+                        Recommended selection
+                      </span>
+                    </div>
                     <Select onValueChange={handleVehicleTypeSelect} value={field.value}>
                       <FormControl>
-                        <SelectTrigger>
+                        <SelectTrigger className="bg-primary/5 border-primary/20 font-medium">
                           <SelectValue placeholder="Select vehicle type" />
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        {vehicleTypes?.filter(type => type.vehicle_type_code && type.vehicle_type_code.trim() !== '')
-                          .map((type) => (
-                            <SelectItem
-                              key={type.vehicle_type_code}
-                              value={type.vehicle_type_code}
-                            >
-                              {type.vehicle_type_code} - {type.vehicle_type_name || `${type.manufacturer || ''} ${type.vehicle_model || ''}`}
-                            </SelectItem>
-                          ))}
+                        {!vehicleTypes || vehicleTypes.length === 0 ? (
+                          <SelectItem value="no-types" disabled>
+                            No vehicle types available. Create one first.
+                          </SelectItem>
+                        ) : vehicleTypes.filter(type => type.vehicle_type_code && type.vehicle_type_code.trim() !== '').length === 0 ? (
+                          <SelectItem value="no-valid-types" disabled>
+                            No valid vehicle types found with codes.
+                          </SelectItem>
+                        ) : (
+                          vehicleTypes
+                            .filter(type => type.vehicle_type_code && type.vehicle_type_code.trim() !== '')
+                            .sort((a, b) => a.manufacturer.localeCompare(b.manufacturer) || a.vehicle_model.localeCompare(b.vehicle_model))
+                            .map((type) => (
+                              <SelectItem
+                                key={type.vehicle_type_code}
+                                value={type.vehicle_type_code}
+                              >
+                                {type.vehicle_type_code} - {type.vehicle_type_name || `${type.manufacturer || ''} ${type.vehicle_model || ''}`}
+                              </SelectItem>
+                            ))
+                        )}
                       </SelectContent>
                     </Select>
                     <FormMessage />
