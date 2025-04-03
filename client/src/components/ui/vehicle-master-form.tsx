@@ -254,6 +254,26 @@ export function VehicleMasterForm({ isOpen, onClose, initialData }: VehicleMaste
         setSelectedModelYear(selectedType.model_year);
       }
       
+      // Set transmission_type if available
+      if (selectedType.transmission_type) {
+        form.setValue("transmission_type", selectedType.transmission_type);
+      }
+      
+      // Set vehicle_usage if available
+      if (selectedType.vehicle_usage) {
+        form.setValue("vehicle_usage", selectedType.vehicle_usage);
+      }
+      
+      // Set region if available
+      if (selectedType.region) {
+        form.setValue("region", selectedType.region);
+      }
+      
+      // Set department if available
+      if (selectedType.department) {
+        form.setValue("department", selectedType.department);
+      }
+      
       // Log the values to help with debugging
       console.log("Selected vehicle type:", selectedType);
     }
@@ -463,14 +483,15 @@ export function VehicleMasterForm({ isOpen, onClose, initialData }: VehicleMaste
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        {vehicleTypes?.map((type) => (
-                          <SelectItem
-                            key={type.vehicle_type_code}
-                            value={type.vehicle_type_code}
-                          >
-                            {type.vehicle_type_code}
-                          </SelectItem>
-                        ))}
+                        {vehicleTypes?.filter(type => type.vehicle_type_code && type.vehicle_type_code.trim() !== '')
+                          .map((type) => (
+                            <SelectItem
+                              key={type.vehicle_type_code}
+                              value={type.vehicle_type_code}
+                            >
+                              {type.vehicle_type_code} - {type.vehicle_type_name || `${type.manufacturer || ''} ${type.vehicle_model || ''}`}
+                            </SelectItem>
+                          ))}
                       </SelectContent>
                     </Select>
                     <FormMessage />
