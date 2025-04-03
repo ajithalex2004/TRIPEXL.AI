@@ -91,6 +91,10 @@ export function MapView({
 
       // Validate coordinates to ensure they're valid numbers
       if (
+        !pickupLocation?.coordinates?.lat || 
+        !pickupLocation?.coordinates?.lng || 
+        !dropoffLocation?.coordinates?.lat || 
+        !dropoffLocation?.coordinates?.lng ||
         isNaN(pickupLocation.coordinates.lat) || 
         isNaN(pickupLocation.coordinates.lng) || 
         isNaN(dropoffLocation.coordinates.lat) || 
@@ -99,26 +103,41 @@ export function MapView({
         throw new Error("Invalid coordinates detected");
       }
 
+      // Check if coordinates are too close (same location)
+      const isSameLocation = 
+        Math.abs(pickupLocation.coordinates.lat - dropoffLocation.coordinates.lat) < 0.0001 && 
+        Math.abs(pickupLocation.coordinates.lng - dropoffLocation.coordinates.lng) < 0.0001;
+      
+      if (isSameLocation) {
+        throw new Error("Pickup and dropoff locations are too close");
+      }
+
       const directionsService = new google.maps.DirectionsService();
       
       const request = {
-        origin: {
-          lat: pickupLocation.coordinates.lat,
-          lng: pickupLocation.coordinates.lng
-        },
-        destination: {
-          lat: dropoffLocation.coordinates.lat, 
-          lng: dropoffLocation.coordinates.lng
-        },
+        origin: new google.maps.LatLng(
+          pickupLocation.coordinates.lat,
+          pickupLocation.coordinates.lng
+        ),
+        destination: new google.maps.LatLng(
+          dropoffLocation.coordinates.lat, 
+          dropoffLocation.coordinates.lng
+        ),
         travelMode: google.maps.TravelMode.DRIVING
       };
       
       console.log("Sending directions request:", request);
       
-      const result = await directionsService.route(request);
+      let result;
+      try {
+        result = await directionsService.route(request);
 
-      if (!result || !result.routes || !result.routes.length) {
-        throw new Error("No route found in results");
+        if (!result || !result.routes || !result.routes.length) {
+          throw new Error("No route found in results");
+        }
+      } catch (routeError) {
+        console.error("Google Maps directions service error:", routeError);
+        throw new Error("Could not find a route between these locations");
       }
 
       console.log("Route found:", result);
@@ -293,6 +312,9 @@ export function MapView({
         // Show the location popup
         setPopupLocation(location);
         console.log("Set popup location to:", location);
+        
+        // Clear search query after successful search
+        setSearchQuery("");
       } else {
         console.warn("No locations found for search:", searchQuery);
         setMapError("No locations found for your search");
