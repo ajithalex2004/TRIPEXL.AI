@@ -8,7 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Switch } from "@/components/ui/switch"; // Added Switch import
 import { toast } from "@/hooks/use-toast";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { Department, EmployeeDesignation, EmployeeType, HierarchyLevel, Region } from "@shared/schema";
+import { Department, EmployeeDesignation, EmployeeType, EmployeeRole, HierarchyLevel, Region } from "@shared/schema";
 
 interface AddEmployeeFormProps {
   onSuccess?: () => void;
@@ -21,6 +21,7 @@ export function AddEmployeeForm({ onSuccess, initialData }: AddEmployeeFormProps
     resolver: zodResolver(insertEmployeeSchema),
     defaultValues: {
       employee_type: initialData?.employee_type || EmployeeType.PERMANENT,
+      employee_role: initialData?.employee_role || EmployeeRole.EMPLOYEE,
       is_active: initialData?.is_active ?? true, // Default to true for new employees
       country_code: initialData?.country_code || "+971",
       employee_id: initialData?.employee_id || undefined,
@@ -273,6 +274,33 @@ export function AddEmployeeForm({ onSuccess, initialData }: AddEmployeeFormProps
             )}
           />
 
+          <FormField
+            control={form.control}
+            name="employee_role"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Employee Role</FormLabel>
+                <Select onValueChange={field.onChange} defaultValue={field.value}>
+                  <FormControl>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select employee role" />
+                    </SelectTrigger>
+                  </FormControl>
+                  <SelectContent>
+                    {Object.values(EmployeeRole).map((role) => (
+                      <SelectItem key={role} value={role}>
+                        {role}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        </div>
+
+        <div className="grid grid-cols-2 gap-4">
           <FormField
             control={form.control}
             name="region"

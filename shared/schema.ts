@@ -118,6 +118,12 @@ export const EmployeeType = {
   INTERN: "Intern"
 } as const;
 
+export const EmployeeRole = {
+  EMPLOYEE: "Employee",
+  MANAGEMENT: "Management",
+  APPROVING_AUTHORITY: "Approving Authority"
+} as const;
+
 export const VehicleStatus = {
   AVAILABLE: "Available",
   IN_SERVICE: "In Service",
@@ -348,6 +354,7 @@ export const employees = pgTable("employees", {
   designation: text("designation").notNull(),
   hierarchy_level: text("hierarchy_level").notNull(),
   employee_type: varchar("employee_type", { length: 50 }),
+  employee_role: varchar("employee_role", { length: 50 }).default("Employee"),
   region: varchar("region", { length: 50 }).notNull(),
   department: varchar("department", { length: 50 }).notNull(),
   unit: varchar("unit", { length: 50 }).notNull(),
@@ -845,6 +852,8 @@ export const insertEmployeeSchema = createInsertSchema(employees)
     mobile_number: z.string().min(8, "Invalid mobile number").max(15),
     designation: z.enum(Object.values(EmployeeDesignation) as [string, ...string[]]),
     hierarchy_level: z.enum(Object.values(HierarchyLevel) as [string, ...string[]]),
+    employee_type: z.enum(Object.values(EmployeeType) as [string, ...string[]]).optional(),
+    employee_role: z.enum(Object.values(EmployeeRole) as [string, ...string[]]).default(EmployeeRole.EMPLOYEE),
     region: z.enum(Object.values(Region) as [string, ...string[]]),
     department: z.enum(Object.values(Department) as [string, ...string[]]),
     unit: z.string().min(1, "Unit is required").max(50),
