@@ -36,7 +36,7 @@ interface User {
   updated_at: string;
 }
 
-const USERS_QUERY_KEY = "/api/auth/users";
+const USERS_QUERY_KEY = "/api/users";
 
 export default function UserMasterPage() {
   const { toast } = useToast();
@@ -63,7 +63,7 @@ export default function UserMasterPage() {
         password: '[REDACTED]'
       });
 
-      const response = await fetch("/api/auth/users", {
+      const response = await fetch("/api/users", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -117,7 +117,7 @@ export default function UserMasterPage() {
         password: '[REDACTED]'
       });
 
-      const response = await fetch(`/api/auth/users/${id}`, {
+      const response = await fetch(`/api/users/${id}`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
