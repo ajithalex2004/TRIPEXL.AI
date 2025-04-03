@@ -69,105 +69,195 @@ export function MapView({
   const [loadError, setLoadError] = useState<Error | null>(null);
 
   const drawRoute = async () => {
-    if (!pickupLocation || !dropoffLocation || !map || !mapsInitialized || typeof google === 'undefined') {
-      console.log("Missing location data or Google Maps not initialized:", { 
-        pickupLocationExists: !!pickupLocation, 
-        dropoffLocationExists: !!dropoffLocation, 
-        mapExists: !!map, 
-        googleDefined: typeof google !== 'undefined', 
-        mapsInitialized 
-      });
+    // Clear any previous errors first
+    setMapError(null);
+    
+    // Comprehensive pre-check before attempting to draw route
+    if (!map) {
+      console.error("Map instance is not available");
+      setMapError("Map is not fully loaded yet");
+      return;
+    }
+    
+    if (!mapsInitialized || typeof google === 'undefined') {
+      console.error("Google Maps API is not initialized yet");
+      setMapError("Map service is initializing, please try again");
       return;
     }
 
-    console.log("Drawing route between:", {
-      pickup: `${pickupLocation.coordinates.lat}, ${pickupLocation.coordinates.lng}`,
-      dropoff: `${dropoffLocation.coordinates.lat}, ${dropoffLocation.coordinates.lng}`
-    });
+    if (!pickupLocation) {
+      console.error("Pickup location is missing");
+      setMapError("Please select a pickup location");
+      return;
+    }
+
+    if (!dropoffLocation) {
+      console.error("Dropoff location is missing");
+      setMapError("Please select a drop-off location");
+      return;
+    }
+
+    // Start loading state
+    setIsLoading(true);
 
     try {
-      setIsLoading(true);
-      setMapError(null);
-
-      // Validate coordinates to ensure they're valid numbers
-      if (
-        !pickupLocation?.coordinates?.lat || 
-        !pickupLocation?.coordinates?.lng || 
-        !dropoffLocation?.coordinates?.lat || 
-        !dropoffLocation?.coordinates?.lng ||
-        isNaN(pickupLocation.coordinates.lat) || 
-        isNaN(pickupLocation.coordinates.lng) || 
-        isNaN(dropoffLocation.coordinates.lat) || 
-        isNaN(dropoffLocation.coordinates.lng)
-      ) {
-        throw new Error("Invalid coordinates detected");
+      // Validate pickup coordinates
+      if (!pickupLocation.coordinates || 
+          typeof pickupLocation.coordinates.lat !== 'number' || 
+          typeof pickupLocation.coordinates.lng !== 'number' ||
+          isNaN(pickupLocation.coordinates.lat) || 
+          isNaN(pickupLocation.coordinates.lng)) {
+        throw new Error("Invalid pickup location coordinates");
       }
+      
+      // Validate dropoff coordinates
+      if (!dropoffLocation.coordinates || 
+          typeof dropoffLocation.coordinates.lat !== 'number' || 
+          typeof dropoffLocation.coordinates.lng !== 'number' ||
+          isNaN(dropoffLocation.coordinates.lat) || 
+          isNaN(dropoffLocation.coordinates.lng)) {
+        throw new Error("Invalid drop-off location coordinates");
+      }
+
+      console.log("Drawing route between:", {
+        pickup: `${pickupLocation.coordinates.lat.toFixed(6)}, ${pickupLocation.coordinates.lng.toFixed(6)}`,
+        dropoff: `${dropoffLocation.coordinates.lat.toFixed(6)}, ${dropoffLocation.coordinates.lng.toFixed(6)}`
+      });
 
       // Check if coordinates are too close (same location)
-      const isSameLocation = 
-        Math.abs(pickupLocation.coordinates.lat - dropoffLocation.coordinates.lat) < 0.0001 && 
-        Math.abs(pickupLocation.coordinates.lng - dropoffLocation.coordinates.lng) < 0.0001;
+      const distanceInDegrees = Math.sqrt(
+        Math.pow(pickupLocation.coordinates.lat - dropoffLocation.coordinates.lat, 2) + 
+        Math.pow(pickupLocation.coordinates.lng - dropoffLocation.coordinates.lng, 2)
+      );
       
-      if (isSameLocation) {
-        throw new Error("Pickup and dropoff locations are too close");
+      if (distanceInDegrees < 0.0005) { // Approximately 50 meters at the equator
+        throw new Error("Pickup and drop-off locations are too close to each other");
       }
 
-      const directionsService = new google.maps.DirectionsService();
+      // Create LatLng objects for origin and destination
+      const origin = new google.maps.LatLng(
+        pickupLocation.coordinates.lat,
+        pickupLocation.coordinates.lng
+      );
       
+      const destination = new google.maps.LatLng(
+        dropoffLocation.coordinates.lat, 
+        dropoffLocation.coordinates.lng
+      );
+
+      // Create the directions request
       const request = {
-        origin: new google.maps.LatLng(
-          pickupLocation.coordinates.lat,
-          pickupLocation.coordinates.lng
-        ),
-        destination: new google.maps.LatLng(
-          dropoffLocation.coordinates.lat, 
-          dropoffLocation.coordinates.lng
-        ),
-        travelMode: google.maps.TravelMode.DRIVING
+        origin,
+        destination,
+        travelMode: google.maps.TravelMode.DRIVING,
+        optimizeWaypoints: true,
+        avoidHighways: false,
+        avoidTolls: false,
       };
       
       console.log("Sending directions request:", request);
       
-      let result;
-      try {
-        result = await directionsService.route(request);
-
-        if (!result || !result.routes || !result.routes.length) {
-          throw new Error("No route found in results");
-        }
-      } catch (routeError) {
-        console.error("Google Maps directions service error:", routeError);
-        throw new Error("Could not find a route between these locations");
-      }
-
-      console.log("Route found:", result);
-      setDirectionsResult(result);
+      // Create DirectionsService instance
+      const directionsService = new google.maps.DirectionsService();
       
-      const leg = result.routes[0].legs[0];
-      const durationInSeconds = leg.duration?.value || 0;
-      console.log("Route duration calculated:", durationInSeconds);
-
-      // Always notify parent component about route duration
-      if (onRouteCalculated) {
-        onRouteCalculated(durationInSeconds);
+      // Make the route request
+      try {
+        const result = await directionsService.route(request);
+        
+        if (!result) {
+          throw new Error("Directions service returned null result");
+        }
+        
+        if (!result.routes || result.routes.length === 0) {
+          throw new Error("No routes found in directions result");
+        }
+        
+        if (!result.routes[0].legs || result.routes[0].legs.length === 0) {
+          throw new Error("No route legs found in directions result");
+        }
+        
+        console.log("Route found successfully:", result);
+        
+        // Set the directions result
+        setDirectionsResult(result);
+        
+        // Extract route details
+        const leg = result.routes[0].legs[0];
+        
+        if (!leg.distance || !leg.duration) {
+          throw new Error("Route is missing distance or duration information");
+        }
+        
+        const durationInSeconds = leg.duration.value || 0;
+        
+        console.log("Route details:", {
+          distance: leg.distance.text,
+          duration: leg.duration.text,
+          durationInSeconds
+        });
+        
+        // Update route info state
+        setRouteInfo({
+          distance: leg.distance.text || "Unknown",
+          duration: leg.duration.text || "Unknown"
+        });
+        
+        // Notify parent component about the calculated duration
+        if (onRouteCalculated) {
+          onRouteCalculated(durationInSeconds);
+        }
+        
+        // Fit the map bounds to show the entire route
+        const bounds = new google.maps.LatLngBounds();
+        bounds.extend(origin);
+        bounds.extend(destination);
+        
+        // Also extend bounds with route waypoints if they exist
+        if (result.routes[0].overview_path) {
+          for (const point of result.routes[0].overview_path) {
+            bounds.extend(point);
+          }
+        }
+        
+        map.fitBounds(bounds);
+        
+      } catch (routeError: any) {
+        console.error("Google Maps DirectionsService error:", routeError);
+        
+        // Use a more specific error message if available
+        const errorMessage = routeError?.message || "Could not calculate route between these locations";
+        
+        if (errorMessage.includes("ZERO_RESULTS")) {
+          throw new Error("No driving route found between these locations");
+        } else if (errorMessage.includes("NOT_FOUND")) {
+          throw new Error("One or both locations could not be geocoded properly");
+        } else if (errorMessage.includes("MAX_ROUTE_LENGTH_EXCEEDED")) {
+          throw new Error("The route is too long to calculate");
+        } else if (errorMessage.includes("OVER_QUERY_LIMIT")) {
+          throw new Error("Direction request quota exceeded. Please try again later");
+        } else {
+          throw new Error(errorMessage);
+        }
       }
-
-      setRouteInfo({
-        distance: leg.distance?.text || "Unknown",
-        duration: leg.duration?.text || "Unknown"
-      });
-
-      // Fit map to show the entire route
-      const bounds = new google.maps.LatLngBounds();
-      bounds.extend(pickupLocation.coordinates);
-      bounds.extend(dropoffLocation.coordinates);
-      map.fitBounds(bounds);
-
-    } catch (error) {
-      console.error("Error calculating route:", error);
-      setMapError("Could not calculate route between locations");
+      
+    } catch (error: any) {
+      console.error("Error in drawRoute:", error);
+      
+      // Set a user-friendly error message
+      setMapError(error?.message || "Could not calculate route between locations");
+      
+      // Clear directions and route info
       setDirectionsResult(null);
       setRouteInfo(null);
+      
+      // Ensure markers are still visible even when route fails
+      if (map && pickupLocation && dropoffLocation) {
+        const bounds = new google.maps.LatLngBounds();
+        bounds.extend(pickupLocation.coordinates);
+        bounds.extend(dropoffLocation.coordinates);
+        map.fitBounds(bounds);
+      }
+      
     } finally {
       setIsLoading(false);
     }
@@ -215,54 +305,76 @@ export function MapView({
           formatted_address: `Lat: ${e.latLng.lat().toFixed(6)}, Lng: ${e.latLng.lng().toFixed(6)}`
         });
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error geocoding location:", error);
-      setMapError("Failed to get location details");
+      setMapError(error?.message || "Failed to get location details");
     } finally {
       setIsLoading(false);
     }
   };
 
   const handleLocationTypeSelect = (type: 'pickup' | 'dropoff') => {
-    if (!popupLocation || !map) {
-      console.error("Cannot set location: missing popupLocation or map", { popupLocation, mapExists: !!map });
+    if (!popupLocation) {
+      console.error("Cannot set location: missing popupLocation");
+      setMapError("Location details not available. Please try clicking on the map again.");
+      return;
+    }
+    
+    if (!map) {
+      console.error("Cannot set location: missing map instance");
+      setMapError("Map is not fully loaded. Please refresh the page and try again.");
       return;
     }
 
-    // Create a complete location object with all required fields
-    const location: Location = {
-      address: popupLocation.address || "Selected location",
-      coordinates: {
-        lat: popupLocation.lat,
-        lng: popupLocation.lng
-      },
-      // Include all optional properties with default values
-      name: popupLocation.name || popupLocation.address || "Selected location",
-      formatted_address: popupLocation.formatted_address || popupLocation.address || "Selected location",
-      place_id: popupLocation.place_id || ""
-    };
-
-    console.log(`Setting ${type} location with data:`, location);
-    
-    // Check if the callback exists and call it with the location data
-    if (onLocationSelect) {
-      console.log(`Calling onLocationSelect callback with ${type} location data`);
-      
-      // Update state directly through the props if available
-      if (type === 'pickup' && pickupLocation !== location) {
-        // Only update through the callback
-      } else if (type === 'dropoff' && dropoffLocation !== location) {
-        // Only update through the callback
+    try {
+      // Validate coordinates first
+      if (
+        typeof popupLocation.lat !== 'number' || 
+        typeof popupLocation.lng !== 'number' ||
+        isNaN(popupLocation.lat) || 
+        isNaN(popupLocation.lng)
+      ) {
+        throw new Error("Invalid coordinates in selected location");
       }
       
-      // Call the parent component's callback
-      onLocationSelect(location, type);
-    } else {
-      console.error("onLocationSelect callback is not defined");
+      // Create a complete location object with all required fields
+      const location: Location = {
+        address: popupLocation.address || "Selected location",
+        coordinates: {
+          lat: popupLocation.lat,
+          lng: popupLocation.lng
+        },
+        // Include all optional properties with default values
+        name: popupLocation.name || popupLocation.address || "Selected location",
+        formatted_address: popupLocation.formatted_address || popupLocation.address || "Selected location",
+        place_id: popupLocation.place_id || ""
+      };
+
+      console.log(`Setting ${type} location with data:`, location);
+      
+      // Check if the callback exists and call it with the location data
+      if (onLocationSelect) {
+        console.log(`Calling onLocationSelect callback with ${type} location data`);
+        
+        // Call the parent component's callback with the new location
+        onLocationSelect(location, type);
+        
+        // Provide feedback about what was selected
+        setMapError(null); // Clear any previous errors
+        
+        // Show notification instead of error (optional since we don't have toast yet)
+        // toast({ title: `${type === 'pickup' ? 'Pickup' : 'Drop-off'} location set`, description: location.address });
+      } else {
+        console.error("onLocationSelect callback is not defined");
+        setMapError("Cannot set location: application error. Please refresh the page.");
+      }
+      
+      // Close the popup after selection
+      setPopupLocation(null);
+    } catch (error: any) {
+      console.error("Error selecting location:", error);
+      setMapError(error?.message || "Failed to set location. Please try again.");
     }
-    
-    // Close the popup after selection
-    setPopupLocation(null);
   };
 
   const handleMapLoad = (map: google.maps.Map) => {
@@ -319,9 +431,9 @@ export function MapView({
         console.warn("No locations found for search:", searchQuery);
         setMapError("No locations found for your search");
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error searching for location:", error);
-      setMapError("Failed to search for location");
+      setMapError(error?.message || "Failed to search for location");
     } finally {
       setIsLoading(false);
     }
@@ -384,7 +496,7 @@ export function MapView({
               map.setCenter(coords);
               map.setZoom(15);
             }
-          } catch (error) {
+          } catch (error: any) {
             console.error("Error reverse geocoding location:", error);
             setPopupLocation({
               lat: coords.lat,
