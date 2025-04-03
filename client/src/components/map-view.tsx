@@ -404,18 +404,6 @@ export function MapView({
           console.error("Google Maps script failed to load:", error);
           setLoadError(new Error("Failed to load Google Maps"));
         }}
-        failureElement={
-          <div className="h-[500px] flex flex-col items-center justify-center border border-dashed rounded-md p-5 bg-muted/30">
-            <AlertCircle className="h-10 w-10 text-destructive mb-4" />
-            <h3 className="text-lg font-medium mb-2">Google Maps Failed to Load</h3>
-            <p className="text-center text-muted-foreground mb-4">
-              Unable to load Google Maps. Please check your internet connection and try again.
-            </p>
-            <Button onClick={() => window.location.reload()} variant="outline">
-              Reload
-            </Button>
-          </div>
-        }
       >
         {loadError ? (
           <div className="h-[500px] flex flex-col items-center justify-center border border-dashed rounded-md p-5 bg-muted/30">

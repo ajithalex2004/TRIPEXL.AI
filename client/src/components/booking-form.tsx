@@ -1177,7 +1177,7 @@ export function BookingForm() {
                         {/* Map View */}
                         <div className="space-y-4">
                           <div className="h-[500px] relative rounded-lg overflow-hidden border">
-                            <SimpleMapView
+                            <MapView
                               pickupLocation={form.watch("pickupLocation")}
                               dropoffLocation={form.watch("dropoffLocation")}
                               onLocationSelect={(location, type) => {
