@@ -1,7 +1,7 @@
 import { type Vehicle, type Driver, type Booking, type InsertBooking, type VehicleGroup, type InsertVehicleGroup, type VehicleMaster, type InsertVehicleMaster } from "@shared/schema";
 import * as z from 'zod';
 import bcrypt from 'bcryptjs';
-import { type Employee } from '@shared/schema';
+import { type Employee, type InsertEmployee } from '@shared/schema';
 import { type User, type InsertUser } from '@shared/schema';
 import { type OtpVerification, type InsertOtpVerification } from '@shared/schema';
 import { type VehicleTypeMaster, type InsertVehicleTypeMaster, type FuelType, VehicleFuelType } from '@shared/schema';
@@ -38,8 +38,12 @@ export interface IStorage {
 
   // Employee methods
   findEmployeeByIdAndEmail(employeeId: string, email: string): Promise<Employee | null>;
-  findEmployeeByEmployeeId(employeeId: string): Promise<Employee | null>; // Added method
-  findUserByEmployeeId(employeeId: string): Promise<User | null>; // Added method
+  findEmployeeByEmployeeId(employeeId: string): Promise<Employee | null>;
+  findUserByEmployeeId(employeeId: string): Promise<User | null>;
+  getAllEmployees(): Promise<Employee[]>;
+  getEmployeeById(id: number): Promise<Employee | null>;
+  updateEmployee(id: number, data: Partial<InsertEmployee>): Promise<Employee>;
+  deleteEmployee(id: number): Promise<void>;
 
   // User methods
   findUserByEmail(email: string): Promise<User | null>;
@@ -1157,6 +1161,71 @@ export class DatabaseStorage implements IStorage {
       return employees;
     } catch (error) {
       console.error('Error fetching all employees:', error);
+      throw error;
+    }
+  }
+
+  async getEmployeeById(id: number): Promise<Employee | null> {
+    try {
+      console.log(`Fetching employee with ID: ${id}`);
+      const [employee] = await db
+        .select()
+        .from(schema.employees)
+        .where(eq(schema.employees.id, id));
+      
+      return employee || null;
+    } catch (error) {
+      console.error(`Error fetching employee by ID ${id}:`, error);
+      throw error;
+    }
+  }
+
+  async updateEmployee(id: number, data: Partial<InsertEmployee>): Promise<Employee> {
+    try {
+      console.log(`Updating employee with ID ${id}:`, data);
+      
+      // Set the updated_at timestamp
+      const updateData = {
+        ...data,
+        updated_at: new Date()
+      };
+      
+      const [updatedEmployee] = await db
+        .update(schema.employees)
+        .set(updateData)
+        .where(eq(schema.employees.id, id))
+        .returning();
+        
+      if (!updatedEmployee) {
+        throw new Error(`Employee with ID ${id} not found`);
+      }
+      
+      console.log("Successfully updated employee:", updatedEmployee);
+      return updatedEmployee;
+    } catch (error) {
+      console.error(`Error updating employee with ID ${id}:`, error);
+      throw error;
+    }
+  }
+
+  async deleteEmployee(id: number): Promise<void> {
+    try {
+      console.log(`Deleting employee with ID: ${id}`);
+      
+      // Perform the deletion
+      const result = await db
+        .delete(schema.employees)
+        .where(eq(schema.employees.id, id))
+        .returning({ deletedId: schema.employees.id });
+      
+      // Check if anything was deleted
+      if (!result.length) {
+        throw new Error(`Employee with ID ${id} not found`);
+      }
+      
+      console.log(`Successfully deleted employee with ID: ${id}`);
+    } catch (error) {
+      console.error(`Error deleting employee with ID ${id}:`, error);
       throw error;
     }
   }

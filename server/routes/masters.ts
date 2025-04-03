@@ -6,9 +6,12 @@ import {
   PlateCategory,
   TransmissionType,
   vehicleGroups,
-  fuelTypes as fuelTypesTable
+  fuelTypes as fuelTypesTable,
+  insertEmployeeSchema
 } from "@shared/schema";
+import { storage } from "../storage";
 import { db } from "../db";
+import { z } from "zod";
 
 const router = Router();
 
@@ -489,6 +492,117 @@ router.get("/api/vehicle-masters", async (_req, res) => {
     res.json(masterData);
   } catch (error: any) {
     console.error("Error fetching master data:", error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Employee management endpoints
+router.get("/api/employees", async (_req, res) => {
+  try {
+    console.log("Fetching all employees...");
+    const employees = await storage.getAllEmployees();
+    res.json(employees);
+  } catch (error: any) {
+    console.error("Error fetching employees:", error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+router.get("/api/employees/:id", async (req, res) => {
+  try {
+    const employeeId = parseInt(req.params.id);
+    if (isNaN(employeeId)) {
+      return res.status(400).json({ error: "Invalid employee ID" });
+    }
+
+    console.log(`Fetching employee with ID: ${employeeId}`);
+    const employee = await storage.getEmployeeById(employeeId);
+    
+    if (!employee) {
+      return res.status(404).json({ error: "Employee not found" });
+    }
+    
+    res.json(employee);
+  } catch (error: any) {
+    console.error(`Error fetching employee:`, error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+router.put("/api/employees/:id", async (req, res) => {
+  try {
+    const employeeId = parseInt(req.params.id);
+    if (isNaN(employeeId)) {
+      return res.status(400).json({ error: "Invalid employee ID" });
+    }
+
+    console.log(`Updating employee with ID: ${employeeId}`);
+    
+    // Check if employee exists
+    const existingEmployee = await storage.getEmployeeById(employeeId);
+    if (!existingEmployee) {
+      return res.status(404).json({ error: "Employee not found" });
+    }
+    
+    // Update the employee without Zod validation as we're doing a partial update
+    const updatedEmployee = await storage.updateEmployee(employeeId, req.body);
+    res.json(updatedEmployee);
+  } catch (error: any) {
+    console.error(`Error updating employee:`, error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+router.delete("/api/employees/:id", async (req, res) => {
+  try {
+    const employeeId = parseInt(req.params.id);
+    if (isNaN(employeeId)) {
+      return res.status(400).json({ error: "Invalid employee ID" });
+    }
+
+    console.log(`Deleting employee with ID: ${employeeId}`);
+    
+    // Check if employee exists
+    const existingEmployee = await storage.getEmployeeById(employeeId);
+    if (!existingEmployee) {
+      return res.status(404).json({ error: "Employee not found" });
+    }
+    
+    // Delete the employee
+    await storage.deleteEmployee(employeeId);
+    res.json({ success: true, message: "Employee deleted successfully" });
+  } catch (error: any) {
+    console.error(`Error deleting employee:`, error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Get employees who can be approvers based on hierarchy level and designation
+router.get("/api/approvers", async (req, res) => {
+  try {
+    console.log("Fetching approvers...");
+    
+    // Get all employees
+    const employees = await storage.getAllEmployees();
+    
+    // Level 1 approvers are employees with "Approval Authority" designation OR hierarchy_level = "Level 1"
+    const level1Approvers = employees.filter(e => 
+      e.is_active && 
+      (e.designation === "Approval Authority" || e.hierarchy_level === "Level 1")
+    );
+    
+    // Level 2 approvers are employees with hierarchy_level = "Level 2"
+    const level2Approvers = employees.filter(e => 
+      e.is_active && 
+      e.hierarchy_level === "Level 2"
+    );
+    
+    res.json({
+      level1: level1Approvers,
+      level2: level2Approvers
+    });
+  } catch (error: any) {
+    console.error("Error fetching approvers:", error);
     res.status(500).json({ error: error.message });
   }
 });

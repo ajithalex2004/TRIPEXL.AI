@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Loader2 } from "lucide-react";
+import { Loader2, AlertCircle, Lock } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { 
   DEFAULT_MANUFACTURERS, 
@@ -33,6 +33,7 @@ export function VehicleTypeForm({
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isFormReady, setIsFormReady] = useState(false);
+  const [isUpdatingFuelPrice, setIsUpdatingFuelPrice] = useState(false);
   
   // Basic form data
   const [formState, setFormState] = useState({
@@ -64,6 +65,7 @@ export function VehicleTypeForm({
   const [manufacturers, setManufacturers] = useState<string[]>([]);
   const [vehicleModels, setVehicleModels] = useState<any>({});
   const [vehicleTypes, setVehicleTypes] = useState<string[]>([]);
+  const [vehicleCategories, setVehicleCategories] = useState<string[]>([]);
   const [servicePlans, setServicePlans] = useState<string[]>([]);
   const [units, setUnits] = useState<string[]>([]);
   const [fuelTypes, setFuelTypes] = useState<any[]>([]);
@@ -436,7 +438,7 @@ export function VehicleTypeForm({
       <div className="max-h-[calc(100vh-200px)] overflow-y-auto px-6">
         <table className="w-full border-collapse">
           <tbody>
-            {/* Row 1: Vehicle Group and Manufacturer */}
+            {/* Row 1: Vehicle Group and Manufacturer - From the spec image */}
             <tr>
               <td className="border p-2">
                 <div className="space-y-1">

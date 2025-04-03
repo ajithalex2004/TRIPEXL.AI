@@ -103,7 +103,10 @@ export function generateVehicleTypeCode(manufacturer: string, model: string, yea
   if (!manufacturer || !model || !year) {
     return "";
   }
-  const mfr = manufacturer.substring(0, 3);
-  const modelPrefix = model.substring(0, 3);
-  return `${mfr}-${modelPrefix}-${year}`.toUpperCase();
+  // Format: Manufacturer + Vehicle Model + Model Year (without random suffix)
+  // Clean and standardize input by removing spaces and special characters
+  const mfr = manufacturer.replace(/[^a-zA-Z0-9]/g, "");
+  const modelName = model.replace(/[^a-zA-Z0-9]/g, "");
+  
+  return `${mfr}${modelName}${year}`.toUpperCase();
 }

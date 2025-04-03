@@ -50,8 +50,20 @@ export function WorkflowManagementForm({ onSuccess, initialData }: WorkflowManag
   });
 
   // Query to fetch available approvers (Level 1 and Level 2 employees)
-  const { data: approvers } = useQuery({
-    queryKey: ['/api/employees'],
+  const { data: approversData } = useQuery({
+    queryKey: ['/api/approvers'],
+    queryFn: async () => {
+      try {
+        const response = await fetch('/api/approvers');
+        if (!response.ok) {
+          throw new Error('Failed to fetch approvers');
+        }
+        return response.json();
+      } catch (error) {
+        console.error('Error fetching approvers:', error);
+        throw error;
+      }
+    },
   });
 
   const mutation = useMutation({
@@ -223,7 +235,7 @@ export function WorkflowManagementForm({ onSuccess, initialData }: WorkflowManag
                     </SelectTrigger>
                   </FormControl>
                   <SelectContent>
-                    {approvers?.filter(e => e.hierarchy_level === "Level 1" && e.is_active).map((employee) => (
+                    {approversData?.level1?.map((employee) => (
                       <SelectItem key={employee.id} value={employee.id.toString()}>
                         {employee.employee_name}
                       </SelectItem>
@@ -252,7 +264,7 @@ export function WorkflowManagementForm({ onSuccess, initialData }: WorkflowManag
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      {approvers?.filter(e => e.hierarchy_level === "Level 2" && e.is_active).map((employee) => (
+                      {approversData?.level2?.map((employee) => (
                         <SelectItem key={employee.id} value={employee.id.toString()}>
                           {employee.employee_name}
                         </SelectItem>
