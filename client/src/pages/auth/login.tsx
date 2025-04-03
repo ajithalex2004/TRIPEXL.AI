@@ -50,7 +50,7 @@ export default function LoginPage() {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          emailId: data.email_id,
+          email_id: data.email_id,
           password: data.password,
         }),
       });
@@ -58,7 +58,14 @@ export default function LoginPage() {
       const responseData = await response.json();
 
       if (!response.ok) {
-        throw new Error(responseData.error || "Failed to login");
+        console.error("Login failed:", responseData);
+        form.setError("email_id", { 
+          message: responseData.error || "Invalid email or password"
+        });
+        form.setError("password", { 
+          message: " " // Add space to trigger the error styling without repeating the message
+        });
+        throw new Error(responseData.error || "Invalid email or password");
       }
 
       localStorage.setItem("token", responseData.token);
@@ -71,8 +78,8 @@ export default function LoginPage() {
     } catch (error: any) {
       console.error("Login error:", error);
       toast({
-        title: "Error",
-        description: error.message || "Failed to login",
+        title: "Login Failed",
+        description: error.message || "Invalid username or password",
         variant: "destructive",
       });
     } finally {
