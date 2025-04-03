@@ -56,7 +56,7 @@ export function WorkflowManagementForm({ onSuccess, initialData }: WorkflowManag
 
   // Query to fetch available approvers (Level 1 and Level 2 employees) filtered by region, department, and unit
   const { data: approversData } = useQuery({
-    queryKey: ['/api/employees/approvers', region, department, unit],
+    queryKey: ['/api/approvers', region, department, unit],
     queryFn: async () => {
       try {
         console.log("Fetching approvers with filters:", { region, department, unit });
@@ -67,7 +67,7 @@ export function WorkflowManagementForm({ onSuccess, initialData }: WorkflowManag
         if (department) params.append('department', department);
         if (unit) params.append('unit', unit);
         
-        const url = `/api/employees/approvers${params.toString() ? `?${params.toString()}` : ''}`;
+        const url = `/api/approvers${params.toString() ? `?${params.toString()}` : ''}`;
         console.log("Fetching from URL:", url);
         
         const response = await fetch(url);
@@ -75,8 +75,12 @@ export function WorkflowManagementForm({ onSuccess, initialData }: WorkflowManag
           throw new Error('Failed to fetch approvers');
         }
         const data = await response.json();
-        console.log(`Found ${data.length} approvers`);
-        return data;
+        // Extract level1 and level2 approvers and flatten them into a single array
+        let approvers = [];
+        if (data.level1) approvers = [...approvers, ...data.level1];
+        if (data.level2) approvers = [...approvers, ...data.level2];
+        console.log(`Found ${approvers.length} approvers`);
+        return approvers;
       } catch (error) {
         console.error('Error fetching approvers:', error);
         throw error;
