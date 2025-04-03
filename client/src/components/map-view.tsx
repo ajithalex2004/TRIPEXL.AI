@@ -17,7 +17,7 @@ const defaultZoom = 11;
 // Define libraries once outside the component to avoid reloading issues
 const libraries: Libraries = ["places", "geometry"];
 
-const MAPS_API_KEY = "AIzaSyAtNTq_ILPC8Y5M_bJAiMORDf02sGoK84I";
+const MAPS_API_KEY = import.meta.env.VITE_GOOGLE_MAPS_KEY || "";
 
 export interface Location {
   address: string;
