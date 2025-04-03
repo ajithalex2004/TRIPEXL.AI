@@ -38,7 +38,7 @@ export function AddEmployeeForm({ onSuccess, initialData }: AddEmployeeFormProps
 
   const mutation = useMutation({
     mutationFn: async (data: InsertEmployee) => {
-      const response = await fetch(initialData ? `/api/employees/${initialData.employee_id}` : '/api/employees', {
+      const response = await fetch(initialData ? `/api/employees/${initialData.id}` : '/api/employees', {
         method: initialData ? 'PUT' : 'POST',
         headers: {
           'Content-Type': 'application/json',
