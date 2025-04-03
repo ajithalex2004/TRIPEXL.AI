@@ -69,6 +69,8 @@ export function MapView({
   const [searchQuery, setSearchQuery] = useState("");
   const searchBoxRef = useRef<HTMLInputElement>(null);
   const [loadError, setLoadError] = useState<Error | null>(null);
+  
+  // We don't need to memoize libraries since we're using the static constant GOOGLE_MAPS_LIBRARIES
 
   const drawRoute = async () => {
     // Clear any previous errors first
@@ -714,6 +716,7 @@ export function MapView({
       <LoadScriptNext
         googleMapsApiKey={MAPS_API_KEY}
         libraries={GOOGLE_MAPS_LIBRARIES}
+        id="google-map-script"
         loadingElement={
           <div className="h-full w-full flex items-center justify-center min-h-[400px]">
             <VehicleLoadingIndicator size="lg" />
@@ -758,7 +761,7 @@ export function MapView({
                 mapTypeControl: true,
                 fullscreenControl: true,
                 clickableIcons: true,
-                mapTypeId: typeof google !== 'undefined' ? google.maps.MapTypeId.ROADMAP : 'roadmap',
+                mapTypeId: (typeof google !== 'undefined' && google.maps && google.maps.MapTypeId) ? google.maps.MapTypeId.ROADMAP : 'roadmap',
                 styles: [
                   {
                     featureType: "poi",
@@ -787,7 +790,7 @@ export function MapView({
                 <Marker
                   position={pickupLocation.coordinates}
                   icon={{
-                    path: typeof google !== 'undefined' ? google.maps.SymbolPath.CIRCLE : 0,
+                    path: (typeof google !== 'undefined' && google.maps && google.maps.SymbolPath) ? google.maps.SymbolPath.CIRCLE : 0,
                     fillColor: "#22c55e",
                     fillOpacity: 1,
                     strokeWeight: 1,
@@ -807,7 +810,7 @@ export function MapView({
                 <Marker
                   position={dropoffLocation.coordinates}
                   icon={{
-                    path: typeof google !== 'undefined' ? google.maps.SymbolPath.CIRCLE : 0,
+                    path: (typeof google !== 'undefined' && google.maps && google.maps.SymbolPath) ? google.maps.SymbolPath.CIRCLE : 0,
                     fillColor: "#ef4444",
                     fillOpacity: 1,
                     strokeWeight: 1,
@@ -829,7 +832,7 @@ export function MapView({
                   onCloseClick={() => setPopupLocation(null)}
                   options={{
                     maxWidth: 350,
-                    pixelOffset: typeof google !== 'undefined' ? new google.maps.Size(0, -5) : undefined
+                    pixelOffset: (typeof google !== 'undefined' && google.maps && google.maps.Size) ? new google.maps.Size(0, -5) : undefined
                   }}
                 >
                   <div className="p-3 space-y-3 min-w-[280px]">
