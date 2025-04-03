@@ -1,10 +1,10 @@
 import { useState, useRef, useEffect } from "react";
 import { Card } from "@/components/ui/card";
-import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { LoadScriptNext, GoogleMap, Marker, InfoWindow, DirectionsRenderer, Libraries } from "@react-google-maps/api";
 import { VehicleLoadingIndicator } from "@/components/ui/vehicle-loading-indicator";
 import { Button } from "@/components/ui/button";
-import { MapPin, Clock, Search, Locate } from "lucide-react";
+import { MapPin, Clock, Search, Locate, AlertCircle } from "lucide-react";
 import { Input } from "@/components/ui/input";
 
 const defaultCenter = {
@@ -15,9 +15,11 @@ const defaultCenter = {
 const defaultZoom = 11;
 
 // Define libraries once outside the component to avoid reloading issues
+// Using a constant memoized array to avoid performance warnings
 const libraries: Libraries = ["places", "geometry"];
 
 const MAPS_API_KEY = import.meta.env.VITE_GOOGLE_MAPS_KEY || "";
+console.log("Google Maps API Key available:", MAPS_API_KEY ? "Yes (key length: " + MAPS_API_KEY.length + ")" : "No");
 
 export interface Location {
   address: string;
@@ -316,6 +318,22 @@ export function MapView({
           <VehicleLoadingIndicator size="lg" />
         </div>
       )}
+      
+      {mapError && (
+        <Alert variant="destructive" className="mb-4">
+          <AlertCircle className="h-4 w-4" />
+          <AlertTitle>Error</AlertTitle>
+          <AlertDescription>{mapError}</AlertDescription>
+        </Alert>
+      )}
+      
+      {!MAPS_API_KEY && (
+        <Alert variant="destructive" className="mb-4">
+          <AlertCircle className="h-4 w-4" />
+          <AlertTitle>API Key Missing</AlertTitle>
+          <AlertDescription>Google Maps API key is not configured. Please contact support.</AlertDescription>
+        </Alert>
+      )}
 
       <div className="mb-4 space-y-2">
         <h3 className="font-medium text-lg">Interactive Map</h3>
@@ -378,6 +396,22 @@ export function MapView({
           </div>
         }
         onLoad={() => setMapsInitialized(true)}
+        onError={(error) => {
+          console.error("Google Maps API failed to load:", error);
+          setMapError("Failed to load Google Maps API. Please try again later.");
+        }}
+        failureElement={
+          <div className="h-[500px] flex flex-col items-center justify-center border border-dashed rounded-md p-5 bg-muted/30">
+            <AlertCircle className="h-10 w-10 text-destructive mb-4" />
+            <h3 className="text-lg font-medium mb-2">Map Loading Failed</h3>
+            <p className="text-center text-muted-foreground mb-4">
+              Unable to load Google Maps. Please check your internet connection and try again.
+            </p>
+            <Button onClick={() => window.location.reload()} variant="outline">
+              Reload
+            </Button>
+          </div>
+        }
       >
         <div className="h-[500px] relative">
           <GoogleMap
