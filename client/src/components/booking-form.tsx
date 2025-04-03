@@ -118,6 +118,7 @@ export function BookingForm() {
   const queryClient = useQueryClient();
   const [currentStep, setCurrentStep] = React.useState(1);
   const [activeLocation, setActiveLocation] = React.useState<"pickup" | "dropoff" | null>(null);
+  const [waypoints, setWaypoints] = React.useState<any[]>([]);
   const [routeDuration, setRouteDuration] = React.useState<number>(0);
   const [showSuccessDialog, setShowSuccessDialog] = React.useState(false);
   const [createdReferenceNo, setCreatedReferenceNo] = React.useState<string>("");
@@ -295,6 +296,15 @@ export function BookingForm() {
 
   const onSubmit = async (data: any) => {
     try {
+      // Format waypoints data for API submission
+      const formattedWaypoints = waypoints.map(wp => ({
+        address: wp.address,
+        coordinates: {
+          lat: Number(wp.coordinates.lat),
+          lng: Number(wp.coordinates.lng)
+        }
+      }));
+
       const bookingData = {
         employeeId: data.employeeId,
         bookingType: data.bookingType,
@@ -314,6 +324,7 @@ export function BookingForm() {
             lng: Number(data.dropoffLocation.coordinates.lng)
           }
         },
+        waypoints: formattedWaypoints, // Add waypoints to the booking data
         pickupTime: new Date(data.pickupTime).toISOString(),
         dropoffTime: new Date(data.dropoffTime).toISOString(),
         remarks: data.remarks || "",
@@ -332,6 +343,7 @@ export function BookingForm() {
         } : {})
       };
 
+      console.log("Submitting booking with waypoints:", formattedWaypoints.length);
       await createBookingMutation.mutateAsync(bookingData);
     } catch (error: any) {
       console.error("Form submission error:", error);
@@ -1192,32 +1204,77 @@ export function BookingForm() {
 
                         {/* Map View */}
                         <div className="space-y-4">
+                          {waypoints.length > 0 && (
+                            <div className="flex items-center justify-between px-2 py-2 bg-primary/10 rounded-md border border-primary/20">
+                              <div className="text-sm">
+                                <span className="font-medium">{waypoints.length} waypoint{waypoints.length !== 1 ? 's' : ''} added</span>
+                                <span className="text-muted-foreground ml-2">These will be stops between pickup and dropoff locations</span>
+                              </div>
+                              <Button
+                                type="button"
+                                variant="destructive"
+                                size="sm"
+                                onClick={() => {
+                                  setWaypoints([]);
+                                  toast({
+                                    title: "Waypoints cleared",
+                                    description: "All waypoints have been removed"
+                                  });
+                                }}
+                              >
+                                Clear All Waypoints
+                              </Button>
+                            </div>
+                          )}
                           <div className="h-[500px] relative rounded-lg overflow-hidden border">
                             {/* Key attribute forces re-render when step changes */}
                             <MapView
                               key={`map-view-step-${currentStep}`}
                               pickupLocation={form.watch("pickupLocation")}
                               dropoffLocation={form.watch("dropoffLocation")}
+                              waypoints={waypoints}
                               onLocationSelect={(location, type) => {
-                                const fieldName = type === 'pickup' ? "pickupLocation" : "dropoffLocation";
-                                console.log(`Setting form field "${fieldName}" with location:`, location);
-                                // Ensure all optional properties are present with default values
-                                const completeLocation = {
-                                  ...location,
-                                  place_id: location.place_id || "",
-                                  name: location.name || location.address,
-                                  formatted_address: location.formatted_address || location.address
-                                };
-                                console.log(`MapView onLocationSelect: Setting ${fieldName} with:`, completeLocation);
-                                form.setValue(fieldName, completeLocation, {
-                                  shouldValidate: true,
-                                  shouldDirty: true,
-                                  shouldTouch: true
-                                });
-                                
-                                // Log the form values after setting to verify it was updated
-                                console.log(`Form field "${fieldName}" current value:`, form.getValues(fieldName));
-                                console.log("All form values:", form.getValues());
+                                if (type === 'waypoint') {
+                                  // Add new waypoint to the waypoints array
+                                  console.log("Adding waypoint:", location);
+                                  const completeWaypoint = {
+                                    ...location,
+                                    place_id: location.place_id || "",
+                                    name: location.name || location.address,
+                                    formatted_address: location.formatted_address || location.address
+                                  };
+                                  
+                                  setWaypoints(prev => [...prev, completeWaypoint]);
+                                  
+                                  // Show toast notification
+                                  toast({
+                                    title: "Waypoint added",
+                                    description: `Added waypoint at ${location.address}`,
+                                  });
+                                } else {
+                                  // Handle pickup or dropoff location as before
+                                  const fieldName = type === 'pickup' ? "pickupLocation" : "dropoffLocation";
+                                  console.log(`Setting form field "${fieldName}" with location:`, location);
+                                  
+                                  // Ensure all optional properties are present with default values
+                                  const completeLocation = {
+                                    ...location,
+                                    place_id: location.place_id || "",
+                                    name: location.name || location.address,
+                                    formatted_address: location.formatted_address || location.address
+                                  };
+                                  
+                                  console.log(`MapView onLocationSelect: Setting ${fieldName} with:`, completeLocation);
+                                  form.setValue(fieldName, completeLocation, {
+                                    shouldValidate: true,
+                                    shouldDirty: true,
+                                    shouldTouch: true
+                                  });
+                                  
+                                  // Log the form values after setting to verify it was updated
+                                  console.log(`Form field "${fieldName}" current value:`, form.getValues(fieldName));
+                                  console.log("All form values:", form.getValues());
+                                }
                               }}
                               onRouteCalculated={handleRouteCalculated}
                             />

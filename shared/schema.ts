@@ -662,6 +662,7 @@ export const bookings = pgTable("bookings", {
   // Location details
   pickup_location: json("pickup_location").$type<z.infer<typeof locations>>().notNull(),
   dropoff_location: json("dropoff_location").$type<z.infer<typeof locations>>().notNull(),
+  waypoints: json("waypoints").$type<z.infer<typeof locations>[]>().default([]),
   pickup_time: text("pickup_time").notNull(),
   dropoff_time: text("dropoff_time").notNull(),
 
@@ -747,6 +748,15 @@ export const insertBookingSchema = createInsertSchema(bookings)
         lng: z.number()
       })
     }),
+    waypoints: z.array(
+      z.object({
+        address: z.string(),
+        coordinates: z.object({
+          lat: z.number(),
+          lng: z.number()
+        })
+      })
+    ).optional(),
 
     // Optional fields
     with_driver: z.boolean().optional(),

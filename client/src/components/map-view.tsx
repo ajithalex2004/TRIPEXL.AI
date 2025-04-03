@@ -1,7 +1,15 @@
 import { useState, useRef, useEffect } from "react";
 import { Card } from "@/components/ui/card";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { LoadScriptNext, GoogleMap, Marker, InfoWindow, DirectionsRenderer, Libraries } from "@react-google-maps/api";
+import { 
+  LoadScriptNext, 
+  GoogleMap, 
+  Marker, 
+  InfoWindow, 
+  DirectionsRenderer, 
+  Libraries,
+  DirectionsService
+} from "@react-google-maps/api";
 import { VehicleLoadingIndicator } from "@/components/ui/vehicle-loading-indicator";
 import { Button } from "@/components/ui/button";
 import { MapPin, Clock, Search, Locate, AlertCircle, CircleCheck, Info as InfoIcon } from "lucide-react";
@@ -35,8 +43,16 @@ export interface Location {
 export interface MapViewProps {
   pickupLocation?: Location | null;
   dropoffLocation?: Location | null;
-  onLocationSelect?: (location: Location, type: 'pickup' | 'dropoff') => void;
-  onRouteCalculated?: (duration: number) => void;
+  waypoints?: Location[];
+  onLocationSelect?: (location: Location, type: 'pickup' | 'dropoff' | 'waypoint') => void;
+  onRouteCalculated?: (duration: number, distance: number, routeDetails: any) => void;
+  routePreferences?: {
+    avoidHighways?: boolean;
+    avoidTolls?: boolean;
+    optimizeWaypoints?: boolean;
+    provideRouteAlternatives?: boolean;
+    travelMode?: 'DRIVING' | 'BICYCLING' | 'TRANSIT' | 'WALKING';
+  };
 }
 
 interface PopupLocation {
@@ -51,8 +67,16 @@ interface PopupLocation {
 export function MapView({
   pickupLocation,
   dropoffLocation,
+  waypoints = [],
   onLocationSelect,
-  onRouteCalculated
+  onRouteCalculated,
+  routePreferences = {
+    avoidHighways: false,
+    avoidTolls: false,
+    optimizeWaypoints: true,
+    provideRouteAlternatives: true,
+    travelMode: 'DRIVING'
+  }
 }: MapViewProps) {
   // We no longer need to memoize this as we're using a constant reference
   // that is defined outside the component
@@ -155,15 +179,48 @@ export function MapView({
         dropoffLocation.coordinates.lng
       );
 
-      // Create the directions request
-      const request = {
+      // Convert waypoints to DirectionsWaypoints if provided
+      const waypointsArray = waypoints.map(waypoint => ({
+        location: new google.maps.LatLng(
+          waypoint.coordinates.lat,
+          waypoint.coordinates.lng
+        ),
+        stopover: true
+      }));
+      
+      // Map travelMode from string to Google Maps TravelMode enum
+      let travelMode: google.maps.TravelMode;
+      switch (routePreferences.travelMode) {
+        case 'BICYCLING':
+          travelMode = google.maps.TravelMode.BICYCLING;
+          break;
+        case 'TRANSIT':
+          travelMode = google.maps.TravelMode.TRANSIT;
+          break;
+        case 'WALKING':
+          travelMode = google.maps.TravelMode.WALKING;
+          break;
+        case 'DRIVING':
+        default:
+          travelMode = google.maps.TravelMode.DRIVING;
+          break;
+      }
+      
+      // Create the directions request with all route preferences
+      const request: google.maps.DirectionsRequest = {
         origin,
         destination,
-        travelMode: google.maps.TravelMode.DRIVING,
-        optimizeWaypoints: true,
-        avoidHighways: false,
-        avoidTolls: false,
+        travelMode,
+        optimizeWaypoints: routePreferences.optimizeWaypoints,
+        avoidHighways: routePreferences.avoidHighways,
+        avoidTolls: routePreferences.avoidTolls,
+        provideRouteAlternatives: routePreferences.provideRouteAlternatives,
       };
+      
+      // Only add waypoints if there are any to avoid issues with the API
+      if (waypointsArray.length > 0) {
+        request.waypoints = waypointsArray;
+      }
       
       console.log("Sending directions request:", request);
       
@@ -215,9 +272,21 @@ export function MapView({
           duration: leg.duration.text || "Unknown"
         });
         
-        // Notify parent component about the calculated duration
+        // Notify parent component about the calculated route details
         if (onRouteCalculated) {
-          onRouteCalculated(durationInSeconds);
+          // Extract distance in meters
+          const distanceInMeters = leg.distance.value || 0;
+          
+          // Pass duration, distance, and additional route details to the callback
+          onRouteCalculated(
+            durationInSeconds, 
+            distanceInMeters, 
+            {
+              routes: result.routes,
+              legs: result.routes[0].legs,
+              waypoint_order: result.routes[0].waypoint_order
+            }
+          );
         }
         
         // Fit the map bounds to show the entire route
@@ -306,9 +375,21 @@ export function MapView({
           
           setDirectionsResult(simpleDirectionsResult);
           
-          // Notify parent component about the calculated duration
+          // Notify parent component about the calculated route details (fallback case)
           if (onRouteCalculated) {
-            onRouteCalculated(durationInSeconds);
+            // Distance in meters (convert from km)
+            const distanceInMeters = distance * 1000;
+            
+            // Provide minimal route details in the fallback case
+            onRouteCalculated(
+              durationInSeconds,
+              distanceInMeters,
+              {
+                routes: [{ legs: [{ distance: { value: distanceInMeters }, duration: { value: durationInSeconds } }] }],
+                legs: [{ distance: { value: distanceInMeters }, duration: { value: durationInSeconds } }],
+                waypoint_order: []
+              }
+            );
           }
           
           // Fit the map bounds to show both markers
@@ -366,7 +447,18 @@ export function MapView({
     if (map && pickupLocation && dropoffLocation && mapsInitialized && typeof google !== 'undefined') {
       drawRoute();
     }
-  }, [pickupLocation, dropoffLocation, map, mapsInitialized]);
+  }, [
+    pickupLocation, 
+    dropoffLocation, 
+    waypoints, 
+    map, 
+    mapsInitialized, 
+    routePreferences.avoidHighways,
+    routePreferences.avoidTolls,
+    routePreferences.optimizeWaypoints,
+    routePreferences.travelMode,
+    routePreferences.provideRouteAlternatives
+  ]);
 
   const handleMapClick = async (e: google.maps.MapMouseEvent) => {
     if (!e.latLng || !mapsInitialized || typeof google === 'undefined') return;
@@ -412,7 +504,7 @@ export function MapView({
     }
   };
 
-  const handleLocationTypeSelect = (type: 'pickup' | 'dropoff') => {
+  const handleLocationTypeSelect = (type: 'pickup' | 'dropoff' | 'waypoint') => {
     if (!popupLocation) {
       console.error("Cannot set location: missing popupLocation");
       setMapError("Location details not available. Please try clicking on the map again.");
@@ -455,14 +547,24 @@ export function MapView({
       if (onLocationSelect) {
         console.log(`Calling onLocationSelect callback with ${type} location data`);
         
-        // Call the parent component's callback with the new location
+        // Call the parent component's callback with the new location and type
         onLocationSelect(location, type);
         
-        // Provide feedback about what was selected
+        // Provide feedback about what was selected based on type
         setMapError(null); // Clear any previous errors
         
-        // Show notification instead of error (optional since we don't have toast yet)
-        // toast({ title: `${type === 'pickup' ? 'Pickup' : 'Drop-off'} location set`, description: location.address });
+        // Show different messages based on location type
+        let actionMessage;
+        if (type === 'pickup') {
+          actionMessage = "Pickup location set";
+        } else if (type === 'dropoff') {
+          actionMessage = "Drop-off location set";
+        } else if (type === 'waypoint') {
+          actionMessage = "Waypoint added";
+        }
+        
+        console.log(actionMessage, location.address);
+        // toast({ title: actionMessage, description: location.address });
       } else {
         console.error("onLocationSelect callback is not defined");
         setMapError("Cannot set location: application error. Please refresh the page.");
@@ -663,7 +765,7 @@ export function MapView({
 
       <div className="mb-4 space-y-2">
         <h3 className="font-medium text-lg">Interactive Map</h3>
-        <div className="flex items-center gap-2 mb-3">
+        <div className="flex items-center gap-2 mb-3 flex-wrap">
           <div className="flex items-center gap-1">
             <div className="w-4 h-4 rounded-full bg-green-600 flex items-center justify-center text-[10px] text-white font-bold">P</div>
             <span className="text-sm">Pickup</span>
@@ -671,6 +773,10 @@ export function MapView({
           <div className="flex items-center gap-1">
             <div className="w-4 h-4 rounded-full bg-red-600 flex items-center justify-center text-[10px] text-white font-bold">D</div>
             <span className="text-sm">Drop-off</span>
+          </div>
+          <div className="flex items-center gap-1">
+            <div className="w-4 h-4 rounded-full bg-amber-600 flex items-center justify-center text-[10px] text-white font-bold">1</div>
+            <span className="text-sm">Waypoint</span>
           </div>
         </div>
 
@@ -709,7 +815,7 @@ export function MapView({
         </div>
         
         <p className="text-sm text-muted-foreground">
-          Click on the map or search for a location to set pickup and drop-off points
+          Click on the map or search for a location to set pickup, drop-off, or waypoint locations
         </p>
       </div>
 
@@ -825,6 +931,28 @@ export function MapView({
                   }}
                 />
               )}
+              
+              {/* Render waypoint markers with numbers */}
+              {waypoints && waypoints.map((waypoint, index) => (
+                <Marker
+                  key={`waypoint-${index}`}
+                  position={waypoint.coordinates}
+                  icon={{
+                    path: (typeof google !== 'undefined' && google.maps && google.maps.SymbolPath) ? google.maps.SymbolPath.CIRCLE : 0,
+                    fillColor: "#f59e0b", // Amber color for waypoints
+                    fillOpacity: 1,
+                    strokeWeight: 1,
+                    strokeColor: "#ffffff",
+                    scale: 12,
+                  }}
+                  label={{
+                    text: (index + 1).toString(),
+                    color: "white",
+                    fontWeight: "bold",
+                    fontSize: "14px"
+                  }}
+                />
+              ))}
 
               {popupLocation && (
                 <InfoWindow
@@ -863,6 +991,16 @@ export function MapView({
                       >
                         <CircleCheck className="h-4 w-4" />
                         <span>Set as Dropoff Location</span>
+                      </Button>
+                      <Button
+                        size="sm"
+                        onClick={() => handleLocationTypeSelect('waypoint')}
+                        variant="default"
+                        disabled={false}
+                        className="w-full bg-blue-600 hover:bg-blue-700 flex items-center justify-center gap-2"
+                      >
+                        <MapPin className="h-4 w-4" />
+                        <span>Add as Waypoint</span>
                       </Button>
                     </div>
                   </div>
@@ -907,6 +1045,28 @@ export function MapView({
                 </p>
               </div>
             </div>
+
+            {/* Show waypoints if they exist */}
+            {waypoints && waypoints.length > 0 && (
+              <>
+                {waypoints.map((waypoint, index) => (
+                  <div className="flex gap-3" key={`waypoint-info-${index}`}>
+                    <div className="min-w-[24px] flex flex-col items-center">
+                      <div className="w-6 h-6 rounded-full bg-blue-600 flex items-center justify-center text-[10px] text-white font-bold">
+                        {index + 1}
+                      </div>
+                      <div className="h-full border-l-2 border-dashed border-muted-foreground/30 my-1"></div>
+                    </div>
+                    <div>
+                      <p className="font-medium">Waypoint {index + 1}</p>
+                      <p className="text-sm text-muted-foreground">
+                        {waypoint.formatted_address || waypoint.name || waypoint.address}
+                      </p>
+                    </div>
+                  </div>
+                ))}
+              </>
+            )}
 
             <div className="flex gap-3">
               <div className="min-w-[24px]">
