@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import { Card } from "@/components/ui/card";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { 
@@ -8,19 +8,28 @@ import {
   InfoWindow, 
   DirectionsRenderer, 
   Libraries,
-  DirectionsService
+  DirectionsService,
 } from "@react-google-maps/api";
 import { VehicleLoadingIndicator } from "@/components/ui/vehicle-loading-indicator";
 import { Button } from "@/components/ui/button";
-import { MapPin, Clock, Search, Locate, AlertCircle, CircleCheck, Info as InfoIcon } from "lucide-react";
+import { MapPin, Clock, Search, Locate, AlertCircle, CircleCheck, Info as InfoIcon, X } from "lucide-react";
 import { Input } from "@/components/ui/input";
+import { Combobox } from "@/components/ui/combobox";
 
 const defaultCenter = {
-  lat: 24.466667,
+  lat: 24.466667,  // Abu Dhabi coordinates as default
   lng: 54.366667
 };
 
 const defaultZoom = 11;
+
+// UAE bounds for restricting autocomplete results
+const UAE_BOUNDS = {
+  north: 26.5,   // Northern boundary of UAE
+  south: 22.0,   // Southern boundary of UAE
+  west: 51.0,    // Western boundary of UAE
+  east: 56.5     // Eastern boundary of UAE
+};
 
 // Define libraries as a static constant outside the component to avoid reloading issues
 // Using a constant array to avoid performance warnings from Google Maps API
@@ -78,8 +87,6 @@ export function MapView({
     travelMode: 'DRIVING'
   }
 }: MapViewProps) {
-  // We no longer need to memoize this as we're using a constant reference
-  // that is defined outside the component
   const [mapError, setMapError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [map, setMap] = useState<google.maps.Map | null>(null);
@@ -93,6 +100,12 @@ export function MapView({
   const [searchQuery, setSearchQuery] = useState("");
   const searchBoxRef = useRef<HTMLInputElement>(null);
   const [loadError, setLoadError] = useState<Error | null>(null);
+  
+  // Autocomplete related states
+  const [autocompleteService, setAutocompleteService] = useState<google.maps.places.AutocompleteService | null>(null);
+  const [placesService, setPlacesService] = useState<google.maps.places.PlacesService | null>(null);
+  const [predictions, setPredictions] = useState<Array<{value: string, label: string, description?: string, place_id: string}>>([]);
+  const [isSearching, setIsSearching] = useState(false);
   
   // We don't need to memoize libraries since we're using the static constant GOOGLE_MAPS_LIBRARIES
 
@@ -592,8 +605,144 @@ export function MapView({
     setMapsInitialized(true);
     map.setCenter(defaultCenter);
     map.setZoom(defaultZoom);
+    
+    // Initialize autocomplete and places services
+    try {
+      const autocompleteService = new google.maps.places.AutocompleteService();
+      setAutocompleteService(autocompleteService);
+      
+      // We need a dummy div for PlacesService, even though we'll only use getDetails
+      const dummyElement = document.createElement('div');
+      const placesService = new google.maps.places.PlacesService(map);
+      setPlacesService(placesService);
+      
+      console.log("Places services initialized successfully");
+    } catch (error) {
+      console.error("Error initializing Places services:", error);
+      setMapError("Could not initialize location search. Please refresh and try again.");
+    }
   };
 
+  const fetchPredictions = useCallback(
+    async (input: string) => {
+      if (!input.trim() || !autocompleteService || !mapsInitialized || typeof google === 'undefined') {
+        setPredictions([]);
+        return;
+      }
+      
+      setIsSearching(true);
+      try {
+        // Set up options with UAE bounds
+        const options: google.maps.places.AutocompletionRequest = {
+          input,
+          bounds: new google.maps.LatLngBounds(
+            new google.maps.LatLng(UAE_BOUNDS.south, UAE_BOUNDS.west),
+            new google.maps.LatLng(UAE_BOUNDS.north, UAE_BOUNDS.east)
+          ),
+          componentRestrictions: { country: 'ae' }, // Restrict to UAE
+          types: ['geocode', 'establishment', 'address'], // Include businesses, addresses, and places
+        };
+        
+        // Make the request to get predictions
+        const response = await new Promise<google.maps.places.AutocompletePrediction[]>((resolve, reject) => {
+          autocompleteService.getPlacePredictions(options, (results, status) => {
+            if (status === google.maps.places.PlacesServiceStatus.OK && results) {
+              resolve(results);
+            } else if (status === google.maps.places.PlacesServiceStatus.ZERO_RESULTS) {
+              resolve([]);
+            } else {
+              reject(new Error(`Autocomplete failed with status: ${status}`));
+            }
+          });
+        });
+        
+        // Format the results for our combobox
+        const formattedResults = response.map(prediction => ({
+          value: prediction.place_id,
+          label: prediction.structured_formatting?.main_text || prediction.description,
+          description: prediction.structured_formatting?.secondary_text,
+          place_id: prediction.place_id
+        }));
+        
+        setPredictions(formattedResults);
+      } catch (error) {
+        console.error("Error fetching location predictions:", error);
+        setPredictions([]);
+      } finally {
+        setIsSearching(false);
+      }
+    },
+    [autocompleteService, mapsInitialized]
+  );
+  
+  // Handle input change with 300ms debounce
+  useEffect(() => {
+    const timeoutId = setTimeout(() => {
+      if (searchQuery.trim().length >= 3) {
+        fetchPredictions(searchQuery);
+      } else {
+        setPredictions([]);
+      }
+    }, 300);
+    
+    return () => clearTimeout(timeoutId);
+  }, [searchQuery, fetchPredictions]);
+  
+  const handlePlaceSelect = async (placeId: string) => {
+    if (!placeId || !placesService || !map || !mapsInitialized || typeof google === 'undefined') return;
+    
+    try {
+      setIsLoading(true);
+      setMapError(null);
+      
+      // Get detailed place information from the place_id
+      const placeDetails = await new Promise<google.maps.places.PlaceResult>((resolve, reject) => {
+        placesService.getDetails({
+          placeId: placeId,
+          fields: ['name', 'geometry', 'formatted_address', 'place_id']
+        }, (result, status) => {
+          if (status === google.maps.places.PlacesServiceStatus.OK && result) {
+            resolve(result);
+          } else {
+            reject(new Error(`Place details request failed with status: ${status}`));
+          }
+        });
+      });
+      
+      console.log("Place details:", placeDetails);
+      
+      if (!placeDetails.geometry?.location) {
+        throw new Error("Selected place has no location data");
+      }
+      
+      const location = {
+        lat: placeDetails.geometry.location.lat(),
+        lng: placeDetails.geometry.location.lng(),
+        address: placeDetails.formatted_address || "",
+        place_id: placeDetails.place_id || "",
+        name: placeDetails.name || placeDetails.formatted_address || "",
+        formatted_address: placeDetails.formatted_address || ""
+      };
+      
+      // Center the map on the found location
+      map.setCenter(location);
+      map.setZoom(15);
+      
+      // Show the location popup
+      setPopupLocation(location);
+      
+      // Clear search query after successful search
+      setSearchQuery("");
+      setPredictions([]);
+      
+    } catch (error: any) {
+      console.error("Error getting place details:", error);
+      setMapError(error?.message || "Failed to get location details");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+  
   const handleSearch = async () => {
     if (!searchQuery.trim() || !map || !mapsInitialized || typeof google === 'undefined') return;
 
@@ -605,9 +754,25 @@ export function MapView({
         throw new Error("Google Maps API is not initialized in handleSearch");
       }
       
+      // First try using autocomplete predictions if available
+      if (predictions.length > 0) {
+        await handlePlaceSelect(predictions[0].place_id);
+        return;
+      }
+      
+      // Fallback to geocoder if no predictions are available
       const geocoder = new google.maps.Geocoder();
       console.log("Searching for location:", searchQuery);
-      const result = await geocoder.geocode({ address: searchQuery });
+      
+      // Add UAE bias to geocoding request
+      const result = await geocoder.geocode({ 
+        address: searchQuery,
+        bounds: new google.maps.LatLngBounds(
+          new google.maps.LatLng(UAE_BOUNDS.south, UAE_BOUNDS.west),
+          new google.maps.LatLng(UAE_BOUNDS.north, UAE_BOUNDS.east)
+        ),
+        componentRestrictions: { country: 'ae' }
+      });
       
       if (result.results.length > 0) {
         const place = result.results[0];
@@ -633,6 +798,7 @@ export function MapView({
         
         // Clear search query after successful search
         setSearchQuery("");
+        setPredictions([]);
       } else {
         console.warn("No locations found for search:", searchQuery);
         setMapError("No locations found for your search");
@@ -786,25 +952,39 @@ export function MapView({
         </div>
 
         <div className="relative mb-2">
-          <div className="flex">
-            <Input
-              ref={searchBoxRef}
-              placeholder="Search for a location..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              onKeyDown={handleSearchKeyDown}
-              className="pr-10"
+          {predictions.length > 0 ? (
+            <Combobox
+              placeholder="Search for a location in UAE..."
+              options={predictions}
+              value=""
+              onChange={handlePlaceSelect}
+              onInputChange={setSearchQuery}
+              className="w-full"
+              emptyMessage="No locations found"
+              clearable={true}
+              loading={isSearching}
             />
-            <Button 
-              variant="ghost" 
-              size="icon"
-              type="button"
-              onClick={handleSearch}
-              className="absolute right-0 top-0 h-full"
-            >
-              <Search className="h-4 w-4" />
-            </Button>
-          </div>
+          ) : (
+            <div className="flex">
+              <Input
+                ref={searchBoxRef}
+                placeholder="Search for a location in UAE..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                onKeyDown={handleSearchKeyDown}
+                className="pr-10"
+              />
+              <Button 
+                variant="ghost" 
+                size="icon"
+                type="button"
+                onClick={handleSearch}
+                className="absolute right-0 top-0 h-full"
+              >
+                <Search className="h-4 w-4" />
+              </Button>
+            </div>
+          )}
         </div>
         
         <div className="mb-3">
