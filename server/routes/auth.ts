@@ -155,10 +155,10 @@ router.post("/users", async (req, res) => {
       });
     }
 
-    // Check if email already exists
+    // Check if email already exists in users table
     const existingUserEmail = await storage.findUserByEmail(userData.email_id);
     if (existingUserEmail) {
-      console.error('Email already exists:', userData.email_id);
+      console.error('Email already exists in users table:', userData.email_id);
       return res.status(400).json({
         error: "Email address is already registered"
       });
@@ -173,7 +173,7 @@ router.post("/users", async (req, res) => {
       });
     }
 
-    // Check if mobile number already exists (if provided)
+    // Check if mobile number already exists in users table (if provided)
     if (userData.mobile_number) {
       const [existingUserMobile] = await db
         .select()
@@ -189,6 +189,44 @@ router.post("/users", async (req, res) => {
         });
       }
     }
+
+    // EMPLOYEE VALIDATION: Check if the email exists in the employees table
+    // If it exists, this is a valid employee that can be registered as a user
+    const [employeeByEmail] = await db
+      .select()
+      .from(schema.employees)
+      .where(sql`email_id = ${userData.email_id}`);
+
+    // If email not found, also check by mobile number if provided
+    let employeeFound = !!employeeByEmail;
+    let employeeByMobile = null;
+    
+    if (!employeeFound && userData.mobile_number) {
+      [employeeByMobile] = await db
+        .select()
+        .from(schema.employees)
+        .where(sql`mobile_number = ${userData.mobile_number}`);
+      
+      employeeFound = !!employeeByMobile;
+    }
+
+    // If the email or mobile number doesn't match any employee record, return an error
+    if (!employeeFound) {
+      console.error('No matching employee record found for email or mobile number:', {
+        email: userData.email_id,
+        mobile: userData.mobile_number
+      });
+      return res.status(400).json({
+        error: "Registration failed: No matching employee record found with this email or mobile number. Please contact your administrator."
+      });
+    }
+
+    // If we got here, a matching employee was found - proceed with user creation
+    console.log('Matching employee record found:', {
+      byEmail: !!employeeByEmail,
+      byMobile: !!employeeByMobile,
+      employeeId: (employeeByEmail || employeeByMobile)?.id
+    });
 
     // Hash password
     const salt = await bcrypt.genSalt(10);
@@ -321,11 +359,28 @@ router.get("/check-email/:email", async (req, res) => {
       });
     }
 
+    // First check if the email exists in the users table
     const existingUser = await storage.findUserByEmail(email);
+    if (existingUser) {
+      return res.json({
+        available: false,
+        isValid: false,
+        message: "Email is already registered"
+      });
+    }
+
+    // If not already registered, check if the email exists in the employees table
+    const [employeeWithEmail] = await db
+      .select()
+      .from(schema.employees)
+      .where(sql`email_id = ${email}`);
 
     return res.json({
-      available: !existingUser,
-      message: existingUser ? "Email is already registered" : ""
+      available: true, // Available for registration since not in users table
+      isValid: !!employeeWithEmail, // Valid only if found in employees table
+      message: employeeWithEmail ? 
+        "Email belongs to a valid employee" : 
+        "Email not found in employee records. Only registered employees can create accounts."
     });
 
   } catch (error) {
@@ -340,7 +395,8 @@ router.get("/check-email/:email", async (req, res) => {
 router.get("/check-mobile/:countryCode/:number", async (req, res) => {
   try {
     const { countryCode, number } = req.params;
-    console.log('Checking mobile number:', `${countryCode}${number}`);
+    const fullMobileNumber = `${countryCode}${number}`;
+    console.log('Checking mobile number:', fullMobileNumber);
 
     if (!countryCode || !number) {
       return res.status(400).json({
@@ -348,15 +404,32 @@ router.get("/check-mobile/:countryCode/:number", async (req, res) => {
       });
     }
 
-    // Query to check if mobile number exists using Drizzle
+    // Check if mobile number exists in users table
     const [existingUser] = await db
       .select()
       .from(schema.users)
       .where(sql`country_code = ${countryCode} AND mobile_number = ${number}`);
 
+    if (existingUser) {
+      return res.json({
+        available: false,
+        isValid: false, 
+        message: "Mobile number is already registered"
+      });
+    }
+
+    // If not already registered, check if the mobile number exists in the employees table
+    const [employeeWithMobile] = await db
+      .select()
+      .from(schema.employees)
+      .where(sql`mobile_number = ${fullMobileNumber}`);
+
     return res.json({
-      available: !existingUser,
-      message: existingUser ? "Mobile number is already registered" : ""
+      available: true, // Available for registration since not in users table
+      isValid: !!employeeWithMobile, // Valid only if found in employees table
+      message: employeeWithMobile ? 
+        "Mobile number belongs to a valid employee" : 
+        "Mobile number not found in employee records. Only registered employees can create accounts."
     });
 
   } catch (error) {
