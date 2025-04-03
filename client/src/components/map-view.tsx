@@ -179,32 +179,39 @@ export function MapView({
       return;
     }
 
-    // Ensure we always have values for required fields even if they're marked as optional in the interface
-    const locationName = popupLocation.name || popupLocation.address;
-    const formattedAddress = popupLocation.formatted_address || popupLocation.address;
-
+    // Create a complete location object with all required fields
     const location: Location = {
-      address: popupLocation.address,
+      address: popupLocation.address || "Selected location",
       coordinates: {
         lat: popupLocation.lat,
         lng: popupLocation.lng
       },
-      // Always provide values for these properties, even though they're marked as optional in the interface
-      name: locationName,
-      formatted_address: formattedAddress,
+      // Include all optional properties with default values
+      name: popupLocation.name || popupLocation.address || "Selected location",
+      formatted_address: popupLocation.formatted_address || popupLocation.address || "Selected location",
       place_id: popupLocation.place_id || ""
     };
 
-    console.log(`Setting ${type} location:`, location);
+    console.log(`Setting ${type} location with data:`, location);
     
-    // Check if the callback exists
+    // Check if the callback exists and call it with the location data
     if (onLocationSelect) {
-      console.log("Calling onLocationSelect callback with location data");
+      console.log(`Calling onLocationSelect callback with ${type} location data`);
+      
+      // Set the appropriate state variable directly as well
+      if (type === 'pickup') {
+        setPickupLocation(location);
+      } else {
+        setDropoffLocation(location);
+      }
+      
+      // Call the parent component's callback
       onLocationSelect(location, type);
     } else {
       console.error("onLocationSelect callback is not defined");
     }
     
+    // Close the popup after selection
     setPopupLocation(null);
   };
 
@@ -545,9 +552,7 @@ export function MapView({
                   onCloseClick={() => setPopupLocation(null)}
                   options={{
                     maxWidth: 350,
-                    pixelOffset: typeof google !== 'undefined' ? new google.maps.Size(0, -5) : undefined,
-                    // Hide the default close button
-                    disableCloseButton: true
+                    pixelOffset: typeof google !== 'undefined' ? new google.maps.Size(0, -5) : undefined
                   }}
                 >
                   <div className="p-3 space-y-3 min-w-[280px]">
@@ -563,7 +568,7 @@ export function MapView({
                         size="sm"
                         onClick={() => handleLocationTypeSelect('pickup')}
                         variant="default"
-                        disabled={!!pickupLocation}
+                        disabled={false}
                         className="w-full bg-green-600 hover:bg-green-700 flex items-center justify-center gap-2"
                       >
                         <CircleCheck className="h-4 w-4" />
@@ -572,9 +577,9 @@ export function MapView({
                       <Button
                         size="sm"
                         onClick={() => handleLocationTypeSelect('dropoff')}
-                        variant={pickupLocation && !dropoffLocation ? "default" : "outline"}
-                        disabled={!pickupLocation || !!dropoffLocation}
-                        className={`w-full flex items-center justify-center gap-2 ${pickupLocation && !dropoffLocation ? "bg-red-600 hover:bg-red-700" : ""}`}
+                        variant="default"
+                        disabled={false}
+                        className="w-full bg-red-600 hover:bg-red-700 flex items-center justify-center gap-2"
                       >
                         <CircleCheck className="h-4 w-4" />
                         <span>Set as Dropoff Location</span>
