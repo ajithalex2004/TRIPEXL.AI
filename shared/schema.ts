@@ -315,7 +315,10 @@ export const EmployeeDesignation = {
   // Staff Level
   SENIOR_STAFF: "Senior Staff",
   STAFF: "Staff",
-  JUNIOR_STAFF: "Junior Staff"
+  JUNIOR_STAFF: "Junior Staff",
+  
+  // Approval Authority
+  APPROVAL_AUTHORITY: "Approval Authority"
 } as const;
 
 // Update the HierarchyLevel enum
@@ -352,7 +355,7 @@ export const employees = pgTable("employees", {
   nationality: text("nationality"),
   password: varchar("password", { length: 50 }),
   communication_language: varchar("communication_language", { length: 50 }),
-  supervisor_id: integer("supervisor_id").references(() => employees.id),
+  supervisor_id: integer("supervisor_id"), // Temporarily remove direct self-reference
   is_active: boolean("is_active").notNull().default(true),
   created_at: timestamp("created_at").notNull().defaultNow(),
   updated_at: timestamp("updated_at").notNull().defaultNow()
@@ -382,6 +385,7 @@ export const approvalWorkflows = pgTable("approval_workflows", {
   };
 });
 
+// Now add the self-reference for supervisor in the relations definition
 export const employeesRelations = relations(employees, ({ one, many }) => ({
   supervisor: one(employees, {
     fields: [employees.supervisor_id],

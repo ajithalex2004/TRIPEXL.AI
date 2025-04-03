@@ -958,13 +958,25 @@ If you didn't request this reset, please ignore this email.
     // Add employee routes for workflow management
     app.get("/api/employees/approvers", async (_req, res) => {
       try {
+        // Get employees who are Level 1 or Level 2 hierarchy OR have Approval Authority designation
         const approvers = await db
           .select()
           .from(employees)
           .where(
-            sql`${employees.hierarchy_level} IN ('Level 1', 'Level 2') AND ${employees.is_active} = true`
+            sql`(${employees.hierarchy_level} IN ('Level 1', 'Level 2') OR ${employees.designation} = 'Approval Authority') AND ${employees.is_active} = true`
           );
-        res.json(approvers);
+        
+        // For employees with "Approval Authority" designation, ensure they have Level 1 hierarchy
+        const mappedApprovers = approvers.map(employee => {
+          // If the employee has the Approval Authority designation but no hierarchy level specified
+          // Set their hierarchy level to Level 1 for workflow management purposes
+          if (employee.designation === "Approval Authority" && employee.hierarchy_level !== "Level 1") {
+            return { ...employee, hierarchy_level: "Level 1" };
+          }
+          return employee;
+        });
+        
+        res.json(mappedApprovers);
       } catch (error: any) {
         console.error("Error fetching approvers:", error);
         res.status(500).json({ error: "Failed to fetch approvers" });
