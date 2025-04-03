@@ -54,10 +54,10 @@ export function MapView({
 }: MapViewProps) {
   const [mapError, setMapError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
-  const [map, setMap] = useState<google.maps.Map | null>(null);
+  const [map, setMap] = useState<any>(null);
   const [mapsInitialized, setMapsInitialized] = useState(false);
   const [popupLocation, setPopupLocation] = useState<PopupLocation | null>(null);
-  const [directionsResult, setDirectionsResult] = useState<google.maps.DirectionsResult | null>(null);
+  const [directionsResult, setDirectionsResult] = useState<any>(null);
   const [routeInfo, setRouteInfo] = useState<{
     distance: string;
     duration: string;
@@ -66,8 +66,8 @@ export function MapView({
   const searchBoxRef = useRef<HTMLInputElement>(null);
 
   const drawRoute = async () => {
-    if (!pickupLocation || !dropoffLocation || !map) {
-      console.log("Missing location data:", { pickupLocation, dropoffLocation });
+    if (!pickupLocation || !dropoffLocation || !map || !mapsInitialized || typeof google === 'undefined') {
+      console.log("Missing location data or Google Maps not initialized:", { pickupLocation, dropoffLocation, googleDefined: typeof google !== 'undefined', mapsInitialized });
       return;
     }
 
@@ -121,16 +121,21 @@ export function MapView({
   };
 
   useEffect(() => {
-    if (map && pickupLocation && dropoffLocation) {
+    if (map && pickupLocation && dropoffLocation && mapsInitialized && typeof google !== 'undefined') {
       drawRoute();
     }
-  }, [pickupLocation, dropoffLocation, map]);
+  }, [pickupLocation, dropoffLocation, map, mapsInitialized]);
 
-  const handleMapClick = async (e: google.maps.MapMouseEvent) => {
-    if (!e.latLng || !onLocationSelect || !mapsInitialized) return;
+  const handleMapClick = async (e: any) => {
+    if (!e.latLng || !onLocationSelect || !mapsInitialized || typeof google === 'undefined') return;
 
     try {
       setIsLoading(true);
+      setMapError(null);
+      
+      if (typeof google === 'undefined') {
+        throw new Error("Google Maps API is not initialized in handleMapClick");
+      }
       const geocoder = new google.maps.Geocoder();
       const result = await geocoder.geocode({ location: { lat: e.latLng.lat(), lng: e.latLng.lng() } });
 
@@ -172,6 +177,10 @@ export function MapView({
   };
 
   const handleMapLoad = (map: google.maps.Map) => {
+    if (typeof google === 'undefined') {
+      console.error("Google Maps API not initialized in handleMapLoad");
+      return;
+    }
     setMap(map);
     setMapsInitialized(true);
     map.setCenter(defaultCenter);
@@ -179,12 +188,15 @@ export function MapView({
   };
 
   const handleSearch = async () => {
-    if (!searchQuery.trim() || !map || !mapsInitialized) return;
+    if (!searchQuery.trim() || !map || !mapsInitialized || typeof google === 'undefined') return;
 
     try {
       setIsLoading(true);
       setMapError(null);
       
+      if (typeof google === 'undefined') {
+        throw new Error("Google Maps API is not initialized in handleSearch");
+      }
       const geocoder = new google.maps.Geocoder();
       const result = await geocoder.geocode({ address: searchQuery });
       
@@ -225,7 +237,7 @@ export function MapView({
   };
   
   const handleGetCurrentLocation = () => {
-    if (!map || !mapsInitialized) return;
+    if (!map || !mapsInitialized || typeof google === 'undefined') return;
     
     setIsLoading(true);
     setMapError(null);
@@ -239,6 +251,9 @@ export function MapView({
           };
           
           try {
+            if (typeof google === 'undefined') {
+              throw new Error("Google Maps API is not initialized");
+            }
             const geocoder = new google.maps.Geocoder();
             const result = await geocoder.geocode({ location: coords });
             
@@ -381,7 +396,7 @@ export function MapView({
               mapTypeControl: true,
               fullscreenControl: true,
               clickableIcons: true,
-              mapTypeId: google.maps.MapTypeId.ROADMAP,
+              mapTypeId: typeof google !== 'undefined' ? google.maps.MapTypeId.ROADMAP : 'roadmap',
               styles: [
                 {
                   featureType: "poi",
@@ -409,7 +424,7 @@ export function MapView({
               <Marker
                 position={pickupLocation.coordinates}
                 icon={{
-                  path: google.maps.SymbolPath.CIRCLE,
+                  path: typeof google !== 'undefined' ? google.maps.SymbolPath.CIRCLE : 0,
                   fillColor: "#22c55e",
                   fillOpacity: 1,
                   strokeWeight: 1,
@@ -429,7 +444,7 @@ export function MapView({
               <Marker
                 position={dropoffLocation.coordinates}
                 icon={{
-                  path: google.maps.SymbolPath.CIRCLE,
+                  path: typeof google !== 'undefined' ? google.maps.SymbolPath.CIRCLE : 0,
                   fillColor: "#ef4444",
                   fillOpacity: 1,
                   strokeWeight: 1,
@@ -451,7 +466,7 @@ export function MapView({
                 onCloseClick={() => setPopupLocation(null)}
                 options={{
                   maxWidth: 320,
-                  pixelOffset: new google.maps.Size(0, -5)
+                  pixelOffset: typeof google !== 'undefined' ? new google.maps.Size(0, -5) : undefined
                 }}
               >
                 <div className="p-2 space-y-3 min-w-[250px]">
