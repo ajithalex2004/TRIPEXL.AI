@@ -408,22 +408,48 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
         // Get user details
         const user = await storage.findUserByEmail(decoded.email);
-        if (!user || !user.employeeId) {
-          return res.status(404).json({ error: "Employee not found" });
+        if (!user) {
+          return res.status(404).json({ error: "User not found" });
         }
 
-        // Get employee details
-        const employee = await storage.findEmployeeByIdAndEmail(user.employeeId, user.email);
+        // Check if employee record exists
+        let employee = null;
+        if (user.userId) {
+          // First attempt: try to find by user ID
+          employee = await db.query.employees.findFirst({
+            where: eq(employees.userId, user.id)
+          });
+        }
+
+        if (!employee && user.emailId) {
+          // Second attempt: try to find by email
+          employee = await db.query.employees.findFirst({
+            where: eq(employees.emailId, user.emailId)
+          });
+        }
+
         if (!employee) {
-          return res.status(404).json({ error: "Employee not found" });
+          return res.status(404).json({ error: "Employee not found for this user" });
         }
 
         // Set strong caching headers
         res.setHeader('Cache-Control', 'private, max-age=3600'); // Cache for 1 hour
+        
+        // Return detailed employee information
         res.json({
+          id: employee.id, 
           employeeId: employee.employeeId,
-          name: employee.name,
-          email: employee.email
+          employeeName: employee.employeeName,
+          name: employee.employeeName, // For backward compatibility
+          email: employee.emailId,
+          department: employee.department,
+          designation: employee.designation,
+          region: employee.region,
+          unit: employee.unit,
+          mobileNumber: employee.mobileNumber,
+          employeeType: employee.employeeType,
+          employeeRole: employee.employeeRole,
+          hierarchyLevel: employee.hierarchyLevel
         });
       } catch (error) {
         console.error('Error fetching employee:', error);

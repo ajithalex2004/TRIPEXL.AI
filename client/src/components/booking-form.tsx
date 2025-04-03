@@ -630,7 +630,7 @@ export function BookingForm() {
                       <FormItem>
                         <FormLabel>Employee Name</FormLabel>
                         <FormControl>
-                          <Input value={employee?.name || ""} disabled />
+                          <Input value={employee?.employeeName || employee?.name || ""} disabled />
                         </FormControl>
                       </FormItem>
                     </div>
