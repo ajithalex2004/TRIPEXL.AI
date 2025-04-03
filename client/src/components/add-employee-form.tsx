@@ -5,29 +5,59 @@ import { Button } from "@/components/ui/button";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Switch } from "@/components/ui/switch"; // Added Switch import
+import { Switch } from "@/components/ui/switch";
 import { toast } from "@/hooks/use-toast";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Department, EmployeeDesignation, EmployeeType, EmployeeRole, HierarchyLevel, Region } from "@shared/schema";
+import { useState } from "react";
 
 interface AddEmployeeFormProps {
   onSuccess?: () => void;
   initialData?: Employee;
 }
 
+// Helper functions (outside component to avoid redeclaration issues)
+const extractCountryCode = (mobileNumber: string | null | undefined): string => {
+  if (!mobileNumber) return "+971";
+  const codes = ["+971", "+966", "+974", "+973", "+968", "+965"];
+  for (const code of codes) {
+    if (mobileNumber.startsWith(code)) {
+      return code;
+    }
+  }
+  return "+971"; // Default to UAE
+};
+
+const extractMobileNumber = (mobileNumber: string | null | undefined): string => {
+  if (!mobileNumber) return "";
+  const codes = ["+971", "+966", "+974", "+973", "+968", "+965"];
+  for (const code of codes) {
+    if (mobileNumber.startsWith(code)) {
+      return mobileNumber.substring(code.length);
+    }
+  }
+  return mobileNumber;
+};
+
 export function AddEmployeeForm({ onSuccess, initialData }: AddEmployeeFormProps) {
   const queryClient = useQueryClient();
+  
+  // Initialize country code from mobile number or default to UAE
+  const [countryCode, setCountryCode] = useState(
+    extractCountryCode(initialData?.mobile_number)
+  );
+  
   const form = useForm<InsertEmployee>({
     resolver: zodResolver(insertEmployeeSchema),
     defaultValues: {
       employee_type: initialData?.employee_type || EmployeeType.PERMANENT,
       employee_role: initialData?.employee_role || EmployeeRole.EMPLOYEE,
       is_active: initialData?.is_active ?? true, // Default to true for new employees
-      country_code: initialData?.country_code || "+971",
       employee_id: initialData?.employee_id || undefined,
       employee_name: initialData?.employee_name || "",
       email_id: initialData?.email_id || "",
-      mobile_number: initialData?.mobile_number || "",
+      // Extract the mobile number without country code
+      mobile_number: extractMobileNumber(initialData?.mobile_number) || "",
       designation: initialData?.designation || "",
       department: initialData?.department || "",
       region: initialData?.region || "",
@@ -72,7 +102,14 @@ export function AddEmployeeForm({ onSuccess, initialData }: AddEmployeeFormProps
   });
 
   const onSubmit = (data: InsertEmployee) => {
-    mutation.mutate(data);
+    // Combine country code with mobile number
+    const formattedData = {
+      ...data,
+      mobile_number: data.mobile_number ? `${countryCode}${data.mobile_number}` : ""
+    };
+    
+    console.log("Submitting employee data:", formattedData);
+    mutation.mutate(formattedData);
   };
 
   return (
@@ -130,7 +167,7 @@ export function AddEmployeeForm({ onSuccess, initialData }: AddEmployeeFormProps
           />
         </div>
 
-        <div className="grid grid-cols-3 gap-4"> {/* Changed to grid-cols-3 */}
+        <div className="grid grid-cols-3 gap-4">
           <FormField
             control={form.control}
             name="email_id"
@@ -145,13 +182,11 @@ export function AddEmployeeForm({ onSuccess, initialData }: AddEmployeeFormProps
             )}
           />
 
-          <FormField
-            control={form.control}
-            name="country_code"
-            render={({ field }) => (
-              <FormItem>
+          <div className="col-span-2">
+            <div className="flex gap-2">
+              <FormItem className="w-1/3">
                 <FormLabel>Code</FormLabel>
-                <Select onValueChange={field.onChange} defaultValue={field.value}>
+                <Select onValueChange={setCountryCode} defaultValue={countryCode}>
                   <FormControl>
                     <SelectTrigger>
                       <SelectValue placeholder="Code" />
@@ -166,33 +201,33 @@ export function AddEmployeeForm({ onSuccess, initialData }: AddEmployeeFormProps
                     <SelectItem value="+965">+965 (Kuwait)</SelectItem>
                   </SelectContent>
                 </Select>
-                <FormMessage />
               </FormItem>
-            )}
-          />
-          <FormField
-            control={form.control}
-            name="mobile_number"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Mobile Number</FormLabel>
-                <FormControl>
-                  <Input
-                    {...field}
-                    maxLength={9}
-                    placeholder="5XXXXXXXX"
-                    onChange={(e) => {
-                      const value = e.target.value.replace(/[^0-9]/g, '');
-                      if (value.length <= 9) {
-                        field.onChange(value);
-                      }
-                    }}
-                  />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
+              
+              <FormField
+                control={form.control}
+                name="mobile_number"
+                render={({ field }) => (
+                  <FormItem className="w-2/3">
+                    <FormLabel>Mobile Number</FormLabel>
+                    <FormControl>
+                      <Input
+                        {...field}
+                        maxLength={9}
+                        placeholder="5XXXXXXXX"
+                        onChange={(e) => {
+                          const value = e.target.value.replace(/[^0-9]/g, '');
+                          if (value.length <= 9) {
+                            field.onChange(value);
+                          }
+                        }}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
+          </div>
         </div>
 
         <div className="grid grid-cols-2 gap-4">

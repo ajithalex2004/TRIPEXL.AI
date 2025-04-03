@@ -551,14 +551,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
           });
         }
 
-        // Hash the password before storing
-        const hashedPassword = await bcrypt.hash(result.data.password, 10);
-
-        // Create employee with hashed password
-        const employeeData = {
-          ...result.data,
-          password: hashedPassword
-        };
+        // Create employee data object (without hashing password for now)
+        // We'll only hash if a password is provided
+        let employeeData = { ...result.data };
+        
+        // Only hash password if it exists in the request
+        if (result.data.password) {
+          const hashedPassword = await bcrypt.hash(result.data.password, 10);
+          employeeData.password = hashedPassword;
+        }
 
         const employee = await storage.createEmployee(employeeData);
         console.log("Created employee:", employee);
