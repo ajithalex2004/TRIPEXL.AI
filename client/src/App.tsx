@@ -71,6 +71,7 @@ function Router() {
       <Route path="/vehicle-types" component={() => <ProtectedRoute component={VehicleTypeManagement} />} />
       <Route path="/vehicle-type-management" component={() => <ProtectedRoute component={VehicleTypeManagement} />} />
       <Route path="/vehicle-master" component={() => <ProtectedRoute component={VehicleMasterManagement} />} />
+      <Route path="/vehicle-master-management" component={() => <ProtectedRoute component={VehicleMasterManagement} />} />
       <Route path="/user-master" component={() => <ProtectedRoute component={UserMasterPage} />} />
       <Route path="/employees" component={() => <ProtectedRoute component={EmployeeManagement} />} />
       <Route path="/permissions-map" component={() => <ProtectedRoute component={PermissionsMapPage} />} />

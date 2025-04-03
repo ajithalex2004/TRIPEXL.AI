@@ -88,6 +88,21 @@ export function VehicleMasterForm({ isOpen, onClose, initialData }: VehicleMaste
   // Query hooks - keep at top level
   const { data: vehicleTypes, isLoading: isLoadingVehicleTypes } = useQuery<ExtendedVehicleType[]>({
     queryKey: ["/api/vehicle-types"],
+    queryFn: async () => {
+      const response = await fetch("/api/vehicle-types");
+      if (!response.ok) {
+        throw new Error("Failed to fetch vehicle types");
+      }
+      const data = await response.json();
+      console.log("Vehicle types data received:", data);
+      console.log("Number of vehicle types:", data?.length);
+      if (data && data.length > 0) {
+        // Inspect the first item to understand its structure
+        console.log("First vehicle type:", data[0]);
+        console.log("Vehicle type code:", data[0].vehicle_type_code);
+      }
+      return data;
+    }
   });
   
   const { data: fuelTypes, isLoading: isLoadingFuelTypes } = useQuery<FuelType[]>({
@@ -231,7 +246,7 @@ export function VehicleMasterForm({ isOpen, onClose, initialData }: VehicleMaste
   }, [form, updateRegistrationNumber]);
 
   const handleVehicleTypeSelect = React.useCallback((typeCode: string) => {
-    const selectedType = vehicleTypes?.find(type => type.vehicle_type_code === typeCode);
+    const selectedType = vehicleTypes && vehicleTypes.find((type: ExtendedVehicleType) => type.vehicle_type_code === typeCode);
     if (selectedType) {
       console.log("Vehicle Type selected:", selectedType);
       
@@ -501,18 +516,21 @@ export function VehicleMasterForm({ isOpen, onClose, initialData }: VehicleMaste
                           <SelectItem value="no-types" disabled>
                             No vehicle types available. Create one first.
                           </SelectItem>
-                        ) : vehicleTypes.filter(type => type.vehicle_type_code && type.vehicle_type_code.trim() !== '').length === 0 ? (
+                        ) : vehicleTypes.filter((type: ExtendedVehicleType) => type.vehicle_type_code && type.vehicle_type_code.trim() !== '').length === 0 ? (
                           <SelectItem value="no-valid-types" disabled>
                             No valid vehicle types found with codes.
                           </SelectItem>
                         ) : (
                           vehicleTypes
-                            .filter(type => type.vehicle_type_code && type.vehicle_type_code.trim() !== '')
-                            .sort((a, b) => a.manufacturer.localeCompare(b.manufacturer) || a.vehicle_model.localeCompare(b.vehicle_model))
-                            .map((type) => (
+                            .filter((type: ExtendedVehicleType) => type.vehicle_type_code && type.vehicle_type_code.trim() !== '')
+                            .sort((a: ExtendedVehicleType, b: ExtendedVehicleType) => 
+                              (a.manufacturer || '').localeCompare(b.manufacturer || '') || 
+                              (a.vehicle_model || '').localeCompare(b.vehicle_model || '')
+                            )
+                            .map((type: ExtendedVehicleType) => (
                               <SelectItem
                                 key={type.vehicle_type_code}
-                                value={type.vehicle_type_code}
+                                value={type.vehicle_type_code || ''}
                               >
                                 {type.vehicle_type_code} - {type.vehicle_type_name || `${type.manufacturer || ''} ${type.vehicle_model || ''}`}
                               </SelectItem>
@@ -565,8 +583,8 @@ export function VehicleMasterForm({ isOpen, onClose, initialData }: VehicleMaste
                           </SelectItem>
                         ) : fuelTypes && fuelTypes.length > 0 ? (
                           fuelTypes
-                            .filter(fuelType => fuelType && fuelType.type && typeof fuelType.type === 'string' && fuelType.type.trim() !== '')
-                            .map((fuelType) => (
+                            .filter((fuelType: FuelType) => fuelType && fuelType.type && typeof fuelType.type === 'string' && fuelType.type.trim() !== '')
+                            .map((fuelType: FuelType) => (
                               <SelectItem key={fuelType.id} value={fuelType.type}>
                                 {fuelType.type || "Unknown Fuel Type"}
                               </SelectItem>
