@@ -713,22 +713,33 @@ export class DatabaseStorage implements IStorage {
     try {
       console.log("Creating booking with data:", JSON.stringify(bookingData, null, 2));
 
-      const processedData = {
-        ...bookingData,
-        createdAt: new Date(),
-        updatedAt: new Date(),
-        // Ensure number fields are properly typed
-        numBoxes: bookingData.numBoxes ? Number(bookingData.numBoxes) : null,
-        weight: bookingData.weight ? Number(bookingData.weight) : null,
-        numPassengers: bookingData.numPassengers ? Number(bookingData.numPassengers) : null,
-        totalDistance: bookingData.totalDistance ? Number(bookingData.totalDistance) : null,
-        estimatedCost: bookingData.estimatedCost ? Number(bookingData.estimatedCost) : null,
-        co2Emissions: bookingData.co2Emissions ? Number(bookingData.co2Emissions) : null
-      };
+      // Convert camelCase properties to snake_case for database
+      const dbData: any = { ...bookingData };
+      
+      // Set timestamps in snake_case
+      dbData.created_at = new Date();
+      dbData.updated_at = new Date();
+      
+      // Ensure number fields are properly typed with snake_case naming
+      if (bookingData.numBoxes !== undefined) dbData.num_boxes = Number(bookingData.numBoxes);
+      if (bookingData.weight !== undefined) dbData.weight = Number(bookingData.weight);
+      if (bookingData.numPassengers !== undefined) dbData.num_passengers = Number(bookingData.numPassengers);
+      if (bookingData.totalDistance !== undefined) dbData.total_distance = Number(bookingData.totalDistance);
+      if (bookingData.estimatedCost !== undefined) dbData.estimated_cost = Number(bookingData.estimatedCost);
+      if (bookingData.co2Emissions !== undefined) dbData.co2_emissions = Number(bookingData.co2Emissions);
+      
+      // Remove camelCase properties to avoid conflicts
+      delete dbData.numBoxes;
+      delete dbData.numPassengers;
+      delete dbData.totalDistance;
+      delete dbData.estimatedCost;
+      delete dbData.co2Emissions;
+      delete dbData.createdAt;
+      delete dbData.updatedAt;
 
       const [booking] = await db
         .insert(schema.bookings)
-        .values(processedData)
+        .values(dbData)
         .returning();
 
       console.log("Successfully created booking:", booking);
@@ -739,55 +750,128 @@ export class DatabaseStorage implements IStorage {
     }
   }
   async assignBooking(bookingId: number, vehicleId: number, driverId: number): Promise<Booking> {
-    const [booking] = await db
-      .update(schema.bookings)
-      .set({
-        assignedVehicleId: vehicleId,
-        assignedDriverId: driverId,
-        status: "confirmed",
-        confirmedAt: new Date(),
-        updatedAt: new Date()
-      })
-      .where(eq(schema.bookings.id, bookingId))
-      .returning();
+    try {
+      console.log(`Assigning booking ${bookingId} to vehicle ${vehicleId} and driver ${driverId}`);
+      
+      const [booking] = await db
+        .update(schema.bookings)
+        .set({
+          assigned_vehicle_id: vehicleId,
+          assigned_driver_id: driverId,
+          status: "confirmed",
+          confirmed_at: new Date(),
+          updated_at: new Date()
+        })
+        .where(eq(schema.bookings.id, bookingId))
+        .returning();
 
-    return booking;
+      if (!booking) {
+        throw new Error(`Booking with ID ${bookingId} not found`);
+      }
+      
+      console.log("Successfully assigned booking:", booking);
+      return booking;
+    } catch (error) {
+      console.error("Error assigning booking:", error);
+      throw new Error(error instanceof Error ? error.message : "Failed to assign booking");
+    }
   }
   async updateBookingStatus(id: number, status: string): Promise<Booking> {
-    const statusTimestamp = new Date();
-    const updateData: Partial<Booking> = {
-      status,
-      updatedAt: statusTimestamp
-    };
+    try {
+      console.log(`Updating booking ${id} status to: ${status}`);
+      
+      // Validate the booking ID
+      if (!id || isNaN(id)) {
+        throw new Error(`Invalid booking ID: ${id}`);
+      }
+      
+      // Check if booking exists
+      const [existingBooking] = await db
+        .select()
+        .from(schema.bookings)
+        .where(eq(schema.bookings.id, id));
+        
+      if (!existingBooking) {
+        throw new Error(`Booking with ID ${id} not found`);
+      }
 
-    // Add specific timestamp based on status
-    switch (status) {
-      case "confirmed":
-        updateData.confirmedAt = statusTimestamp;
-        break;
-      case "completed":
-        updateData.completedAt = statusTimestamp;
-        break;
-      case "cancelled":
-        updateData.cancelledAt = statusTimestamp;
-        break;
+      const statusTimestamp = new Date();
+      const dbData: any = {
+        status,
+        updated_at: statusTimestamp
+      };
+
+      // Add specific timestamp based on status using snake_case for db fields
+      switch (status) {
+        case "confirmed":
+          dbData.confirmed_at = statusTimestamp;
+          break;
+        case "completed":
+          dbData.completed_at = statusTimestamp;
+          break;
+        case "cancelled":
+          dbData.cancelled_at = statusTimestamp;
+          break;
+      }
+
+      const [updatedBooking] = await db
+        .update(schema.bookings)
+        .set(dbData)
+        .where(eq(schema.bookings.id, id))
+        .returning();
+
+      if (!updatedBooking) {
+        throw new Error(`Failed to update status for booking with ID ${id}`);
+      }
+      
+      console.log(`Successfully updated booking ${id} status to ${status}`);
+      return updatedBooking;
+    } catch (error) {
+      console.error(`Error updating booking status:`, error);
+      throw new Error(error instanceof Error ? error.message : "Failed to update booking status");
     }
-
-    const [updatedBooking] = await db
-      .update(schema.bookings)
-      .set(updateData)
-      .where(eq(schema.bookings.id, id))
-      .returning();
-
-    return updatedBooking;
   }
   async findEmployeeByIdAndEmail(employeeId: string, email: string): Promise<Employee | null> {
-    const [employee] = await db
-      .select()
-      .from(schema.employees)
-      .where(eq(schema.employees.employeeId, employeeId))
-      .where(eq(schema.employees.email, email));
-    return employee || null;
+    try {
+      console.log(`Finding employee with ID ${employeeId} and email ${email}`);
+      
+      // Validate input parameters
+      if (!employeeId || !email) {
+        console.error('Missing required parameters: employeeId or email');
+        return null;
+      }
+      
+      // Convert employeeId to a number
+      const empId = parseInt(employeeId);
+      if (isNaN(empId)) {
+        console.error('Invalid employee ID format:', employeeId);
+        return null;
+      }
+      
+      // Validate email format
+      if (!email.includes('@') || !email.includes('.')) {
+        console.error('Invalid email format:', email);
+        return null;
+      }
+      
+      // Query database
+      const [employee] = await db
+        .select()
+        .from(schema.employees)
+        .where(eq(schema.employees.employee_id, empId))
+        .where(eq(schema.employees.email_id, email));
+      
+      if (employee) {
+        console.log(`Found employee: ${employee.employee_name}`);
+      } else {
+        console.log(`No employee found with ID ${employeeId} and email ${email}`);
+      }
+      
+      return employee || null;
+    } catch (error) {
+      console.error('Error finding employee by ID and email:', error);
+      throw new Error(`Database error: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
   }
 
   async findUserByEmail(emailId: string): Promise<User | null> {
@@ -805,22 +889,73 @@ export class DatabaseStorage implements IStorage {
     }
   }
   async getUser(id: number): Promise<User | null> {
-    const [user] = await db
-      .select()
-      .from(schema.users)
-      .where(eq(schema.users.id, id));
-    return user || null;
+    try {
+      console.log(`Fetching user with ID: ${id}`);
+      
+      // Validate user ID
+      if (!id || isNaN(id) || id <= 0) {
+        console.error(`Invalid user ID: ${id}`);
+        return null;
+      }
+      
+      // Query database
+      const [user] = await db
+        .select()
+        .from(schema.users)
+        .where(eq(schema.users.id, id));
+      
+      if (user) {
+        console.log(`Found user: ${user.user_name} (${user.email_id})`);
+      } else {
+        console.log(`No user found with ID: ${id}`);
+      }
+      
+      return user || null;
+    } catch (error) {
+      console.error('Error fetching user by ID:', error);
+      throw new Error(`Database error while fetching user: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
   }
   async markUserAsVerified(userId: number): Promise<User> {
-    const [user] = await db
-      .update(schema.users)
-      .set({
-        isVerified: true,
-        updatedAt: new Date()
-      })
-      .where(eq(schema.users.id, userId))
-      .returning();
-    return user;
+    try {
+      console.log(`Marking user with ID ${userId} as verified`);
+      
+      // Validate userId
+      if (!userId || isNaN(userId) || userId <= 0) {
+        throw new Error(`Invalid user ID: ${userId}`);
+      }
+      
+      // Check if user exists first
+      const user = await this.getUser(userId);
+      if (!user) {
+        throw new Error(`User with ID ${userId} not found`);
+      }
+      
+      if (user.is_verified) {
+        console.log(`User ${userId} is already verified`);
+        return user;
+      }
+      
+      // Update user verification status
+      const [updatedUser] = await db
+        .update(schema.users)
+        .set({
+          is_verified: true,
+          updated_at: new Date()
+        })
+        .where(eq(schema.users.id, userId))
+        .returning();
+      
+      if (!updatedUser) {
+        throw new Error(`Failed to update verification status for user with ID ${userId}`);
+      }
+      
+      console.log(`Successfully marked user ${userId} as verified`);
+      return updatedUser;
+    } catch (error) {
+      console.error('Error marking user as verified:', error);
+      throw new Error(`Failed to mark user as verified: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
   }
   async updateUserLastLogin(userId: number): Promise<User> {
     console.log('Updating last login for user:', userId);
@@ -976,22 +1111,51 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createOtpVerification(verification: InsertOtpVerification): Promise<OtpVerification> {
-    const [newVerification] = await db
-      .insert(schema.otpVerifications)
-      .values({
-        ...verification,
-        isUsed: false,
-        createdAt: new Date()
-      })
-      .returning();
-    return newVerification;
+    try {
+      console.log(`Creating OTP verification for user ID: ${verification.user_id}`);
+      
+      // Validate input data
+      if (!verification.user_id || isNaN(verification.user_id) || verification.user_id <= 0) {
+        throw new Error(`Invalid user ID: ${verification.user_id}`);
+      }
+      
+      if (!verification.otp || verification.otp.length < 4) {
+        throw new Error('Invalid OTP code');
+      }
+      
+      // Check if user exists
+      const user = await this.getUser(verification.user_id);
+      if (!user) {
+        throw new Error(`User with ID ${verification.user_id} not found`);
+      }
+      
+      // Create new OTP verification record
+      const [newVerification] = await db
+        .insert(schema.otpVerifications)
+        .values({
+          ...verification,
+          is_used: false,
+          created_at: new Date()
+        })
+        .returning();
+      
+      if (!newVerification) {
+        throw new Error('Failed to create OTP verification record');
+      }
+      
+      console.log(`OTP verification created successfully for user ID: ${verification.user_id}`);
+      return newVerification;
+    } catch (error) {
+      console.error('Error creating OTP verification:', error);
+      throw new Error(`Failed to create OTP verification: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
   }
   async findLatestOtpVerification(userId: number): Promise<OtpVerification | null> {
     const [verification] = await db
       .select()
       .from(schema.otpVerifications)
-      .where(eq(schema.otpVerifications.userId, userId))
-      .orderBy(desc(schema.otpVerifications.createdAt))
+      .where(eq(schema.otpVerifications.user_id, userId))
+      .orderBy(desc(schema.otpVerifications.created_at))
       .limit(1);
     return verification || null;
   }
@@ -999,7 +1163,7 @@ export class DatabaseStorage implements IStorage {
     const [verification] = await db
       .update(schema.otpVerifications)
       .set({
-        isUsed: true
+        is_used: true
       })
       .where(eq(schema.otpVerifications.id, verificationId))
       .returning();
@@ -1016,20 +1180,45 @@ export class DatabaseStorage implements IStorage {
     try {
       console.log("Storage: Updating booking metadata:", { bookingId, metadata });
 
+      // Validate the booking ID
+      if (!bookingId || isNaN(bookingId)) {
+        throw new Error(`Invalid booking ID: ${bookingId}`);
+      }
+      
+      // Check if booking exists
+      const [existingBooking] = await db
+        .select()
+        .from(schema.bookings)
+        .where(eq(schema.bookings.id, bookingId));
+        
+      if (!existingBooking) {
+        throw new Error(`Booking with ID ${bookingId} not found`);
+      }
+
+      // Convert camelCase to snake_case for database fields
+      const dbMetadata: any = {};
+      if (metadata.totalDistance !== undefined) dbMetadata.total_distance = metadata.totalDistance;
+      if (metadata.estimatedCost !== undefined) dbMetadata.estimated_cost = metadata.estimatedCost;
+      if (metadata.co2Emissions !== undefined) dbMetadata.co2_emissions = metadata.co2Emissions;
+
       const [updatedBooking] = await db
         .update(schema.bookings)
         .set({
-          ...metadata,
-          updatedAt: new Date()
+          ...dbMetadata,
+          updated_at: new Date()
         })
         .where(eq(schema.bookings.id, bookingId))
         .returning();
+
+      if (!updatedBooking) {
+        throw new Error(`Failed to update metadata for booking with ID ${bookingId}`);
+      }
 
       console.log("Storage: Successfully updated booking metadata:", updatedBooking);
       return updatedBooking;
     } catch (error) {
       console.error("Storage: Error updating booking metadata:", error);
-      throw new Error(`Failed to update booking metadata: ${error.message}`);
+      throw new Error(`Failed to update booking metadata: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   }
   async getAllUsers(): Promise<User[]> {
@@ -1086,12 +1275,26 @@ export class DatabaseStorage implements IStorage {
   async findUserByResetToken(resetToken: string): Promise<User | null> {
     try {
       console.log('Finding user by reset token');
+      
+      // Validate reset token
+      if (!resetToken || typeof resetToken !== 'string' || resetToken.trim() === '') {
+        console.error('Invalid reset token provided');
+        return null;
+      }
+      
+      // Find user with valid token (not expired)
       const [user] = await db
         .select()
         .from(schema.users)
         .where(eq(schema.users.reset_token, resetToken))
         .where(sql`${schema.users.reset_token_expiry} > NOW()`);
 
+      if (!user) {
+        console.log('No user found with the provided reset token or token has expired');
+      } else {
+        console.log('User found with valid reset token');
+      }
+      
       return user || null;
     } catch (error) {
       console.error('Error finding user by reset token:', error);
@@ -1103,23 +1306,18 @@ export class DatabaseStorage implements IStorage {
     try {
       console.log('Finding employee by ID:', employeeId);
 
-      // Simple query to get employee by ID
+      // Convert employeeId to a number if it's a string
+      const empId = parseInt(employeeId);
+      if (isNaN(empId)) {
+        console.error('Invalid employee ID format:', employeeId);
+        return null;
+      }
+      
+      // Select all fields from employees table
       const [employee] = await db
-        .select({
-          employeeId: schema.employees.employee_id,
-          employeeName: schema.employees.employee_name,
-          emailId: schema.employees.email,
-          mobileNumber: schema.employees.mobile_number,
-          employeeType: schema.employees.employee_type,
-          designation: schema.employees.designation,
-          department: schema.employees.department,
-          nationality: schema.employees.nationality,
-          region: schema.employees.region,
-          communicationLanguage: schema.employees.communication_language,
-          unit: schema.employees.unit
-        })
+        .select()
         .from(schema.employees)
-        .where(eq(schema.employees.employee_id, employeeId));
+        .where(eq(schema.employees.employee_id, empId));
 
       if (!employee) {
         console.log('No employee found with ID:', employeeId);
@@ -1128,7 +1326,7 @@ export class DatabaseStorage implements IStorage {
 
       console.log('Found employee:', {
         ...employee,
-        mobileNumber: '****' + (employee.mobileNumber?.slice(-4) || '')
+        mobile_number: '****' + (employee.mobile_number?.slice(-4) || '')
       });
 
       return employee;
@@ -1142,10 +1340,25 @@ export class DatabaseStorage implements IStorage {
     try {
       console.log('Checking if employee is already registered:', employeeId);
 
+      // Convert employeeId to a number if needed
+      const empId = parseInt(employeeId);
+      if (isNaN(empId)) {
+        console.error('Invalid employee ID format:', employeeId);
+        return null;
+      }
+      
+      // First find the employee record by employee_id
+      const employee = await this.findEmployeeByEmployeeId(employeeId);
+      if (!employee) {
+        console.log('No employee found with ID:', employeeId);
+        return null;
+      }
+      
+      // Then find the user with matching email
       const [user] = await db
         .select()
         .from(schema.users)
-        .where(eq(schema.users.employeeId, employeeId))
+        .where(eq(schema.users.email_id, employee.email_id))
         .limit(1);
 
       console.log('Existing user found:', user ? 'Yes' : 'No');
@@ -1277,31 +1490,101 @@ export class DatabaseStorage implements IStorage {
     }
   }
   async getOtpVerification(userId: number): Promise<OtpVerification | null> {
-    const [verification] = await db
-      .select()
-      .from(schema.otpVerifications)
-      .where(eq(schema.otpVerifications.userId, userId))
-      .orderBy(desc(schema.otpVerifications.createdAt))
-      .limit(1);
-    return verification || null;
+    try {
+      console.log(`Fetching latest OTP verification for user ID: ${userId}`);
+      
+      // Validate user ID
+      if (!userId || isNaN(userId) || userId <= 0) {
+        console.error(`Invalid user ID: ${userId}`);
+        return null;
+      }
+      
+      // Get the latest verification record
+      const [verification] = await db
+        .select()
+        .from(schema.otpVerifications)
+        .where(eq(schema.otpVerifications.user_id, userId))
+        .orderBy(desc(schema.otpVerifications.created_at))
+        .limit(1);
+      
+      if (verification) {
+        console.log(`Found OTP verification record for user ID ${userId}`);
+      } else {
+        console.log(`No OTP verification records found for user ID ${userId}`);
+      }
+      
+      return verification || null;
+    } catch (error) {
+      console.error(`Error fetching OTP verification for user ID ${userId}:`, error);
+      throw new Error(`Database error while fetching OTP verification: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
   }
 
   async deleteOtpVerification(userId: number): Promise<void> {
-    await db
-      .delete(schema.otpVerifications)
-      .where(eq(schema.otpVerifications.userId, userId));
+    try {
+      console.log(`Deleting OTP verification records for user ID: ${userId}`);
+      
+      // Validate user ID
+      if (!userId || isNaN(userId) || userId <= 0) {
+        console.error(`Invalid user ID: ${userId}`);
+        throw new Error(`Invalid user ID: ${userId}`);
+      }
+      
+      // Delete all OTP verification records for the user
+      const result = await db
+        .delete(schema.otpVerifications)
+        .where(eq(schema.otpVerifications.user_id, userId))
+        .returning({ deletedId: schema.otpVerifications.id });
+      
+      console.log(`Deleted ${result.length} OTP verification records for user ID ${userId}`);
+    } catch (error) {
+      console.error(`Error deleting OTP verification records for user ID ${userId}:`, error);
+      throw new Error(`Failed to delete OTP verification records: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
   }
 
   async activateUser(userId: number): Promise<User> {
-    const [user] = await db
-      .update(schema.users)
-      .set({
-        isActive: true,
-        updatedAt: new Date()
-      })
-      .where(eq(schema.users.id, userId))
-      .returning();
-    return user;
+    try {
+      console.log(`Activating user with ID ${userId}`);
+      
+      // Validate user ID
+      if (!userId || isNaN(userId) || userId <= 0) {
+        console.error(`Invalid user ID: ${userId}`);
+        throw new Error(`Invalid user ID: ${userId}`);
+      }
+      
+      // Check if user exists
+      const user = await this.getUser(userId);
+      if (!user) {
+        throw new Error(`User with ID ${userId} not found`);
+      }
+      
+      // Check if user is already active
+      if (user.is_active) {
+        console.log(`User with ID ${userId} is already active`);
+        return user;
+      }
+      
+      // Activate the user
+      const [updatedUser] = await db
+        .update(schema.users)
+        .set({
+          is_active: true,
+          updated_at: new Date()
+        })
+        .where(eq(schema.users.id, userId))
+        .returning();
+      
+      if (!updatedUser) {
+        throw new Error(`Failed to activate user with ID ${userId}`);
+      }
+      
+      console.log(`Successfully activated user with ID ${userId}`);
+      return updatedUser;
+    } catch (error) {
+      console.error(`Error activating user with ID ${userId}:`, error);
+      throw new Error(`Failed to activate user: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
   }
   async validateUserPassword(user: User, password: string): Promise<boolean> {
     try {
