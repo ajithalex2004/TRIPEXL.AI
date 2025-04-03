@@ -66,6 +66,13 @@ interface VehicleMasterFormProps {
   initialData?: VehicleMaster | null;
 }
 
+// Define a custom interface extending VehicleTypeMaster for our component
+interface ExtendedVehicleType extends VehicleTypeMaster {
+  // Add missing fields that we're trying to access but are not in the original type
+  transmission_type?: string;
+  vehicle_usage?: string;
+}
+
 export function VehicleMasterForm({ isOpen, onClose, initialData }: VehicleMasterFormProps) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -77,13 +84,6 @@ export function VehicleMasterForm({ isOpen, onClose, initialData }: VehicleMaste
   const [selectedModelYear, setSelectedModelYear] = React.useState<number>(initialData?.model_year || 0);
   const [availableModels, setAvailableModels] = React.useState<string[]>([]);
   const [selectedModel, setSelectedModel] = React.useState<string>(initialData?.vehicle_model || "");
-
-  // Define a custom interface extending VehicleTypeMaster for our component
-  interface ExtendedVehicleType extends VehicleTypeMaster {
-    // Add missing fields that we're trying to access but are not in the original type
-    transmission_type?: string;
-    vehicle_usage?: string;
-  }
   
   // Query hooks - keep at top level
   const { data: vehicleTypes, isLoading: isLoadingVehicleTypes } = useQuery<ExtendedVehicleType[]>({
@@ -196,7 +196,7 @@ export function VehicleMasterForm({ isOpen, onClose, initialData }: VehicleMaste
     },
   });
 
-  const onSubmit = React.useCallback((data: any) => {
+  const onFormSubmit = React.useCallback((data: any) => {
     if (initialData) {
       updateMutation.mutate(data);
     } else {
@@ -204,6 +204,27 @@ export function VehicleMasterForm({ isOpen, onClose, initialData }: VehicleMaste
     }
   }, [initialData, updateMutation, createMutation]);
 
+  // Handle model year change
+  const handleModelYearChange = React.useCallback((value: string) => {
+    const yearValue = parseInt(value, 10);
+    setSelectedModelYear(yearValue);
+    form.setValue("model_year", yearValue);
+  }, [form]);
+
+  // Handle vehicle model change
+  const handleVehicleModelChange = React.useCallback((value: string) => {
+    console.log("Setting vehicle model directly:", value);
+    setSelectedModel(value);
+    form.setValue("vehicle_model", value, { shouldDirty: true, shouldTouch: true, shouldValidate: true });
+    setTimeout(() => form.trigger("vehicle_model"), 0);
+  }, [form]);
+  
+  // Direct handler for fuel type changes
+  const handleFuelTypeChange = React.useCallback((value: string) => {
+    console.log("Setting fuel type directly:", value);
+    form.setValue("fuel_type", value, { shouldDirty: true, shouldTouch: true, shouldValidate: true });
+  }, [form]);
+  
   // Extract emirate code from the full emirate name (e.g., "AUH" from "Abu Dhabi (AUH)")
   const getEmirateCode = React.useCallback((emirate: string): string => {
     const match = emirate.match(/\(([^)]+)\)/);
@@ -245,6 +266,7 @@ export function VehicleMasterForm({ isOpen, onClose, initialData }: VehicleMaste
     updateRegistrationNumber(form.getValues("emirate"), form.getValues("plate_code"), value);
   }, [form, updateRegistrationNumber]);
 
+  // Handle vehicle type selection - which populates multiple other fields
   const handleVehicleTypeSelect = React.useCallback((typeCode: string) => {
     const selectedType = vehicleTypes && vehicleTypes.find((type: ExtendedVehicleType) => type.vehicle_type_code === typeCode);
     if (selectedType) {
@@ -258,78 +280,62 @@ export function VehicleMasterForm({ isOpen, onClose, initialData }: VehicleMaste
       form.trigger("vehicle_type_code");
       form.trigger("vehicle_type_name");
       
-      // IMPORTANT: Always set fuel_type if it's available - this is a key requirement
-      if (selectedType.fuel_type) {
-        console.log("Setting fuel type to:", selectedType.fuel_type);
-        // Use direct DOM update to ensure the select component updates
-        form.setValue("fuel_type", selectedType.fuel_type, { shouldDirty: true, shouldTouch: true, shouldValidate: true });
-        
-        // Force the form to update the UI
-        setTimeout(() => {
-          // Force rerender of this field
-          form.trigger("fuel_type");
-          
-          // Trigger any logic dependent on fuel type changes
-          toast({
-            title: "Fuel Type Set",
-            description: `Fuel type set to ${selectedType.fuel_type}`,
-            variant: "default",
-            duration: 2000,
-          });
-        }, 0);
-      }
-      
-      // Only set model_year if it's not null
-      if (selectedType.model_year) {
-        form.setValue("model_year", selectedType.model_year, { shouldDirty: true, shouldTouch: true, shouldValidate: true });
-        setSelectedModelYear(selectedType.model_year);
-        setTimeout(() => form.trigger("model_year"), 0);
-      }
-      
-      // Set manufacturer first so available models can be populated
+      // IMPORTANT: Set manufacturer first so available models can be populated
       if (selectedType.manufacturer) {
         form.setValue("manufacturer", selectedType.manufacturer, { shouldDirty: true, shouldTouch: true, shouldValidate: true });
         setSelectedManufacturer(selectedType.manufacturer);
-        
-        // Force rerender of this field
-        setTimeout(() => form.trigger("manufacturer"), 0);
+        form.trigger("manufacturer");
         
         // Update available models for the selected manufacturer
         const modelInfo = DEFAULT_VEHICLE_MODELS[selectedType.manufacturer as keyof typeof DEFAULT_VEHICLE_MODELS];
         const modelNames = modelInfo ? Object.keys(modelInfo) : [];
         setAvailableModels(modelNames);
+      }
+      
+      // Only set model_year if it's not null
+      if (selectedType.model_year) {
+        handleModelYearChange(selectedType.model_year.toString());
+      }
+      
+      // IMPORTANT: Always set fuel_type if it's available using our direct handler
+      if (selectedType.fuel_type) {
+        console.log("Setting fuel type to:", selectedType.fuel_type);
+        handleFuelTypeChange(selectedType.fuel_type);
         
-        // IMPORTANT: Then set vehicle_model if it's available - this is a key requirement
-        if (selectedType.vehicle_model) {
-          console.log("Setting vehicle model to:", selectedType.vehicle_model);
-          // Small delay to ensure the manufacturer change has processed and models are loaded
-          setTimeout(() => {
-            form.setValue("vehicle_model", selectedType.vehicle_model, { shouldDirty: true, shouldTouch: true, shouldValidate: true });
-            setSelectedModel(selectedType.vehicle_model);
-            
-            // Force rerender of the vehicle model field
-            form.trigger("vehicle_model");
-            
-            toast({
-              title: "Vehicle Model Set",
-              description: `Vehicle model set to ${selectedType.vehicle_model}`,
-              variant: "default",
-              duration: 2000,
-            });
-          }, 100);
-        }
+        toast({
+          title: "Fuel Type Set",
+          description: `Fuel type set to ${selectedType.fuel_type}`,
+          variant: "default",
+          duration: 2000,
+        });
+      }
+      
+      // Set vehicle_model if it's available - using our direct handler
+      if (selectedType.vehicle_model) {
+        console.log("Setting vehicle model to:", selectedType.vehicle_model);
+        // Small delay to ensure the manufacturer change has processed and models are loaded
+        setTimeout(() => {
+          handleVehicleModelChange(selectedType.vehicle_model);
+          
+          toast({
+            title: "Vehicle Model Set",
+            description: `Vehicle model set to ${selectedType.vehicle_model}`,
+            variant: "default",
+            duration: 2000,
+          });
+        }, 100);
       }
       
       // Set region if available
       if (selectedType.region) {
         form.setValue("region", selectedType.region, { shouldDirty: true, shouldTouch: true, shouldValidate: true });
-        setTimeout(() => form.trigger("region"), 0);
+        form.trigger("region");
       }
       
       // Set department if available
       if (selectedType.department) {
         form.setValue("department", selectedType.department, { shouldDirty: true, shouldTouch: true, shouldValidate: true });
-        setTimeout(() => form.trigger("department"), 0);
+        form.trigger("department");
       }
       
       // Set default values for fields that exist in vehicle master but not in vehicle type
@@ -337,12 +343,10 @@ export function VehicleMasterForm({ isOpen, onClose, initialData }: VehicleMaste
       form.setValue("vehicle_usage", "OPERATIONAL", { shouldDirty: true, shouldTouch: true, shouldValidate: true }); // Default vehicle usage
       
       // Force rerender of these fields
-      setTimeout(() => {
-        form.trigger("transmission_type");
-        form.trigger("vehicle_usage");
-      }, 0);
+      form.trigger("transmission_type");
+      form.trigger("vehicle_usage");
     }
-  }, [vehicleTypes, form, toast]);
+  }, [vehicleTypes, form, toast, handleFuelTypeChange, handleVehicleModelChange, handleModelYearChange]);
 
   const getAvailablePlateCodes = React.useCallback(() => {
     if (!selectedEmirate || !selectedCategory) return [];
@@ -369,19 +373,6 @@ export function VehicleMasterForm({ isOpen, onClose, initialData }: VehicleMaste
     form.setValue("vehicle_type_name", "");
   }, [form]);
 
-  // Handle model year change
-  const handleModelYearChange = React.useCallback((value: string) => {
-    const yearValue = parseInt(value, 10);
-    setSelectedModelYear(yearValue);
-    form.setValue("model_year", yearValue);
-  }, [form]);
-
-  // Handle vehicle model change
-  const handleVehicleModelChange = React.useCallback((value: string) => {
-    setSelectedModel(value);
-    form.setValue("vehicle_model", value);
-  }, [form]);
-
   // Show loading spinner while vehicle types are being fetched
   if (isLoadingVehicleTypes) {
     return (
@@ -400,12 +391,12 @@ export function VehicleMasterForm({ isOpen, onClose, initialData }: VehicleMaste
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>{initialData ? "Edit Vehicle" : "Add New Vehicle"}</DialogTitle>
-          <p className="text-sm text-muted-foreground">
+          <DialogDescription>
             Enter the vehicle details below. You can select an existing vehicle type to auto-fill many fields.
-          </p>
+          </DialogDescription>
         </DialogHeader>
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+          <form onSubmit={form.handleSubmit(onFormSubmit)} className="space-y-4">
             <div className="grid grid-cols-2 gap-4">
               {/* Vehicle ID */}
               <FormField
@@ -616,10 +607,7 @@ export function VehicleMasterForm({ isOpen, onClose, initialData }: VehicleMaste
                   <FormItem>
                     <FormLabel>Fuel Type *</FormLabel>
                     <Select 
-                      onValueChange={(value) => {
-                        console.log("Fuel type selected manually:", value);
-                        field.onChange(value);
-                      }} 
+                      onValueChange={handleFuelTypeChange}
                       value={field.value || ""}
                       defaultValue={field.value || ""}
                     >
@@ -948,10 +936,7 @@ export function VehicleMasterForm({ isOpen, onClose, initialData }: VehicleMaste
                   <FormItem>
                     <FormLabel>Vehicle Model *</FormLabel>
                     <Select
-                      onValueChange={(value) => {
-                        console.log("Vehicle model selected manually:", value);
-                        handleVehicleModelChange(value);
-                      }}
+                      onValueChange={handleVehicleModelChange}
                       value={field.value || ""}
                       defaultValue={field.value || ""}
                       disabled={!selectedManufacturer || availableModels.length === 0}
