@@ -9,12 +9,14 @@ import {
   DirectionsRenderer, 
   Libraries,
   DirectionsService,
+  Polyline
 } from "@react-google-maps/api";
 import { VehicleLoadingIndicator } from "@/components/ui/vehicle-loading-indicator";
 import { Button } from "@/components/ui/button";
 import { MapPin, Clock, Search, Locate, AlertCircle, CircleCheck, Info as InfoIcon, X } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Combobox } from "@/components/ui/combobox";
+import { calculateRoute, convertToGoogleMapsRoute, RouteWaypoint } from "@/lib/geoapify-route-service";
 
 const defaultCenter = {
   lat: 24.466667,  // Abu Dhabi coordinates as default
@@ -329,96 +331,203 @@ export function MapView({
         
         // Handle REQUEST_DENIED error from directions service
         if (errorMessage.includes("REQUEST_DENIED") || routeError?.code === "REQUEST_DENIED") {
-          console.warn("Direction service access denied. Using straight line distance calculation as fallback");
+          console.warn("Direction service access denied. Trying Geoapify route planning API as fallback");
           
-          // Calculate straight-line distance as a fallback
-          const R = 6371; // Earth's radius in km
-          const dLat = (dropoffLocation.coordinates.lat - pickupLocation.coordinates.lat) * Math.PI / 180;
-          const dLon = (dropoffLocation.coordinates.lng - pickupLocation.coordinates.lng) * Math.PI / 180;
-          const a = 
-            Math.sin(dLat/2) * Math.sin(dLat/2) +
-            Math.cos(pickupLocation.coordinates.lat * Math.PI / 180) * Math.cos(dropoffLocation.coordinates.lat * Math.PI / 180) * 
-            Math.sin(dLon/2) * Math.sin(dLon/2);
-          const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
-          const distance = R * c; // Distance in km
-          
-          // Estimate duration (assuming average speed of 40 km/h in urban areas)
-          const durationInMinutes = Math.ceil((distance / 40) * 60);
-          const durationInSeconds = durationInMinutes * 60;
-          
-          // Format distance and duration
-          const distanceText = distance < 1 ? 
-            `${Math.round(distance * 1000)} m` : 
-            `${distance.toFixed(1)} km`;
-          
-          const durationText = durationInMinutes < 60 ? 
-            `${durationInMinutes} mins` : 
-            `${Math.floor(durationInMinutes / 60)} hr ${durationInMinutes % 60} mins`;
-          
-          // Update route info with our calculation
-          setRouteInfo({
-            distance: distanceText,
-            duration: durationText
-          });
-          
-          // Draw a simple straight line between points
-          const straightLineOptions = {
-            path: [
-              pickupLocation.coordinates,
-              dropoffLocation.coordinates
-            ],
-            geodesic: true,
-            strokeColor: "#0033CC",
-            strokeOpacity: 0.8,
-            strokeWeight: 6
-          };
-          
-          // Create and add a polyline to show a direct path
-          const polyline = new google.maps.Polyline(straightLineOptions);
-          polyline.setMap(map);
-          
-          // Store the polyline in the DirectionsRenderer's state to clear it if needed
-          const simpleDirectionsResult = {
-            routes: [{
-              overview_path: [
-                new google.maps.LatLng(pickupLocation.coordinates.lat, pickupLocation.coordinates.lng),
-                new google.maps.LatLng(dropoffLocation.coordinates.lat, dropoffLocation.coordinates.lng)
-              ],
-              legs: [{
-                distance: { text: distanceText, value: distance * 1000 },
-                duration: { text: durationText, value: durationInSeconds }
-              }]
-            }]
-          } as google.maps.DirectionsResult;
-          
-          setDirectionsResult(simpleDirectionsResult);
-          
-          // Notify parent component about the calculated route details (fallback case)
-          if (onRouteCalculated) {
-            // Distance in meters (convert from km)
-            const distanceInMeters = distance * 1000;
+          try {
+            // Use Geoapify routing API as fallback
+            // Convert our waypoints to Geoapify format
+            const geoapifyWaypoints = waypoints.map(waypoint => ({
+              location: {
+                lat: waypoint.coordinates.lat,
+                lng: waypoint.coordinates.lng
+              },
+              name: waypoint.name || waypoint.formatted_address || waypoint.address
+            }));
             
-            // Provide minimal route details in the fallback case
-            onRouteCalculated(
-              durationInSeconds,
-              distanceInMeters,
+            // Call Geoapify route planning API
+            const geoapifyResult = await calculateRoute(
+              pickupLocation.coordinates,
+              dropoffLocation.coordinates,
+              geoapifyWaypoints,
               {
-                routes: [{ legs: [{ distance: { value: distanceInMeters }, duration: { value: durationInSeconds } }] }],
-                legs: [{ distance: { value: distanceInMeters }, duration: { value: durationInSeconds } }],
-                waypoint_order: []
+                mode: 'drive',
+                traffic: true,
+                avoid: routePreferences.avoidTolls ? ['toll'] : [],
+                details: ['instruction', 'time', 'distance'],
+                optimize: routePreferences.optimizeWaypoints ? 'time' : undefined
               }
             );
+            
+            console.log("Geoapify route planning API returned:", geoapifyResult);
+            
+            // Convert to Google Maps-compatible format for our existing code
+            const googleMapsCompatibleRoute = convertToGoogleMapsRoute(geoapifyResult);
+            setDirectionsResult(googleMapsCompatibleRoute as any);
+            
+            // Extract route details
+            const totalDistance = geoapifyResult.properties.distance; // meters
+            const totalTime = geoapifyResult.properties.time; // seconds
+            
+            // Format distance and duration
+            const distanceInKm = totalDistance / 1000;
+            const distanceText = distanceInKm < 1 ? 
+              `${Math.round(totalDistance)} m` : 
+              `${distanceInKm.toFixed(1)} km`;
+            
+            const durationInMinutes = Math.ceil(totalTime / 60);
+            const durationText = durationInMinutes < 60 ? 
+              `${durationInMinutes} mins` : 
+              `${Math.floor(durationInMinutes / 60)} hr ${durationInMinutes % 60} mins`;
+            
+            // Update route info
+            setRouteInfo({
+              distance: distanceText,
+              duration: durationText
+            });
+            
+            // Draw the route on the map
+            const path = geoapifyResult.features[0].geometry.coordinates.map(coord => ({
+              lat: coord[1],
+              lng: coord[0]
+            }));
+            
+            // Create a polyline for the route
+            const routePolyline = new google.maps.Polyline({
+              path,
+              geodesic: true,
+              strokeColor: "#0033CC",
+              strokeOpacity: 1.0,
+              strokeWeight: 6
+            });
+            
+            // Add the polyline to the map
+            routePolyline.setMap(map);
+            
+            // Notify parent component about the calculated route details
+            if (onRouteCalculated) {
+              onRouteCalculated(
+                totalTime,
+                totalDistance,
+                {
+                  routes: [{ 
+                    legs: geoapifyResult.features[0].properties.legs.map(leg => ({
+                      distance: { value: leg.distance, text: `${(leg.distance/1000).toFixed(1)} km` },
+                      duration: { value: leg.time, text: `${Math.ceil(leg.time/60)} mins` }
+                    }))
+                  }],
+                  legs: geoapifyResult.features[0].properties.legs.map(leg => ({
+                    distance: { value: leg.distance, text: `${(leg.distance/1000).toFixed(1)} km` },
+                    duration: { value: leg.time, text: `${Math.ceil(leg.time/60)} mins` }
+                  })),
+                  waypoint_order: []
+                }
+              );
+            }
+            
+            // Fit map bounds to show the entire route
+            const bounds = new google.maps.LatLngBounds();
+            path.forEach(point => bounds.extend(point));
+            map.fitBounds(bounds);
+            
+            // Set a message to indicate we're using Geoapify
+            setMapError("FALLBACK:Using Geoapify route planning for directions.");
+            
+            // Don't throw an error - we've handled it with our fallback
+            return;
+          } catch (geoapifyError: any) {
+            console.error("Geoapify route planning error:", geoapifyError);
+            
+            // Fall back to straight-line calculation if Geoapify also fails
+            console.warn("Geoapify also failed. Using straight line distance calculation as final fallback");
+            
+            // Calculate straight-line distance as a fallback
+            const R = 6371; // Earth's radius in km
+            const dLat = (dropoffLocation.coordinates.lat - pickupLocation.coordinates.lat) * Math.PI / 180;
+            const dLon = (dropoffLocation.coordinates.lng - pickupLocation.coordinates.lng) * Math.PI / 180;
+            const a = 
+              Math.sin(dLat/2) * Math.sin(dLat/2) +
+              Math.cos(pickupLocation.coordinates.lat * Math.PI / 180) * Math.cos(dropoffLocation.coordinates.lat * Math.PI / 180) * 
+              Math.sin(dLon/2) * Math.sin(dLon/2);
+            const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+            const distance = R * c; // Distance in km
+            
+            // Estimate duration (assuming average speed of 40 km/h in urban areas)
+            const durationInMinutes = Math.ceil((distance / 40) * 60);
+            const durationInSeconds = durationInMinutes * 60;
+            
+            // Format distance and duration
+            const distanceText = distance < 1 ? 
+              `${Math.round(distance * 1000)} m` : 
+              `${distance.toFixed(1)} km`;
+            
+            const durationText = durationInMinutes < 60 ? 
+              `${durationInMinutes} mins` : 
+              `${Math.floor(durationInMinutes / 60)} hr ${durationInMinutes % 60} mins`;
+            
+            // Update route info with our calculation
+            setRouteInfo({
+              distance: distanceText,
+              duration: durationText
+            });
+            
+            // Draw a simple straight line between points
+            const straightLineOptions = {
+              path: [
+                pickupLocation.coordinates,
+                dropoffLocation.coordinates
+              ],
+              geodesic: true,
+              strokeColor: "#0033CC",
+              strokeOpacity: 0.8,
+              strokeWeight: 6
+            };
+            
+            // Create and add a polyline to show a direct path
+            const polyline = new google.maps.Polyline(straightLineOptions);
+            polyline.setMap(map);
+            
+            // Store the polyline in the DirectionsRenderer's state to clear it if needed
+            const simpleDirectionsResult = {
+              routes: [{
+                overview_path: [
+                  new google.maps.LatLng(pickupLocation.coordinates.lat, pickupLocation.coordinates.lng),
+                  new google.maps.LatLng(dropoffLocation.coordinates.lat, dropoffLocation.coordinates.lng)
+                ],
+                legs: [{
+                  distance: { text: distanceText, value: distance * 1000 },
+                  duration: { text: durationText, value: durationInSeconds }
+                }]
+              }]
+            } as google.maps.DirectionsResult;
+            
+            setDirectionsResult(simpleDirectionsResult);
+            
+            // Notify parent component about the calculated route details (fallback case)
+            if (onRouteCalculated) {
+              // Distance in meters (convert from km)
+              const distanceInMeters = distance * 1000;
+              
+              // Provide minimal route details in the fallback case
+              onRouteCalculated(
+                durationInSeconds,
+                distanceInMeters,
+                {
+                  routes: [{ legs: [{ distance: { value: distanceInMeters }, duration: { value: durationInSeconds } }] }],
+                  legs: [{ distance: { value: distanceInMeters }, duration: { value: durationInSeconds } }],
+                  waypoint_order: []
+                }
+              );
+            }
+            
+            // Fit the map bounds to show both markers
+            const bounds = new google.maps.LatLngBounds();
+            bounds.extend(pickupLocation.coordinates);
+            bounds.extend(dropoffLocation.coordinates);
+            map.fitBounds(bounds);
+            
+            // Show an informational message about the straight-line calculation
+            setMapError("FALLBACK:Using straight-line distance estimate. All routing services failed.");
           }
-          
-          // Fit the map bounds to show both markers
-          const bounds = new google.maps.LatLngBounds();
-          bounds.extend(pickupLocation.coordinates);
-          bounds.extend(dropoffLocation.coordinates);
-          map.fitBounds(bounds);
-          
-          // Show an informational message about the straight-line calculation using separate state
-          // We're reusing mapError state but will display it differently in the UI
-          setMapError("FALLBACK:Using straight-line distance estimate. Actual driving route not available.");
           
           // Don't throw an error - we've handled it with our fallback
           return;
