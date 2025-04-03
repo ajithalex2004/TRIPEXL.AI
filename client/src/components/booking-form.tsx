@@ -1193,7 +1193,9 @@ export function BookingForm() {
                         {/* Map View */}
                         <div className="space-y-4">
                           <div className="h-[500px] relative rounded-lg overflow-hidden border">
+                            {/* Key attribute forces re-render when step changes */}
                             <MapView
+                              key={`map-view-step-${currentStep}`}
                               pickupLocation={form.watch("pickupLocation")}
                               dropoffLocation={form.watch("dropoffLocation")}
                               onLocationSelect={(location, type) => {

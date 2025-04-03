@@ -14,9 +14,9 @@ const defaultCenter = {
 
 const defaultZoom = 11;
 
-// Define libraries once outside the component to avoid reloading issues
-// Using a constant memoized array to avoid performance warnings
-const libraries: Libraries = ["places", "geometry"];
+// Define libraries as a static constant outside the component to avoid reloading issues
+// Using a constant array to avoid performance warnings from Google Maps API
+const GOOGLE_MAPS_LIBRARIES: Libraries = ["places", "geometry"];
 
 const MAPS_API_KEY = import.meta.env.VITE_GOOGLE_MAPS_KEY || "";
 console.log("Google Maps API Key available:", MAPS_API_KEY ? "Yes (key length: " + MAPS_API_KEY.length + ")" : "No");
@@ -54,6 +54,8 @@ export function MapView({
   onLocationSelect,
   onRouteCalculated
 }: MapViewProps) {
+  // We no longer need to memoize this as we're using a constant reference
+  // that is defined outside the component
   const [mapError, setMapError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [map, setMap] = useState<google.maps.Map | null>(null);
@@ -612,7 +614,7 @@ export function MapView({
 
       <LoadScriptNext
         googleMapsApiKey={MAPS_API_KEY}
-        libraries={libraries}
+        libraries={GOOGLE_MAPS_LIBRARIES}
         loadingElement={
           <div className="h-full w-full flex items-center justify-center min-h-[400px]">
             <VehicleLoadingIndicator size="lg" />
@@ -626,6 +628,7 @@ export function MapView({
           console.error("Google Maps script failed to load:", error);
           setLoadError(new Error("Failed to load Google Maps"));
         }}
+        channel="tripxl_booking_map"
       >
         {loadError ? (
           <div className="h-[500px] flex flex-col items-center justify-center border border-dashed rounded-md p-5 bg-muted/30">
