@@ -663,9 +663,9 @@ export function MapView({
                   options={{
                     suppressMarkers: true,
                     polylineOptions: {
-                      strokeColor: "#4F46E5",
-                      strokeWeight: 5,
-                      strokeOpacity: 0.8
+                      strokeColor: "#0033CC", /* Dark Blue Color */
+                      strokeWeight: 6, /* Increased thickness */
+                      strokeOpacity: 1.0 /* Full opacity */
                     }
                   }}
                 />
