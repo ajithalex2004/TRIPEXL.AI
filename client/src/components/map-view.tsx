@@ -1298,7 +1298,7 @@ export function MapView({
                       <h4 className="font-medium text-base mb-1">Selected Location</h4>
                       <p className="text-sm flex items-start gap-2">
                         <MapPin className="h-4 w-4 text-primary mt-1 flex-shrink-0" />
-                        <span>{popupLocation.formatted_address || popupLocation.name || popupLocation.address}</span>
+                        <span>{popupLocation?.formatted_address || popupLocation?.name || popupLocation?.address || "Selected location"}</span>
                       </p>
                     </div>
                     <div className="flex gap-3 flex-col">
@@ -1379,7 +1379,7 @@ export function MapView({
             {/* Show waypoints if they exist */}
             {waypoints && waypoints.length > 0 && (
               <>
-                {waypoints.map((waypoint, index) => (
+                {waypoints.map((waypoint, index) => waypoint && (
                   <div className="flex gap-3" key={`waypoint-info-${index}`}>
                     <div className="min-w-[24px] flex flex-col items-center">
                       <div className="w-6 h-6 rounded-full bg-blue-600 flex items-center justify-center text-[10px] text-white font-bold">
