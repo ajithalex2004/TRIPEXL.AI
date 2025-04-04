@@ -81,22 +81,23 @@ export async function calculateRoute(
   options: RouteOptions = {}
 ): Promise<RouteResponse> {
   try {
-    // Format waypoints as lat,lng pairs for the URL
-    let waypointsParam = `${origin.lat},${origin.lng}`;
-    
-    // Add intermediate waypoints if they exist
-    if (waypoints && waypoints.length > 0) {
-      for (const wp of waypoints) {
-        waypointsParam += `|${wp.location.lat},${wp.location.lng}`;
-      }
-    }
-    
-    // Add destination
-    waypointsParam += `|${destination.lat},${destination.lng}`;
-    
-    // Construct URL for API call
+    // Construct URL for API call with correct format
     const url = new URL(GEOAPIFY_BASE_URL);
     url.searchParams.append('apiKey', GEOAPIFY_API_KEY);
+    
+    // Format all waypoints correctly
+    // The API requires waypoints in format: lon1,lat1|lon2,lat2|...
+    const allPoints = [
+      origin,
+      ...waypoints.map(wp => wp.location),
+      destination
+    ];
+    
+    // For Geoapify, format is lon,lat (note: longitude first, then latitude)
+    const waypointsParam = allPoints.map(point => {
+      return `${point.lng},${point.lat}`;
+    }).join('|');
+    
     url.searchParams.append('waypoints', waypointsParam);
     
     // Set mode (default to drive if not specified)
@@ -108,12 +109,12 @@ export async function calculateRoute(
       url.searchParams.append('traffic', 'true');
     }
     
-    // Add avoid options
+    // Add avoid options (pipe separated)
     if (options.avoid && options.avoid.length > 0) {
       url.searchParams.append('avoid', options.avoid.join('|'));
     }
     
-    // Add details
+    // Add details (pipe separated)
     if (options.details && options.details.length > 0) {
       url.searchParams.append('details', options.details.join('|'));
     }
@@ -173,35 +174,57 @@ export function formatTime(seconds: number): string {
  */
 export function convertToGoogleMapsRoute(geoapifyRoute: any): any {
   try {
+    // Validate input and handle edge cases
     if (!geoapifyRoute || !geoapifyRoute.features || geoapifyRoute.features.length === 0) {
+      console.error('Invalid Geoapify route data:', geoapifyRoute);
       throw new Error('Invalid Geoapify route data');
     }
     
     // Get the first feature which contains the main route
     const mainFeature = geoapifyRoute.features[0];
     
-    if (!mainFeature.geometry || !mainFeature.geometry.coordinates) {
+    if (!mainFeature.geometry || !mainFeature.geometry.coordinates || !Array.isArray(mainFeature.geometry.coordinates)) {
+      console.error('Missing or invalid coordinates in Geoapify response:', mainFeature);
       throw new Error('Missing route coordinates in Geoapify response');
     }
     
-    // Extract properties
+    // Extract properties with safe defaults
     const properties = mainFeature.properties || {};
     const totalDistance = properties.distance || 0; // in meters
     const totalTime = properties.time || 0; // in seconds
     const coordinates = mainFeature.geometry.coordinates;
     
+    // Log the coordinates for debugging
+    console.log(`Received ${coordinates.length} coordinate points from Geoapify`);
+    
     // Create a path that Google Maps can use (convert [lon, lat] to {lat, lng})
-    const path = coordinates.map(coord => ({
-      lat: coord[1],
-      lng: coord[0]
-    }));
+    // Make sure we handle potentially malformed coordinates
+    const path = coordinates.map((coord: any, index: number) => {
+      // Ensure coord is an array with at least 2 elements
+      if (!Array.isArray(coord) || coord.length < 2) {
+        console.warn(`Malformed coordinate at index ${index}:`, coord);
+        return null;
+      }
+      
+      return {
+        lat: parseFloat(coord[1]),
+        lng: parseFloat(coord[0])
+      };
+    }).filter((point: any): point is {lat: number, lng: number} => point !== null); // Filter out any null values
+    
+    if (path.length === 0) {
+      throw new Error('No valid coordinates found in Geoapify response');
+    }
+    
+    // Log route quality info
+    console.log(`Successfully processed ${path.length} valid coordinate points`);
     
     // Create a simplified leg structure if detailed legs are not available
     let legs = [];
     
-    if (properties.legs && properties.legs.length > 0) {
+    if (properties.legs && Array.isArray(properties.legs) && properties.legs.length > 0) {
       // If we have detailed leg information
-      legs = properties.legs.map(leg => ({
+      legs = properties.legs.map((leg: any) => ({
         distance: { 
           text: formatDistance(leg.distance || 0),
           value: leg.distance || 0
@@ -210,11 +233,14 @@ export function convertToGoogleMapsRoute(geoapifyRoute: any): any {
           text: formatTime(leg.time || 0),
           value: leg.time || 0
         },
-        steps: leg.steps?.map(step => ({
+        start_location: path[0],
+        end_location: path[path.length - 1],
+        steps: Array.isArray(leg.steps) ? leg.steps.map((step: any) => ({
           distance: { text: formatDistance(step.distance || 0), value: step.distance || 0 },
           duration: { text: formatTime(step.time || 0), value: step.time || 0 },
-          instructions: step.instruction || "Continue"
-        })) || []
+          instructions: step.instruction || "Continue",
+          path: []
+        })) : []
       }));
     } else {
       // Create a simple single leg if detailed information is not available
@@ -227,6 +253,8 @@ export function convertToGoogleMapsRoute(geoapifyRoute: any): any {
           text: formatTime(totalTime),
           value: totalTime
         },
+        start_location: path[0],
+        end_location: path[path.length - 1],
         steps: []
       }];
     }
@@ -234,12 +262,22 @@ export function convertToGoogleMapsRoute(geoapifyRoute: any): any {
     // Create a Google Maps-compatible structure
     return {
       routes: [{
-        overview_path: path,
+        bounds: {
+          north: Math.max(...path.map((p: {lat: number, lng: number}) => p.lat)),
+          south: Math.min(...path.map((p: {lat: number, lng: number}) => p.lat)), 
+          east: Math.max(...path.map((p: {lat: number, lng: number}) => p.lng)),
+          west: Math.min(...path.map((p: {lat: number, lng: number}) => p.lng))
+        },
         legs: legs,
+        overview_path: path,
         overview_polyline: {
-          points: '' // We don't need this as we'll pass the coordinates directly
+          points: 'encoded_polyline_placeholder' // Placeholder since this is only used for visualization
         }
       }],
+      geocoded_waypoints: [
+        { place_id: 'origin_placeholder' },
+        { place_id: 'destination_placeholder' }
+      ],
       status: 'OK',
       request: {
         origin: path.length > 0 ? { lat: path[0].lat, lng: path[0].lng } : null,

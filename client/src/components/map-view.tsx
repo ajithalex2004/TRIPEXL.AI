@@ -6,9 +6,7 @@ import {
   GoogleMap, 
   Marker, 
   InfoWindow, 
-  DirectionsRenderer, 
   Libraries,
-  DirectionsService,
   Polyline
 } from "@react-google-maps/api";
 import { VehicleLoadingIndicator } from "@/components/ui/vehicle-loading-indicator";
@@ -34,7 +32,6 @@ const UAE_BOUNDS = {
 };
 
 // Define libraries as a static constant outside the component to avoid reloading issues
-// Using a constant array to avoid performance warnings from Google Maps API
 const GOOGLE_MAPS_LIBRARIES: Libraries = ["places", "geometry"];
 
 const MAPS_API_KEY = import.meta.env.VITE_GOOGLE_MAPS_KEY || "";
@@ -51,530 +48,320 @@ export interface Location {
   formatted_address?: string;
 }
 
-export interface MapViewProps {
-  pickupLocation?: Location | null;
-  dropoffLocation?: Location | null;
-  waypoints?: Location[];
-  onLocationSelect?: (location: Location, type: 'pickup' | 'dropoff' | 'waypoint') => void;
-  onRouteCalculated?: (duration: number, distance: number, routeDetails: any) => void;
-  routePreferences?: {
-    avoidHighways?: boolean;
-    avoidTolls?: boolean;
-    optimizeWaypoints?: boolean;
-    provideRouteAlternatives?: boolean;
-    travelMode?: 'DRIVING' | 'BICYCLING' | 'TRANSIT' | 'WALKING';
-  };
+export interface RouteInfo {
+  distance: string;
+  duration: string;
+}
+
+export interface RoutePreferences {
+  avoidHighways: boolean;
+  avoidTolls: boolean;
+  optimizeWaypoints: boolean;
+  travelMode: 'DRIVING' | 'WALKING' | 'BICYCLING' | 'TRANSIT';
+  provideRouteAlternatives: boolean;
 }
 
 interface PopupLocation {
   lat: number;
   lng: number;
-  address: string;
+  address?: string;
   place_id?: string;
   name?: string;
   formatted_address?: string;
 }
 
-export function MapView({
+export interface MapViewProps {
+  pickupLocation?: Location;
+  dropoffLocation?: Location;
+  waypoints?: Location[];
+  onLocationSelect?: (location: Location, type: 'pickup' | 'dropoff' | 'waypoint') => void;
+  onClearWaypoints?: () => void;
+  onWaypointRemove?: (index: number) => void;
+  onRouteCalculated?: (durationSeconds: number, distanceMeters: number, directionsResult: any) => void;
+  routePreferences?: Partial<RoutePreferences>;
+  editable?: boolean;
+}
+
+export const MapView: React.FC<MapViewProps> = ({
   pickupLocation,
   dropoffLocation,
   waypoints = [],
   onLocationSelect,
+  onClearWaypoints,
+  onWaypointRemove,
   onRouteCalculated,
-  routePreferences = {
-    avoidHighways: false,
-    avoidTolls: false,
-    optimizeWaypoints: true,
-    provideRouteAlternatives: true,
-    travelMode: 'DRIVING'
-  }
-}: MapViewProps) {
-  const [mapError, setMapError] = useState<string | null>(null);
-  const [isLoading, setIsLoading] = useState(false);
+  routePreferences: routePrefs = {},
+  editable = true
+}) => {
+  // Default route preferences
+  const routePreferences: RoutePreferences = {
+    avoidHighways: routePrefs.avoidHighways || false,
+    avoidTolls: routePrefs.avoidTolls || false,
+    optimizeWaypoints: routePrefs.optimizeWaypoints || false,
+    travelMode: routePrefs.travelMode || 'DRIVING',
+    provideRouteAlternatives: routePrefs.provideRouteAlternatives || false
+  };
+
+  // Internal state
   const [map, setMap] = useState<google.maps.Map | null>(null);
   const [mapsInitialized, setMapsInitialized] = useState(false);
-  const [popupLocation, setPopupLocation] = useState<PopupLocation | null>(null);
-  const [directionsResult, setDirectionsResult] = useState<google.maps.DirectionsResult | null>(null);
-  const [routeInfo, setRouteInfo] = useState<{
-    distance: string;
-    duration: string;
-  } | null>(null);
-  const [searchQuery, setSearchQuery] = useState("");
-  const searchBoxRef = useRef<HTMLInputElement>(null);
-  const [loadError, setLoadError] = useState<Error | null>(null);
-  
-  // Autocomplete related states
   const [autocompleteService, setAutocompleteService] = useState<google.maps.places.AutocompleteService | null>(null);
   const [placesService, setPlacesService] = useState<google.maps.places.PlacesService | null>(null);
-  const [predictions, setPredictions] = useState<Array<{value: string, label: string, description?: string, place_id: string}>>([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [mapError, setMapError] = useState<string | null>(null);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [predictions, setPredictions] = useState<google.maps.places.AutocompletePrediction[]>([]);
   const [isSearching, setIsSearching] = useState(false);
+  const [popupLocation, setPopupLocation] = useState<PopupLocation | null>(null);
+  const [routePolyline, setRoutePolyline] = useState<google.maps.Polyline | null>(null);
+  const [routeInfo, setRouteInfo] = useState<RouteInfo | null>(null);
   
-  // We don't need to memoize libraries since we're using the static constant GOOGLE_MAPS_LIBRARIES
+  // Map references
+  const mapRef = useRef<GoogleMap>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
+  const mapContainerRef = useRef<HTMLDivElement>(null);
 
+  // The drawRoute function calculates and displays the route between the pickup and dropoff locations
   const drawRoute = async () => {
-    // Clear any previous errors first
+    // Reset state
+    setIsLoading(true);
     setMapError(null);
     
-    // Additional logging to debug route drawing issues
-    console.log("DrawRoute called - Map initialized:", !!map);
-    console.log("Pickup location:", pickupLocation);
-    console.log("Dropoff location:", dropoffLocation);
-    console.log("Maps API initialized:", mapsInitialized && typeof google !== 'undefined');
-    
-    // Comprehensive pre-check before attempting to draw route
-    if (!map) {
-      console.error("Map instance is not available");
-      setMapError("Map is not fully loaded yet");
-      return;
+    if (routePolyline) {
+      routePolyline.setMap(null);
+      setRoutePolyline(null);
     }
-    
-    if (!mapsInitialized || typeof google === 'undefined') {
-      console.error("Google Maps API is not initialized yet");
-      setMapError("Map service is initializing, please try again");
-      return;
-    }
-
-    if (!pickupLocation) {
-      console.error("Pickup location is missing");
-      setMapError("Please select a pickup location");
-      return;
-    }
-
-    if (!dropoffLocation) {
-      console.error("Dropoff location is missing");
-      setMapError("Please select a drop-off location");
-      return;
-    }
-
-    // Start loading state
-    setIsLoading(true);
 
     try {
       // Validate pickup coordinates
       if (!pickupLocation?.coordinates || 
-          typeof pickupLocation?.coordinates?.lat !== 'number' || 
-          typeof pickupLocation?.coordinates?.lng !== 'number' ||
-          isNaN(pickupLocation?.coordinates?.lat) || 
-          isNaN(pickupLocation?.coordinates?.lng)) {
+          typeof pickupLocation.coordinates.lat !== 'number' || 
+          typeof pickupLocation.coordinates.lng !== 'number' ||
+          isNaN(pickupLocation.coordinates.lat) || 
+          isNaN(pickupLocation.coordinates.lng)) {
         throw new Error("Invalid pickup location coordinates");
       }
-      
+
       // Validate dropoff coordinates
       if (!dropoffLocation?.coordinates || 
-          typeof dropoffLocation?.coordinates?.lat !== 'number' || 
-          typeof dropoffLocation?.coordinates?.lng !== 'number' ||
-          isNaN(dropoffLocation?.coordinates?.lat) || 
-          isNaN(dropoffLocation?.coordinates?.lng)) {
-        throw new Error("Invalid drop-off location coordinates");
-      }
-
-      console.log("Drawing route between:", {
-        pickup: `${pickupLocation.coordinates.lat.toFixed(6)}, ${pickupLocation.coordinates.lng.toFixed(6)}`,
-        dropoff: `${dropoffLocation.coordinates.lat.toFixed(6)}, ${dropoffLocation.coordinates.lng.toFixed(6)}`
-      });
-
-      // Check if coordinates are too close (same location)
-      const distanceInDegrees = Math.sqrt(
-        Math.pow(pickupLocation.coordinates.lat - dropoffLocation.coordinates.lat, 2) + 
-        Math.pow(pickupLocation.coordinates.lng - dropoffLocation.coordinates.lng, 2)
-      );
-      
-      if (distanceInDegrees < 0.0005) { // Approximately 50 meters at the equator
-        throw new Error("Pickup and drop-off locations are too close to each other");
-      }
-
-      // Create LatLng objects for origin and destination
-      const origin = new google.maps.LatLng(
-        pickupLocation.coordinates.lat,
-        pickupLocation.coordinates.lng
-      );
-      
-      const destination = new google.maps.LatLng(
-        dropoffLocation.coordinates.lat, 
-        dropoffLocation.coordinates.lng
-      );
-
-      // Convert waypoints to DirectionsWaypoints if provided
-      const waypointsArray = waypoints.map(waypoint => ({
-        location: new google.maps.LatLng(
-          waypoint.coordinates.lat,
-          waypoint.coordinates.lng
-        ),
-        stopover: true
-      }));
-      
-      // Map travelMode from string to Google Maps TravelMode enum
-      let travelMode: google.maps.TravelMode;
-      switch (routePreferences.travelMode) {
-        case 'BICYCLING':
-          travelMode = google.maps.TravelMode.BICYCLING;
-          break;
-        case 'TRANSIT':
-          travelMode = google.maps.TravelMode.TRANSIT;
-          break;
-        case 'WALKING':
-          travelMode = google.maps.TravelMode.WALKING;
-          break;
-        case 'DRIVING':
-        default:
-          travelMode = google.maps.TravelMode.DRIVING;
-          break;
+          typeof dropoffLocation.coordinates.lat !== 'number' || 
+          typeof dropoffLocation.coordinates.lng !== 'number' ||
+          isNaN(dropoffLocation.coordinates.lat) || 
+          isNaN(dropoffLocation.coordinates.lng)) {
+        throw new Error("Invalid dropoff location coordinates");
       }
       
-      // Create the directions request with all route preferences
-      const request: google.maps.DirectionsRequest = {
-        origin,
-        destination,
-        travelMode,
-        optimizeWaypoints: routePreferences.optimizeWaypoints,
-        avoidHighways: routePreferences.avoidHighways,
-        avoidTolls: routePreferences.avoidTolls,
-        provideRouteAlternatives: routePreferences.provideRouteAlternatives,
-        drivingOptions: {
-          departureTime: new Date(), // Current time
-          trafficModel: google.maps.TrafficModel.BEST_GUESS
-        },
-        unitSystem: google.maps.UnitSystem.METRIC,
-      };
-      
-      // Only add waypoints if there are any to avoid issues with the API
-      if (waypointsArray.length > 0) {
-        request.waypoints = waypointsArray;
-      }
-      
-      console.log("Sending directions request:", request);
-      
-      // Create DirectionsService instance
-      const directionsService = new google.maps.DirectionsService();
-      
-      // Make the route request
+      // Use Geoapify as the main routing engine
+      console.log("Using Geoapify routing API for navigation");
+        
       try {
-        console.log("Sending directions request with travelMode:", google.maps.TravelMode.DRIVING);
-        const result = await directionsService.route(request);
+        // Convert our waypoints to Geoapify format
+        const geoapifyWaypoints = waypoints.map((waypoint) => ({
+          location: {
+            lat: waypoint.coordinates.lat,
+            lng: waypoint.coordinates.lng
+          },
+          name: waypoint.name || waypoint.formatted_address || waypoint.address
+        }));
         
-        console.log("DirectionsService returned result:", result);
+        console.log("Using Geoapify with the following parameters:");
+        console.log("- Origin:", pickupLocation.coordinates);
+        console.log("- Destination:", dropoffLocation.coordinates);
+        console.log("- Waypoints:", geoapifyWaypoints);
         
-        if (!result) {
-          throw new Error("Directions service returned null result");
-        }
+        // Call Geoapify route planning API
+        const geoapifyResult = await calculateRoute(
+          pickupLocation.coordinates,
+          dropoffLocation.coordinates,
+          geoapifyWaypoints,
+          {
+            mode: 'drive',
+            traffic: true,
+            avoid: routePreferences.avoidTolls ? ['toll'] : [],
+            details: ['instruction', 'time', 'distance'],
+            optimize: routePreferences.optimizeWaypoints ? 'time' : undefined
+          }
+        );
         
-        if (!result.routes || result.routes.length === 0) {
-          throw new Error("No routes found in directions result");
-        }
-        
-        if (!result.routes[0].legs || result.routes[0].legs.length === 0) {
-          throw new Error("No route legs found in directions result");
-        }
-        
-        console.log("Route found successfully. Route count:", result.routes.length);
-        
-        // Set the directions result
-        setDirectionsResult(result);
+        console.log("Geoapify route planning API returned:", geoapifyResult);
         
         // Extract route details
-        const leg = result.routes[0].legs[0];
+        const totalDistance = geoapifyResult.properties.distance; // meters
+        const totalTime = geoapifyResult.properties.time; // seconds
         
-        if (!leg.distance || !leg.duration) {
-          throw new Error("Route is missing distance or duration information");
-        }
+        // Format distance and duration
+        const distanceInKm = totalDistance / 1000;
+        const distanceText = distanceInKm < 1 ? 
+          `${Math.round(totalDistance)} m` : 
+          `${distanceInKm.toFixed(1)} km`;
         
-        const durationInSeconds = leg.duration.value || 0;
+        const durationInMinutes = Math.ceil(totalTime / 60);
+        const durationText = durationInMinutes < 60 ? 
+          `${durationInMinutes} mins` : 
+          `${Math.floor(durationInMinutes / 60)} hr ${durationInMinutes % 60} mins`;
         
-        console.log("Route details:", {
-          distance: leg.distance.text,
-          duration: leg.duration.text,
-          durationInSeconds
-        });
-        
-        // Update route info state
+        // Update route info
         setRouteInfo({
-          distance: leg.distance.text || "Unknown",
-          duration: leg.duration.text || "Unknown"
+          distance: distanceText,
+          duration: durationText
         });
         
-        // Notify parent component about the calculated route details
-        if (onRouteCalculated) {
-          // Extract distance in meters
-          const distanceInMeters = leg.distance.value || 0;
+        // Draw the route on the map
+        if (map && geoapifyResult.features && geoapifyResult.features.length > 0) {
+          const path = geoapifyResult.features[0].geometry.coordinates.map((coord: any) => ({
+            lat: coord[1],
+            lng: coord[0]
+          }));
           
-          // Pass duration, distance, and additional route details to the callback
-          onRouteCalculated(
-            durationInSeconds, 
-            distanceInMeters, 
-            {
-              routes: result.routes,
-              legs: result.routes[0].legs,
-              waypoint_order: result.routes[0].waypoint_order
-            }
-          );
-        }
-        
-        // Fit the map bounds to show the entire route
-        const bounds = new google.maps.LatLngBounds();
-        bounds.extend(origin);
-        bounds.extend(destination);
-        
-        // Also extend bounds with route waypoints if they exist
-        if (result.routes[0].overview_path) {
-          for (const point of result.routes[0].overview_path) {
-            bounds.extend(point);
-          }
-        }
-        
-        map.fitBounds(bounds);
-        
-      } catch (routeError: any) {
-        console.error("Google Maps DirectionsService error:", routeError);
-        
-        // Use a more specific error message if available
-        const errorMessage = routeError?.message || "Could not calculate route between these locations";
-        
-        // Handle REQUEST_DENIED error from directions service
-        if (errorMessage.includes("REQUEST_DENIED") || routeError?.code === "REQUEST_DENIED") {
-          console.warn("Direction service access denied. Trying Geoapify route planning API as fallback");
+          // Create a polyline for the route
+          const newRoutePolyline = new google.maps.Polyline({
+            path,
+            geodesic: true,
+            strokeColor: "#0033CC",
+            strokeOpacity: 1.0,
+            strokeWeight: 6
+          });
           
-          try {
-            // Use Geoapify routing API as fallback
-            // Convert our waypoints to Geoapify format
-            const geoapifyWaypoints = waypoints.map(waypoint => ({
-              location: {
-                lat: waypoint.coordinates.lat,
-                lng: waypoint.coordinates.lng
-              },
-              name: waypoint.name || waypoint.formatted_address || waypoint.address
-            }));
-            
-            // Call Geoapify route planning API
-            const geoapifyResult = await calculateRoute(
-              pickupLocation.coordinates,
-              dropoffLocation.coordinates,
-              geoapifyWaypoints,
+          // Add the polyline to the map
+          newRoutePolyline.setMap(map);
+          setRoutePolyline(newRoutePolyline);
+          
+          // Notify parent component about the calculated route details
+          if (onRouteCalculated) {
+            onRouteCalculated(
+              totalTime,
+              totalDistance,
               {
-                mode: 'drive',
-                traffic: true,
-                avoid: routePreferences.avoidTolls ? ['toll'] : [],
-                details: ['instruction', 'time', 'distance'],
-                optimize: routePreferences.optimizeWaypoints ? 'time' : undefined
-              }
-            );
-            
-            console.log("Geoapify route planning API returned:", geoapifyResult);
-            
-            // Convert to Google Maps-compatible format for our existing code
-            const googleMapsCompatibleRoute = convertToGoogleMapsRoute(geoapifyResult);
-            setDirectionsResult(googleMapsCompatibleRoute as any);
-            
-            // Extract route details
-            const totalDistance = geoapifyResult.properties.distance; // meters
-            const totalTime = geoapifyResult.properties.time; // seconds
-            
-            // Format distance and duration
-            const distanceInKm = totalDistance / 1000;
-            const distanceText = distanceInKm < 1 ? 
-              `${Math.round(totalDistance)} m` : 
-              `${distanceInKm.toFixed(1)} km`;
-            
-            const durationInMinutes = Math.ceil(totalTime / 60);
-            const durationText = durationInMinutes < 60 ? 
-              `${durationInMinutes} mins` : 
-              `${Math.floor(durationInMinutes / 60)} hr ${durationInMinutes % 60} mins`;
-            
-            // Update route info
-            setRouteInfo({
-              distance: distanceText,
-              duration: durationText
-            });
-            
-            // Draw the route on the map
-            const path = geoapifyResult.features[0].geometry.coordinates.map(coord => ({
-              lat: coord[1],
-              lng: coord[0]
-            }));
-            
-            // Create a polyline for the route
-            const routePolyline = new google.maps.Polyline({
-              path,
-              geodesic: true,
-              strokeColor: "#0033CC",
-              strokeOpacity: 1.0,
-              strokeWeight: 6
-            });
-            
-            // Add the polyline to the map
-            routePolyline.setMap(map);
-            
-            // Notify parent component about the calculated route details
-            if (onRouteCalculated) {
-              onRouteCalculated(
-                totalTime,
-                totalDistance,
-                {
-                  routes: [{ 
-                    legs: geoapifyResult.features[0].properties.legs.map(leg => ({
-                      distance: { value: leg.distance, text: `${(leg.distance/1000).toFixed(1)} km` },
-                      duration: { value: leg.time, text: `${Math.ceil(leg.time/60)} mins` }
-                    }))
-                  }],
-                  legs: geoapifyResult.features[0].properties.legs.map(leg => ({
+                routes: [{ 
+                  legs: geoapifyResult.features[0].properties.legs.map((leg: any) => ({
                     distance: { value: leg.distance, text: `${(leg.distance/1000).toFixed(1)} km` },
                     duration: { value: leg.time, text: `${Math.ceil(leg.time/60)} mins` }
-                  })),
-                  waypoint_order: []
-                }
-              );
-            }
-            
-            // Fit map bounds to show the entire route
-            const bounds = new google.maps.LatLngBounds();
-            path.forEach(point => bounds.extend(point));
-            map.fitBounds(bounds);
-            
-            // Set a message to indicate we're using Geoapify
-            setMapError("FALLBACK:Using Geoapify route planning for directions.");
-            
-            // Don't throw an error - we've handled it with our fallback
-            return;
-          } catch (geoapifyError: any) {
-            console.error("Geoapify route planning error:", geoapifyError);
-            
-            // Fall back to straight-line calculation if Geoapify also fails
-            console.warn("Geoapify also failed. Using straight line distance calculation as final fallback");
-            
-            // Check if pickup and dropoff locations are properly defined before calculation
-            if (!pickupLocation?.coordinates || !dropoffLocation?.coordinates) {
-              throw new Error("Pickup or dropoff location coordinates are missing");
-            }
-            
-            // Calculate straight-line distance as a fallback
-            const R = 6371; // Earth's radius in km
-            const dLat = (dropoffLocation.coordinates.lat - pickupLocation.coordinates.lat) * Math.PI / 180;
-            const dLon = (dropoffLocation.coordinates.lng - pickupLocation.coordinates.lng) * Math.PI / 180;
-            const a = 
-              Math.sin(dLat/2) * Math.sin(dLat/2) +
-              Math.cos(pickupLocation.coordinates.lat * Math.PI / 180) * Math.cos(dropoffLocation.coordinates.lat * Math.PI / 180) * 
-              Math.sin(dLon/2) * Math.sin(dLon/2);
-            const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
-            const distance = R * c; // Distance in km
-            
-            // Estimate duration (assuming average speed of 40 km/h in urban areas)
-            const durationInMinutes = Math.ceil((distance / 40) * 60);
-            const durationInSeconds = durationInMinutes * 60;
-            
-            // Format distance and duration
-            const distanceText = distance < 1 ? 
-              `${Math.round(distance * 1000)} m` : 
-              `${distance.toFixed(1)} km`;
-            
-            const durationText = durationInMinutes < 60 ? 
-              `${durationInMinutes} mins` : 
-              `${Math.floor(durationInMinutes / 60)} hr ${durationInMinutes % 60} mins`;
-            
-            // Update route info with our calculation
-            setRouteInfo({
-              distance: distanceText,
-              duration: durationText
-            });
-            
-            // Draw a simple straight line between points
-            const straightLineOptions = {
-              path: [
-                pickupLocation.coordinates,
-                dropoffLocation.coordinates
-              ],
-              geodesic: true,
-              strokeColor: "#0033CC",
-              strokeOpacity: 0.8,
-              strokeWeight: 6
-            };
-            
-            // Create and add a polyline to show a direct path
-            const polyline = new google.maps.Polyline(straightLineOptions);
-            polyline.setMap(map);
-            
-            // Store the polyline in the DirectionsRenderer's state to clear it if needed
-            const simpleDirectionsResult = {
-              routes: [{
-                overview_path: [
-                  new google.maps.LatLng(pickupLocation.coordinates.lat, pickupLocation.coordinates.lng),
-                  new google.maps.LatLng(dropoffLocation.coordinates.lat, dropoffLocation.coordinates.lng)
-                ],
-                legs: [{
-                  distance: { text: distanceText, value: distance * 1000 },
-                  duration: { text: durationText, value: durationInSeconds }
-                }]
-              }]
-            } as google.maps.DirectionsResult;
-            
-            setDirectionsResult(simpleDirectionsResult);
-            
-            // Notify parent component about the calculated route details (fallback case)
-            if (onRouteCalculated) {
-              // Distance in meters (convert from km)
-              const distanceInMeters = distance * 1000;
-              
-              // Provide minimal route details in the fallback case
-              onRouteCalculated(
-                durationInSeconds,
-                distanceInMeters,
-                {
-                  routes: [{ legs: [{ distance: { value: distanceInMeters }, duration: { value: durationInSeconds } }] }],
-                  legs: [{ distance: { value: distanceInMeters }, duration: { value: durationInSeconds } }],
-                  waypoint_order: []
-                }
-              );
-            }
-            
-            // Fit the map bounds to show both markers
-            const bounds = new google.maps.LatLngBounds();
-            bounds.extend(pickupLocation.coordinates);
-            bounds.extend(dropoffLocation.coordinates);
-            map.fitBounds(bounds);
-            
-            // Show an informational message about the straight-line calculation
-            setMapError("FALLBACK:Using straight-line distance estimate. All routing services failed.");
+                  }))
+                }],
+                legs: geoapifyResult.features[0].properties.legs.map((leg: any) => ({
+                  distance: { value: leg.distance, text: `${(leg.distance/1000).toFixed(1)} km` },
+                  duration: { value: leg.time, text: `${Math.ceil(leg.time/60)} mins` }
+                })),
+                waypoint_order: []
+              }
+            );
           }
           
-          // Don't throw an error - we've handled it with our fallback
-          return;
+          // Fit map bounds to show the entire route
+          const bounds = new google.maps.LatLngBounds();
+          path.forEach((point: google.maps.LatLngLiteral) => bounds.extend(point));
+          map.fitBounds(bounds);
+        }
+      } catch (geoapifyError: any) {
+        console.error("Geoapify route planning error:", geoapifyError);
+        
+        // Fall back to straight-line calculation if Geoapify also fails
+        console.warn("Geoapify failed. Using straight line distance calculation as final fallback");
+        
+        // Calculate straight-line distance as a fallback
+        const R = 6371; // Earth's radius in km
+        const dLat = (dropoffLocation.coordinates.lat - pickupLocation.coordinates.lat) * Math.PI / 180;
+        const dLon = (dropoffLocation.coordinates.lng - pickupLocation.coordinates.lng) * Math.PI / 180;
+        const a = 
+          Math.sin(dLat/2) * Math.sin(dLat/2) +
+          Math.cos(pickupLocation.coordinates.lat * Math.PI / 180) * Math.cos(dropoffLocation.coordinates.lat * Math.PI / 180) * 
+          Math.sin(dLon/2) * Math.sin(dLon/2);
+        const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+        const distance = R * c; // Distance in km
+        
+        // Estimate duration (assuming average speed of 40 km/h in urban areas)
+        const durationInMinutes = Math.ceil((distance / 40) * 60);
+        const durationInSeconds = durationInMinutes * 60;
+        
+        // Format distance and duration
+        const distanceText = distance < 1 ? 
+          `${Math.round(distance * 1000)} m` : 
+          `${distance.toFixed(1)} km`;
+        
+        const durationText = durationInMinutes < 60 ? 
+          `${durationInMinutes} mins` : 
+          `${Math.floor(durationInMinutes / 60)} hr ${durationInMinutes % 60} mins`;
+        
+        // Update route info with our calculation
+        setRouteInfo({
+          distance: distanceText,
+          duration: durationText
+        });
+        
+        if (map) {
+          // Draw a simple straight line between points
+          const straightLineOptions = {
+            path: [
+              pickupLocation.coordinates,
+              ...waypoints.map(wp => wp.coordinates),
+              dropoffLocation.coordinates
+            ],
+            geodesic: true,
+            strokeColor: "#0033CC",
+            strokeOpacity: 0.8,
+            strokeWeight: 6
+          };
+          
+          // Create and add a polyline to show a direct path
+          const newPolyline = new google.maps.Polyline(straightLineOptions);
+          newPolyline.setMap(map);
+          setRoutePolyline(newPolyline);
+          
+          // Notify parent component about the calculated route details (fallback case)
+          if (onRouteCalculated) {
+            // Distance in meters (convert from km)
+            const distanceInMeters = distance * 1000;
+            
+            // Provide minimal route details in the fallback case
+            onRouteCalculated(
+              durationInSeconds,
+              distanceInMeters,
+              {
+                routes: [{ legs: [{ distance: { value: distanceInMeters }, duration: { value: durationInSeconds } }] }],
+                legs: [{ distance: { value: distanceInMeters }, duration: { value: durationInSeconds } }],
+                waypoint_order: []
+              }
+            );
+          }
+          
+          // Fit the map bounds to show both markers
+          const bounds = new google.maps.LatLngBounds();
+          bounds.extend(pickupLocation.coordinates);
+          if (waypoints.length > 0) {
+            waypoints.forEach(wp => bounds.extend(wp.coordinates));
+          }
+          bounds.extend(dropoffLocation.coordinates);
+          map.fitBounds(bounds);
         }
         
-        // Handle other specific errors
-        if (errorMessage.includes("ZERO_RESULTS")) {
-          throw new Error("No driving route found between these locations");
-        } else if (errorMessage.includes("NOT_FOUND")) {
-          throw new Error("One or both locations could not be geocoded properly");
-        } else if (errorMessage.includes("MAX_ROUTE_LENGTH_EXCEEDED")) {
-          throw new Error("The route is too long to calculate");
-        } else if (errorMessage.includes("OVER_QUERY_LIMIT")) {
-          throw new Error("Direction request quota exceeded. Please try again later");
-        } else {
-          throw new Error(errorMessage);
-        }
+        // Show an informational message about the straight-line calculation
+        setMapError("FALLBACK: Using straight-line distance estimate. Routing service failed.");
       }
-      
     } catch (error: any) {
       console.error("Error in drawRoute:", error);
       
       // Set a user-friendly error message
       setMapError(error?.message || "Could not calculate route between locations");
       
-      // Clear directions and route info
-      setDirectionsResult(null);
+      // Clear route info
       setRouteInfo(null);
       
       // Ensure markers are still visible even when route fails
       if (map && pickupLocation && dropoffLocation) {
         const bounds = new google.maps.LatLngBounds();
         bounds.extend(pickupLocation.coordinates);
+        if (waypoints.length > 0) {
+          waypoints.forEach(wp => bounds.extend(wp.coordinates));
+        }
         bounds.extend(dropoffLocation.coordinates);
         map.fitBounds(bounds);
       }
-      
     } finally {
       setIsLoading(false);
     }
   };
 
+  // Effect to draw route when locations or route preferences change
   useEffect(() => {
     // Only attempt to draw the route if we have both locations and the map is initialized
     if (map && pickupLocation?.coordinates && dropoffLocation?.coordinates && mapsInitialized && typeof google !== 'undefined') {
@@ -585,7 +372,10 @@ export function MapView({
       map.setZoom(defaultZoom);
       
       // Clear any existing route
-      setDirectionsResult(null);
+      if (routePolyline) {
+        routePolyline.setMap(null);
+        setRoutePolyline(null);
+      }
       setRouteInfo(null);
       
       // If we have at least one location, show it on the map
@@ -595,6 +385,13 @@ export function MapView({
       if (pickupLocation?.coordinates) {
         bounds.extend(pickupLocation.coordinates);
         hasAtLeastOneLocation = true;
+      }
+      
+      if (waypoints.length > 0) {
+        waypoints.forEach(wp => {
+          bounds.extend(wp.coordinates);
+          hasAtLeastOneLocation = true;
+        });
       }
       
       if (dropoffLocation?.coordinates) {
@@ -619,8 +416,9 @@ export function MapView({
     routePreferences.provideRouteAlternatives
   ]);
 
+  // Handle click on the map
   const handleMapClick = async (e: google.maps.MapMouseEvent) => {
-    if (!e.latLng || !mapsInitialized || typeof google === 'undefined') return;
+    if (!e.latLng || !mapsInitialized || typeof google === 'undefined' || !editable) return;
 
     try {
       setIsLoading(true);
@@ -663,6 +461,7 @@ export function MapView({
     }
   };
 
+  // Handle selection of a location type (pickup/dropoff/waypoint)
   const handleLocationTypeSelect = (type: 'pickup' | 'dropoff' | 'waypoint') => {
     if (!popupLocation) {
       console.error("Cannot set location: missing popupLocation");
@@ -709,709 +508,485 @@ export function MapView({
         // Call the parent component's callback with the new location and type
         onLocationSelect(location, type);
         
-        // Provide feedback about what was selected based on type
-        setMapError(null); // Clear any previous errors
-        
-        // Show different messages based on location type
-        let actionMessage;
-        if (type === 'pickup') {
-          actionMessage = "Pickup location set";
-        } else if (type === 'dropoff') {
-          actionMessage = "Drop-off location set";
-        } else if (type === 'waypoint') {
-          actionMessage = "Waypoint added";
-        }
-        
-        console.log(actionMessage, location.address);
-        // toast({ title: actionMessage, description: location.address });
+        // Clear the popup after selecting a location
+        setPopupLocation(null);
       } else {
-        console.error("onLocationSelect callback is not defined");
-        setMapError("Cannot set location: application error. Please refresh the page.");
+        setMapError("Cannot set location: onLocationSelect callback not provided");
       }
-      
-      // Close the popup after selection
-      setPopupLocation(null);
     } catch (error: any) {
-      console.error("Error selecting location:", error);
-      setMapError(error?.message || "Failed to set location. Please try again.");
+      console.error(`Error setting ${type} location:`, error);
+      setMapError(error?.message || `Failed to set ${type} location`);
     }
   };
 
+  // Handle map load completion
   const handleMapLoad = (map: google.maps.Map) => {
-    if (typeof google === 'undefined') {
-      console.error("Google Maps API not initialized in handleMapLoad");
-      return;
-    }
+    console.log("Google Maps script loaded successfully");
     setMap(map);
     setMapsInitialized(true);
-    map.setCenter(defaultCenter);
-    map.setZoom(defaultZoom);
     
-    // Initialize autocomplete and places services
     try {
-      const autocompleteService = new google.maps.places.AutocompleteService();
-      setAutocompleteService(autocompleteService);
-      
-      // We need a dummy div for PlacesService, even though we'll only use getDetails
-      const dummyElement = document.createElement('div');
-      const placesService = new google.maps.places.PlacesService(map);
-      setPlacesService(placesService);
-      
-      console.log("Places services initialized successfully");
+      // Initialize Google Maps services if they don't exist
+      if (typeof google !== "undefined") {
+        console.log("Initializing autocomplete service");
+        const autocompleteService = new google.maps.places.AutocompleteService();
+        setAutocompleteService(autocompleteService);
+        
+        console.log("Initializing places service");
+        const placesService = new google.maps.places.PlacesService(map);
+        setPlacesService(placesService);
+        
+        console.log("Places services initialized successfully");
+      } else {
+        setMapError("Google Maps API did not load properly. Please refresh the page and try again.");
+      }
     } catch (error) {
-      console.error("Error initializing Places services:", error);
-      setMapError("Could not initialize location search. Please refresh and try again.");
+      console.error("Error initializing Google Maps services:", error);
+      setMapError("Failed to initialize map services. Please refresh the page.");
     }
   };
 
-  const fetchPredictions = useCallback(
-    async (input: string) => {
-      if (!input.trim() || !autocompleteService || !mapsInitialized || typeof google === 'undefined') {
+  // Handle search predictions
+  const handlePredictions = async () => {
+    if (!autocompleteService || !mapsInitialized) return;
+    
+    setPredictions([]);
+    setIsSearching(true);
+    
+    // Get predictions from the Google Places Autocomplete service
+    autocompleteService.getPlacePredictions({
+      input: searchQuery,
+      bounds: UAE_BOUNDS,
+      componentRestrictions: { country: "ae" }
+    }, (results: any, status: any) => {
+      if (status === google.maps.places.PlacesServiceStatus.OK && results) {
+        // Format the predictions to include a relevant description
+        const formattedPredictions = results.map((prediction: google.maps.places.AutocompletePrediction) => {
+          // Extract the most user-friendly description
+          const mainText = prediction.structured_formatting?.main_text || prediction.description;
+          const secondaryText = prediction.structured_formatting?.secondary_text || "";
+          
+          // Create a custom description to show in the dropdown
+          const description = mainText + (secondaryText ? `, ${secondaryText}` : "");
+          
+          return {
+            ...prediction,
+            description
+          };
+        });
+        
+        setPredictions(formattedPredictions);
+      } else {
+        setPredictions([]);
+      }
+      
+      setIsSearching(false);
+    });
+  };
+
+  // Search for places as the user types
+  const debouncedSearch = useCallback(
+    async (query: string) => {
+      if (!query || query.length < 3) {
         setPredictions([]);
         return;
       }
       
-      setIsSearching(true);
-      try {
-        // Set up options with UAE bounds
-        const options: google.maps.places.AutocompletionRequest = {
-          input,
-          bounds: new google.maps.LatLngBounds(
-            new google.maps.LatLng(UAE_BOUNDS.south, UAE_BOUNDS.west),
-            new google.maps.LatLng(UAE_BOUNDS.north, UAE_BOUNDS.east)
-          ),
-          componentRestrictions: { country: 'ae' }, // Restrict to UAE
-          types: ['geocode', 'establishment', 'address'], // Include businesses, addresses, and places
-        };
+      if (searchQuery !== query) {
+        setSearchQuery(query);
+      }
+      
+      if (autocompleteService && mapsInitialized) {
+        // Debounce the search to avoid too many API calls
+        const timeoutId = setTimeout(() => {
+          if (searchQuery && searchQuery.length >= 3) {
+            handlePredictions();
+          } else {
+            setPredictions([]);
+          }
+        }, 300);
         
-        // Make the request to get predictions
-        const response = await new Promise<google.maps.places.AutocompletePrediction[]>((resolve, reject) => {
-          autocompleteService.getPlacePredictions(options, (results, status) => {
-            if (status === google.maps.places.PlacesServiceStatus.OK && results) {
-              resolve(results);
-            } else if (status === google.maps.places.PlacesServiceStatus.ZERO_RESULTS) {
-              resolve([]);
-            } else {
-              reject(new Error(`Autocomplete failed with status: ${status}`));
-            }
-          });
-        });
-        
-        // Format the results for our combobox
-        const formattedResults = response.map(prediction => ({
-          value: prediction.place_id,
-          label: prediction.structured_formatting?.main_text || prediction.description,
-          description: prediction.structured_formatting?.secondary_text,
-          place_id: prediction.place_id
-        }));
-        
-        setPredictions(formattedResults);
-      } catch (error) {
-        console.error("Error fetching location predictions:", error);
-        setPredictions([]);
-      } finally {
-        setIsSearching(false);
+        return () => clearTimeout(timeoutId);
       }
     },
-    [autocompleteService, mapsInitialized]
+    [searchQuery, autocompleteService, mapsInitialized]
   );
-  
-  // Handle input change with 300ms debounce
-  useEffect(() => {
-    const timeoutId = setTimeout(() => {
-      if (searchQuery.trim().length >= 3) {
-        fetchPredictions(searchQuery);
-      } else {
-        setPredictions([]);
-      }
-    }, 300);
-    
-    return () => clearTimeout(timeoutId);
-  }, [searchQuery, fetchPredictions]);
-  
-  const handlePlaceSelect = async (placeId: string) => {
-    if (!placeId || !placesService || !map || !mapsInitialized || typeof google === 'undefined') return;
-    
-    try {
-      setIsLoading(true);
-      setMapError(null);
-      
-      // Get detailed place information from the place_id
-      const placeDetails = await new Promise<google.maps.places.PlaceResult>((resolve, reject) => {
-        placesService.getDetails({
-          placeId: placeId,
-          fields: ['name', 'geometry', 'formatted_address', 'place_id']
-        }, (result, status) => {
-          if (status === google.maps.places.PlacesServiceStatus.OK && result) {
-            resolve(result);
-          } else {
-            reject(new Error(`Place details request failed with status: ${status}`));
-          }
-        });
-      });
-      
-      console.log("Place details:", placeDetails);
-      
-      if (!placeDetails.geometry?.location) {
-        throw new Error("Selected place has no location data");
-      }
-      
-      const location = {
-        lat: placeDetails.geometry.location.lat(),
-        lng: placeDetails.geometry.location.lng(),
-        address: placeDetails.formatted_address || "",
-        place_id: placeDetails.place_id || "",
-        name: placeDetails.name || placeDetails.formatted_address || "",
-        formatted_address: placeDetails.formatted_address || ""
-      };
-      
-      // Center the map on the found location
-      map.setCenter(location);
-      map.setZoom(15);
-      
-      // Show the location popup
-      setPopupLocation(location);
-      
-      // Clear search query after successful search
-      setSearchQuery("");
-      setPredictions([]);
-      
-    } catch (error: any) {
-      console.error("Error getting place details:", error);
-      setMapError(error?.message || "Failed to get location details");
-    } finally {
-      setIsLoading(false);
-    }
-  };
-  
-  const handleSearch = async () => {
-    if (!searchQuery.trim() || !map || !mapsInitialized || typeof google === 'undefined') return;
 
-    try {
-      setIsLoading(true);
-      setMapError(null);
-      
-      if (typeof google === 'undefined') {
-        throw new Error("Google Maps API is not initialized in handleSearch");
-      }
-      
-      // First try using autocomplete predictions if available
-      if (predictions.length > 0) {
-        await handlePlaceSelect(predictions[0].place_id);
-        return;
-      }
-      
-      // Fallback to geocoder if no predictions are available
-      const geocoder = new google.maps.Geocoder();
-      console.log("Searching for location:", searchQuery);
-      
-      // Add UAE bias to geocoding request
-      const result = await geocoder.geocode({ 
-        address: searchQuery,
-        bounds: new google.maps.LatLngBounds(
-          new google.maps.LatLng(UAE_BOUNDS.south, UAE_BOUNDS.west),
-          new google.maps.LatLng(UAE_BOUNDS.north, UAE_BOUNDS.east)
-        ),
-        componentRestrictions: { country: 'ae' }
-      });
-      
-      if (result.results.length > 0) {
-        const place = result.results[0];
-        console.log("Search result:", place);
-        
-        // Add type casting to handle missing properties in typings
-        const location = {
-          lat: place.geometry.location.lat(),
-          lng: place.geometry.location.lng(),
-          address: place.formatted_address || searchQuery,
-          place_id: place.place_id || "",
-          name: (place as any).name || place.formatted_address || searchQuery, // Ensure name always has a value
-          formatted_address: place.formatted_address || searchQuery // Ensure formatted_address always has a value
-        };
-        
-        // Center the map on the found location
-        map.setCenter(location);
-        map.setZoom(15);
-        
-        // Show the location popup
-        setPopupLocation(location);
-        console.log("Set popup location to:", location);
-        
-        // Clear search query after successful search
-        setSearchQuery("");
-        setPredictions([]);
-      } else {
-        console.warn("No locations found for search:", searchQuery);
-        setMapError("No locations found for your search");
-      }
-    } catch (error: any) {
-      console.error("Error searching for location:", error);
-      setMapError(error?.message || "Failed to search for location");
-    } finally {
-      setIsLoading(false);
+  // Handle selection of a search result
+  const handlePlaceSelect = (placeId: string) => {
+    if (!placesService || !map || !mapsInitialized) {
+      return;
     }
-  };
-
-  const handleSearchKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === 'Enter') {
-      e.preventDefault();
-      handleSearch();
-    }
-  };
-  
-  const handleGetCurrentLocation = () => {
-    if (!map || !mapsInitialized || typeof google === 'undefined') return;
     
     setIsLoading(true);
     setMapError(null);
     
-    if (navigator.geolocation) {
-      navigator.geolocation.getCurrentPosition(
-        async (position) => {
-          const coords = {
-            lat: position.coords.latitude,
-            lng: position.coords.longitude
-          };
-          
-          try {
-            if (typeof google === 'undefined') {
-              throw new Error("Google Maps API is not initialized");
-            }
-            const geocoder = new google.maps.Geocoder();
-            const result = await geocoder.geocode({ location: coords });
-            
-            if (result.results.length > 0) {
-              const place = result.results[0];
-              const location = {
-                lat: coords.lat,
-                lng: coords.lng,
-                address: place.formatted_address || "Your location",
-                place_id: place.place_id || "",
-                name: (place as any).name || place.formatted_address || "Your location",
-                formatted_address: place.formatted_address || "Your location"
-              };
-              
-              // Center the map on the found location
-              map.setCenter(coords);
-              map.setZoom(15);
-              
-              // Show the location popup
-              setPopupLocation(location);
-            } else {
-              setPopupLocation({
-                lat: coords.lat,
-                lng: coords.lng,
-                address: "Your location",
-                place_id: "",
-                name: "Your location",
-                formatted_address: "Your location"
-              });
-              map.setCenter(coords);
-              map.setZoom(15);
-            }
-          } catch (error: any) {
-            console.error("Error reverse geocoding location:", error);
-            setPopupLocation({
-              lat: coords.lat,
-              lng: coords.lng,
-              address: "Your location",
-              place_id: "",
-              name: "Your location",
-              formatted_address: "Your location"
-            });
-            map.setCenter(coords);
-            map.setZoom(15);
-          } finally {
+    // Get detailed information about the selected place
+    placesService.getDetails(
+      {
+        placeId: placeId,
+        fields: ["name", "formatted_address", "place_id", "geometry"]
+      },
+      (result: any, status: any) => {
+        if (status === google.maps.places.PlacesServiceStatus.OK && result) {
+          // Validate that we have geometry information
+          if (!result.geometry || !result.geometry.location) {
+            console.error("Selected place has no geometry:", result);
+            setMapError("Selected place has no valid location coordinates.");
             setIsLoading(false);
+            return;
           }
-        },
-        (error) => {
-          console.error("Geolocation error:", error);
-          setMapError("Could not access your location. Please check browser permissions.");
-          setIsLoading(false);
-        },
-        { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
-      );
-    } else {
-      setMapError("Geolocation is not supported by your browser");
-      setIsLoading(false);
-    }
+          
+          // Extract the coordinates
+          const lat = result.geometry.location.lat();
+          const lng = result.geometry.location.lng();
+          
+          // Create a popup for the selected place
+          setPopupLocation({
+            lat,
+            lng,
+            address: result.formatted_address || "Selected location",
+            place_id: result.place_id || "",
+            name: result.name || result.formatted_address || "Selected location",
+            formatted_address: result.formatted_address || "Selected location"
+          });
+          
+          // Pan to the selected location
+          map.panTo({ lat, lng });
+          map.setZoom(15);
+          
+          // Clear the search field and results
+          setSearchQuery('');
+          setPredictions([]);
+        } else {
+          console.error("Error getting place details:", status);
+          setMapError("Could not retrieve details for the selected place. Please try another location.");
+        }
+        
+        setIsLoading(false);
+      }
+    );
   };
 
-  return (
-    <Card className="p-4 h-full relative shadow-lg">
-      {isLoading && (
-        <div className="absolute inset-0 bg-background/80 backdrop-blur-sm z-50 flex items-center justify-center">
-          <VehicleLoadingIndicator size="lg" />
-        </div>
-      )}
-      
-      {mapError && (
-        <Alert 
-          variant={mapError.startsWith("FALLBACK:") ? "default" : "destructive"} 
-          className="mb-4"
-        >
-          {mapError.startsWith("FALLBACK:") ? (
-            <>
-              <InfoIcon className="h-4 w-4 text-blue-600" />
-              <AlertTitle>Information</AlertTitle>
-              <AlertDescription>{mapError.substring(9)}</AlertDescription>
-            </>
-          ) : (
-            <>
-              <AlertCircle className="h-4 w-4" />
-              <AlertTitle>Error</AlertTitle>
-              <AlertDescription>{mapError}</AlertDescription>
-            </>
-          )}
-        </Alert>
-      )}
-      
-      {!MAPS_API_KEY && (
-        <Alert variant="destructive" className="mb-4">
-          <AlertCircle className="h-4 w-4" />
-          <AlertTitle>API Key Missing</AlertTitle>
-          <AlertDescription>Google Maps API key is not configured. Please contact support.</AlertDescription>
-        </Alert>
-      )}
-
-      <div className="mb-4 space-y-2">
-        <h3 className="font-medium text-lg">Interactive Map</h3>
-        <div className="flex items-center gap-2 mb-3 flex-wrap">
-          <div className="flex items-center gap-1">
-            <div className="w-4 h-4 rounded-full bg-green-600 flex items-center justify-center text-[10px] text-white font-bold">P</div>
-            <span className="text-sm">Pickup</span>
-          </div>
-          <div className="flex items-center gap-1">
-            <div className="w-4 h-4 rounded-full bg-red-600 flex items-center justify-center text-[10px] text-white font-bold">D</div>
-            <span className="text-sm">Drop-off</span>
-          </div>
-          <div className="flex items-center gap-1">
-            <div className="w-4 h-4 rounded-full bg-amber-600 flex items-center justify-center text-[10px] text-white font-bold">1</div>
-            <span className="text-sm">Waypoint</span>
-          </div>
-        </div>
-
-        <div className="relative mb-2">
-          {predictions.length > 0 ? (
-            <Combobox
-              placeholder="Search for a location in UAE..."
-              options={predictions}
-              value=""
-              onChange={handlePlaceSelect}
-              onInputChange={setSearchQuery}
-              className="w-full"
-              emptyMessage="No locations found"
-              clearable={true}
-              loading={isSearching}
-            />
-          ) : (
-            <div className="flex">
-              <Input
-                ref={searchBoxRef}
-                placeholder="Search for a location in UAE..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                onKeyDown={handleSearchKeyDown}
-                className="pr-10"
-              />
-              <Button 
-                variant="ghost" 
-                size="icon"
-                type="button"
-                onClick={handleSearch}
-                className="absolute right-0 top-0 h-full"
-              >
-                <Search className="h-4 w-4" />
-              </Button>
-            </div>
-          )}
-        </div>
-        
-        <div className="mb-3">
-          <Button 
-            variant="outline" 
-            size="sm" 
-            onClick={handleGetCurrentLocation}
-            className="w-full flex items-center gap-2 mt-2 text-primary"
+  // Search box component
+  const searchBox = (
+    <div className="relative w-full">
+      <div className="flex items-center space-x-2">
+        <Input
+          ref={inputRef}
+          type="text"
+          placeholder="Search for a location in UAE..."
+          className="flex-1 pr-8"
+          value={searchQuery}
+          onChange={e => debouncedSearch(e.target.value)}
+          disabled={!mapsInitialized || isLoading || !editable}
+        />
+        {searchQuery && (
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon"
+            className="absolute right-2 top-2 h-5 w-5"
+            onClick={() => {
+              setSearchQuery('');
+              setPredictions([]);
+              if (inputRef.current) {
+                inputRef.current.focus();
+              }
+            }}
           >
-            <Locate className="h-4 w-4" />
-            <span>Use my current location</span>
+            <X className="h-3 w-3" />
           </Button>
-        </div>
-        
-        <p className="text-sm text-muted-foreground">
-          Click on the map or search for a location to set pickup, drop-off, or waypoint locations
-        </p>
+        )}
       </div>
+      
+      {predictions.length > 0 && (
+        <div className="absolute z-10 w-full mt-1 bg-white rounded-md shadow-lg max-h-60 overflow-auto">
+          <ul className="py-1">
+            {predictions.map((prediction) => (
+              <li
+                key={prediction.place_id}
+                className="px-4 py-2 text-sm hover:bg-slate-100 cursor-pointer"
+                onClick={() => handlePlaceSelect(prediction.place_id)}
+              >
+                {prediction.description}
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+    </div>
+  );
 
-      <LoadScriptNext
-        googleMapsApiKey={MAPS_API_KEY}
-        libraries={GOOGLE_MAPS_LIBRARIES}
-        id="google-map-script"
-        loadingElement={
-          <div className="h-full w-full flex items-center justify-center min-h-[400px]">
-            <VehicleLoadingIndicator size="lg" />
-          </div>
-        }
-        onLoad={() => {
-          console.log("Google Maps script loaded successfully");
-          setMapsInitialized(true);
+  // InfoWindow content for selected locations
+  const infoWindowContent = (
+    <div className="p-2 min-w-[200px]">
+      <h3 className="font-medium mb-2">{popupLocation?.name || popupLocation?.formatted_address || "Selected Location"}</h3>
+      <p className="text-sm mb-3">{popupLocation?.formatted_address || `${popupLocation?.lat.toFixed(6)}, ${popupLocation?.lng.toFixed(6)}`}</p>
+      
+      <div className="flex flex-col gap-2">
+        <Button 
+          size="sm" 
+          variant="default" 
+          onClick={() => handleLocationTypeSelect('pickup')}
+          className="justify-start"
+        >
+          <MapPin className="mr-2 h-4 w-4" /> Set as Pickup Location
+        </Button>
+        
+        <Button 
+          size="sm" 
+          variant="default" 
+          onClick={() => handleLocationTypeSelect('dropoff')}
+          className="justify-start"
+        >
+          <MapPin className="mr-2 h-4 w-4" /> Set as Dropoff Location
+        </Button>
+        
+        <Button 
+          size="sm" 
+          variant="default" 
+          onClick={() => handleLocationTypeSelect('waypoint')}
+          className="justify-start"
+        >
+          <MapPin className="mr-2 h-4 w-4" /> Add as Waypoint
+        </Button>
+      </div>
+      
+      <style>
+        {`
+          .gm-ui-hover-effect {
+            display: none !important;
+          }
+        `}
+      </style>
+    </div>
+  );
+
+  // Render waypoint markers
+  const renderWaypoints = () => {
+    return waypoints.map((waypoint, index) => (
+      <Marker
+        key={`waypoint-${index}`}
+        position={waypoint.coordinates}
+        icon={{
+          path: google.maps.SymbolPath.CIRCLE,
+          fillColor: "#3b82f6",
+          fillOpacity: 1,
+          scale: 8,
+          strokeColor: "#1d4ed8",
+          strokeWeight: 2,
         }}
-        onError={(error) => {
-          console.error("Google Maps script failed to load:", error);
-          setLoadError(new Error("Failed to load Google Maps"));
+        label={{
+          text: (index + 1).toString(),
+          color: "#ffffff",
+          fontSize: "12px",
+          fontWeight: "bold"
         }}
-        channel="tripxl_booking_map"
+        onClick={() => {
+          // When the waypoint marker is clicked, show info
+          setPopupLocation({
+            lat: waypoint.coordinates.lat,
+            lng: waypoint.coordinates.lng,
+            address: waypoint.address,
+            place_id: waypoint.place_id || "",
+            name: waypoint.name || waypoint.formatted_address || waypoint.address,
+            formatted_address: waypoint.formatted_address || waypoint.address
+          });
+        }}
+      />
+    ));
+  };
+
+  // Route info component
+  const routeInfoComponent = routeInfo && (
+    <div className="mt-4 p-3 bg-slate-50 rounded-md border border-slate-200">
+      <div className="flex items-center">
+        <MapPin className="mr-2 h-4 w-4 text-blue-600" />
+        <span className="text-sm font-medium">Distance: {routeInfo.distance}</span>
+      </div>
+      <div className="flex items-center mt-1">
+        <Clock className="mr-2 h-4 w-4 text-blue-600" />
+        <span className="text-sm font-medium">Time: {routeInfo.duration}</span>
+      </div>
+    </div>
+  );
+
+  // Waypoints control component
+  const waypointsControl = (waypoints.length > 0 && onClearWaypoints) && (
+    <div className="mt-2">
+      <Button 
+        variant="outline" 
+        size="sm" 
+        onClick={onClearWaypoints}
+        className="text-xs"
       >
-        {loadError ? (
-          <div className="h-[500px] flex flex-col items-center justify-center border border-dashed rounded-md p-5 bg-muted/30">
-            <AlertCircle className="h-10 w-10 text-destructive mb-4" />
-            <h3 className="text-lg font-medium mb-2">Google Maps Error</h3>
-            <p className="text-center text-muted-foreground mb-4">
-              {loadError.message || "Failed to load Google Maps. Please check your API key or try again later."}
-            </p>
-            <Button onClick={() => window.location.reload()} variant="outline">
-              Reload
-            </Button>
-          </div>
-        ) : (
-          <div className="h-[500px] relative">
-            <GoogleMap
-              mapContainerStyle={{
-                width: '100%',
-                height: '100%',
-                borderRadius: '8px'
-              }}
-              center={defaultCenter}
-              zoom={defaultZoom}
-              onClick={handleMapClick}
-              onLoad={handleMapLoad}
-              options={{
-                zoomControl: true,
-                streetViewControl: false,
-                mapTypeControl: true,
-                fullscreenControl: true,
-                clickableIcons: true,
-                mapTypeId: (typeof google !== 'undefined' && google.maps && google.maps.MapTypeId) ? google.maps.MapTypeId.ROADMAP : 'roadmap',
-                styles: [
-                  {
-                    featureType: "poi",
-                    elementType: "labels",
-                    stylers: [{ visibility: "on" }]
-                  }
-                ]
-              }}
-            >
-              {/* Only render DirectionsRenderer for real directions results (not our fallback) */}
-              {directionsResult && directionsResult.routes && directionsResult.routes.length > 0 && directionsResult.routes[0]?.overview_polyline && (
-                <DirectionsRenderer
-                  directions={directionsResult}
-                  options={{
-                    suppressMarkers: true,
-                    polylineOptions: {
-                      strokeColor: "#0033CC", /* Dark Blue Color */
-                      strokeWeight: 6, /* Increased thickness */
-                      strokeOpacity: 1.0, /* Full opacity */
-                      zIndex: 10, /* Ensure route is above other map elements */
-                      geodesic: true /* Follow Earth's curvature for more accurate roads */
-                    },
-                    preserveViewport: false, /* Auto-zoom to fit the entire route */
-                    draggable: false, /* Route is not draggable */
-                  }}
-                />
-              )}
+        <X className="mr-1 h-3 w-3" /> Clear All Waypoints
+      </Button>
+      <div className="text-xs text-slate-500 mt-1">
+        {waypoints.length} waypoint{waypoints.length !== 1 ? 's' : ''} set
+      </div>
+    </div>
+  );
 
-              {pickupLocation?.coordinates && (
-                <Marker
-                  position={pickupLocation.coordinates}
-                  icon={{
-                    path: (typeof google !== 'undefined' && google.maps && google.maps.SymbolPath) ? google.maps.SymbolPath.CIRCLE : 0,
-                    fillColor: "#22c55e",
-                    fillOpacity: 1,
-                    strokeWeight: 1,
-                    strokeColor: "#ffffff",
-                    scale: 12,
-                  }}
-                  label={{
-                    text: "P",
-                    color: "white",
-                    fontWeight: "bold",
-                    fontSize: "14px"
-                  }}
-                />
-              )}
+  // Error message component
+  const errorMessage = mapError && !mapError.startsWith("FALLBACK:") && (
+    <Alert variant="destructive" className="mt-4">
+      <AlertCircle className="h-4 w-4" />
+      <AlertTitle>Error</AlertTitle>
+      <AlertDescription>
+        {mapError}
+      </AlertDescription>
+    </Alert>
+  );
 
-              {dropoffLocation?.coordinates && (
-                <Marker
-                  position={dropoffLocation.coordinates}
-                  icon={{
-                    path: (typeof google !== 'undefined' && google.maps && google.maps.SymbolPath) ? google.maps.SymbolPath.CIRCLE : 0,
-                    fillColor: "#ef4444",
-                    fillOpacity: 1,
-                    strokeWeight: 1,
-                    strokeColor: "#ffffff",
-                    scale: 12,
-                  }}
-                  label={{
-                    text: "D",
-                    color: "white",
-                    fontWeight: "bold",
-                    fontSize: "14px"
-                  }}
-                />
-              )}
-              
-              {/* Render waypoint markers with numbers */}
-              {waypoints && waypoints.map((waypoint, index) => waypoint?.coordinates && (
-                <Marker
-                  key={`waypoint-${index}`}
-                  position={waypoint.coordinates}
-                  icon={{
-                    path: (typeof google !== 'undefined' && google.maps && google.maps.SymbolPath) ? google.maps.SymbolPath.CIRCLE : 0,
-                    fillColor: "#3b82f6", // Blue color for waypoints
-                    fillOpacity: 1,
-                    strokeWeight: 1,
-                    strokeColor: "#ffffff",
-                    scale: 12,
-                  }}
-                  label={{
-                    text: (index + 1).toString(),
-                    color: "white",
-                    fontWeight: "bold",
-                    fontSize: "14px"
-                  }}
-                />
-              ))}
+  // Informational message component for fallback routes
+  const infoMessage = mapError && mapError.startsWith("FALLBACK:") && (
+    <Alert className="mt-4 bg-amber-50 text-amber-800 border-amber-200">
+      <InfoIcon className="h-4 w-4" />
+      <AlertTitle>Information</AlertTitle>
+      <AlertDescription>
+        {mapError.replace("FALLBACK:", "")}
+      </AlertDescription>
+    </Alert>
+  );
 
-              {popupLocation && (
-                <InfoWindow
-                  position={{ lat: popupLocation.lat, lng: popupLocation.lng }}
-                  onCloseClick={() => setPopupLocation(null)}
-                  options={{
-                    maxWidth: 350,
-                    pixelOffset: (typeof google !== 'undefined' && google.maps && google.maps.Size) ? new google.maps.Size(0, -5) : undefined
-                  }}
-                >
-                  <div className="p-3 space-y-3 min-w-[280px]">
-                    <div className="border-b pb-3">
-                      <h4 className="font-medium text-base mb-1">Selected Location</h4>
-                      <p className="text-sm flex items-start gap-2">
-                        <MapPin className="h-4 w-4 text-primary mt-1 flex-shrink-0" />
-                        <span>{popupLocation?.formatted_address || popupLocation?.name || popupLocation?.address || "Selected location"}</span>
-                      </p>
-                    </div>
-                    <div className="flex gap-3 flex-col">
-                      <Button
-                        size="sm"
-                        onClick={() => handleLocationTypeSelect('pickup')}
-                        variant="default"
-                        disabled={false}
-                        className="w-full bg-green-600 hover:bg-green-700 flex items-center justify-center gap-2"
-                      >
-                        <CircleCheck className="h-4 w-4" />
-                        <span>Set as Pickup Location</span>
-                      </Button>
-                      <Button
-                        size="sm"
-                        onClick={() => handleLocationTypeSelect('dropoff')}
-                        variant="default"
-                        disabled={false}
-                        className="w-full bg-red-600 hover:bg-red-700 flex items-center justify-center gap-2"
-                      >
-                        <CircleCheck className="h-4 w-4" />
-                        <span>Set as Dropoff Location</span>
-                      </Button>
-                      <Button
-                        size="sm"
-                        onClick={() => handleLocationTypeSelect('waypoint')}
-                        variant="default"
-                        disabled={false}
-                        className="w-full bg-blue-600 hover:bg-blue-700 flex items-center justify-center gap-2"
-                      >
-                        <MapPin className="h-4 w-4" />
-                        <span>Add as Waypoint</span>
-                      </Button>
-                    </div>
-                  </div>
-                </InfoWindow>
-              )}
-            </GoogleMap>
+  return (
+    <Card ref={mapContainerRef} className="overflow-hidden">
+      <div className="p-4 border-b">
+        {searchBox}
+      </div>
+      
+      <div className="relative">
+        {isLoading && (
+          <div className="absolute inset-0 bg-white/80 z-10 flex items-center justify-center">
+            <VehicleLoadingIndicator />
           </div>
         )}
-      </LoadScriptNext>
-
-      {/* Alert for mapError is now handled at the top of the component */}
-
-      {routeInfo && pickupLocation?.coordinates && dropoffLocation?.coordinates && (
-        <div className="mt-4 p-4 border rounded-lg shadow-sm">
-          <div className="flex items-center justify-between mb-3">
-            <h3 className="font-medium text-lg">Route Information</h3>
-            <div className="bg-primary/10 rounded-full px-3 py-1.5 text-sm font-medium text-primary">
-              {routeInfo.distance}
-            </div>
-          </div>
-
-          <div className="flex items-center gap-2 mb-4">
-            <div className="bg-primary/10 p-2 rounded-full">
-              <Clock className="h-5 w-5 text-primary" />
-            </div>
-            <div>
-              <p className="font-medium">Travel Time</p>
-              <p className="text-sm text-muted-foreground">{routeInfo.duration}</p>
-            </div>
-          </div>
-
-          <div className="space-y-3 border-t pt-3">
-            <div className="flex gap-3">
-              <div className="min-w-[24px] flex flex-col items-center">
-                <div className="w-6 h-6 rounded-full bg-green-600 flex items-center justify-center text-[10px] text-white font-bold">P</div>
-                <div className="h-full border-l-2 border-dashed border-muted-foreground/30 my-1"></div>
-              </div>
-              <div>
-                <p className="font-medium">Pickup Location</p>
-                <p className="text-sm text-muted-foreground">
-                  {pickupLocation?.formatted_address || pickupLocation?.name || pickupLocation?.address || "Select location"}
-                </p>
-              </div>
-            </div>
-
-            {/* Show waypoints if they exist */}
-            {waypoints && waypoints.length > 0 && (
-              <>
-                {waypoints.map((waypoint, index) => waypoint && (
-                  <div className="flex gap-3" key={`waypoint-info-${index}`}>
-                    <div className="min-w-[24px] flex flex-col items-center">
-                      <div className="w-6 h-6 rounded-full bg-blue-600 flex items-center justify-center text-[10px] text-white font-bold">
-                        {index + 1}
-                      </div>
-                      <div className="h-full border-l-2 border-dashed border-muted-foreground/30 my-1"></div>
-                    </div>
-                    <div>
-                      <p className="font-medium">Waypoint {index + 1}</p>
-                      <p className="text-sm text-muted-foreground">
-                        {waypoint?.formatted_address || waypoint?.name || waypoint?.address || `Waypoint ${index + 1}`}
-                      </p>
-                    </div>
-                  </div>
-                ))}
-              </>
+        
+        <LoadScriptNext
+          id="google-maps-script"
+          googleMapsApiKey={MAPS_API_KEY}
+          libraries={GOOGLE_MAPS_LIBRARIES}
+          onLoad={() => console.log("Google Maps script loaded successfully")}
+        >
+          <GoogleMap
+            id="trip-map"
+            mapContainerStyle={{
+              width: "100%",
+              height: "500px"
+            }}
+            zoom={defaultZoom}
+            center={defaultCenter}
+            options={{
+              mapTypeControl: false,
+              streetViewControl: false,
+              fullscreenControl: false,
+              gestureHandling: "cooperative",
+              clickableIcons: false,
+              mapTypeId: google.maps.MapTypeId.ROADMAP,
+              styles: [
+                {
+                  featureType: "poi",
+                  elementType: "labels",
+                  stylers: [{ visibility: "off" }]
+                }
+              ]
+            }}
+            onClick={handleMapClick}
+            onLoad={handleMapLoad}
+          >
+            {/* Pickup location marker */}
+            {pickupLocation && (
+              <Marker
+                position={pickupLocation.coordinates}
+                icon={{
+                  url: "https://maps.google.com/mapfiles/ms/icons/green-dot.png",
+                  scaledSize: new google.maps.Size(32, 32),
+                  labelOrigin: new google.maps.Point(16, -10)
+                }}
+                label={{
+                  text: "Pickup",
+                  color: "#1e3a8a",
+                  fontWeight: "bold",
+                  fontSize: "12px"
+                }}
+                onClick={() => {
+                  setPopupLocation({
+                    lat: pickupLocation.coordinates.lat,
+                    lng: pickupLocation.coordinates.lng,
+                    address: pickupLocation.address,
+                    place_id: pickupLocation.place_id || "",
+                    name: pickupLocation.name || pickupLocation.formatted_address || pickupLocation.address,
+                    formatted_address: pickupLocation.formatted_address || pickupLocation.address
+                  });
+                }}
+              />
             )}
 
-            <div className="flex gap-3">
-              <div className="min-w-[24px]">
-                <div className="w-6 h-6 rounded-full bg-red-600 flex items-center justify-center text-[10px] text-white font-bold">D</div>
-              </div>
-              <div>
-                <p className="font-medium">Drop-off Location</p>
-                <p className="text-sm text-muted-foreground">
-                  {dropoffLocation?.formatted_address || dropoffLocation?.name || dropoffLocation?.address || "Select location"}
-                </p>
-              </div>
-            </div>
+            {/* Waypoint markers */}
+            {renderWaypoints()}
+
+            {/* Dropoff location marker */}
+            {dropoffLocation && (
+              <Marker
+                position={dropoffLocation.coordinates}
+                icon={{
+                  url: "https://maps.google.com/mapfiles/ms/icons/red-dot.png",
+                  scaledSize: new google.maps.Size(32, 32),
+                  labelOrigin: new google.maps.Point(16, -10)
+                }}
+                label={{
+                  text: "Dropoff",
+                  color: "#7f1d1d",
+                  fontWeight: "bold",
+                  fontSize: "12px"
+                }}
+                onClick={() => {
+                  setPopupLocation({
+                    lat: dropoffLocation.coordinates.lat,
+                    lng: dropoffLocation.coordinates.lng,
+                    address: dropoffLocation.address,
+                    place_id: dropoffLocation.place_id || "",
+                    name: dropoffLocation.name || dropoffLocation.formatted_address || dropoffLocation.address,
+                    formatted_address: dropoffLocation.formatted_address || dropoffLocation.address
+                  });
+                }}
+              />
+            )}
+
+            {/* InfoWindow for the selected location */}
+            {popupLocation && (
+              <InfoWindow
+                position={{ lat: popupLocation.lat, lng: popupLocation.lng }}
+                onCloseClick={() => setPopupLocation(null)}
+                options={{
+                  pixelOffset: new google.maps.Size(0, -30)
+                }}
+              >
+                <div>
+                  {infoWindowContent}
+                </div>
+              </InfoWindow>
+            )}
+          </GoogleMap>
+        </LoadScriptNext>
+      </div>
+      
+      <div className="p-4">
+        {routeInfoComponent}
+        {waypointsControl}
+        {errorMessage}
+        {infoMessage}
+        
+        {editable && (
+          <div className="mt-4 text-xs text-slate-500">
+            <p>Click on the map to select locations or use the search box above.</p>
           </div>
-        </div>
-      )}
+        )}
+      </div>
     </Card>
   );
-}
+};
+
+export default MapView;
