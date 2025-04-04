@@ -733,21 +733,21 @@ export const insertBookingSchema = createInsertSchema(bookings)
     cargo_type: z.enum(Object.values(CargoType) as [string, ...string[]]).optional(),
     box_size: z.array(z.enum(Object.values(BoxSize) as [string, ...string[]])).optional(),
 
-    // Make location objects more flexible
+    // Make location objects more flexible and nullable
     pickup_location: z.object({
       address: z.string(),
       coordinates: z.object({
         lat: z.number(),
         lng: z.number()
       })
-    }),
+    }).nullable(),
     dropoff_location: z.object({
       address: z.string(),
       coordinates: z.object({
         lat: z.number(),
         lng: z.number()
       })
-    }),
+    }).nullable(),
     waypoints: z.array(
       z.object({
         address: z.string(),

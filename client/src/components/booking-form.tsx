@@ -91,27 +91,9 @@ interface PassengerDetail {
   contact: string;
 }
 
-const DEFAULT_PICKUP_LOCATION = {
-  address: "Al Wahda Mall",
-  coordinates: {
-    lat: 24.4697,
-    lng: 54.3773
-  },
-  name: "Al Wahda Mall",
-  formatted_address: "Al Wahda Mall, Hazza Bin Zayed The First St, Al Wahda, Abu Dhabi",
-  place_id: "ChIJr2sMKkxdXj4RFG1JCQ935hw"
-};
-
-const DEFAULT_DROPOFF_LOCATION = {
-  address: "Deira City Centre",
-  coordinates: {
-    lat: 25.2524,
-    lng: 55.3300
-  },
-  name: "Deira City Centre",
-  formatted_address: "Deira City Centre, 8 Street, Port Saeed, Dubai",
-  place_id: "ChIJz3l4CkxcXj4R2yG4hHC9yjc"
-};
+// Removed default locations as per user request
+const DEFAULT_PICKUP_LOCATION = null;
+const DEFAULT_DROPOFF_LOCATION = null;
 
 export function BookingForm() {
   const { toast } = useToast();
@@ -161,8 +143,8 @@ export function BookingForm() {
       bookingType: "",
       purpose: "",
       priority: "",
-      pickupLocation: DEFAULT_PICKUP_LOCATION,
-      dropoffLocation: DEFAULT_DROPOFF_LOCATION,
+      pickupLocation: null, // No default pickup location
+      dropoffLocation: null, // No default dropoff location
       pickupTime: getMinimumPickupTime().toISOString(),
       dropoffTime: "",
       cargoType: "",
@@ -304,6 +286,16 @@ export function BookingForm() {
           lng: Number(wp.coordinates.lng)
         }
       }));
+
+      // Validate that we have pickup and dropoff locations before submitting
+      if (!data.pickupLocation || !data.dropoffLocation) {
+        toast({
+          title: "Missing location information",
+          description: "Please select both pickup and dropoff locations",
+          variant: "destructive"
+        });
+        return;
+      }
 
       const bookingData = {
         employeeId: data.employeeId,
