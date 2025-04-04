@@ -3,7 +3,7 @@
 
 // Default API Key
 const GEOAPIFY_API_KEY = 'b28769f0b406453aa7d0ef49c7abfcde';
-const GEOAPIFY_BASE_URL = 'https://api.geoapify.com/v1/routeplanner';
+const GEOAPIFY_BASE_URL = 'https://api.geoapify.com/v1/routing';
 
 // Types for Geoapify API
 export interface GeoLocation {
@@ -81,16 +81,23 @@ export async function calculateRoute(
   options: RouteOptions = {}
 ): Promise<RouteResponse> {
   try {
-    // Prepare waypoints in the format expected by Geoapify API
-    const waypointList = [
-      [origin.lng, origin.lat],
-      ...waypoints.map(wp => [wp.location.lng, wp.location.lat]),
-      [destination.lng, destination.lat]
-    ];
-
+    // Format waypoints as lat,lng pairs for the URL
+    let waypointsParam = `${origin.lat},${origin.lng}`;
+    
+    // Add intermediate waypoints if they exist
+    if (waypoints && waypoints.length > 0) {
+      for (const wp of waypoints) {
+        waypointsParam += `|${wp.location.lat},${wp.location.lng}`;
+      }
+    }
+    
+    // Add destination
+    waypointsParam += `|${destination.lat},${destination.lng}`;
+    
     // Construct URL for API call
     const url = new URL(GEOAPIFY_BASE_URL);
     url.searchParams.append('apiKey', GEOAPIFY_API_KEY);
+    url.searchParams.append('waypoints', waypointsParam);
     
     // Set mode (default to drive if not specified)
     const mode = options.mode || 'drive';
@@ -116,16 +123,8 @@ export async function calculateRoute(
       url.searchParams.append('optimize', options.optimize);
     }
 
-    // Make POST request with waypoints
-    const response = await fetch(url.toString(), {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({
-        "waypoints": waypointList
-      })
-    });
+    // Make GET request
+    const response = await fetch(url.toString());
 
     if (!response.ok) {
       const errorText = await response.text();
@@ -172,52 +171,83 @@ export function formatTime(seconds: number): string {
  * Convert Geoapify route to Google Maps-compatible format
  * This helps us use the route with our existing Google Maps components
  */
-export function convertToGoogleMapsRoute(geoapifyRoute: RouteResponse): any {
-  if (!geoapifyRoute || !geoapifyRoute.features || geoapifyRoute.features.length === 0) {
-    throw new Error('Invalid Geoapify route data');
-  }
-  
-  const mainFeature = geoapifyRoute.features[0];
-  const totalDistance = mainFeature.properties.distance; // in meters
-  const totalTime = mainFeature.properties.time; // in seconds
-  const coordinates = mainFeature.geometry.coordinates;
-  
-  // Create a path that Google Maps can use
-  const path = coordinates.map(coord => ({
-    lat: coord[1],
-    lng: coord[0]
-  }));
-  
-  // Format legs information
-  const legs = mainFeature.properties.legs.map(leg => ({
-    distance: { 
-      text: formatDistance(leg.distance),
-      value: leg.distance 
-    },
-    duration: { 
-      text: formatTime(leg.time),
-      value: leg.time 
-    },
-    steps: leg.steps?.map(step => ({
-      distance: { text: formatDistance(step.distance), value: step.distance },
-      duration: { text: formatTime(step.time), value: step.time },
-      instructions: step.instruction
-    })) || []
-  }));
-  
-  // Create a Google Maps-compatible structure
-  return {
-    routes: [{
-      overview_path: path,
-      legs: legs,
-      overview_polyline: {
-        points: '' // We don't need this as we'll pass the coordinates directly
-      }
-    }],
-    status: 'OK',
-    request: {
-      origin: { lat: path[0].lat, lng: path[0].lng },
-      destination: { lat: path[path.length - 1].lat, lng: path[path.length - 1].lng }
+export function convertToGoogleMapsRoute(geoapifyRoute: any): any {
+  try {
+    if (!geoapifyRoute || !geoapifyRoute.features || geoapifyRoute.features.length === 0) {
+      throw new Error('Invalid Geoapify route data');
     }
-  };
+    
+    // Get the first feature which contains the main route
+    const mainFeature = geoapifyRoute.features[0];
+    
+    if (!mainFeature.geometry || !mainFeature.geometry.coordinates) {
+      throw new Error('Missing route coordinates in Geoapify response');
+    }
+    
+    // Extract properties
+    const properties = mainFeature.properties || {};
+    const totalDistance = properties.distance || 0; // in meters
+    const totalTime = properties.time || 0; // in seconds
+    const coordinates = mainFeature.geometry.coordinates;
+    
+    // Create a path that Google Maps can use (convert [lon, lat] to {lat, lng})
+    const path = coordinates.map(coord => ({
+      lat: coord[1],
+      lng: coord[0]
+    }));
+    
+    // Create a simplified leg structure if detailed legs are not available
+    let legs = [];
+    
+    if (properties.legs && properties.legs.length > 0) {
+      // If we have detailed leg information
+      legs = properties.legs.map(leg => ({
+        distance: { 
+          text: formatDistance(leg.distance || 0),
+          value: leg.distance || 0
+        },
+        duration: { 
+          text: formatTime(leg.time || 0),
+          value: leg.time || 0
+        },
+        steps: leg.steps?.map(step => ({
+          distance: { text: formatDistance(step.distance || 0), value: step.distance || 0 },
+          duration: { text: formatTime(step.time || 0), value: step.time || 0 },
+          instructions: step.instruction || "Continue"
+        })) || []
+      }));
+    } else {
+      // Create a simple single leg if detailed information is not available
+      legs = [{
+        distance: { 
+          text: formatDistance(totalDistance),
+          value: totalDistance
+        },
+        duration: { 
+          text: formatTime(totalTime),
+          value: totalTime
+        },
+        steps: []
+      }];
+    }
+    
+    // Create a Google Maps-compatible structure
+    return {
+      routes: [{
+        overview_path: path,
+        legs: legs,
+        overview_polyline: {
+          points: '' // We don't need this as we'll pass the coordinates directly
+        }
+      }],
+      status: 'OK',
+      request: {
+        origin: path.length > 0 ? { lat: path[0].lat, lng: path[0].lng } : null,
+        destination: path.length > 0 ? { lat: path[path.length - 1].lat, lng: path[path.length - 1].lng } : null
+      }
+    };
+  } catch (error) {
+    console.error('Error converting Geoapify route to Google Maps format:', error);
+    throw error;
+  }
 }
