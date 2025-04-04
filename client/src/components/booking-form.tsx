@@ -1096,7 +1096,7 @@ export function BookingForm() {
                                     }}
                                     onSearchChange={(query) => {
                                       form.setValue("pickupLocation", {
-                                        ...field.value,
+                                        ...(field.value || {}),
                                         address: query
                                       });
                                     }}
@@ -1135,7 +1135,7 @@ export function BookingForm() {
                                     }}
                                     onSearchChange={(query) => {
                                       form.setValue("dropoffLocation", {
-                                        ...field.value,
+                                        ...(field.value || {}),
                                         address: query
                                       });
                                     }}
@@ -1426,7 +1426,7 @@ export function BookingForm() {
                   bookingDetails={{
                     vehicleType: form.getValues("bookingType"),
                     date: new Date(form.getValues("pickupTime")).toLocaleDateString(),
-                    location: form.getValues("pickupLocation").address
+                    location: form.getValues("pickupLocation")?.address || "Selected location"
                   }}
                 />
               </AlertDialogTitle>
