@@ -765,6 +765,10 @@ export const MapView: React.FC<MapViewProps> = ({
 
   // Render waypoint markers
   const renderWaypoints = () => {
+    if (!mapsInitialized || typeof google === 'undefined') {
+      return null;
+    }
+    
     return waypoints.map((waypoint, index) => (
       <Marker
         key={`waypoint-${index}`}
@@ -884,7 +888,7 @@ export const MapView: React.FC<MapViewProps> = ({
               fullscreenControl: false,
               gestureHandling: "cooperative",
               clickableIcons: false,
-              mapTypeId: google.maps.MapTypeId.ROADMAP,
+              mapTypeId: typeof google !== 'undefined' ? google.maps.MapTypeId.ROADMAP : 'roadmap',
               styles: [
                 {
                   featureType: "poi",
@@ -902,8 +906,8 @@ export const MapView: React.FC<MapViewProps> = ({
                 position={pickupLocation.coordinates}
                 icon={{
                   url: "https://maps.google.com/mapfiles/ms/icons/green-dot.png",
-                  scaledSize: new google.maps.Size(32, 32),
-                  labelOrigin: new google.maps.Point(16, -10)
+                  scaledSize: typeof google !== 'undefined' ? new google.maps.Size(32, 32) : undefined,
+                  labelOrigin: typeof google !== 'undefined' ? new google.maps.Point(16, -10) : undefined
                 }}
                 label={{
                   text: "Pickup",
@@ -933,8 +937,8 @@ export const MapView: React.FC<MapViewProps> = ({
                 position={dropoffLocation.coordinates}
                 icon={{
                   url: "https://maps.google.com/mapfiles/ms/icons/red-dot.png",
-                  scaledSize: new google.maps.Size(32, 32),
-                  labelOrigin: new google.maps.Point(16, -10)
+                  scaledSize: typeof google !== 'undefined' ? new google.maps.Size(32, 32) : undefined,
+                  labelOrigin: typeof google !== 'undefined' ? new google.maps.Point(16, -10) : undefined
                 }}
                 label={{
                   text: "Dropoff",
@@ -961,7 +965,7 @@ export const MapView: React.FC<MapViewProps> = ({
                 position={{ lat: popupLocation.lat, lng: popupLocation.lng }}
                 onCloseClick={() => setPopupLocation(null)}
                 options={{
-                  pixelOffset: new google.maps.Size(0, -30)
+                  pixelOffset: typeof google !== 'undefined' ? new google.maps.Size(0, -30) : undefined
                 }}
               >
                 <div>
