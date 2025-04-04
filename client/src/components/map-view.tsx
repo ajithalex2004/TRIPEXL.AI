@@ -151,20 +151,20 @@ export function MapView({
 
     try {
       // Validate pickup coordinates
-      if (!pickupLocation.coordinates || 
-          typeof pickupLocation.coordinates.lat !== 'number' || 
-          typeof pickupLocation.coordinates.lng !== 'number' ||
-          isNaN(pickupLocation.coordinates.lat) || 
-          isNaN(pickupLocation.coordinates.lng)) {
+      if (!pickupLocation?.coordinates || 
+          typeof pickupLocation?.coordinates?.lat !== 'number' || 
+          typeof pickupLocation?.coordinates?.lng !== 'number' ||
+          isNaN(pickupLocation?.coordinates?.lat) || 
+          isNaN(pickupLocation?.coordinates?.lng)) {
         throw new Error("Invalid pickup location coordinates");
       }
       
       // Validate dropoff coordinates
-      if (!dropoffLocation.coordinates || 
-          typeof dropoffLocation.coordinates.lat !== 'number' || 
-          typeof dropoffLocation.coordinates.lng !== 'number' ||
-          isNaN(dropoffLocation.coordinates.lat) || 
-          isNaN(dropoffLocation.coordinates.lng)) {
+      if (!dropoffLocation?.coordinates || 
+          typeof dropoffLocation?.coordinates?.lat !== 'number' || 
+          typeof dropoffLocation?.coordinates?.lng !== 'number' ||
+          isNaN(dropoffLocation?.coordinates?.lat) || 
+          isNaN(dropoffLocation?.coordinates?.lng)) {
         throw new Error("Invalid drop-off location coordinates");
       }
 
@@ -440,6 +440,11 @@ export function MapView({
             // Fall back to straight-line calculation if Geoapify also fails
             console.warn("Geoapify also failed. Using straight line distance calculation as final fallback");
             
+            // Check if pickup and dropoff locations are properly defined before calculation
+            if (!pickupLocation?.coordinates || !dropoffLocation?.coordinates) {
+              throw new Error("Pickup or dropoff location coordinates are missing");
+            }
+            
             // Calculate straight-line distance as a fallback
             const R = 6371; // Earth's radius in km
             const dLat = (dropoffLocation.coordinates.lat - pickupLocation.coordinates.lat) * Math.PI / 180;
@@ -571,8 +576,35 @@ export function MapView({
   };
 
   useEffect(() => {
-    if (map && pickupLocation && dropoffLocation && mapsInitialized && typeof google !== 'undefined') {
+    // Only attempt to draw the route if we have both locations and the map is initialized
+    if (map && pickupLocation?.coordinates && dropoffLocation?.coordinates && mapsInitialized && typeof google !== 'undefined') {
       drawRoute();
+    } else if (map && mapsInitialized && typeof google !== 'undefined') {
+      // If we don't have both locations but map is ready, just show the map centered at default center
+      map.setCenter(defaultCenter);
+      map.setZoom(defaultZoom);
+      
+      // Clear any existing route
+      setDirectionsResult(null);
+      setRouteInfo(null);
+      
+      // If we have at least one location, show it on the map
+      const bounds = new google.maps.LatLngBounds();
+      let hasAtLeastOneLocation = false;
+      
+      if (pickupLocation?.coordinates) {
+        bounds.extend(pickupLocation.coordinates);
+        hasAtLeastOneLocation = true;
+      }
+      
+      if (dropoffLocation?.coordinates) {
+        bounds.extend(dropoffLocation.coordinates);
+        hasAtLeastOneLocation = true;
+      }
+      
+      if (hasAtLeastOneLocation) {
+        map.fitBounds(bounds);
+      }
     }
   }, [
     pickupLocation, 
@@ -1172,7 +1204,7 @@ export function MapView({
               }}
             >
               {/* Only render DirectionsRenderer for real directions results (not our fallback) */}
-              {directionsResult && directionsResult.routes[0]?.overview_polyline && (
+              {directionsResult && directionsResult.routes && directionsResult.routes.length > 0 && directionsResult.routes[0]?.overview_polyline && (
                 <DirectionsRenderer
                   directions={directionsResult}
                   options={{
@@ -1190,7 +1222,7 @@ export function MapView({
                 />
               )}
 
-              {pickupLocation && (
+              {pickupLocation?.coordinates && (
                 <Marker
                   position={pickupLocation.coordinates}
                   icon={{
@@ -1210,7 +1242,7 @@ export function MapView({
                 />
               )}
 
-              {dropoffLocation && (
+              {dropoffLocation?.coordinates && (
                 <Marker
                   position={dropoffLocation.coordinates}
                   icon={{
@@ -1231,7 +1263,7 @@ export function MapView({
               )}
               
               {/* Render waypoint markers with numbers */}
-              {waypoints && waypoints.map((waypoint, index) => (
+              {waypoints && waypoints.map((waypoint, index) => waypoint?.coordinates && (
                 <Marker
                   key={`waypoint-${index}`}
                   position={waypoint.coordinates}
@@ -1311,7 +1343,7 @@ export function MapView({
 
       {/* Alert for mapError is now handled at the top of the component */}
 
-      {routeInfo && pickupLocation && dropoffLocation && (
+      {routeInfo && pickupLocation?.coordinates && dropoffLocation?.coordinates && (
         <div className="mt-4 p-4 border rounded-lg shadow-sm">
           <div className="flex items-center justify-between mb-3">
             <h3 className="font-medium text-lg">Route Information</h3>
@@ -1339,7 +1371,7 @@ export function MapView({
               <div>
                 <p className="font-medium">Pickup Location</p>
                 <p className="text-sm text-muted-foreground">
-                  {pickupLocation.formatted_address || pickupLocation.name || pickupLocation.address}
+                  {pickupLocation?.formatted_address || pickupLocation?.name || pickupLocation?.address || "Select location"}
                 </p>
               </div>
             </div>
@@ -1358,7 +1390,7 @@ export function MapView({
                     <div>
                       <p className="font-medium">Waypoint {index + 1}</p>
                       <p className="text-sm text-muted-foreground">
-                        {waypoint.formatted_address || waypoint.name || waypoint.address}
+                        {waypoint?.formatted_address || waypoint?.name || waypoint?.address || `Waypoint ${index + 1}`}
                       </p>
                     </div>
                   </div>
@@ -1373,7 +1405,7 @@ export function MapView({
               <div>
                 <p className="font-medium">Drop-off Location</p>
                 <p className="text-sm text-muted-foreground">
-                  {dropoffLocation.formatted_address || dropoffLocation.name || dropoffLocation.address}
+                  {dropoffLocation?.formatted_address || dropoffLocation?.name || dropoffLocation?.address || "Select location"}
                 </p>
               </div>
             </div>
