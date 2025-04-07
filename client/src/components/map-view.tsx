@@ -32,8 +32,8 @@ const UAE_BOUNDS = {
   east: 56.5     // Eastern boundary of UAE
 };
 
-// Use environment variable for API key with fallback
-const MAPS_API_KEY = import.meta.env.VITE_GOOGLE_MAPS_KEY || "AIzaSyBOyL-FXqHOHmqxteTw02lh9TkzdXJ_oaI";
+// Use environment variable for API key
+const MAPS_API_KEY = import.meta.env.VITE_GOOGLE_MAPS_KEY || "";
 console.log("Google Maps API Key available:", MAPS_API_KEY ? "Yes (key length: " + MAPS_API_KEY.length + ")" : "No");
 console.log("Using environment variable:", import.meta.env.VITE_GOOGLE_MAPS_KEY ? "Yes" : "No");
 
