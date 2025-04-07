@@ -151,8 +151,127 @@ export const MapView: React.FC<MapViewProps> = ({
         throw new Error("Invalid dropoff location coordinates");
       }
       
-      // Use Geoapify as the main routing engine
-      console.log("Using Geoapify routing API for navigation");
+      // Try using Google Maps DirectionsService first (preferred method)
+      if (typeof google !== 'undefined' && google.maps && google.maps.DirectionsService) {
+        try {
+          console.log("Using Google Maps Directions API for route optimization");
+          
+          const directionsService = new google.maps.DirectionsService();
+          
+          // Format waypoints for Google Maps
+          const googleWaypoints = waypoints.map(wp => ({
+            location: new google.maps.LatLng(wp.coordinates.lat, wp.coordinates.lng),
+            stopover: true
+          }));
+          
+          console.log("Using Google Maps with the following parameters:");
+          console.log("- Origin:", pickupLocation.coordinates);
+          console.log("- Destination:", dropoffLocation.coordinates);
+          console.log("- Waypoints:", googleWaypoints);
+          
+          // Prepare the request
+          const request = {
+            origin: new google.maps.LatLng(pickupLocation.coordinates.lat, pickupLocation.coordinates.lng),
+            destination: new google.maps.LatLng(dropoffLocation.coordinates.lat, dropoffLocation.coordinates.lng),
+            waypoints: googleWaypoints,
+            optimizeWaypoints: routePreferences.optimizeWaypoints,
+            avoidHighways: routePreferences.avoidHighways,
+            avoidTolls: routePreferences.avoidTolls,
+            travelMode: google.maps.TravelMode[routePreferences.travelMode],
+            provideRouteAlternatives: routePreferences.provideRouteAlternatives
+          };
+          
+          // Request directions
+          const result = await new Promise<google.maps.DirectionsResult>((resolve, reject) => {
+            directionsService.route(request, (result, status) => {
+              if (status === google.maps.DirectionsStatus.OK) {
+                resolve(result);
+              } else {
+                reject(new Error(`Google Maps direction request failed: ${status}`));
+              }
+            });
+          });
+          
+          console.log("Google Maps Directions API returned:", result);
+          
+          if (result.routes && result.routes.length > 0) {
+            const route = result.routes[0];
+            
+            // Extract total distance and duration from all legs
+            let totalDistance = 0;
+            let totalDuration = 0;
+            
+            route.legs.forEach(leg => {
+              totalDistance += leg.distance?.value || 0;
+              totalDuration += leg.duration?.value || 0;
+            });
+            
+            // Format distance and duration
+            const distanceInKm = totalDistance / 1000;
+            const distanceText = distanceInKm < 1 ? 
+              `${Math.round(totalDistance)} m` : 
+              `${distanceInKm.toFixed(1)} km`;
+            
+            const durationInMinutes = Math.ceil(totalDuration / 60);
+            const durationText = durationInMinutes < 60 ? 
+              `${durationInMinutes} mins` : 
+              `${Math.floor(durationInMinutes / 60)} hr ${durationInMinutes % 60} mins`;
+            
+            // Update route info
+            setRouteInfo({
+              distance: distanceText,
+              duration: durationText
+            });
+            
+            // Extract the path coordinates from the overview_path
+            if (map && route.overview_path) {
+              const path = route.overview_path.map(point => ({
+                lat: point.lat(),
+                lng: point.lng()
+              }));
+              
+              // Create a polyline for the route
+              const newRoutePolyline = new google.maps.Polyline({
+                path,
+                geodesic: true,
+                strokeColor: "#0033CC",
+                strokeOpacity: 1.0,
+                strokeWeight: 6
+              });
+              
+              // Add the polyline to the map
+              newRoutePolyline.setMap(map);
+              setRoutePolyline(newRoutePolyline);
+              
+              // Notify parent component about the calculated route details
+              if (onRouteCalculated) {
+                onRouteCalculated(
+                  totalDuration,
+                  totalDistance,
+                  result
+                );
+              }
+              
+              // Fit map bounds to show the entire route
+              const bounds = new google.maps.LatLngBounds();
+              path.forEach(point => bounds.extend(point));
+              map.fitBounds(bounds);
+              
+              // Return early since we successfully calculated and displayed the route
+              setIsLoading(false);
+              return;
+            }
+          }
+        } catch (googleError: any) {
+          console.error("Google Maps Directions API error:", googleError);
+          console.log("Falling back to Geoapify for routing");
+          
+          // Continue to fallback method
+        }
+      }
+      
+      // Fallback to Geoapify if Google Maps DirectionsService fails or is not available
+      console.log("Using Geoapify routing API as fallback");
         
       try {
         // Convert our waypoints to Geoapify format
