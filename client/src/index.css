@@ -12,7 +12,26 @@
   }
 }
 
+/* Google Maps custom styling */
 /* Hide Google Maps InfoWindow close button */
 .gm-style-iw-c button.gm-ui-hover-effect {
   display: none !important;
+}
+
+/* Adjust the padding inside the InfoWindow to compensate for no close button */
+.gm-style-iw-d {
+  padding-right: 0 !important;
+  overflow: hidden !important;
+}
+
+/* Custom styling for the InfoWindow */
+.gm-style-iw {
+  padding: 0 !important;
+  border-radius: 8px !important;
+}
+
+/* Style for route line - darker blue for better visibility */
+.route-line {
+  stroke: #0033CC;
+  stroke-width: 6px;
 }

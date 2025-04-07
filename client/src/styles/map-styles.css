@@ -1,0 +1,47 @@
+/* Custom styles for Google Maps components */
+
+/* Hide the close button (X) from Google Maps InfoWindow */
+.gm-style-iw-c button.gm-ui-hover-effect {
+  display: none !important;
+}
+
+/* Adjust the padding inside the InfoWindow to compensate for no close button */
+.gm-style-iw-d {
+  padding-right: 0 !important;
+  overflow: hidden !important;
+}
+
+/* Custom styling for the InfoWindow */
+.gm-style-iw {
+  padding: 0 !important;
+  border-radius: 8px !important;
+}
+
+/* Ensure InfoWindow content has proper spacing */
+.info-window-content {
+  padding: 12px;
+  min-width: 200px;
+}
+
+/* Style the InfoWindow buttons */
+.info-window-buttons {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+/* Custom marker styles */
+.custom-marker {
+  background-color: #fff;
+  border: 2px solid #1e3a8a;
+  border-radius: 50%;
+  padding: 6px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+}
+
+/* Style for route line */
+.route-line {
+  stroke: #0033CC;
+  stroke-width: 6px;
+}

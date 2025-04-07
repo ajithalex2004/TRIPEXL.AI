@@ -21,6 +21,7 @@ import { Layout } from "@/components/layout";
 import PerformanceSnapshotPage from "@/pages/performance-snapshot";
 import FuelPricePage from "@/pages/fuel-price-page";
 import FuelManagementPage from "@/pages/fuel-management-page";
+import MapTestPage from "@/pages/map-test";
 
 
 // Initialize QueryClient
@@ -62,6 +63,7 @@ function Router() {
       <Route path="/auth/login" component={() => <StandaloneRoute component={LoginPage} />} />
       <Route path="/auth/forgot-password" component={() => <StandaloneRoute component={ForgotPasswordPage} />} />
       <Route path="/auth/reset-password" component={() => <StandaloneRoute component={ResetPasswordPage} />} />
+      <Route path="/map-test" component={() => <StandaloneRoute component={MapTestPage} />} />
 
       {/* Protected Routes */}
       <Route path="/" component={() => <ProtectedRoute component={Home} />} />

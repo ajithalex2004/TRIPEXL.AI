@@ -15,6 +15,7 @@ import { MapPin, Clock, Search, Locate, AlertCircle, CircleCheck, Info as InfoIc
 import { Input } from "@/components/ui/input";
 import { Combobox } from "@/components/ui/combobox";
 import { calculateRoute, convertToGoogleMapsRoute, RouteWaypoint } from "@/lib/geoapify-route-service";
+import MapFallback from "@/components/map-fallback";
 
 const defaultCenter = {
   lat: 24.466667,  // Abu Dhabi coordinates as default
@@ -232,13 +233,15 @@ export const MapView: React.FC<MapViewProps> = ({
                 lng: point.lng()
               }));
               
-              // Create a polyline for the route
+              // Create a polyline for the route with dark blue color for better visibility
               const newRoutePolyline = new google.maps.Polyline({
                 path,
                 geodesic: true,
-                strokeColor: "#0033CC",
+                strokeColor: "#0033CC", // Dark blue color
                 strokeOpacity: 1.0,
-                strokeWeight: 6
+                strokeWeight: 6, // Thick line for visibility
+                // Add some styling to make the route more visible
+                zIndex: 10 // Ensure the route displays above other map elements
               });
               
               // Add the polyline to the map
@@ -334,13 +337,15 @@ export const MapView: React.FC<MapViewProps> = ({
             lng: coord[0]
           }));
           
-          // Create a polyline for the route
+          // Create a polyline for the route with dark blue color for better visibility
           const newRoutePolyline = new google.maps.Polyline({
             path,
             geodesic: true,
-            strokeColor: "#0033CC",
+            strokeColor: "#0033CC", // Dark blue color
             strokeOpacity: 1.0,
-            strokeWeight: 6
+            strokeWeight: 6, // Thick line for visibility
+            // Add some styling to make the route more visible
+            zIndex: 10 // Ensure the route displays above other map elements
           });
           
           // Add the polyline to the map
@@ -418,9 +423,10 @@ export const MapView: React.FC<MapViewProps> = ({
               dropoffLocation.coordinates
             ],
             geodesic: true,
-            strokeColor: "#0033CC",
+            strokeColor: "#0033CC", // Dark blue color
             strokeOpacity: 0.8,
-            strokeWeight: 6
+            strokeWeight: 6, // Thick line for visibility
+            zIndex: 10 // Ensure the route displays above other map elements
           };
           
           // Create and add a polyline to show a direct path
@@ -1002,37 +1008,45 @@ export const MapView: React.FC<MapViewProps> = ({
           </div>
         )}
         
-        <LoadScriptNext
-          id="google-maps-script"
-          googleMapsApiKey={MAPS_API_KEY}
-          libraries={GOOGLE_MAPS_LIBRARIES}
-          onLoad={() => console.log("Google Maps script loaded successfully")}
-        >
-          <GoogleMap
-            id="trip-map"
-            mapContainerStyle={{
-              width: "100%",
-              height: "500px"
+        {mapError ? (
+          <MapFallback message={mapError} />
+        ) : (
+          <LoadScriptNext
+            id="google-maps-script"
+            googleMapsApiKey={MAPS_API_KEY}
+            libraries={GOOGLE_MAPS_LIBRARIES}
+            onLoad={() => console.log("Google Maps script loaded successfully")}
+            onError={(error) => {
+              console.error("Google Maps script failed to load:", error);
+              setMapError("Failed to load Google Maps. Please check your internet connection and try again.");
             }}
-            zoom={defaultZoom}
-            center={defaultCenter}
-            options={{
-              mapTypeControl: false,
-              streetViewControl: false,
-              fullscreenControl: false,
-              gestureHandling: "cooperative",
-              clickableIcons: false,
-              mapTypeId: typeof google !== 'undefined' && google.maps && google.maps.MapTypeId ? google.maps.MapTypeId.ROADMAP : 'roadmap',
-              styles: [
-                {
-                  featureType: "poi",
-                  elementType: "labels",
-                  stylers: [{ visibility: "off" }]
-                }
-              ]
-            }}
-            onClick={handleMapClick}
-            onLoad={handleMapLoad}
+            loadingElement={<div className="p-10 text-center">Loading Google Maps...</div>}
+          >
+            <GoogleMap
+              id="trip-map"
+              mapContainerStyle={{
+                width: "100%",
+                height: "500px"
+              }}
+              zoom={defaultZoom}
+              center={defaultCenter}
+              options={{
+                mapTypeControl: false,
+                streetViewControl: false,
+                fullscreenControl: false,
+                gestureHandling: "cooperative",
+                clickableIcons: false,
+                mapTypeId: typeof google !== 'undefined' && google.maps && google.maps.MapTypeId ? google.maps.MapTypeId.ROADMAP : 'roadmap',
+                styles: [
+                  {
+                    featureType: "poi",
+                    elementType: "labels",
+                    stylers: [{ visibility: "off" }]
+                  }
+                ]
+              }}
+              onClick={handleMapClick}
+              onLoad={handleMapLoad}
           >
             {/* Pickup location marker */}
             {pickupLocation && (
@@ -1107,8 +1121,9 @@ export const MapView: React.FC<MapViewProps> = ({
                 </div>
               </InfoWindow>
             )}
-          </GoogleMap>
-        </LoadScriptNext>
+            </GoogleMap>
+          </LoadScriptNext>
+        )}
       </div>
       
       <div className="p-4">
