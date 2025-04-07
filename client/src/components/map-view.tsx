@@ -275,14 +275,23 @@ export const MapView: React.FC<MapViewProps> = ({
                 lng: point.lng()
               }));
               
-              // Create a polyline for the route with dark blue color for better visibility
+              // Create a polyline for the route with improved styling for better visibility
               const newRoutePolyline = new google.maps.Polyline({
                 path,
                 geodesic: true,
-                strokeColor: "#0033CC", // Dark blue color
-                strokeOpacity: 1.0,
-                strokeWeight: 6, // Thick line for visibility
-                // Add some styling to make the route more visible
+                strokeColor: "#0047AB", // Cobalt blue for maximum visibility
+                strokeOpacity: 0.9,
+                strokeWeight: 7, // Even thicker line for better visibility
+                icons: [{ // Add arrow markers to indicate direction
+                  icon: {
+                    path: google.maps.SymbolPath.FORWARD_CLOSED_ARROW,
+                    scale: 3,
+                    strokeColor: "#FFFFFF",
+                    strokeWeight: 2,
+                  },
+                  offset: "50%",
+                  repeat: "150px"
+                }],
                 zIndex: 10 // Ensure the route displays above other map elements
               });
               
@@ -379,14 +388,23 @@ export const MapView: React.FC<MapViewProps> = ({
             lng: coord[0]
           }));
           
-          // Create a polyline for the route with dark blue color for better visibility
+          // Create a polyline for the route with enhanced styling
           const newRoutePolyline = new google.maps.Polyline({
             path,
             geodesic: true,
-            strokeColor: "#0033CC", // Dark blue color
-            strokeOpacity: 1.0,
-            strokeWeight: 6, // Thick line for visibility
-            // Add some styling to make the route more visible
+            strokeColor: "#0047AB", // Cobalt blue for maximum visibility 
+            strokeOpacity: 0.9,
+            strokeWeight: 7, // Thicker line for better visibility
+            icons: [{ // Add arrow markers to indicate direction
+              icon: {
+                path: google.maps.SymbolPath.FORWARD_CLOSED_ARROW,
+                scale: 3,
+                strokeColor: "#FFFFFF",
+                strokeWeight: 2,
+              },
+              offset: "50%",
+              repeat: "150px"
+            }],
             zIndex: 10 // Ensure the route displays above other map elements
           });
           
@@ -465,9 +483,23 @@ export const MapView: React.FC<MapViewProps> = ({
               dropoffLocation.coordinates
             ],
             geodesic: true,
-            strokeColor: "#0033CC", // Dark blue color
-            strokeOpacity: 0.8,
-            strokeWeight: 6, // Thick line for visibility
+            strokeColor: "#0047AB", // Cobalt blue for better visibility
+            strokeOpacity: 0.9,
+            strokeWeight: 7, // Thicker line
+            strokePattern: [ // Dashed line to indicate it's a straight-line estimate
+              { offset: '0', repeat: '10px' },
+              { offset: '10px', repeat: '10px' }
+            ],
+            icons: [{ // Add direction indicators
+              icon: {
+                path: google.maps.SymbolPath.FORWARD_OPEN_ARROW,
+                scale: 3,
+                strokeColor: "#FFFFFF",
+                strokeWeight: 2,
+              },
+              offset: "50%",
+              repeat: "150px"
+            }],
             zIndex: 10 // Ensure the route displays above other map elements
           };
           
@@ -714,67 +746,83 @@ export const MapView: React.FC<MapViewProps> = ({
   // Handle search predictions is now integrated directly into the debouncedSearch function
   // for better flow control and handling of API responses
 
-  // Search for places as the user types
+  // Search for places as the user types with enhanced error handling
   const debouncedSearch = useCallback(
-    debounce((query: string) => {
-      console.log("Debounced search called with query:", query);
+    (query: string) => {
+      console.log("Search function called with query:", query);
+      // Update search query immediately to show user feedback
+      setSearchQuery(query);
       
-      if (!query || query.length < 3) {
-        console.log("Query too short, clearing predictions");
-        setPredictions([]);
-        return;
-      }
-      
-      // Only proceed if we have the autocomplete service available
-      if (!autocompleteService) {
-        console.error("AutocompleteService not available");
-        return;
-      }
-      
-      // Only proceed if maps is initialized
-      if (!mapsInitialized) {
-        console.error("Maps not initialized yet");
-        return;
-      }
-      
-      console.log("Calling predictions API for query:", query);
-      setPredictions([]);
-      setIsSearching(true);
-      
-      // Get predictions from the Google Places Autocomplete service
-      autocompleteService.getPlacePredictions({
-        input: query,
-        bounds: UAE_BOUNDS,
-        componentRestrictions: { country: "ae" }
-      }, (results: any, status: any) => {
-        console.log("Prediction results status:", status);
+      // Then use lodash.debounce for the actual API call
+      const performSearch = debounce(() => {
+        console.log("Performing search for:", query);
         
-        if (status === google.maps.places.PlacesServiceStatus.OK && results) {
-          console.log("Got prediction results:", results.length);
-          // Format the predictions to include a relevant description
-          const formattedPredictions = results.map((prediction: google.maps.places.AutocompletePrediction) => {
-            // Extract the most user-friendly description
-            const mainText = prediction.structured_formatting?.main_text || prediction.description;
-            const secondaryText = prediction.structured_formatting?.secondary_text || "";
-            
-            // Create a custom description to show in the dropdown
-            const description = mainText + (secondaryText ? `, ${secondaryText}` : "");
-            
-            return {
-              ...prediction,
-              description
-            };
-          });
-          
-          setPredictions(formattedPredictions);
-        } else {
-          console.warn("No predictions found or error:", status);
+        if (!query || query.length < 3) {
+          console.log("Query too short, clearing predictions");
           setPredictions([]);
+          return;
         }
         
-        setIsSearching(false);
-      });
-    }, 300),
+        // Only proceed if we have the autocomplete service available
+        if (!autocompleteService) {
+          console.error("AutocompleteService not available", { google, maps: google?.maps, places: google?.maps?.places });
+          return;
+        }
+        
+        // Only proceed if maps is initialized
+        if (!mapsInitialized) {
+          console.error("Maps not initialized yet");
+          return;
+        }
+        
+        console.log("Calling predictions API for query:", query);
+        setPredictions([]);
+        setIsSearching(true);
+        
+        try {
+          // Get predictions from the Google Places Autocomplete service
+          autocompleteService.getPlacePredictions({
+            input: query,
+            bounds: UAE_BOUNDS,
+            componentRestrictions: { country: "ae" }
+          }, (results: any, status: any) => {
+            console.log("Prediction results status:", status);
+            
+            if (status === google.maps.places.PlacesServiceStatus.OK && results) {
+              console.log("Got prediction results:", results.length);
+              // Format the predictions to include a relevant description
+              const formattedPredictions = results.map((prediction: google.maps.places.AutocompletePrediction) => {
+                // Extract the most user-friendly description
+                const mainText = prediction.structured_formatting?.main_text || prediction.description;
+                const secondaryText = prediction.structured_formatting?.secondary_text || "";
+                
+                // Create a custom description to show in the dropdown
+                const description = mainText + (secondaryText ? `, ${secondaryText}` : "");
+                
+                return {
+                  ...prediction,
+                  description
+                };
+              });
+              
+              setPredictions(formattedPredictions);
+            } else {
+              console.warn("No predictions found or error:", status);
+              setPredictions([]);
+            }
+            
+            setIsSearching(false);
+          });
+        } catch (error) {
+          console.error("Error during search:", error);
+          setIsSearching(false);
+          setPredictions([]);
+        }
+      }, 300);
+      
+      // Execute the debounced function
+      performSearch();
+    },
     [autocompleteService, mapsInitialized]
   );
 
@@ -1096,11 +1144,12 @@ export const MapView: React.FC<MapViewProps> = ({
             zoom={defaultZoom}
             center={defaultCenter}
             options={{
-              mapTypeControl: false,
-              streetViewControl: false,
-              fullscreenControl: false,
-              gestureHandling: "cooperative",
-              clickableIcons: false,
+              mapTypeControl: true, // Show map type controls (satellite, terrain)
+              streetViewControl: true, // Enable street view for better user experience
+              fullscreenControl: true, // Allow fullscreen mode
+              zoomControl: true, // Make sure zoom controls are visible
+              gestureHandling: "auto", // Allows full control over zooming and panning
+              clickableIcons: true, // Enable clickable POIs for better location discovery
               mapTypeId: typeof google !== 'undefined' && google.maps && google.maps.MapTypeId ? google.maps.MapTypeId.ROADMAP : 'roadmap',
               styles: [
                 {
