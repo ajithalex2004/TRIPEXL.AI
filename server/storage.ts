@@ -720,6 +720,18 @@ export class DatabaseStorage implements IStorage {
       dbData.created_at = new Date();
       dbData.updated_at = new Date();
       
+      // Ensure all ID fields are numbers
+      if (bookingData.employeeId !== undefined) {
+        // Convert employee_id to number and ensure it's in snake_case
+        const employeeIdNum = Number(bookingData.employeeId);
+        if (isNaN(employeeIdNum)) {
+          throw new Error(`Invalid employeeId format: ${bookingData.employeeId} - must be a valid number`);
+        }
+        dbData.employee_id = employeeIdNum;
+        // Remove the camelCase property to avoid conflicts
+        delete dbData.employeeId;
+      }
+      
       // Ensure number fields are properly typed with snake_case naming
       if (bookingData.numBoxes !== undefined) dbData.num_boxes = Number(bookingData.numBoxes);
       if (bookingData.weight !== undefined) dbData.weight = Number(bookingData.weight);

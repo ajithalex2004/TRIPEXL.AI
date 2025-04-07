@@ -32,9 +32,10 @@ const UAE_BOUNDS = {
   east: 56.5     // Eastern boundary of UAE
 };
 
-// Hardcoding the API key as a reliable fix
-const MAPS_API_KEY = "AIzaSyBOyL-FXqHOHmqxteTw02lh9TkzdXJ_oaI";
+// Use environment variable for API key with fallback
+const MAPS_API_KEY = import.meta.env.VITE_GOOGLE_MAPS_KEY || "AIzaSyBOyL-FXqHOHmqxteTw02lh9TkzdXJ_oaI";
 console.log("Google Maps API Key available:", MAPS_API_KEY ? "Yes (key length: " + MAPS_API_KEY.length + ")" : "No");
+console.log("Using environment variable:", import.meta.env.VITE_GOOGLE_MAPS_KEY ? "Yes" : "No");
 
 // Define libraries as a static constant outside the component to avoid reloading issues
 // Use 'as any' to ensure TypeScript is happy
@@ -124,32 +125,49 @@ export const MapView: React.FC<MapViewProps> = ({
   
   // Effect to update mapsInitialized state based on isLoaded
   useEffect(() => {
+    console.log("Map load state:", { isLoaded, loadError });
+    
     if (isLoaded && !loadError) {
       console.log("Google Maps API loaded successfully");
-      if (typeof google === 'undefined' || !google.maps) {
-        console.error("Google Maps API did not load correctly despite success callback");
+      
+      // Verify Google Maps loaded correctly
+      if (typeof google === 'undefined') {
+        console.error("Google object is undefined despite successful load");
         setMapError("Google Maps API did not initialize properly. Using fallback mapping solution.");
-      } else {
-        // Initialize autocomplete service as soon as Google Maps API is loaded
-        try {
-          console.log("Initializing autocomplete service");
-          const autocompleteService = new google.maps.places.AutocompleteService();
-          setAutocompleteService(autocompleteService);
-          console.log("Autocomplete service initialized successfully");
-          
-          // We'll initialize places service when the map is loaded in handleMapLoad
-          // as it requires a map instance
-          
-          // Set mapsInitialized to true to enable the search functionality
-          setMapsInitialized(true);
-        } catch (error) {
-          console.error("Error initializing Google Maps services:", error);
-          setMapError("Failed to initialize map services. Please refresh the page.");
-        }
+        return;
+      }
+      
+      if (!google.maps) {
+        console.error("google.maps is undefined despite successful load");
+        setMapError("Google Maps API did not initialize properly. Using fallback mapping solution.");
+        return;
+      }
+      
+      if (!google.maps.places) {
+        console.error("google.maps.places is undefined - Places library might not be loaded");
+        setMapError("Google Maps Places library is not available. Check API key restrictions.");
+        return;
+      }
+      
+      // Initialize autocomplete service
+      try {
+        console.log("Initializing autocomplete service");
+        const autocompleteService = new google.maps.places.AutocompleteService();
+        setAutocompleteService(autocompleteService);
+        console.log("Autocomplete service initialized successfully");
+        
+        // We'll initialize places service when the map is loaded in handleMapLoad
+        // as it requires a map instance
+        
+        // Set mapsInitialized to true to enable the search functionality
+        setMapsInitialized(true);
+      } catch (error) {
+        console.error("Error initializing Google Maps services:", error);
+        setMapError("Failed to initialize map services. Please refresh the page.");
       }
     } else if (loadError) {
       console.error("Google Maps script failed to load:", loadError);
-      setMapError("Failed to load Google Maps. Using fallback mapping solution.");
+      setMapError(`Failed to load Google Maps: ${loadError.message}. Using fallback mapping solution.`);
     }
   }, [isLoaded, loadError]);
   const [searchQuery, setSearchQuery] = useState('');

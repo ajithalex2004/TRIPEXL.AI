@@ -250,14 +250,27 @@ export function BookingForm() {
   const createBookingMutation = useMutation({
     mutationFn: async (data: any) => {
       console.log("Creating booking with data:", JSON.stringify(data, null, 2));
-      const response = await apiRequest("POST", "/api/bookings", data);
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || "Failed to create booking");
+      
+      try {
+        const response = await apiRequest("POST", "/api/bookings", data);
+        console.log("Booking API response status:", response.status);
+        
+        if (!response.ok) {
+          const errorData = await response.json().catch(() => ({}));
+          console.error("Booking API error response:", errorData);
+          throw new Error(errorData.message || `Failed to create booking: ${response.status} ${response.statusText}`);
+        }
+        
+        const responseData = await response.json();
+        console.log("Booking API success response:", responseData);
+        return responseData;
+      } catch (error) {
+        console.error("Error in booking mutation:", error);
+        throw error;
       }
-      return response.json();
     },
     onSuccess: (data) => {
+      console.log("Booking created successfully:", data);
       setCreatedReferenceNo(data.referenceNo);
       setShowSuccessDialog(true);
       queryClient.invalidateQueries({ queryKey: ["/api/bookings"] });
@@ -268,6 +281,7 @@ export function BookingForm() {
       });
     },
     onError: (error: Error) => {
+      console.error("Booking creation error:", error);
       toast({
         title: "Error",
         description: error.message || "Failed to create booking",
@@ -297,8 +311,35 @@ export function BookingForm() {
         return;
       }
 
+      // Check for required fields and convert employeeId to number
+      if (!data.bookingType || !data.purpose || !data.priority) {
+        console.error("Missing required booking form fields:", {
+          bookingType: data.bookingType,
+          purpose: data.purpose,
+          priority: data.priority
+        });
+        toast({
+          title: "Missing booking information",
+          description: "Please fill in all required booking details",
+          variant: "destructive"
+        });
+        return;
+      }
+      
+      // Convert employeeId to a number and ensure it's valid
+      const employeeIdNum = data.employeeId ? Number(data.employeeId) : null;
+      if (isNaN(employeeIdNum) || !employeeIdNum) {
+        console.error("Invalid employee ID:", data.employeeId);
+        toast({
+          title: "Invalid employee ID",
+          description: "Please select a valid employee using the email search",
+          variant: "destructive"
+        });
+        return;
+      }
+      
       const bookingData = {
-        employeeId: data.employeeId,
+        employeeId: employeeIdNum,
         bookingType: data.bookingType,
         purpose: data.purpose,
         priority: data.priority,

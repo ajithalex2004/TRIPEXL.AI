@@ -35,8 +35,28 @@ const MapFallback: React.FC<MapFallbackProps> = ({
   onSelectPickup,
   onSelectDropoff
 }) => {
-  // This is a much simpler version that doesn't rely on canvas rendering
-  // It just shows the addresses in a more traditional UI format
+  // This is a much simpler version that doesn't rely on Google Maps API
+  // Instead, it shows address information in a clean UI
+
+  // Calculate straight-line distance between pickup and dropoff if both exist
+  const calculateDistance = () => {
+    if (pickupLocation?.coordinates && dropoffLocation?.coordinates) {
+      const R = 6371; // Earth's radius in km
+      const dLat = (dropoffLocation.coordinates.lat - pickupLocation.coordinates.lat) * Math.PI / 180;
+      const dLon = (dropoffLocation.coordinates.lng - pickupLocation.coordinates.lng) * Math.PI / 180;
+      const a = 
+        Math.sin(dLat/2) * Math.sin(dLat/2) +
+        Math.cos(pickupLocation.coordinates.lat * Math.PI / 180) * Math.cos(dropoffLocation.coordinates.lat * Math.PI / 180) * 
+        Math.sin(dLon/2) * Math.sin(dLon/2);
+      const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+      const distance = R * c; // Distance in km
+      
+      return distance < 1 ? 
+        `${Math.round(distance * 1000)} m` : 
+        `${distance.toFixed(1)} km`;
+    }
+    return null;
+  };
   return (
     <Card className="w-full">
       <CardContent className="p-6">
@@ -107,10 +127,16 @@ const MapFallback: React.FC<MapFallbackProps> = ({
               </div>
             )}
             
-            {/* Waypoint connector */}
+            {/* Waypoint connector with distance information */}
             {pickupLocation && dropoffLocation && (
-              <div className="flex justify-center my-2">
-                <div className="border-l-2 border-dashed border-slate-300 h-8"></div>
+              <div className="relative flex flex-col items-center my-2 py-4">
+                <div className="border-l-2 border-dashed border-slate-300 h-8 absolute top-0 bottom-0 z-0"></div>
+                {calculateDistance() && (
+                  <div className="px-3 py-1 bg-blue-50 text-blue-800 rounded-full text-xs font-medium z-10">
+                    <ArrowRight className="inline h-3 w-3 mr-1" />
+                    Estimated distance: {calculateDistance()}
+                  </div>
+                )}
               </div>
             )}
             
