@@ -128,6 +128,23 @@ export const MapView: React.FC<MapViewProps> = ({
       if (typeof google === 'undefined' || !google.maps) {
         console.error("Google Maps API did not load correctly despite success callback");
         setMapError("Google Maps API did not initialize properly. Using fallback mapping solution.");
+      } else {
+        // Initialize autocomplete service as soon as Google Maps API is loaded
+        try {
+          console.log("Initializing autocomplete service");
+          const autocompleteService = new google.maps.places.AutocompleteService();
+          setAutocompleteService(autocompleteService);
+          console.log("Autocomplete service initialized successfully");
+          
+          // We'll initialize places service when the map is loaded in handleMapLoad
+          // as it requires a map instance
+          
+          // Set mapsInitialized to true to enable the search functionality
+          setMapsInitialized(true);
+        } catch (error) {
+          console.error("Error initializing Google Maps services:", error);
+          setMapError("Failed to initialize map services. Please refresh the page.");
+        }
       }
     } else if (loadError) {
       console.error("Google Maps script failed to load:", loadError);
@@ -674,27 +691,21 @@ export const MapView: React.FC<MapViewProps> = ({
 
   // Handle map load completion
   const handleMapLoad = (map: google.maps.Map) => {
-    console.log("Google Maps script loaded successfully");
+    console.log("Google Maps map loaded successfully");
     setMap(map);
-    setMapsInitialized(true);
     
     try {
-      // Initialize Google Maps services if they don't exist
-      if (typeof google !== "undefined") {
-        console.log("Initializing autocomplete service");
-        const autocompleteService = new google.maps.places.AutocompleteService();
-        setAutocompleteService(autocompleteService);
-        
+      // Initialize Places service which requires a map instance
+      if (typeof google !== "undefined" && google.maps) {
         console.log("Initializing places service");
         const placesService = new google.maps.places.PlacesService(map);
         setPlacesService(placesService);
-        
-        console.log("Places services initialized successfully");
+        console.log("Places service initialized successfully");
       } else {
         setMapError("Google Maps API did not load properly. Please refresh the page and try again.");
       }
     } catch (error) {
-      console.error("Error initializing Google Maps services:", error);
+      console.error("Error initializing Places service:", error);
       setMapError("Failed to initialize map services. Please refresh the page.");
     }
   };
