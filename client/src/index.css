@@ -13,17 +13,42 @@
 }
 
 /* Google Maps custom styling */
-/* Hide Google Maps InfoWindow close button - multiple selectors for robust hiding */
+/* Hide Google Maps InfoWindow close button - comprehensive approach with multiple selectors */
+.gm-style-iw-c button,
+.gm-style-iw button,
+.gm-style .gm-style-iw-t button,
+.gm-style .gm-style-iw-d button,
+.gm-style .gm-style-iw-c button,
 .gm-style-iw-c button.gm-ui-hover-effect,
 .gm-style-iw button.gm-ui-hover-effect,
 .gm-style button.gm-ui-hover-effect,
 .gm-style-iw-c button[aria-label="Close"],
 .gm-style button[title="Close"],
-.gm-style div[role="button"][aria-label="Close"] {
+.gm-style button[title="close"],
+.gm-style div[role="button"][aria-label="Close"],
+button[class*="close"],
+button[class*="dismiss"],
+.gm-ui-hover-effect,
+div[style*="z-index: 106"][role="button"],
+div[style*="z-index: 106"] > img,
+button[style*="z-index: 106"] {
   display: none !important;
   opacity: 0 !important;
   visibility: hidden !important;
   pointer-events: none !important;
+  width: 0 !important;
+  height: 0 !important;
+  position: absolute !important;
+  right: -9999px !important;
+  top: -9999px !important;
+}
+
+/* Force remove any top-right positioned elements in InfoWindows */
+.gm-style-iw-c > [style*="position: absolute"][style*="right: 0px"][style*="top: 0px"],
+.gm-style-iw-c > [style*="position:absolute"][style*="right:0"][style*="top:0"],
+.gm-style-iw > [style*="position: absolute"][style*="right: 0px"][style*="top: 0px"],
+.gm-style-iw > [style*="position:absolute"][style*="right:0"][style*="top:0"] {
+  display: none !important;
 }
 
 /* Adjust the padding inside the InfoWindow to compensate for no close button */
@@ -33,19 +58,36 @@
 }
 
 /* Custom styling for the InfoWindow */
-.gm-style-iw {
-  padding: 0 !important;
+.gm-style-iw, .gm-style-iw-c {
+  padding: 12px !important;
   border-radius: 8px !important;
+  max-width: 300px !important;
+}
+
+/* Fix InfoWindow arrow styling */
+.gm-style-iw-t::after {
+  display: none !important;
 }
 
 /* Style for route line - darker blue for better visibility */
 .route-line {
-  stroke: #0033CC;
-  stroke-width: 6px;
+  stroke: #0047AB !important; /* Cobalt blue */
+  stroke-width: 7px !important;
+  stroke-opacity: 0.9 !important;
   z-index: 10 !important;
 }
 
 /* Enhance polyline visibility */
 .gm-style > div > div > div > div > div > div > div > div[style*="z-index: 0"] > div {
   z-index: 10 !important;
+}
+
+/* Make all map UI elements more visible */
+.gm-style {
+  font-family: inherit !important;
+}
+
+/* Set minimum height for the map container */
+#trip-map {
+  min-height: 500px !important;
 }

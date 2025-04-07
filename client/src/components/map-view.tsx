@@ -10,6 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Combobox } from "@/components/ui/combobox";
 import { calculateRoute, convertToGoogleMapsRoute, RouteWaypoint } from "@/lib/geoapify-route-service";
 import MapFallback from "@/components/map-fallback";
+// Fix import to use the default import from use-maps-api.tsx
 import useMapsApi from "@/hooks/use-maps-api";
 
 const defaultCenter = {
@@ -941,18 +942,18 @@ export const MapView: React.FC<MapViewProps> = ({
     </div>
   );
 
-  // InfoWindow content for selected locations
+  // InfoWindow content for selected locations - styled with distinct colors for better usability
   const infoWindowContent = (
-    <div className="p-2 min-w-[200px]">
-      <h3 className="font-medium mb-2">{popupLocation?.name || popupLocation?.formatted_address || "Selected Location"}</h3>
-      <p className="text-sm mb-3">{popupLocation?.formatted_address || `${popupLocation?.lat.toFixed(6)}, ${popupLocation?.lng.toFixed(6)}`}</p>
+    <div className="p-3 min-w-[240px]">
+      <h3 className="font-semibold text-primary mb-2">{popupLocation?.name || popupLocation?.formatted_address || "Selected Location"}</h3>
+      <p className="text-sm text-muted-foreground mb-4">{popupLocation?.formatted_address || `${popupLocation?.lat.toFixed(6)}, ${popupLocation?.lng.toFixed(6)}`}</p>
       
-      <div className="flex flex-col gap-2">
+      <div className="flex flex-col gap-2.5">
         <Button 
           size="sm" 
           variant="default" 
           onClick={() => handleLocationTypeSelect('pickup')}
-          className="justify-start"
+          className="justify-start w-full bg-green-600 hover:bg-green-700 text-white"
         >
           <MapPin className="mr-2 h-4 w-4" /> Set as Pickup Location
         </Button>
@@ -961,16 +962,16 @@ export const MapView: React.FC<MapViewProps> = ({
           size="sm" 
           variant="default" 
           onClick={() => handleLocationTypeSelect('dropoff')}
-          className="justify-start"
+          className="justify-start w-full bg-red-600 hover:bg-red-700 text-white"
         >
           <MapPin className="mr-2 h-4 w-4" /> Set as Dropoff Location
         </Button>
         
         <Button 
           size="sm" 
-          variant="default" 
+          variant="outline" 
           onClick={() => handleLocationTypeSelect('waypoint')}
-          className="justify-start"
+          className="justify-start w-full border-blue-500 text-blue-600 hover:bg-blue-50"
         >
           <MapPin className="mr-2 h-4 w-4" /> Add as Waypoint
         </Button>
@@ -1246,10 +1247,13 @@ export const MapView: React.FC<MapViewProps> = ({
                 onCloseClick={() => setPopupLocation(null)}
                 options={{
                   pixelOffset: typeof google !== 'undefined' ? new google.maps.Size(0, -30) : undefined,
-                  disableAutoPan: false
+                  disableAutoPan: false,
+                  maxWidth: 300,
+                  // Prevents clicks inside InfoWindow from affecting the map
+                  enableEventPropagation: false
                 }}
               >
-                <div>
+                <div className="info-window-content">
                   {infoWindowContent}
                 </div>
               </InfoWindow>
