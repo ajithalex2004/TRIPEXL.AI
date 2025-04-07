@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect, useCallback } from "react";
+import debounce from "lodash.debounce";
 import { Card } from "@/components/ui/card";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { 
@@ -710,70 +711,71 @@ export const MapView: React.FC<MapViewProps> = ({
     }
   };
 
-  // Handle search predictions
-  const handlePredictions = async () => {
-    if (!autocompleteService || !mapsInitialized) return;
-    
-    setPredictions([]);
-    setIsSearching(true);
-    
-    // Get predictions from the Google Places Autocomplete service
-    autocompleteService.getPlacePredictions({
-      input: searchQuery,
-      bounds: UAE_BOUNDS,
-      componentRestrictions: { country: "ae" }
-    }, (results: any, status: any) => {
-      if (status === google.maps.places.PlacesServiceStatus.OK && results) {
-        // Format the predictions to include a relevant description
-        const formattedPredictions = results.map((prediction: google.maps.places.AutocompletePrediction) => {
-          // Extract the most user-friendly description
-          const mainText = prediction.structured_formatting?.main_text || prediction.description;
-          const secondaryText = prediction.structured_formatting?.secondary_text || "";
-          
-          // Create a custom description to show in the dropdown
-          const description = mainText + (secondaryText ? `, ${secondaryText}` : "");
-          
-          return {
-            ...prediction,
-            description
-          };
-        });
-        
-        setPredictions(formattedPredictions);
-      } else {
-        setPredictions([]);
-      }
-      
-      setIsSearching(false);
-    });
-  };
+  // Handle search predictions is now integrated directly into the debouncedSearch function
+  // for better flow control and handling of API responses
 
   // Search for places as the user types
   const debouncedSearch = useCallback(
-    async (query: string) => {
+    debounce((query: string) => {
+      console.log("Debounced search called with query:", query);
+      
       if (!query || query.length < 3) {
+        console.log("Query too short, clearing predictions");
         setPredictions([]);
         return;
       }
       
-      if (searchQuery !== query) {
-        setSearchQuery(query);
+      // Only proceed if we have the autocomplete service available
+      if (!autocompleteService) {
+        console.error("AutocompleteService not available");
+        return;
       }
       
-      if (autocompleteService && mapsInitialized) {
-        // Debounce the search to avoid too many API calls
-        const timeoutId = setTimeout(() => {
-          if (searchQuery && searchQuery.length >= 3) {
-            handlePredictions();
-          } else {
-            setPredictions([]);
-          }
-        }, 300);
-        
-        return () => clearTimeout(timeoutId);
+      // Only proceed if maps is initialized
+      if (!mapsInitialized) {
+        console.error("Maps not initialized yet");
+        return;
       }
-    },
-    [searchQuery, autocompleteService, mapsInitialized]
+      
+      console.log("Calling predictions API for query:", query);
+      setPredictions([]);
+      setIsSearching(true);
+      
+      // Get predictions from the Google Places Autocomplete service
+      autocompleteService.getPlacePredictions({
+        input: query,
+        bounds: UAE_BOUNDS,
+        componentRestrictions: { country: "ae" }
+      }, (results: any, status: any) => {
+        console.log("Prediction results status:", status);
+        
+        if (status === google.maps.places.PlacesServiceStatus.OK && results) {
+          console.log("Got prediction results:", results.length);
+          // Format the predictions to include a relevant description
+          const formattedPredictions = results.map((prediction: google.maps.places.AutocompletePrediction) => {
+            // Extract the most user-friendly description
+            const mainText = prediction.structured_formatting?.main_text || prediction.description;
+            const secondaryText = prediction.structured_formatting?.secondary_text || "";
+            
+            // Create a custom description to show in the dropdown
+            const description = mainText + (secondaryText ? `, ${secondaryText}` : "");
+            
+            return {
+              ...prediction,
+              description
+            };
+          });
+          
+          setPredictions(formattedPredictions);
+        } else {
+          console.warn("No predictions found or error:", status);
+          setPredictions([]);
+        }
+        
+        setIsSearching(false);
+      });
+    }, 300),
+    [autocompleteService, mapsInitialized]
   );
 
   // Handle selection of a search result
