@@ -1248,9 +1248,7 @@ export const MapView: React.FC<MapViewProps> = ({
                 options={{
                   pixelOffset: typeof google !== 'undefined' ? new google.maps.Size(0, -30) : undefined,
                   disableAutoPan: false,
-                  maxWidth: 300,
-                  // Prevents clicks inside InfoWindow from affecting the map
-                  enableEventPropagation: false
+                  maxWidth: 300
                 }}
               >
                 <div className="info-window-content">

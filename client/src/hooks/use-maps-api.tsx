@@ -7,7 +7,7 @@ interface MapsApiState {
   maps: typeof google.maps | null;
 }
 
-function useMapsApi(apiKey: string): MapsApiState {
+export function useMapsApi(apiKey: string): MapsApiState {
   const [state, setState] = useState<MapsApiState>({
     isLoaded: false,
     loadError: null,
@@ -64,4 +64,5 @@ function useMapsApi(apiKey: string): MapsApiState {
   return state;
 }
 
+// Also export as default for backward compatibility
 export default useMapsApi;
