@@ -2,11 +2,10 @@ import { useState, useRef, useEffect, useCallback } from "react";
 import { Card } from "@/components/ui/card";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { 
-  LoadScriptNext, 
+  useJsApiLoader,
   GoogleMap, 
   Marker, 
   InfoWindow, 
-  Libraries,
   Polyline
 } from "@react-google-maps/api";
 import { VehicleLoadingIndicator } from "@/components/ui/vehicle-loading-indicator";
@@ -32,12 +31,13 @@ const UAE_BOUNDS = {
   east: 56.5     // Eastern boundary of UAE
 };
 
-// Define libraries as a static constant outside the component to avoid reloading issues
-const GOOGLE_MAPS_LIBRARIES: Libraries = ["places", "geometry"];
-
-// Hardcoding the API key as a temporary fix
+// Hardcoding the API key as a reliable fix
 const MAPS_API_KEY = "AIzaSyBOyL-FXqHOHmqxteTw02lh9TkzdXJ_oaI";
 console.log("Google Maps API Key available:", MAPS_API_KEY ? "Yes (key length: " + MAPS_API_KEY.length + ")" : "No");
+
+// Define libraries as a static constant outside the component to avoid reloading issues
+// Use 'as any' to ensure TypeScript is happy
+const GOOGLE_MAPS_LIBRARIES = ["places", "geometry"] as any;
 
 export interface Location {
   address: string;
@@ -104,14 +104,36 @@ export const MapView: React.FC<MapViewProps> = ({
     provideRouteAlternatives: routePrefs.provideRouteAlternatives || false
   };
 
+  // Load the Google Maps API using useJsApiLoader
+  const { isLoaded, loadError } = useJsApiLoader({
+    googleMapsApiKey: MAPS_API_KEY,
+    libraries: GOOGLE_MAPS_LIBRARIES
+  });
+
   // Internal state
   const [map, setMap] = useState<google.maps.Map | null>(null);
   const [mapsInitialized, setMapsInitialized] = useState(false);
   const [autocompleteService, setAutocompleteService] = useState<google.maps.places.AutocompleteService | null>(null);
   const [placesService, setPlacesService] = useState<google.maps.places.PlacesService | null>(null);
   const [isLoading, setIsLoading] = useState(false);
-  // Remove the forced error to allow the map to load
-  const [mapError, setMapError] = useState<string | null>(null);
+  // Set map error from loadError if exists
+  const [mapError, setMapError] = useState<string | null>(
+    loadError ? `Error loading map: ${loadError.message}` : null
+  );
+  
+  // Effect to update mapsInitialized state based on isLoaded
+  useEffect(() => {
+    if (isLoaded && !loadError) {
+      console.log("Google Maps API loaded successfully");
+      if (typeof google === 'undefined' || !google.maps) {
+        console.error("Google Maps API did not load correctly despite success callback");
+        setMapError("Google Maps API did not initialize properly. Using fallback mapping solution.");
+      }
+    } else if (loadError) {
+      console.error("Google Maps script failed to load:", loadError);
+      setMapError("Failed to load Google Maps. Using fallback mapping solution.");
+    }
+  }, [isLoaded, loadError]);
   const [searchQuery, setSearchQuery] = useState('');
   const [predictions, setPredictions] = useState<google.maps.places.AutocompletePrediction[]>([]);
   const [isSearching, setIsSearching] = useState(false);
@@ -1049,50 +1071,34 @@ export const MapView: React.FC<MapViewProps> = ({
               console.log("Set dropoff requested in fallback mode");
             }}
           />
+        ) : !isLoaded ? (
+          <div className="p-10 text-center">Loading Google Maps...</div>
         ) : (
-          <LoadScriptNext
-            id="google-maps-script"
-            googleMapsApiKey={MAPS_API_KEY}
-            libraries={GOOGLE_MAPS_LIBRARIES}
-            onLoad={() => {
-              console.log("Google Maps script loaded successfully");
-              // Verify that Google Maps API loaded correctly
-              if (!window.google || !window.google.maps) {
-                console.error("Google Maps API did not load correctly despite success callback");
-                setMapError("Google Maps API did not initialize properly. Using fallback mapping solution.");
-              }
+          <GoogleMap
+            id="trip-map"
+            mapContainerStyle={{
+              width: "100%",
+              height: "500px"
             }}
-            onError={(error) => {
-              console.error("Google Maps script failed to load:", error);
-              setMapError("Failed to load Google Maps. Using fallback mapping solution.");
+            zoom={defaultZoom}
+            center={defaultCenter}
+            options={{
+              mapTypeControl: false,
+              streetViewControl: false,
+              fullscreenControl: false,
+              gestureHandling: "cooperative",
+              clickableIcons: false,
+              mapTypeId: typeof google !== 'undefined' && google.maps && google.maps.MapTypeId ? google.maps.MapTypeId.ROADMAP : 'roadmap',
+              styles: [
+                {
+                  featureType: "poi",
+                  elementType: "labels",
+                  stylers: [{ visibility: "off" }]
+                }
+              ]
             }}
-            loadingElement={<div className="p-10 text-center">Loading Google Maps...</div>}
-          >
-            <GoogleMap
-              id="trip-map"
-              mapContainerStyle={{
-                width: "100%",
-                height: "500px"
-              }}
-              zoom={defaultZoom}
-              center={defaultCenter}
-              options={{
-                mapTypeControl: false,
-                streetViewControl: false,
-                fullscreenControl: false,
-                gestureHandling: "cooperative",
-                clickableIcons: false,
-                mapTypeId: typeof google !== 'undefined' && google.maps && google.maps.MapTypeId ? google.maps.MapTypeId.ROADMAP : 'roadmap',
-                styles: [
-                  {
-                    featureType: "poi",
-                    elementType: "labels",
-                    stylers: [{ visibility: "off" }]
-                  }
-                ]
-              }}
-              onClick={handleMapClick}
-              onLoad={handleMapLoad}
+            onClick={handleMapClick}
+            onLoad={handleMapLoad}
           >
             {/* Pickup location marker */}
             {pickupLocation && (
@@ -1167,8 +1173,7 @@ export const MapView: React.FC<MapViewProps> = ({
                 </div>
               </InfoWindow>
             )}
-            </GoogleMap>
-          </LoadScriptNext>
+          </GoogleMap>
         )}
       </div>
       
