@@ -34,4 +34,10 @@
 .route-line {
   stroke: #0033CC;
   stroke-width: 6px;
+  z-index: 10 !important;
+}
+
+/* Enhance polyline visibility */
+.gm-style > div > div > div > div > div > div > div > div[style*="z-index: 0"] > div {
+  z-index: 10 !important;
 }

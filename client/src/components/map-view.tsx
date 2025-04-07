@@ -1015,10 +1015,17 @@ export const MapView: React.FC<MapViewProps> = ({
             id="google-maps-script"
             googleMapsApiKey={MAPS_API_KEY}
             libraries={GOOGLE_MAPS_LIBRARIES}
-            onLoad={() => console.log("Google Maps script loaded successfully")}
+            onLoad={() => {
+              console.log("Google Maps script loaded successfully");
+              // Verify that Google Maps API loaded correctly
+              if (!window.google || !window.google.maps) {
+                console.error("Google Maps API did not load correctly despite success callback");
+                setMapError("Google Maps API did not initialize properly. Using fallback mapping solution.");
+              }
+            }}
             onError={(error) => {
               console.error("Google Maps script failed to load:", error);
-              setMapError("Failed to load Google Maps. Please check your internet connection and try again.");
+              setMapError("Failed to load Google Maps. Using fallback mapping solution.");
             }}
             loadingElement={<div className="p-10 text-center">Loading Google Maps...</div>}
           >
