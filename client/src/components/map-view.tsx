@@ -35,7 +35,8 @@ const UAE_BOUNDS = {
 // Define libraries as a static constant outside the component to avoid reloading issues
 const GOOGLE_MAPS_LIBRARIES: Libraries = ["places", "geometry"];
 
-const MAPS_API_KEY = import.meta.env.VITE_GOOGLE_MAPS_KEY || "";
+// Hardcoding the API key as a temporary fix
+const MAPS_API_KEY = "AIzaSyBOyL-FXqHOHmqxteTw02lh9TkzdXJ_oaI";
 console.log("Google Maps API Key available:", MAPS_API_KEY ? "Yes (key length: " + MAPS_API_KEY.length + ")" : "No");
 
 export interface Location {
@@ -109,8 +110,8 @@ export const MapView: React.FC<MapViewProps> = ({
   const [autocompleteService, setAutocompleteService] = useState<google.maps.places.AutocompleteService | null>(null);
   const [placesService, setPlacesService] = useState<google.maps.places.PlacesService | null>(null);
   const [isLoading, setIsLoading] = useState(false);
-  // Set an initial map error to force fallback solution (for testing purposes)
-  const [mapError, setMapError] = useState<string | null>("Google Maps API is currently unavailable. Using fallback mapping solution.");
+  // Remove the forced error to allow the map to load
+  const [mapError, setMapError] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [predictions, setPredictions] = useState<google.maps.places.AutocompletePrediction[]>([]);
   const [isSearching, setIsSearching] = useState(false);
