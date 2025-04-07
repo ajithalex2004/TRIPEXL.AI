@@ -160,7 +160,9 @@ export const MapView: React.FC<MapViewProps> = ({
           
           // Format waypoints for Google Maps
           const googleWaypoints = waypoints.map(wp => ({
-            location: new google.maps.LatLng(wp.coordinates.lat, wp.coordinates.lng),
+            location: typeof google !== 'undefined' && google.maps && google.maps.LatLng ? 
+              new google.maps.LatLng(wp.coordinates.lat, wp.coordinates.lng) : 
+              { lat: wp.coordinates.lat, lng: wp.coordinates.lng },
             stopover: true
           }));
           
@@ -170,22 +172,22 @@ export const MapView: React.FC<MapViewProps> = ({
           console.log("- Waypoints:", googleWaypoints);
           
           // Prepare the request
-          const request = {
+          const request: google.maps.DirectionsRequest = {
             origin: new google.maps.LatLng(pickupLocation.coordinates.lat, pickupLocation.coordinates.lng),
             destination: new google.maps.LatLng(dropoffLocation.coordinates.lat, dropoffLocation.coordinates.lng),
             waypoints: googleWaypoints,
             optimizeWaypoints: routePreferences.optimizeWaypoints,
             avoidHighways: routePreferences.avoidHighways,
             avoidTolls: routePreferences.avoidTolls,
-            travelMode: google.maps.TravelMode[routePreferences.travelMode],
+            travelMode: google.maps.TravelMode.DRIVING,
             provideRouteAlternatives: routePreferences.provideRouteAlternatives
           };
           
           // Request directions
           const result = await new Promise<google.maps.DirectionsResult>((resolve, reject) => {
-            directionsService.route(request, (result, status) => {
-              if (status === google.maps.DirectionsStatus.OK) {
-                resolve(result);
+            directionsService.route(request, (directionsResult, status) => {
+              if (status === google.maps.DirectionsStatus.OK && directionsResult) {
+                resolve(directionsResult);
               } else {
                 reject(new Error(`Google Maps direction request failed: ${status}`));
               }
@@ -627,8 +629,10 @@ export const MapView: React.FC<MapViewProps> = ({
         // Call the parent component's callback with the new location and type
         onLocationSelect(location, type);
         
-        // Clear the popup after selecting a location
+        // Clear the popup and search field after selecting a location
         setPopupLocation(null);
+        setSearchQuery('');
+        setPredictions([]);
       } else {
         setMapError("Cannot set location: onLocationSelect callback not provided");
       }
@@ -874,8 +878,19 @@ export const MapView: React.FC<MapViewProps> = ({
       
       <style>
         {`
+          /* Hide the default Google Maps InfoWindow close button */
           .gm-ui-hover-effect {
             display: none !important;
+          }
+          
+          /* Additional styling for InfoWindow */
+          .gm-style-iw {
+            padding: 12px !important;
+          }
+          
+          /* Remove shadow from InfoWindow */
+          .gm-style-iw-d {
+            overflow: hidden !important;
           }
         `}
       </style>
@@ -1007,7 +1022,7 @@ export const MapView: React.FC<MapViewProps> = ({
               fullscreenControl: false,
               gestureHandling: "cooperative",
               clickableIcons: false,
-              mapTypeId: typeof google !== 'undefined' ? google.maps.MapTypeId.ROADMAP : 'roadmap',
+              mapTypeId: typeof google !== 'undefined' && google.maps && google.maps.MapTypeId ? google.maps.MapTypeId.ROADMAP : 'roadmap',
               styles: [
                 {
                   featureType: "poi",
