@@ -2,13 +2,7 @@ import { useState, useRef, useEffect, useCallback } from "react";
 import debounce from "lodash.debounce";
 import { Card } from "@/components/ui/card";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { 
-  useJsApiLoader,
-  GoogleMap, 
-  Marker, 
-  InfoWindow, 
-  Polyline
-} from "@react-google-maps/api";
+import { GoogleMap, Marker, InfoWindow, Polyline } from "@react-google-maps/api";
 import { VehicleLoadingIndicator } from "@/components/ui/vehicle-loading-indicator";
 import { Button } from "@/components/ui/button";
 import { MapPin, Clock, Search, Locate, AlertCircle, CircleCheck, Info as InfoIcon, X } from "lucide-react";
@@ -16,6 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Combobox } from "@/components/ui/combobox";
 import { calculateRoute, convertToGoogleMapsRoute, RouteWaypoint } from "@/lib/geoapify-route-service";
 import MapFallback from "@/components/map-fallback";
+import useMapsApi from "@/hooks/use-maps-api";
 
 const defaultCenter = {
   lat: 24.466667,  // Abu Dhabi coordinates as default
@@ -38,8 +33,7 @@ console.log("Google Maps API Key available:", MAPS_API_KEY ? "Yes (key length: "
 console.log("Using environment variable:", import.meta.env.VITE_GOOGLE_MAPS_KEY ? "Yes" : "No");
 
 // Define libraries as a static constant outside the component to avoid reloading issues
-// Use 'as any' to ensure TypeScript is happy
-const GOOGLE_MAPS_LIBRARIES = ["places", "geometry"] as any;
+const GOOGLE_MAPS_LIBRARIES = ["places", "geometry"] as any[];
 
 export interface Location {
   address: string;
@@ -106,11 +100,8 @@ export const MapView: React.FC<MapViewProps> = ({
     provideRouteAlternatives: routePrefs.provideRouteAlternatives || false
   };
 
-  // Load the Google Maps API using useJsApiLoader
-  const { isLoaded, loadError } = useJsApiLoader({
-    googleMapsApiKey: MAPS_API_KEY,
-    libraries: GOOGLE_MAPS_LIBRARIES
-  });
+  // Load the Google Maps API using our custom hook
+  const { isLoaded, loadError, maps } = useMapsApi(MAPS_API_KEY);
 
   // Internal state
   const [map, setMap] = useState<google.maps.Map | null>(null);
@@ -987,9 +978,18 @@ export const MapView: React.FC<MapViewProps> = ({
       
       <style>
         {`
-          /* Hide the default Google Maps InfoWindow close button */
-          .gm-ui-hover-effect {
+          /* Hide the default Google Maps InfoWindow close button - comprehensive selectors */
+          .gm-ui-hover-effect,
+          .gm-style-iw button[role="button"],
+          .gm-style-iw-c button[role="button"],
+          .gm-style button[title="Close"],
+          .gm-style div[role="button"][aria-label="Close"],
+          button.gm-ui-hover-effect,
+          div[role="button"][title="Close"] {
             display: none !important;
+            opacity: 0 !important;
+            visibility: hidden !important;
+            pointer-events: none !important;
           }
           
           /* Additional styling for InfoWindow */
@@ -1245,7 +1245,8 @@ export const MapView: React.FC<MapViewProps> = ({
                 position={{ lat: popupLocation.lat, lng: popupLocation.lng }}
                 onCloseClick={() => setPopupLocation(null)}
                 options={{
-                  pixelOffset: typeof google !== 'undefined' ? new google.maps.Size(0, -30) : undefined
+                  pixelOffset: typeof google !== 'undefined' ? new google.maps.Size(0, -30) : undefined,
+                  disableAutoPan: false
                 }}
               >
                 <div>

@@ -13,9 +13,17 @@
 }
 
 /* Google Maps custom styling */
-/* Hide Google Maps InfoWindow close button */
-.gm-style-iw-c button.gm-ui-hover-effect {
+/* Hide Google Maps InfoWindow close button - multiple selectors for robust hiding */
+.gm-style-iw-c button.gm-ui-hover-effect,
+.gm-style-iw button.gm-ui-hover-effect,
+.gm-style button.gm-ui-hover-effect,
+.gm-style-iw-c button[aria-label="Close"],
+.gm-style button[title="Close"],
+.gm-style div[role="button"][aria-label="Close"] {
   display: none !important;
+  opacity: 0 !important;
+  visibility: hidden !important;
+  pointer-events: none !important;
 }
 
 /* Adjust the padding inside the InfoWindow to compensate for no close button */
