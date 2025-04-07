@@ -109,7 +109,8 @@ export const MapView: React.FC<MapViewProps> = ({
   const [autocompleteService, setAutocompleteService] = useState<google.maps.places.AutocompleteService | null>(null);
   const [placesService, setPlacesService] = useState<google.maps.places.PlacesService | null>(null);
   const [isLoading, setIsLoading] = useState(false);
-  const [mapError, setMapError] = useState<string | null>(null);
+  // Set an initial map error to force fallback solution (for testing purposes)
+  const [mapError, setMapError] = useState<string | null>("Google Maps API is currently unavailable. Using fallback mapping solution.");
   const [searchQuery, setSearchQuery] = useState('');
   const [predictions, setPredictions] = useState<google.maps.places.AutocompletePrediction[]>([]);
   const [isSearching, setIsSearching] = useState(false);
@@ -957,19 +958,43 @@ export const MapView: React.FC<MapViewProps> = ({
   );
 
   // Waypoints control component
-  const waypointsControl = (waypoints.length > 0 && onClearWaypoints) && (
+  const waypointsControl = (
     <div className="mt-2">
-      <Button 
-        variant="outline" 
-        size="sm" 
-        onClick={onClearWaypoints}
-        className="text-xs"
-      >
-        <X className="mr-1 h-3 w-3" /> Clear All Waypoints
-      </Button>
-      <div className="text-xs text-slate-500 mt-1">
-        {waypoints.length} waypoint{waypoints.length !== 1 ? 's' : ''} set
-      </div>
+      {waypoints.length > 0 && onClearWaypoints && (
+        <>
+          <Button 
+            variant="outline" 
+            size="sm" 
+            onClick={onClearWaypoints}
+            className="text-xs"
+          >
+            <X className="mr-1 h-3 w-3" /> Clear All Waypoints
+          </Button>
+          <div className="text-xs text-slate-500 mt-1">
+            {waypoints.length} waypoint{waypoints.length !== 1 ? 's' : ''} set
+          </div>
+        </>
+      )}
+      
+      {/* For testing purposes - toggle fallback map */}
+      {import.meta.env.DEV && (
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          className="ml-auto mt-2 text-xs"
+          onClick={() => {
+            // Toggle between normal and fallback mode
+            if (!mapError) {
+              setMapError("This is a test of the fallback map. Google Maps is currently not available.");
+            } else {
+              setMapError(null);
+            }
+          }}
+        >
+          {!mapError ? "Test Fallback" : "Try Google Maps"}
+        </Button>
+      )}
     </div>
   );
 
@@ -1009,7 +1034,20 @@ export const MapView: React.FC<MapViewProps> = ({
         )}
         
         {mapError ? (
-          <MapFallback message={mapError} />
+          <MapFallback 
+            message={mapError} 
+            pickupLocation={pickupLocation}
+            dropoffLocation={dropoffLocation}
+            waypoints={waypoints}
+            onSelectPickup={() => {
+              // Open a location modal or form to set pickup
+              console.log("Set pickup requested in fallback mode");
+            }}
+            onSelectDropoff={() => {
+              // Open a location modal or form to set dropoff
+              console.log("Set dropoff requested in fallback mode");
+            }}
+          />
         ) : (
           <LoadScriptNext
             id="google-maps-script"

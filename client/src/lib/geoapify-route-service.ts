@@ -74,6 +74,137 @@ export interface RouteStep {
  * @param options Route calculation options
  * @returns Promise with the route data
  */
+/**
+ * Calculate straight-line distance between two points in meters
+ * Uses the Haversine formula for accurate Earth-surface calculations
+ */
+export function calculateHaversineDistance(
+  lat1: number, 
+  lon1: number, 
+  lat2: number, 
+  lon2: number
+): number {
+  const R = 6371e3; // Earth's radius in meters
+  const φ1 = lat1 * Math.PI / 180;
+  const φ2 = lat2 * Math.PI / 180;
+  const Δφ = (lat2 - lat1) * Math.PI / 180;
+  const Δλ = (lon2 - lon1) * Math.PI / 180;
+
+  const a = Math.sin(Δφ / 2) * Math.sin(Δφ / 2) +
+          Math.cos(φ1) * Math.cos(φ2) *
+          Math.sin(Δλ / 2) * Math.sin(Δλ / 2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+
+  return R * c; // Distance in meters
+}
+
+/**
+ * Estimate travel time in seconds based on distance and travel mode
+ * Used when API-based calculations are not available
+ */
+export function estimateTravelTime(
+  distanceInMeters: number, 
+  mode: string = 'drive'
+): number {
+  // Average speeds in meters per second
+  const speeds: Record<string, number> = {
+    'drive': 13.9, // 50 km/h
+    'walk': 1.4,   // 5 km/h
+    'bicycle': 4.2, // 15 km/h
+    'scooter': 5.6, // 20 km/h
+    'transit': 8.3  // 30 km/h
+  };
+  
+  const speed = speeds[mode as keyof typeof speeds] || speeds.drive;
+  return Math.round(distanceInMeters / speed);
+}
+
+/**
+ * Create a fallback route when API services are not available
+ * Uses direct line calculations with geographic distance formulas
+ */
+export function calculateFallbackRoute(
+  origin: GeoLocation,
+  destination: GeoLocation,
+  waypoints: RouteWaypoint[] = [],
+  options: RouteOptions = {}
+): RouteResponse {
+  console.log("Using fallback route calculation (no API)");
+  
+  // Create an array of all points in order
+  const allLocations = [
+    origin,
+    ...waypoints.map(wp => wp.location),
+    destination
+  ];
+  
+  let totalDistance = 0;
+  let totalTime = 0;
+  const legs: RouteLeg[] = [];
+  const coordinates: [number, number][] = [];
+  
+  // Add all points to coordinates array
+  allLocations.forEach(loc => {
+    coordinates.push([loc.lng, loc.lat]);
+  });
+  
+  // Calculate legs between consecutive points
+  for (let i = 0; i < allLocations.length - 1; i++) {
+    const pointA = allLocations[i];
+    const pointB = allLocations[i + 1];
+    
+    const segmentDistance = calculateHaversineDistance(
+      pointA.lat, pointA.lng, 
+      pointB.lat, pointB.lng
+    );
+    
+    const segmentTime = estimateTravelTime(
+      segmentDistance, 
+      options.mode || 'drive'
+    );
+    
+    totalDistance += segmentDistance;
+    totalTime += segmentTime;
+    
+    // Create a leg for this segment
+    legs.push({
+      distance: segmentDistance,
+      time: segmentTime
+    });
+  }
+  
+  // Create a simulated route response
+  const fallbackRoute: RouteResponse = {
+    type: "FeatureCollection",
+    features: [{
+      type: "Feature",
+      properties: {
+        mode: options.mode || 'drive',
+        waypoints: coordinates,
+        units: "metric",
+        distance: totalDistance,
+        distance_units: "meters",
+        time: totalTime,
+        legs: legs
+      },
+      geometry: {
+        type: "LineString",
+        coordinates: coordinates
+      }
+    }],
+    properties: {
+      mode: options.mode || 'drive',
+      waypoints: coordinates,
+      units: "metric",
+      distance: totalDistance,
+      distance_units: "meters",
+      time: totalTime
+    }
+  };
+  
+  return fallbackRoute;
+}
+
 export async function calculateRoute(
   origin: GeoLocation,
   destination: GeoLocation,
@@ -129,14 +260,17 @@ export async function calculateRoute(
 
     if (!response.ok) {
       const errorText = await response.text();
-      throw new Error(`Geoapify API returned error ${response.status}: ${errorText}`);
+      console.warn(`Geoapify API returned error ${response.status}: ${errorText}`);
+      console.log("Switching to fallback route calculation");
+      return calculateFallbackRoute(origin, destination, waypoints, options);
     }
 
     const data = await response.json();
     return data;
   } catch (error) {
     console.error('Error calculating route with Geoapify:', error);
-    throw error;
+    console.log("Using fallback route calculation due to API error");
+    return calculateFallbackRoute(origin, destination, waypoints, options);
   }
 }
 
