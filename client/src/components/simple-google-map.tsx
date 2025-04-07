@@ -1,97 +1,103 @@
-import React, { useState, useEffect } from 'react';
-import { GoogleMap, LoadScript, Libraries } from '@react-google-maps/api';
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { AlertCircle, RefreshCw } from 'lucide-react';
-import { Button } from '@/components/ui/button';
+import React, { useEffect, useRef, useState } from 'react';
+import { GoogleMap, useJsApiLoader } from '@react-google-maps/api';
+import { Card, CardContent } from '@/components/ui/card';
+import { Skeleton } from '@/components/ui/skeleton';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { AlertCircle } from 'lucide-react';
 
-// Define libraries as a static constant to prevent unnecessary reloads
-const libraries: Libraries = ["places", "geometry"];
+// API key is hardcoded for immediate testing purposes
+const API_KEY = "AIzaSyBOyL-FXqHOHmqxteTw02lh9TkzdXJ_oaI";
 
-const SimpleGoogleMap = () => {
-  const [error, setError] = useState<string | null>(null);
-  const [mapLoaded, setMapLoaded] = useState<boolean>(false);
-  const mapKey = import.meta.env.VITE_GOOGLE_MAPS_KEY || "";
-  
-  console.log("Google Maps API Key available:", mapKey ? "Yes (key length: " + mapKey.length + ")" : "No");
-  
-  useEffect(() => {
-    // Cleanup effect to check for map error cases in the DOM
-    const timeoutId = setTimeout(() => {
-      const mapErrorDiv = document.querySelector('.gm-err-content');
-      if (mapErrorDiv && !error) {
-        setError("Google Maps failed to load properly. This may be due to API key restrictions or network issues.");
-      }
-    }, 3000);
-    
-    return () => clearTimeout(timeoutId);
-  }, [error]);
-  
-  const containerStyle = {
-    width: '100%',
-    height: '400px'
+// Define the center for UAE (Dubai)
+const defaultCenter = {
+  lat: 25.276987,
+  lng: 55.296249
+};
+
+// Define the map container style
+const mapContainerStyle = {
+  width: '100%',
+  height: '400px'
+};
+
+// Define libraries to load
+const libraries = ["places", "geometry"] as any;
+
+interface SimpleGoogleMapProps {
+  center?: { lat: number; lng: number };
+  zoom?: number;
+}
+
+export const SimpleGoogleMap: React.FC<SimpleGoogleMapProps> = ({
+  center = defaultCenter,
+  zoom = 10
+}) => {
+  const mapRef = useRef<GoogleMap>(null);
+  const [map, setMap] = useState<google.maps.Map | null>(null);
+
+  // Load the Google Maps JavaScript API
+  const { isLoaded, loadError } = useJsApiLoader({
+    googleMapsApiKey: API_KEY,
+    libraries
+  });
+
+  // Handle when the map loads
+  const onMapLoad = (map: google.maps.Map) => {
+    console.log("Map loaded successfully!");
+    setMap(map);
   };
-  
-  const center = {
-    lat: 24.466667, // Abu Dhabi
-    lng: 54.366667
-  };
 
-  const handleRefresh = () => {
-    // Reset error state and force refresh
-    setError(null);
-    setMapLoaded(false);
-    
-    // Small delay before reloading
-    setTimeout(() => {
-      setMapLoaded(true);
-    }, 500);
-  };
+  // If there's a loading error, show an error message
+  if (loadError) {
+    return (
+      <Card>
+        <CardContent className="p-6">
+          <Alert variant="destructive">
+            <AlertCircle className="h-4 w-4" />
+            <AlertDescription>
+              Error loading Google Maps: {loadError.message}
+            </AlertDescription>
+          </Alert>
+        </CardContent>
+      </Card>
+    );
+  }
 
-  return (
-    <div className="w-full">
-      {error && (
-        <Alert variant="destructive" className="mb-4">
-          <AlertCircle className="h-4 w-4 mr-2" />
-          <div className="flex-1">
-            <AlertTitle>Google Maps Error</AlertTitle>
-            <AlertDescription>{error}</AlertDescription>
+  // If the map is still loading, show a loading state
+  if (!isLoaded) {
+    return (
+      <Card>
+        <CardContent className="p-6">
+          <div className="space-y-2">
+            <Skeleton className="h-4 w-[250px]" />
+            <Skeleton className="h-[300px] w-full" />
           </div>
-          <Button variant="outline" size="sm" onClick={handleRefresh} className="ml-2">
-            <RefreshCw className="h-4 w-4 mr-1" /> Retry
-          </Button>
-        </Alert>
-      )}
-      
-      {(!mapLoaded || error === null) && (
-        <LoadScript
-          googleMapsApiKey={mapKey}
-          libraries={libraries}
-          onLoad={() => {
-            console.log("Google Maps script loaded");
-            setMapLoaded(true);
-            
-            // Check if Google Maps object exists in window
-            if (!window.google || !window.google.maps) {
-              setError("Google Maps API loaded but not initialized correctly.");
-            }
+        </CardContent>
+      </Card>
+    );
+  }
+
+  // Render the map
+  return (
+    <Card>
+      <CardContent className="p-6">
+        <GoogleMap
+          ref={mapRef}
+          mapContainerStyle={mapContainerStyle}
+          center={center}
+          zoom={zoom}
+          onLoad={onMapLoad}
+          options={{
+            zoomControl: true,
+            streetViewControl: true,
+            mapTypeControl: true,
+            fullscreenControl: true,
           }}
-          onError={(error) => {
-            console.error("Google Maps script error:", error);
-            setError("Failed to load Google Maps. This may be due to API key restrictions or network issues.");
-          }}
-          loadingElement={<div className="p-10 text-center">Loading Google Maps...</div>}
         >
-          <GoogleMap
-            mapContainerStyle={containerStyle}
-            center={center}
-            zoom={10}
-            onLoad={() => console.log("Map loaded successfully")}
-          >
-            {/* No markers or additional content */}
-          </GoogleMap>
-        </LoadScript>
-      )}
-    </div>
+          {/* Map content is rendered here */}
+        </GoogleMap>
+      </CardContent>
+    </Card>
   );
 };
 
