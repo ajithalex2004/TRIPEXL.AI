@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { loadGoogleMaps, resetGoogleMapsLoader } from '@/lib/google-maps-loader';
+import { loadGoogleMaps } from '@/lib/google-maps-loader';
 
 interface MapsApiState {
   isLoaded: boolean;
@@ -7,7 +7,7 @@ interface MapsApiState {
   maps: typeof google.maps | null;
 }
 
-export function useMapsApi(apiKey: string): MapsApiState {
+function useMapsApi(apiKey: string): MapsApiState {
   const [state, setState] = useState<MapsApiState>({
     isLoaded: false,
     loadError: null,
@@ -16,6 +16,7 @@ export function useMapsApi(apiKey: string): MapsApiState {
 
   useEffect(() => {
     let isMounted = true;
+    console.log("Map load state:", state);
 
     const loadApi = async () => {
       try {
@@ -23,11 +24,8 @@ export function useMapsApi(apiKey: string): MapsApiState {
         if (!apiKey) {
           throw new Error('Google Maps API key is missing');
         }
-
-        // Reset the loader to ensure a clean state
-        resetGoogleMapsLoader();
         
-        // Load the API
+        // Load the API - our improved loader will handle duplicate script issues
         const mapsApi = await loadGoogleMaps(apiKey);
         
         // Only update state if component is still mounted
@@ -52,13 +50,16 @@ export function useMapsApi(apiKey: string): MapsApiState {
       }
     };
 
-    loadApi();
+    // Only try to load if not already loaded
+    if (!state.isLoaded) {
+      loadApi();
+    }
 
     // Cleanup function
     return () => {
       isMounted = false;
     };
-  }, [apiKey]); // Only re-run if apiKey changes
+  }, [apiKey, state.isLoaded]); // Only re-run if apiKey changes or isLoaded changes
 
   return state;
 }

@@ -3,6 +3,7 @@
 
 const LIBRARIES = ["places", "geometry"] as any[];
 let googleMapsPromise: Promise<any> | null = null;
+const SCRIPT_ID = "google-maps-script";
 
 export function loadGoogleMaps(apiKey: string): Promise<any> {
   // Return existing promise if already loading or loaded
@@ -12,7 +13,15 @@ export function loadGoogleMaps(apiKey: string): Promise<any> {
 
   // Check if Google Maps is already loaded
   if (window.google && window.google.maps) {
+    console.log("Google Maps already loaded, returning existing instance");
     return Promise.resolve(window.google.maps);
+  }
+
+  // Check if script tag already exists
+  const existingScript = document.getElementById(SCRIPT_ID);
+  if (existingScript) {
+    console.log("Google Maps script tag already exists, removing it first");
+    existingScript.remove();
   }
 
   console.log("Starting Google Maps API load with key length:", apiKey ? apiKey.length : 0);
@@ -38,12 +47,13 @@ export function loadGoogleMaps(apiKey: string): Promise<any> {
       // Validate API key
       if (!apiKey) {
         reject(new Error("Google Maps API key is required"));
+        googleMapsPromise = null;
         return;
       }
 
       // Create the script element
       const script = document.createElement("script");
-      script.id = "google-maps-script";
+      script.id = SCRIPT_ID;
       script.src = `https://maps.googleapis.com/maps/api/js?key=${apiKey}&libraries=${LIBRARIES.join(",")}&callback=${callbackName}&v=quarterly`;
       script.async = true;
       script.defer = true;
