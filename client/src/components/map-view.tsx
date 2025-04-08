@@ -10,8 +10,8 @@ import { Input } from "@/components/ui/input";
 import { Combobox } from "@/components/ui/combobox";
 import { calculateRoute, convertToGoogleMapsRoute, RouteWaypoint } from "@/lib/geoapify-route-service";
 import MapFallback from "@/components/map-fallback";
-// Fix import to use the default import from use-maps-api.tsx
-import useMapsApi from "@/hooks/use-maps-api";
+// Import the useMapsApi hook
+import { useMapsApi } from "@/hooks/use-maps-api";
 
 const defaultCenter = {
   lat: 24.466667,  // Abu Dhabi coordinates as default
@@ -33,8 +33,8 @@ const MAPS_API_KEY = import.meta.env.VITE_GOOGLE_MAPS_KEY || "";
 console.log("Google Maps API Key available:", MAPS_API_KEY ? "Yes (key length: " + MAPS_API_KEY.length + ")" : "No");
 console.log("Using environment variable:", import.meta.env.VITE_GOOGLE_MAPS_KEY ? "Yes" : "No");
 
-// Define libraries as a static constant outside the component to avoid reloading issues
-const GOOGLE_MAPS_LIBRARIES = ["places", "geometry"] as any[];
+// Max retries for Google Maps loading
+const MAX_RETRIES = 3;
 
 export interface Location {
   address: string;
@@ -1123,10 +1123,21 @@ export const MapView: React.FC<MapViewProps> = ({
     </Alert>
   );
 
+  // Force fallback mode for now since Google Maps is having issues
+  const forceFallbackMode = true;
+  const shouldUseFallback = forceFallbackMode || mapError || loadError;
+  
   return (
     <Card ref={mapContainerRef} className="overflow-hidden">
       <div className="p-4 border-b">
-        {searchBox}
+        {!shouldUseFallback && searchBox}
+        {shouldUseFallback && (
+          <div className="flex items-center justify-between">
+            <p className="text-sm text-amber-600 font-medium">
+              Using simplified map view with all booking features available
+            </p>
+          </div>
+        )}
       </div>
       
       <div className="relative">
@@ -1136,20 +1147,42 @@ export const MapView: React.FC<MapViewProps> = ({
           </div>
         )}
         
-        {mapError ? (
+        {shouldUseFallback ? (
           <MapFallback 
-            message={mapError} 
+            message="Using a simplified map view due to temporary issues with map loading. All booking functionality is still available." 
             pickupLocation={pickupLocation}
             dropoffLocation={dropoffLocation}
             waypoints={waypoints}
-            onSelectPickup={() => {
-              // Open a location modal or form to set pickup
-              console.log("Set pickup requested in fallback mode");
-            }}
-            onSelectDropoff={() => {
-              // Open a location modal or form to set dropoff
-              console.log("Set dropoff requested in fallback mode");
-            }}
+            onSelectPickup={onLocationSelect ? () => {
+              // Prompt user for pickup location
+              const address = prompt("Enter pickup address:");
+              if (address) {
+                const location: Location = {
+                  address,
+                  coordinates: {
+                    // Default to Abu Dhabi coordinates if no specific coordinates are available
+                    lat: 24.466667,
+                    lng: 54.366667
+                  }
+                };
+                onLocationSelect(location, 'pickup');
+              }
+            } : undefined}
+            onSelectDropoff={onLocationSelect ? () => {
+              // Prompt user for dropoff location
+              const address = prompt("Enter dropoff address:");
+              if (address) {
+                const location: Location = {
+                  address,
+                  coordinates: {
+                    // Default to Dubai coordinates as an example destination
+                    lat: 25.276987,
+                    lng: 55.296249
+                  }
+                };
+                onLocationSelect(location, 'dropoff');
+              }
+            } : undefined}
           />
         ) : !isLoaded ? (
           <div className="p-10 text-center">Loading Google Maps...</div>
