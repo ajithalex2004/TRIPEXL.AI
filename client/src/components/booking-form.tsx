@@ -28,7 +28,7 @@ import {
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { LoadingIndicator } from "@/components/ui/loading-indicator";
-import { UAEMapPicker } from "@/components/uae-map-picker";
+import SimpleGoogleMaps from "@/components/simple-google-maps";
 import { motion, AnimatePresence } from "framer-motion";
 import { VehicleLoadingIndicator } from "@/components/ui/vehicle-loading-indicator";
 import { DateTimePicker } from "@/components/ui/date-time-picker";
@@ -1260,7 +1260,7 @@ export function BookingForm() {
                           )}
                           <div className="h-[500px] relative rounded-lg overflow-hidden border">
                             {/* Key attribute forces re-render when step changes */}
-                            <UAEMapPicker
+                            <SimpleGoogleMaps
                               key={`map-view-step-${currentStep}`}
                               pickupLocation={form.watch("pickupLocation")}
                               dropoffLocation={form.watch("dropoffLocation")}
@@ -1269,7 +1269,7 @@ export function BookingForm() {
                               onLocationSelect={(location, type) => {
                                 // Handle pickup or dropoff location
                                 const fieldName = type === 'pickup' ? "pickupLocation" : "dropoffLocation";
-                                console.log(`Setting form field "${fieldName}" with location:`, location);
+                                console.log(`Google Maps onLocationSelect: Setting ${fieldName} with:`, location);
                                 
                                 // Ensure all optional properties are present with default values
                                 const completeLocation = {
