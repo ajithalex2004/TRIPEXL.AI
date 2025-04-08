@@ -77,6 +77,8 @@ export function loadGoogleMaps(apiKey: string): Promise<any> {
         googleMapsPromise = null;
         return;
       }
+      
+      console.log("Using Google Maps API key:", apiKey.substring(0, 6) + "..." + apiKey.substring(apiKey.length - 4));
 
       // Create a unique callback name to avoid conflicts
       const callbackName = `googleMapsCallback_${Math.round(Math.random() * 1000000)}`;

@@ -55,7 +55,8 @@ const loadGoogleMapsScript = (mapRef: React.RefObject<HTMLDivElement>, options: 
     return;
   }
 
-  console.log("Loading Google Maps API with key:", apiKey ? "Available" : "Missing");
+  console.log("Google Maps API Key available:", apiKey ? "Yes (key length: " + apiKey.length + ")" : "No");
+  console.log("Using environment variable:", apiKey === import.meta.env.VITE_GOOGLE_MAPS_KEY ? "Yes" : "No");
   
   // Define the initialization function
   window.initMap = function() {
@@ -176,7 +177,9 @@ const SimpleGoogleMaps: React.FC<SimpleGoogleMapsProps> = ({
         });
         
         // Listen for the event fired when the user selects a prediction
-        searchBoxRef.current.addListener("places_changed", handlePlacesChanged);
+        if (searchBoxRef.current) {
+          searchBoxRef.current.addListener("places_changed", handlePlacesChanged);
+        }
         
         // Add click listener to map
         if (editable) {
