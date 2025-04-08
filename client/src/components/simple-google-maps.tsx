@@ -1,9 +1,10 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Card } from "@/components/ui/card";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { VehicleLoadingIndicator } from "@/components/ui/vehicle-loading-indicator";
 import { AlertCircle } from "lucide-react";
 import MapFallback from "@/components/map-fallback";
+import { Button } from "@/components/ui/button";
 
 // Simple interface for location
 interface Location {
@@ -25,6 +26,7 @@ interface SimpleGoogleMapsProps {
   editable?: boolean;
 }
 
+// A fallback component that uses direct iframe embedding
 const SimpleGoogleMaps: React.FC<SimpleGoogleMapsProps> = ({
   pickupLocation,
   dropoffLocation,
@@ -32,208 +34,128 @@ const SimpleGoogleMaps: React.FC<SimpleGoogleMapsProps> = ({
   onLocationSelect,
   editable = true
 }) => {
-  const mapRef = useRef<HTMLDivElement>(null);
-  const [isLoaded, setIsLoaded] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [map, setMap] = useState<google.maps.Map | null>(null);
-
+  const [isLoading, setIsLoading] = useState(false);
+  
   // UAE default center
-  const defaultCenter = { lat: 24.466667, lng: 54.366667 };
-
+  const defaultCenter = { lat: 24.466667, lng: 54.366667 }; // Abu Dhabi
+  
+  // Check if we have a valid API key
+  const API_KEY = import.meta.env.VITE_GOOGLE_MAPS_KEY;
+  
   // Log API key availability for debugging
   useEffect(() => {
-    const API_KEY = import.meta.env.VITE_GOOGLE_MAPS_KEY;
     console.log("Google Maps API Key:", API_KEY ? `exists with length ${API_KEY.length}` : "missing");
-  }, []);
-
-  // Load the Google Maps script manually
-  useEffect(() => {
-    // Debug which approach we're taking
-    console.log("Initializing map with direct script loading approach");
-
-    // Check if Google Maps is already loaded
-    if (window.google && window.google.maps) {
-      console.log("Google Maps already loaded, initializing map");
-      setIsLoaded(true);
-      setIsLoading(false);
-      return;
-    }
-
-    // Get API key
-    const API_KEY = import.meta.env.VITE_GOOGLE_MAPS_KEY;
     if (!API_KEY) {
-      console.error("Google Maps API key missing");
       setError("Google Maps API key is missing");
-      setIsLoading(false);
-      return;
     }
+  }, [API_KEY]);
 
-    // Remove any existing script to prevent duplicates
-    const existingScript = document.getElementById('google-maps-api');
-    if (existingScript) {
-      existingScript.remove();
-    }
-
-    // Create global callback function
-    window.initMap = () => {
-      console.log("Google Maps script loaded via callback");
-      setIsLoaded(true);
-      setIsLoading(false);
-    };
-
-    // Create and load script
-    const script = document.createElement('script');
-    script.id = 'google-maps-api';
-    script.src = `https://maps.googleapis.com/maps/api/js?key=${API_KEY}&libraries=places&callback=initMap`;
-    script.async = true;
-    script.defer = true;
-    script.onerror = (e) => {
-      console.error("Error loading Google Maps script:", e);
-      setError("Failed to load Google Maps API");
-      setIsLoading(false);
-    };
+  // Returns a Google Maps src URL based on provided parameters
+  const getMapSrc = () => {
+    let mapSrc = `https://www.google.com/maps/embed/v1/view?key=${API_KEY}&center=${defaultCenter.lat},${defaultCenter.lng}&zoom=10`;
     
-    document.head.appendChild(script);
-
-    return () => {
-      // Clean up
-      if (window.initMap) {
-        window.initMap = undefined;
-      }
-      if (document.getElementById('google-maps-api')) {
-        document.getElementById('google-maps-api')?.remove();
-      }
-    };
-  }, []);
-
-  // Initialize the map when everything is ready
-  useEffect(() => {
-    if (!isLoaded || !mapRef.current || !window.google?.maps) {
-      return;
-    }
-
-    try {
-      // Log that we're creating the map
-      console.log("Creating Google Maps instance");
-      
-      // Create the map
-      const mapOptions: google.maps.MapOptions = {
-        center: defaultCenter,
-        zoom: 10,
-        mapTypeControl: true,
-        fullscreenControl: true,
-        zoomControl: true,
-      };
-
-      const newMap = new window.google.maps.Map(mapRef.current, mapOptions);
-      setMap(newMap);
-      console.log("Google Maps instance created successfully");
-
-    } catch (err) {
-      console.error("Error creating map:", err);
-      setError(`Failed to initialize map: ${err}`);
-    } finally {
-      setIsLoading(false);
-    }
-  }, [isLoaded, mapRef]);
-
-  // Add markers and routes when map is ready and locations change
-  useEffect(() => {
-    if (!map || !window.google?.maps) return;
-
-    // Clear existing markers
-    map.data?.forEach((feature) => {
-      map.data?.remove(feature);
-    });
-
-    // Add markers
-    if (pickupLocation) {
-      new window.google.maps.Marker({
-        position: pickupLocation.coordinates,
-        map,
-        title: 'Pickup',
-        icon: {
-          url: 'https://maps.google.com/mapfiles/ms/icons/green-dot.png'
-        }
-      });
-    }
-
-    if (dropoffLocation) {
-      new window.google.maps.Marker({
-        position: dropoffLocation.coordinates,
-        map,
-        title: 'Dropoff',
-        icon: {
-          url: 'https://maps.google.com/mapfiles/ms/icons/red-dot.png'
-        }
-      });
-    }
-
-    // Draw route if both locations are set
+    // If we have pickup and dropoff, use directions mode
     if (pickupLocation && dropoffLocation) {
-      const directionsService = new window.google.maps.DirectionsService();
-      const directionsRenderer = new window.google.maps.DirectionsRenderer({
-        map,
-        suppressMarkers: true,
-        polylineOptions: {
-          strokeColor: '#0000FF',
-          strokeWeight: 5,
-          strokeOpacity: 0.8
-        }
-      });
-
-      const waypointsList = waypoints.map(wp => ({
-        location: new window.google.maps.LatLng(wp.coordinates.lat, wp.coordinates.lng),
-        stopover: true
-      }));
-
-      directionsService.route({
-        origin: new window.google.maps.LatLng(pickupLocation.coordinates.lat, pickupLocation.coordinates.lng),
-        destination: new window.google.maps.LatLng(dropoffLocation.coordinates.lat, dropoffLocation.coordinates.lng),
-        waypoints: waypointsList,
-        optimizeWaypoints: false,
-        travelMode: window.google.maps.TravelMode.DRIVING
-      }, (result, status) => {
-        if (status === 'OK' && result) {
-          directionsRenderer.setDirections(result);
-        }
-      });
-    }
-  }, [map, pickupLocation, dropoffLocation, waypoints]);
-
-  // Add click listener for location selection
-  useEffect(() => {
-    if (!map || !editable || !onLocationSelect) return;
-
-    const clickListener = map.addListener('click', (e: google.maps.MapMouseEvent) => {
-      if (!e.latLng) return;
+      const origin = `${pickupLocation.coordinates.lat},${pickupLocation.coordinates.lng}`;
+      const destination = `${dropoffLocation.coordinates.lat},${dropoffLocation.coordinates.lng}`;
       
-      const geocoder = new window.google.maps.Geocoder();
-      geocoder.geocode({ location: e.latLng.toJSON() }, (results, status) => {
-        if (status === 'OK' && results && results[0]) {
-          const location: Location = {
-            address: results[0].formatted_address,
-            coordinates: {
-              lat: e.latLng!.lat(),
-              lng: e.latLng!.lng()
-            },
-            place_id: results[0].place_id,
-            formatted_address: results[0].formatted_address
-          };
-          
-          const type = window.confirm('Set as pickup location? (Cancel for dropoff)') 
-            ? 'pickup' 
-            : 'dropoff';
-          onLocationSelect(location, type);
-        }
-      });
-    });
+      // Generate waypoints string if any exist
+      const waypointsString = waypoints.length > 0 
+        ? `&waypoints=${waypoints.map(wp => `${wp.coordinates.lat},${wp.coordinates.lng}`).join('|')}` 
+        : '';
+        
+      mapSrc = `https://www.google.com/maps/embed/v1/directions?key=${API_KEY}&origin=${origin}&destination=${destination}${waypointsString}&mode=driving`;
+    }
+    // If we only have pickup, show that as place
+    else if (pickupLocation) {
+      const location = `${pickupLocation.coordinates.lat},${pickupLocation.coordinates.lng}`;
+      mapSrc = `https://www.google.com/maps/embed/v1/place?key=${API_KEY}&q=${location}&center=${location}&zoom=15`;
+    }
+    // If we only have dropoff, show that as place
+    else if (dropoffLocation) {
+      const location = `${dropoffLocation.coordinates.lat},${dropoffLocation.coordinates.lng}`;
+      mapSrc = `https://www.google.com/maps/embed/v1/place?key=${API_KEY}&q=${location}&center=${location}&zoom=15`;
+    }
+    
+    return mapSrc;
+  };
 
-    return () => {
-      window.google.maps.event.removeListener(clickListener);
-    };
-  }, [map, editable, onLocationSelect]);
+  // Function to handle setting pickup location
+  const handleSetPickup = () => {
+    if (!onLocationSelect) return;
+    
+    // Prompt user for address
+    const address = prompt("Enter pickup address (e.g., Dubai Mall, UAE):");
+    if (!address) return;
+    
+    setIsLoading(true);
+    
+    // Use geocoding to get coordinates
+    fetch(`https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(address)}&region=ae&key=${API_KEY}`)
+      .then(response => response.json())
+      .then(data => {
+        setIsLoading(false);
+        if (data.status === "OK" && data.results && data.results.length > 0) {
+          const result = data.results[0];
+          const location: Location = {
+            address: result.formatted_address,
+            coordinates: {
+              lat: result.geometry.location.lat,
+              lng: result.geometry.location.lng
+            },
+            place_id: result.place_id,
+            formatted_address: result.formatted_address
+          };
+          onLocationSelect(location, 'pickup');
+        } else {
+          alert("Could not find that location. Please try again with a more specific address.");
+        }
+      })
+      .catch(err => {
+        setIsLoading(false);
+        console.error("Error geocoding address:", err);
+        alert("Error finding location. Please try again.");
+      });
+  };
+  
+  // Function to handle setting dropoff location
+  const handleSetDropoff = () => {
+    if (!onLocationSelect) return;
+    
+    // Prompt user for address
+    const address = prompt("Enter dropoff address (e.g., Abu Dhabi Airport, UAE):");
+    if (!address) return;
+    
+    setIsLoading(true);
+    
+    // Use geocoding to get coordinates
+    fetch(`https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(address)}&region=ae&key=${API_KEY}`)
+      .then(response => response.json())
+      .then(data => {
+        setIsLoading(false);
+        if (data.status === "OK" && data.results && data.results.length > 0) {
+          const result = data.results[0];
+          const location: Location = {
+            address: result.formatted_address,
+            coordinates: {
+              lat: result.geometry.location.lat,
+              lng: result.geometry.location.lng
+            },
+            place_id: result.place_id,
+            formatted_address: result.formatted_address
+          };
+          onLocationSelect(location, 'dropoff');
+        } else {
+          alert("Could not find that location. Please try again with a more specific address.");
+        }
+      })
+      .catch(err => {
+        setIsLoading(false);
+        console.error("Error geocoding address:", err);
+        alert("Error finding location. Please try again.");
+      });
+  };
 
   // Show fallback if errors occur
   if (error) {
@@ -251,26 +173,8 @@ const SimpleGoogleMaps: React.FC<SimpleGoogleMapsProps> = ({
           pickupLocation={pickupLocation}
           dropoffLocation={dropoffLocation}
           waypoints={waypoints}
-          onSelectPickup={onLocationSelect ? () => {
-            const address = prompt("Enter pickup address:");
-            if (address) {
-              const location: Location = {
-                address,
-                coordinates: { lat: 24.466667, lng: 54.366667 }
-              };
-              onLocationSelect(location, 'pickup');
-            }
-          } : undefined}
-          onSelectDropoff={onLocationSelect ? () => {
-            const address = prompt("Enter dropoff address:");
-            if (address) {
-              const location: Location = {
-                address,
-                coordinates: { lat: 25.276987, lng: 55.296249 }
-              };
-              onLocationSelect(location, 'dropoff');
-            }
-          } : undefined}
+          onSelectPickup={onLocationSelect ? handleSetPickup : undefined}
+          onSelectDropoff={onLocationSelect ? handleSetDropoff : undefined}
         />
       </Card>
     );
@@ -283,24 +187,47 @@ const SimpleGoogleMaps: React.FC<SimpleGoogleMapsProps> = ({
           <VehicleLoadingIndicator />
         </div>
       )}
-      <div 
-        ref={mapRef}
-        style={{ 
-          width: '100%', 
-          height: '500px',
-          position: 'relative',
-          backgroundColor: '#f1f5f9' 
-        }}
-      >
-        {!isLoaded && !error && (
-          <div className="absolute inset-0 flex items-center justify-center">
-            <p>Loading Google Maps...</p>
-          </div>
-        )}
+      
+      {/* Embedded Google Maps iframe */}
+      <div className="relative" style={{ height: '500px' }}>
+        <iframe 
+          title="Google Maps"
+          width="100%" 
+          height="100%" 
+          style={{ border: 0 }}
+          loading="lazy"
+          allowFullScreen
+          referrerPolicy="no-referrer-when-downgrade"
+          src={getMapSrc()}
+        ></iframe>
       </div>
+      
+      {/* Controls for setting locations */}
       {editable && (
-        <div className="p-4 text-xs text-slate-500">
-          <p>Click on the map to select pickup and dropoff locations</p>
+        <div className="p-4 space-y-2">
+          <div className="flex flex-wrap gap-2">
+            <Button 
+              size="sm" 
+              variant="outline" 
+              className="bg-green-50 text-green-700 border-green-200 hover:bg-green-100"
+              onClick={handleSetPickup}
+            >
+              Set Pickup Location
+            </Button>
+            
+            <Button 
+              size="sm" 
+              variant="outline" 
+              className="bg-red-50 text-red-700 border-red-200 hover:bg-red-100"
+              onClick={handleSetDropoff}
+            >
+              Set Dropoff Location
+            </Button>
+          </div>
+          
+          <div className="text-xs text-slate-500">
+            <p>Click the buttons above to set pickup and dropoff locations</p>
+          </div>
         </div>
       )}
     </Card>
