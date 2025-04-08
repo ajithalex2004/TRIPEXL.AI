@@ -28,9 +28,7 @@ import {
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { LoadingIndicator } from "@/components/ui/loading-indicator";
-import UAEMapPicker from "@/components/uae-map-picker";
-import { MapView } from "@/components/map-view";
-import { SimpleMapView } from "@/components/simple-map-view";
+import { UAEMapPicker } from "@/components/uae-map-picker";
 import { motion, AnimatePresence } from "framer-motion";
 import { VehicleLoadingIndicator } from "@/components/ui/vehicle-loading-indicator";
 import { DateTimePicker } from "@/components/ui/date-time-picker";
