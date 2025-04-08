@@ -415,39 +415,49 @@ const BasicGoogleMaps: React.FC<BasicGoogleMapsProps> = ({
         </div>
       )}
       
-      {showSearchPanel && (
-        <div className="absolute top-2 left-2 right-2 z-20 bg-white rounded-md shadow-lg p-3">
-          <form onSubmit={handleSearchSubmit} className="flex gap-2">
-            <div className="flex-1">
-              <Input
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Search for a location in UAE"
-                className="w-full"
-              />
-            </div>
-            <Button type="submit" size="sm">
-              <Search className="w-4 h-4 mr-1" />
-              Search
-            </Button>
-            <Button 
-              type="button" 
-              variant="outline" 
+      {/* Permanent search box at the top of the map */}
+      <div className="border-b p-3 bg-white">
+        <form onSubmit={handleSearchSubmit} className="flex gap-2">
+          <div className="flex-1">
+            <Input
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder={`Search for a ${searchMode === 'pickup' ? 'pickup' : 'dropoff'} location in UAE`}
+              className="w-full"
+            />
+          </div>
+          <Button type="submit" size="sm" className="bg-blue-600 hover:bg-blue-700">
+            <Search className="w-4 h-4 mr-1" />
+            Search
+          </Button>
+          <div className="flex items-center gap-2">
+            <Button
+              type="button"
               size="sm"
-              onClick={() => setShowSearchPanel(false)}
+              variant="outline"
+              className={`${searchMode === 'pickup' ? 'bg-green-50 border-green-500 text-green-600' : 'border-gray-300'}`}
+              onClick={() => setSearchMode('pickup')}
             >
-              Cancel
+              <MapPin className="w-4 h-4" />
             </Button>
-          </form>
-        </div>
-      )}
+            <Button
+              type="button"
+              size="sm"
+              variant="outline"
+              className={`${searchMode === 'dropoff' ? 'bg-red-50 border-red-500 text-red-600' : 'border-gray-300'}`}
+              onClick={() => setSearchMode('dropoff')}
+            >
+              <Navigation className="w-4 h-4" />
+            </Button>
+          </div>
+        </form>
+      </div>
       
       <div 
         ref={mapContainerRef}
         className="relative w-full" 
         style={{ height }}
       />
-      
       {editable && (
         <div className="p-3 bg-gray-50 border-t">
           <div className="flex justify-between items-center mb-2">
