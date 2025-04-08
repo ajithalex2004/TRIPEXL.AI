@@ -481,6 +481,21 @@ const BasicGoogleMaps: React.FC<BasicGoogleMapsProps> = ({
                   type="button" 
                   size="sm" 
                   variant="outline" 
+                  className="border-blue-500 text-blue-600 hover:bg-blue-50"
+                  onClick={() => {
+                    // Default to pickup mode if no pickup location is set, otherwise set to dropoff mode
+                    setSearchMode(!pickupLocation ? 'pickup' : 'dropoff');
+                    setShowSearchPanel(true);
+                  }}
+                >
+                  <Search className="w-4 h-4 mr-1" />
+                  Search Location
+                </Button>
+              
+                <Button 
+                  type="button" 
+                  size="sm" 
+                  variant="outline" 
                   className="border-green-500 text-green-600 hover:bg-green-50"
                   onClick={() => {
                     setSearchMode('pickup');
