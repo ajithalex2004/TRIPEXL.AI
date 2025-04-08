@@ -7,6 +7,7 @@ interface MapsApiState {
   maps: typeof google.maps | null;
 }
 
+// Using named export for consistent component exports
 export function useMapsApi(apiKey: string): MapsApiState {
   const [state, setState] = useState<MapsApiState>({
     isLoaded: false,
@@ -25,7 +26,7 @@ export function useMapsApi(apiKey: string): MapsApiState {
           throw new Error('Google Maps API key is missing');
         }
         
-        // Load the API - our improved loader will handle duplicate script issues
+        // Load the API with our optimized loader
         const mapsApi = await loadGoogleMaps(apiKey);
         
         // Only update state if component is still mounted
@@ -51,7 +52,7 @@ export function useMapsApi(apiKey: string): MapsApiState {
     };
 
     // Only try to load if not already loaded
-    if (!state.isLoaded) {
+    if (!state.isLoaded && apiKey) {
       loadApi();
     }
 
@@ -59,9 +60,10 @@ export function useMapsApi(apiKey: string): MapsApiState {
     return () => {
       isMounted = false;
     };
-  }, [apiKey, state.isLoaded]); // Only re-run if apiKey changes or isLoaded changes
+  }, [apiKey]); // Only re-run if apiKey changes
 
   return state;
 }
 
-// We're no longer exporting a default for better compatibility with Fast Refresh
+// Maintain compatibility with existing imports
+export default useMapsApi;

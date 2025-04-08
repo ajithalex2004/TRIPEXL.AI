@@ -1,13 +1,17 @@
-// Google Maps API loader utility with improved loading mechanism
-// This utility provides a reliable way to load the Google Maps API
+// Optimized Google Maps API loader utility
+// This utility provides a reliable way to load the Google Maps API with performance optimizations
 
 const LIBRARIES = ["places", "geometry"] as any[];
 let googleMapsPromise: Promise<any> | null = null;
 const SCRIPT_ID = "google-maps-script";
 const GOOGLE_MAPS_AUTH_ERROR_TEXT = "This page didn't load Google Maps correctly";
+const LOAD_TIMEOUT = 20000; // Increased timeout to 20 seconds for slower connections
+
+// Custom event for Maps load state
+const MAPS_LOAD_EVENT = 'google-maps-loaded';
 
 // For handling API key errors and authentication issues
-const addGlobalErrorListener = (callbackName: string, reject: (reason: any) => void) => {
+const addGlobalErrorListener = (reject: (reason: any) => void) => {
   const originalConsoleError = console.error;
   const errorHandler = (event: ErrorEvent) => {
     // Check if the error is from Google Maps
@@ -20,7 +24,6 @@ const addGlobalErrorListener = (callbackName: string, reject: (reason: any) => v
       console.error("Google Maps API authentication error detected:", event.message);
       // Clean up
       window.removeEventListener('error', errorHandler);
-      delete window[callbackName];
       googleMapsPromise = null;
       
       // Reject with a clear error message
@@ -38,14 +41,22 @@ const addGlobalErrorListener = (callbackName: string, reject: (reason: any) => v
   };
 };
 
-// Function to manually initialize Google Maps when the API is loaded
-function initMap() {
+// This function is called by the Google Maps API when it's loaded
+// It must be defined as a global function
+window.initMap = function() {
   console.log("initMap function called - Maps API initialized successfully");
+  
+  // Dispatch custom event
+  const event = new CustomEvent(MAPS_LOAD_EVENT);
+  window.dispatchEvent(event);
+  
+  // Call the callback if defined
   if (typeof window.googleMapsCallback === 'function') {
     window.googleMapsCallback();
   }
-}
+};
 
+// Load Google Maps using a deferred approach
 export function loadGoogleMaps(apiKey: string): Promise<any> {
   // Return existing promise if already loading or loaded
   if (googleMapsPromise) {
@@ -88,23 +99,38 @@ export function loadGoogleMaps(apiKey: string): Promise<any> {
       
       console.log("Using Google Maps API key:", `${apiKey.substring(0, 5)}...${apiKey.substring(apiKey.length - 5)}`);
 
-      // Define global callback for Google Maps
-      window.googleMapsCallback = () => {
-        console.log("Google Maps API loaded successfully");
-        
-        // Remove error listeners since load succeeded
-        cleanupErrorListener();
+      // Set up custom event listener
+      const mapsLoadHandler = () => {
+        console.log("Google Maps API loaded successfully (via custom event)");
         clearTimeout(timeoutId);
+        cleanupErrorListener();
         
         if (window.google && window.google.maps) {
           resolve(window.google.maps);
         } else {
           reject(new Error("Google Maps API loaded but window.google.maps is not available"));
         }
+        
+        // Remove event listener after successful load
+        window.removeEventListener(MAPS_LOAD_EVENT, mapsLoadHandler);
       };
+      
+      window.addEventListener(MAPS_LOAD_EVENT, mapsLoadHandler);
 
-      // Register initMap function globally
-      window.initMap = initMap;
+      // Define global callback for Google Maps (fallback)
+      window.googleMapsCallback = () => {
+        console.log("Google Maps API loaded successfully (via callback)");
+        
+        // Only resolve if not already resolved by the event
+        if (googleMapsPromise) {
+          clearTimeout(timeoutId);
+          cleanupErrorListener();
+          
+          if (window.google && window.google.maps) {
+            resolve(window.google.maps);
+          }
+        }
+      };
       
       // Set up auth failure handling
       window.gm_authFailure = () => {
@@ -115,41 +141,41 @@ export function loadGoogleMaps(apiKey: string): Promise<any> {
       };
 
       // Set up error listeners
-      const cleanupErrorListener = addGlobalErrorListener('googleMapsCallback', reject);
+      const cleanupErrorListener = addGlobalErrorListener(reject);
 
-      // Create the script element
-      const script = document.createElement("script");
-      script.id = SCRIPT_ID;
-      script.src = `https://maps.googleapis.com/maps/api/js?key=${apiKey}&libraries=${LIBRARIES.join(",")}&callback=initMap&loading=async&v=weekly`;
-      script.async = true;
-      script.defer = true;
+      // Intelligently decide whether to use browser idle callback for non-critical loading
+      const loadMapsScript = () => {
+        // Create the script element
+        const script = document.createElement("script");
+        script.id = SCRIPT_ID;
+        script.src = `https://maps.googleapis.com/maps/api/js?key=${apiKey}&libraries=${LIBRARIES.join(",")}&callback=initMap&loading=async&v=weekly`;
+        script.async = true;
+        script.defer = true;
+        
+        // Add the script to the page
+        document.head.appendChild(script);
+        console.log("Google Maps script added to document head");
+      };
       
-      // Define loading timeout (15 seconds)
+      // Use requestIdleCallback for deferred loading if available, otherwise use a short timeout
+      if (typeof window.requestIdleCallback === 'function') {
+        window.requestIdleCallback(() => loadMapsScript(), { timeout: 2000 });
+      } else {
+        // Minor delay to let critical resources load first
+        setTimeout(loadMapsScript, 100);
+      }
+      
+      // Define loading timeout (20 seconds)
       const timeoutId = setTimeout(() => {
-        console.error("Google Maps API loading timed out after 15 seconds");
+        console.error(`Google Maps API loading timed out after ${LOAD_TIMEOUT/1000} seconds`);
         cleanupErrorListener();
+        window.removeEventListener(MAPS_LOAD_EVENT, mapsLoadHandler);
         reject(new Error("Google Maps API loading timed out. Please check your internet connection and API key."));
         // Clean up
         delete window.googleMapsCallback;
-        delete window.initMap;
         googleMapsPromise = null;
-      }, 15000);
+      }, LOAD_TIMEOUT);
       
-      // Handle loading errors
-      script.onerror = (error) => {
-        console.error("Google Maps API script failed to load:", error);
-        clearTimeout(timeoutId);
-        cleanupErrorListener();
-        reject(new Error("Failed to load Google Maps API script. Please check your internet connection."));
-        // Clean up
-        delete window.googleMapsCallback;
-        delete window.initMap;
-        googleMapsPromise = null;
-      };
-
-      // Add the script to the page
-      document.head.appendChild(script);
-      console.log("Google Maps script added to document head");
     } catch (error) {
       console.error("Error setting up Google Maps API load:", error);
       reject(error);
@@ -170,19 +196,21 @@ export function resetGoogleMapsLoader(): void {
   }
   // Clean up global callbacks
   delete window.googleMapsCallback;
-  delete window.initMap;
   // Clear any previous Google Maps auth errors
   if (window.gm_authFailure) {
     delete window.gm_authFailure;
   }
 }
 
+// Define requestIdleCallback for TypeScript
 declare global {
   interface Window {
     google?: any;
     gm_authFailure?: () => void;
     googleMapsCallback?: () => void;
-    initMap?: () => void;
+    initMap: () => void;
+    requestIdleCallback?: (callback: () => void, options?: { timeout: number }) => number;
+    cancelIdleCallback?: (handle: number) => void;
     [key: string]: any;
   }
 }
