@@ -1,4 +1,4 @@
-// Google Maps API loader utility
+// Google Maps API loader utility with improved loading mechanism
 // This utility provides a reliable way to load the Google Maps API
 
 const LIBRARIES = ["places", "geometry"] as any[];
@@ -37,6 +37,14 @@ const addGlobalErrorListener = (callbackName: string, reject: (reason: any) => v
     console.error = originalConsoleError;
   };
 };
+
+// Function to manually initialize Google Maps when the API is loaded
+function initMap() {
+  console.log("initMap function called - Maps API initialized successfully");
+  if (typeof window.googleMapsCallback === 'function') {
+    window.googleMapsCallback();
+  }
+}
 
 export function loadGoogleMaps(apiKey: string): Promise<any> {
   // Return existing promise if already loading or loaded
@@ -78,43 +86,41 @@ export function loadGoogleMaps(apiKey: string): Promise<any> {
         return;
       }
       
-      console.log("Using Google Maps API key:", apiKey.substring(0, 6) + "..." + apiKey.substring(apiKey.length - 4));
+      console.log("Using Google Maps API key:", `${apiKey.substring(0, 5)}...${apiKey.substring(apiKey.length - 5)}`);
 
-      // Create a unique callback name to avoid conflicts
-      const callbackName = `googleMapsCallback_${Math.round(Math.random() * 1000000)}`;
-      
-      // Set up auth failure handling
-      window.gm_authFailure = () => {
-        console.error("Google Maps authentication failed - invalid API key");
-        reject(new Error("Google Maps API key is invalid or has restrictions that prevent it from being used."));
-        // Clean up
-        delete window[callbackName];
-        googleMapsPromise = null;
-      };
-      
-      // Add the callback to the window object
-      window[callbackName] = () => {
+      // Define global callback for Google Maps
+      window.googleMapsCallback = () => {
         console.log("Google Maps API loaded successfully");
         
         // Remove error listeners since load succeeded
         cleanupErrorListener();
+        clearTimeout(timeoutId);
         
         if (window.google && window.google.maps) {
           resolve(window.google.maps);
         } else {
           reject(new Error("Google Maps API loaded but window.google.maps is not available"));
         }
+      };
+
+      // Register initMap function globally
+      window.initMap = initMap;
+      
+      // Set up auth failure handling
+      window.gm_authFailure = () => {
+        console.error("Google Maps authentication failed - invalid API key");
+        reject(new Error("Google Maps API key is invalid or has restrictions that prevent it from being used."));
         // Clean up
-        delete window[callbackName];
+        googleMapsPromise = null;
       };
 
       // Set up error listeners
-      const cleanupErrorListener = addGlobalErrorListener(callbackName, reject);
+      const cleanupErrorListener = addGlobalErrorListener('googleMapsCallback', reject);
 
       // Create the script element
       const script = document.createElement("script");
       script.id = SCRIPT_ID;
-      script.src = `https://maps.googleapis.com/maps/api/js?key=${apiKey}&libraries=${LIBRARIES.join(",")}&callback=${callbackName}&v=quarterly`;
+      script.src = `https://maps.googleapis.com/maps/api/js?key=${apiKey}&libraries=${LIBRARIES.join(",")}&callback=initMap&loading=async&v=weekly`;
       script.async = true;
       script.defer = true;
       
@@ -124,7 +130,8 @@ export function loadGoogleMaps(apiKey: string): Promise<any> {
         cleanupErrorListener();
         reject(new Error("Google Maps API loading timed out. Please check your internet connection and API key."));
         // Clean up
-        delete window[callbackName];
+        delete window.googleMapsCallback;
+        delete window.initMap;
         googleMapsPromise = null;
       }, 15000);
       
@@ -135,7 +142,8 @@ export function loadGoogleMaps(apiKey: string): Promise<any> {
         cleanupErrorListener();
         reject(new Error("Failed to load Google Maps API script. Please check your internet connection."));
         // Clean up
-        delete window[callbackName];
+        delete window.googleMapsCallback;
+        delete window.initMap;
         googleMapsPromise = null;
       };
 
@@ -160,6 +168,9 @@ export function resetGoogleMapsLoader(): void {
   if (existingScript) {
     existingScript.remove();
   }
+  // Clean up global callbacks
+  delete window.googleMapsCallback;
+  delete window.initMap;
   // Clear any previous Google Maps auth errors
   if (window.gm_authFailure) {
     delete window.gm_authFailure;
@@ -170,6 +181,8 @@ declare global {
   interface Window {
     google?: any;
     gm_authFailure?: () => void;
+    googleMapsCallback?: () => void;
+    initMap?: () => void;
     [key: string]: any;
   }
 }
