@@ -35,12 +35,14 @@ const GoogleMapsWithSearch: React.FC<GoogleMapsWithSearchProps> = ({
   height = '400px'
 }) => {
   const mapContainerRef = useRef<HTMLDivElement>(null);
+  const infoWindow = useRef<google.maps.InfoWindow | null>(null);
+  const currentMarker = useRef<google.maps.Marker | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState<string>("");
   const [searchMode, setSearchMode] = useState<'pickup' | 'dropoff'>('pickup');
   const [showInfoWindow, setShowInfoWindow] = useState(false);
-  const [selectedLocation, setSelectedLocation] = useState<google.maps.LatLng | null>(null);
+  const [selectedLocation, setSelectedLocation] = useState<Location | null>(null);
   
   // Load the Google Maps API
   useEffect(() => {
@@ -135,7 +137,7 @@ const GoogleMapsWithSearch: React.FC<GoogleMapsWithSearchProps> = ({
         const clickedLocation = e.latLng;
         if (!clickedLocation) return;
         
-        setSelectedLocation(clickedLocation);
+        // Don't set selected location here, it will be set in createInfoWindow
         setShowInfoWindow(true);
         
         // Create an info window at the clicked location
@@ -150,18 +152,37 @@ const GoogleMapsWithSearch: React.FC<GoogleMapsWithSearchProps> = ({
   
   // Creates an info window with "Set as Pickup" and "Set as Dropoff" buttons
   const createInfoWindow = (map: google.maps.Map, position: google.maps.LatLng) => {
-    // Remove existing info window if any
-    // @ts-ignore
-    if (mapContainerRef.current.infoWindow) {
-      // @ts-ignore
-      mapContainerRef.current.infoWindow.close();
+    // Close existing info window if any
+    if (infoWindow.current) {
+      infoWindow.current.close();
     }
     
-    // Create a new InfoWindow
-    const infoWindow = new google.maps.InfoWindow({
+    // Remove existing marker if any
+    if (currentMarker.current) {
+      currentMarker.current.setMap(null);
+    }
+    
+    // Create a new marker
+    currentMarker.current = new google.maps.Marker({
       position: position,
+      map,
+      animation: google.maps.Animation.DROP,
+      title: 'Selected location'
+    });
+    
+    // Create a new InfoWindow
+    infoWindow.current = new google.maps.InfoWindow({
       disableAutoPan: false
     });
+    
+    // Create the location object for the clicked position
+    const locationObj: Location = {
+      address: "",  // Will be filled by geocoder
+      coordinates: {
+        lat: position.lat(),
+        lng: position.lng()
+      }
+    };
     
     // Create the content for the InfoWindow with the buttons
     const content = document.createElement('div');
@@ -186,17 +207,30 @@ const GoogleMapsWithSearch: React.FC<GoogleMapsWithSearchProps> = ({
     document.head.appendChild(style);
     
     // Set the content to the InfoWindow
-    infoWindow.setContent(content);
+    infoWindow.current.setContent(content);
     
     // Open the InfoWindow
-    infoWindow.open(map);
+    infoWindow.current.open(map, currentMarker.current);
     
-    // Store the InfoWindow for later reference
-    // @ts-ignore
-    mapContainerRef.current.infoWindow = infoWindow;
+    // Get address information using geocoder
+    const geocoder = new google.maps.Geocoder();
+    geocoder.geocode({ location: position }, (results, status) => {
+      if (status === google.maps.GeocoderStatus.OK && results && results.length > 0) {
+        const place = results[0];
+        
+        // Update location object with address details
+        locationObj.address = place.formatted_address || "";
+        locationObj.place_id = place.place_id || "";
+        locationObj.name = place.formatted_address || "";
+        locationObj.formatted_address = place.formatted_address || "";
+        
+        // Update the selectedLocation state
+        setSelectedLocation(locationObj);
+      }
+    });
     
     // Add event listeners to the buttons after the InfoWindow is opened
-    google.maps.event.addListener(infoWindow, 'domready', () => {
+    google.maps.event.addListener(infoWindow.current, 'domready', () => {
       // Get the buttons
       const setPickupButton = document.getElementById('set-pickup');
       const setDropoffButton = document.getElementById('set-dropoff');
@@ -205,14 +239,14 @@ const GoogleMapsWithSearch: React.FC<GoogleMapsWithSearchProps> = ({
       if (setPickupButton) {
         setPickupButton.addEventListener('click', () => {
           handleSetLocation(position, 'pickup');
-          infoWindow.close();
+          if (infoWindow.current) infoWindow.current.close();
         });
       }
       
       if (setDropoffButton) {
         setDropoffButton.addEventListener('click', () => {
           handleSetLocation(position, 'dropoff');
-          infoWindow.close();
+          if (infoWindow.current) infoWindow.current.close();
         });
       }
     });
@@ -478,7 +512,12 @@ const GoogleMapsWithSearch: React.FC<GoogleMapsWithSearchProps> = ({
   // Set location directly by mode (for buttons in the UI)
   const handleSetLocationByMode = () => {
     if (!selectedLocation || !onLocationSelect) return;
-    handleSetLocation(selectedLocation, searchMode);
+    // Create a google.maps.LatLng object
+    const latLng = new google.maps.LatLng(
+      selectedLocation.coordinates.lat,
+      selectedLocation.coordinates.lng
+    );
+    handleSetLocation(latLng, searchMode);
   };
   
   // Geocode an address using the Geocoding API
