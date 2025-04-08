@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -11,11 +11,12 @@ import {
   Search, 
   CarFront, 
   Check,
-  Bus
+  Bus,
+  Building2
 } from "lucide-react";
 
-// Simple interface for location
-interface Location {
+// Use the same Location interface as in booking-form.tsx
+export interface Location {
   address: string;
   coordinates: {
     lat: number;
@@ -26,9 +27,9 @@ interface Location {
   formatted_address?: string;
 }
 
-interface UAEMapPickerProps {
-  pickupLocation?: Location;
-  dropoffLocation?: Location;
+export interface UAEMapPickerProps {
+  pickupLocation?: Location | null;
+  dropoffLocation?: Location | null;
   waypoints?: Location[];
   onLocationSelect?: (location: Location, type: 'pickup' | 'dropoff' | 'waypoint') => void;
   editable?: boolean;
@@ -60,21 +61,46 @@ const UAE_LOCATIONS = [
   { name: "Al Ain Zoo", coordinates: { lat: 24.175926, lng: 55.740697 }, address: "Al Ain Zoo, Al Ain, UAE" },
   { name: "Dubai Miracle Garden", coordinates: { lat: 25.062319, lng: 55.248203 }, address: "Dubai Miracle Garden, Dubailand, Dubai, UAE" },
   { name: "Jebel Jais", coordinates: { lat: 25.937967, lng: 56.131822 }, address: "Jebel Jais, Ras Al Khaimah, UAE" },
-  { name: "Sharjah Aquarium", coordinates: { lat: 25.356595, lng: 55.383424 }, address: "Sharjah Aquarium, Sharjah, UAE" }
+  { name: "Sharjah Aquarium", coordinates: { lat: 25.356595, lng: 55.383424 }, address: "Sharjah Aquarium, Sharjah, UAE" },
+  // Add more business locations
+  { name: "Dubai Media City", coordinates: { lat: 25.0914, lng: 55.1589 }, address: "Dubai Media City, Dubai, UAE" },
+  { name: "Dubai Healthcare City", coordinates: { lat: 25.2285, lng: 55.3273 }, address: "Dubai Healthcare City, Dubai, UAE" },
+  { name: "Jumeirah Beach Residence", coordinates: { lat: 25.0803, lng: 55.1339 }, address: "JBR, Dubai Marina, Dubai, UAE" },
+  { name: "Dubai World Trade Centre", coordinates: { lat: 25.2253, lng: 55.2867 }, address: "Dubai World Trade Centre, Dubai, UAE" },
+  { name: "Dubai Internet City", coordinates: { lat: 25.0996, lng: 55.1740 }, address: "Dubai Internet City, Dubai, UAE" },
+  { name: "Masdar City", coordinates: { lat: 24.4267, lng: 54.6160 }, address: "Masdar City, Abu Dhabi, UAE" },
+  { name: "ADNEC", coordinates: { lat: 24.4181, lng: 54.4339 }, address: "Abu Dhabi National Exhibition Centre, Abu Dhabi, UAE" },
+  { name: "Business Bay", coordinates: { lat: 25.1872, lng: 55.2750 }, address: "Business Bay, Dubai, UAE" },
+  { name: "DIFC", coordinates: { lat: 25.2149, lng: 55.2783 }, address: "Dubai International Financial Centre, Dubai, UAE" }
 ];
 
 // Enhanced UAEMapPicker component with custom location selection
-const UAEMapPicker: React.FC<UAEMapPickerProps> = ({
+export function UAEMapPicker({
   pickupLocation,
   dropoffLocation,
   waypoints = [],
   onLocationSelect,
   editable = true
-}) => {
-  const [isLoading, setIsLoading] = useState(false);
-  const [searchQuery, setSearchQuery] = useState("");
+}: UAEMapPickerProps) {
+  console.log("UAEMapPicker rendering with:", { pickupLocation, dropoffLocation, waypoints });
+  
+  const [isLoading, setIsLoading] = useState<boolean>(false);
+  const [searchQuery, setSearchQuery] = useState<string>("");
   const [searchResults, setSearchResults] = useState<typeof UAE_LOCATIONS>([]);
   const [activeTab, setActiveTab] = useState<'pickup' | 'dropoff'>('pickup');
+  const [mapKey, setMapKey] = useState<number>(0); // For forced re-renders
+
+  // Log component mounting
+  useEffect(() => {
+    console.log("UAEMapPicker mounted");
+    return () => console.log("UAEMapPicker unmounted");
+  }, []);
+
+  // Force re-render when pickup or dropoff locations change
+  useEffect(() => {
+    setMapKey(prev => prev + 1);
+    console.log("Location changed, forcing map re-render");
+  }, [pickupLocation, dropoffLocation]);
 
   // Function to handle searching UAE locations
   const handleSearch = () => {
@@ -90,18 +116,35 @@ const UAEMapPicker: React.FC<UAEMapPickerProps> = ({
     );
     
     setSearchResults(results);
+    console.log(`Found ${results.length} locations matching "${searchQuery}"`);
+  };
+
+  // Handle enter key in search input
+  const handleSearchKeyPress = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter') {
+      handleSearch();
+    }
   };
 
   // Function to handle selection of a location
   const handleLocationSelect = (location: typeof UAE_LOCATIONS[0], type: 'pickup' | 'dropoff') => {
-    if (!onLocationSelect) return;
+    if (!onLocationSelect) {
+      console.warn("UAEMapPicker: onLocationSelect callback is not provided");
+      return;
+    }
     
     const selectedLocation: Location = {
       address: location.address,
-      coordinates: location.coordinates,
-      name: location.name
+      coordinates: {
+        lat: location.coordinates.lat,
+        lng: location.coordinates.lng
+      },
+      name: location.name,
+      place_id: "", // Required placeholder
+      formatted_address: location.address
     };
     
+    console.log(`UAEMapPicker: Selected ${type} location:`, selectedLocation);
     onLocationSelect(selectedLocation, type);
     setSearchQuery("");
     setSearchResults([]);
@@ -109,7 +152,10 @@ const UAEMapPicker: React.FC<UAEMapPickerProps> = ({
 
   // Function to handle direct address entry
   const handleAddressEntry = (type: 'pickup' | 'dropoff') => {
-    if (!onLocationSelect || !searchQuery.trim()) return;
+    if (!onLocationSelect || !searchQuery.trim()) {
+      console.warn("UAEMapPicker: Cannot set location - missing callback or empty search query");
+      return;
+    }
     
     // For simplicity, we'll use UAE coordinates with the entered address
     const defaultCoords = type === 'pickup' ? DUBAI : ABU_DHABI;
@@ -117,16 +163,23 @@ const UAEMapPicker: React.FC<UAEMapPickerProps> = ({
     // Create a location from the entered address
     const location: Location = {
       address: searchQuery,
-      coordinates: defaultCoords
+      coordinates: {
+        lat: defaultCoords.lat,
+        lng: defaultCoords.lng
+      },
+      name: searchQuery,
+      place_id: "", // Required placeholder
+      formatted_address: searchQuery
     };
     
+    console.log(`UAEMapPicker: Setting manual ${type} location:`, location);
     onLocationSelect(location, type);
     setSearchQuery("");
     setSearchResults([]);
   };
 
   // Get distance between two points in kilometers using Haversine formula
-  const getDistanceInKm = (lat1: number, lon1: number, lat2: number, lon2: number) => {
+  const getDistanceInKm = (lat1: number, lon1: number, lat2: number, lon2: number): number => {
     const R = 6371; // Radius of the earth in km
     const dLat = deg2rad(lat2 - lat1);
     const dLon = deg2rad(lon2 - lon1);
@@ -140,122 +193,131 @@ const UAEMapPicker: React.FC<UAEMapPickerProps> = ({
   };
   
   // Convert degrees to radians
-  const deg2rad = (deg: number) => {
+  const deg2rad = (deg: number): number => {
     return deg * (Math.PI/180);
   };
 
-  // Generate a static map visualization
+  // Generate a static map visualization with improved UI
   const renderStaticMap = () => {
     const hasPickup = !!pickupLocation;
     const hasDropoff = !!dropoffLocation;
-    const mapWidth = 600;
-    const mapHeight = 400;
-    
-    // Create virtual coordinates for visualization
-    const virtualPoints: {x: number, y: number, type: string, label: string}[] = [];
-    
-    if (hasPickup) {
-      virtualPoints.push({
-        x: mapWidth * 0.25,
-        y: mapHeight * 0.5,
-        type: 'pickup',
-        label: pickupLocation!.address.split(',')[0]
-      });
-    }
-    
-    if (hasDropoff) {
-      virtualPoints.push({
-        x: mapWidth * 0.75,
-        y: mapHeight * 0.5,
-        type: 'dropoff',
-        label: dropoffLocation!.address.split(',')[0]
-      });
-    }
     
     // Calculate distance if both points exist
     let distance = 0;
-    if (hasPickup && hasDropoff) {
+    if (hasPickup && hasDropoff && pickupLocation && dropoffLocation) {
       distance = getDistanceInKm(
-        pickupLocation!.coordinates.lat,
-        pickupLocation!.coordinates.lng,
-        dropoffLocation!.coordinates.lat,
-        dropoffLocation!.coordinates.lng
+        pickupLocation.coordinates.lat,
+        pickupLocation.coordinates.lng,
+        dropoffLocation.coordinates.lat,
+        dropoffLocation.coordinates.lng
       );
     }
     
     return (
-      <div className="relative bg-slate-100 rounded-md overflow-hidden" style={{ width: '100%', height: '400px' }}>
-        <div className="absolute inset-0 bg-slate-200 p-4">
-          <div className="bg-white rounded-lg shadow-md p-2 text-sm mb-2">
-            This is a representative map view. Select locations using the controls below.
+      <div key={mapKey} className="relative bg-slate-100 rounded-md overflow-hidden" style={{ width: '100%', height: '400px' }}>
+        <div className="absolute inset-0 bg-gradient-to-b from-slate-100 to-slate-200 p-4">
+          <div className="bg-white rounded-lg shadow-md p-2 text-sm mb-2 border-l-4 border-blue-500">
+            <span className="font-medium">UAE Interactive Map</span> - Select locations using the search box below
           </div>
           
           {/* Draw the map visualization */}
-          <div className="relative bg-blue-50 rounded-lg border border-blue-200 h-[300px] overflow-hidden">
-            {/* Map title */}
-            <div className="absolute top-2 left-0 right-0 text-center text-sm font-semibold text-blue-700">
-              UAE Interactive Map
+          <div className="relative bg-gradient-to-b from-blue-50 to-blue-100 rounded-lg border border-blue-200 h-[300px] overflow-hidden shadow-inner">
+            {/* Background elements */}
+            <div className="absolute inset-0 overflow-hidden opacity-10">
+              <div className="absolute top-10 left-10 w-20 h-32 bg-slate-400 rounded-md transform rotate-12"></div>
+              <div className="absolute top-40 left-60 w-16 h-20 bg-slate-400 rounded-md transform -rotate-6"></div>
+              <div className="absolute top-20 right-40 w-12 h-24 bg-slate-400 rounded-md transform rotate-3"></div>
+              <div className="absolute bottom-10 right-20 w-24 h-16 bg-slate-400 rounded-md transform -rotate-9"></div>
             </div>
             
-            {/* City labels */}
-            <div className="absolute top-1/4 left-1/4 transform -translate-x-1/2 -translate-y-1/2 text-blue-800 font-bold">
-              Dubai
+            {/* Roads */}
+            <div className="absolute top-1/3 left-0 right-0 h-[2px] bg-slate-400"></div>
+            <div className="absolute top-2/3 left-0 right-0 h-[2px] bg-slate-400"></div>
+            <div className="absolute left-1/3 top-0 bottom-0 w-[2px] bg-slate-400"></div>
+            <div className="absolute left-2/3 top-0 bottom-0 w-[2px] bg-slate-400"></div>
+            
+            {/* City markers */}
+            <div className="absolute top-1/4 left-1/4 transform -translate-x-1/2 -translate-y-1/2">
+              <div className="flex flex-col items-center">
+                <Building2 className="text-blue-800 mb-1" size={20} />
+                <span className="text-blue-800 font-bold text-xs bg-white/70 px-2 py-0.5 rounded">Dubai</span>
+              </div>
             </div>
-            <div className="absolute top-3/4 right-1/3 transform -translate-x-1/2 -translate-y-1/2 text-blue-800 font-bold">
-              Abu Dhabi
+            <div className="absolute top-3/4 right-1/3 transform -translate-x-1/2 -translate-y-1/2">
+              <div className="flex flex-col items-center">
+                <Building2 className="text-blue-800 mb-1" size={20} />
+                <span className="text-blue-800 font-bold text-xs bg-white/70 px-2 py-0.5 rounded">Abu Dhabi</span>
+              </div>
             </div>
             
             {/* Water */}
-            <div className="absolute bottom-0 left-0 right-0 h-1/3 bg-blue-300 opacity-50"></div>
+            <div className="absolute bottom-0 right-0 w-1/2 h-1/3 bg-blue-300 opacity-30 rounded-tl-[100px]"></div>
             
-            {/* Draw route if both points exist */}
-            {hasPickup && hasDropoff && (
-              <>
-                <div className="absolute"
-                  style={{
-                    top: `${virtualPoints[0].y}px`,
-                    left: `${virtualPoints[0].x}px`,
-                    width: `${virtualPoints[1].x - virtualPoints[0].x}px`,
-                    height: '4px',
-                    background: 'linear-gradient(90deg, #10B981 0%, #EF4444 100%)',
-                    transformOrigin: 'left center'
-                  }}
-                />
-                
-                {/* Distance label */}
-                <div className="absolute bg-white px-2 py-1 rounded-full text-xs font-medium text-slate-700 shadow-sm"
-                  style={{
-                    top: `${(virtualPoints[0].y + virtualPoints[1].y) / 2 - 15}px`,
-                    left: `${(virtualPoints[0].x + virtualPoints[1].x) / 2 - 40}px`,
-                  }}
-                >
-                  ~{distance.toFixed(1)} km
-                </div>
-              </>
-            )}
-            
-            {/* Draw the markers */}
-            {virtualPoints.map((point, index) => (
-              <div key={index} className="absolute"
-                style={{
-                  top: `${point.y - 20}px`,
-                  left: `${point.x - 10}px`,
-                }}
-              >
-                <div className={`w-6 h-6 flex items-center justify-center rounded-full shadow-md text-white
-                  ${point.type === 'pickup' ? 'bg-green-500' : 'bg-red-500'}`}
-                >
-                  {point.type === 'pickup' ? <MapPin size={14} /> : <Navigation size={14} />}
-                </div>
-                <div className="absolute -bottom-6 left-1/2 transform -translate-x-1/2 bg-white px-2 py-0.5 rounded text-xs font-medium shadow-sm whitespace-nowrap">
-                  {point.label}
+            {/* Pickup point */}
+            {hasPickup && pickupLocation && (
+              <div className="absolute top-1/3 left-1/4 transform -translate-x-1/2 -translate-y-1/2">
+                <div className="flex flex-col items-center">
+                  <div className="w-8 h-8 flex items-center justify-center rounded-full shadow-md bg-green-500 text-white animate-pulse">
+                    <MapPin size={16} />
+                  </div>
+                  <div className="mt-1 bg-white px-2 py-0.5 rounded text-xs font-medium shadow-sm max-w-[120px] truncate text-center">
+                    {pickupLocation.name || pickupLocation.address.split(',')[0]}
+                  </div>
                 </div>
               </div>
-            ))}
+            )}
+            
+            {/* Dropoff point */}
+            {hasDropoff && dropoffLocation && (
+              <div className="absolute top-1/3 right-1/4 transform -translate-x-1/2 -translate-y-1/2">
+                <div className="flex flex-col items-center">
+                  <div className="w-8 h-8 flex items-center justify-center rounded-full shadow-md bg-red-500 text-white">
+                    <Navigation size={16} />
+                  </div>
+                  <div className="mt-1 bg-white px-2 py-0.5 rounded text-xs font-medium shadow-sm max-w-[120px] truncate text-center">
+                    {dropoffLocation.name || dropoffLocation.address.split(',')[0]}
+                  </div>
+                </div>
+              </div>
+            )}
+            
+            {/* Route line */}
+            {hasPickup && hasDropoff && (
+              <div className="absolute top-1/3 left-1/4 right-3/4 h-[3px] bg-blue-600 z-10"
+                style={{
+                  width: '50%',
+                  backgroundImage: 'linear-gradient(to right, #10B981, #3B82F6, #EF4444)'
+                }}
+              />
+            )}
+            
+            {/* Distance indicator */}
+            {hasPickup && hasDropoff && (
+              <div className="absolute top-1/4 left-1/2 transform -translate-x-1/2 -translate-y-1/2 z-20">
+                <div className="bg-white px-3 py-1 rounded-full text-xs font-medium text-slate-700 shadow-md border border-blue-100 flex items-center gap-1">
+                  <span className="text-blue-500">~{distance.toFixed(1)} km</span>
+                  {distance > 0 && (
+                    <span className="text-slate-500 text-[10px]">•</span>
+                  )}
+                  {distance > 0 && (
+                    <span className="text-slate-500 text-[10px]">~{Math.round(distance / 50 * 60)} min</span>
+                  )}
+                </div>
+              </div>
+            )}
             
             {/* Map features */}
-            <div className="absolute bottom-2 right-2 flex gap-1 text-xs text-slate-500">
-              <Bus size={12} /> <CarFront size={12} />
+            <div className="absolute bottom-2 right-2 bg-white/80 rounded-full px-2 py-1">
+              <div className="flex gap-2 text-xs text-slate-500">
+                <span className="flex items-center gap-1">
+                  <CarFront size={12} className="text-slate-400" /> 
+                  <span className="text-[10px]">Transport</span>
+                </span>
+                <span className="flex items-center gap-1">
+                  <Bus size={12} className="text-slate-400" />
+                  <span className="text-[10px]">Transit</span>
+                </span>
+              </div>
             </div>
           </div>
         </div>
@@ -264,7 +326,7 @@ const UAEMapPicker: React.FC<UAEMapPickerProps> = ({
   };
 
   return (
-    <Card className="overflow-hidden">
+    <Card className="overflow-hidden border shadow-md">
       {isLoading && (
         <div className="absolute inset-0 bg-white/80 z-10 flex items-center justify-center">
           <VehicleLoadingIndicator />
@@ -280,6 +342,7 @@ const UAEMapPicker: React.FC<UAEMapPickerProps> = ({
           {/* Tabs for pickup/dropoff */}
           <div className="flex border-b">
             <button
+              type="button"
               className={`flex-1 pb-2 font-medium text-sm flex items-center justify-center gap-1 ${
                 activeTab === 'pickup' 
                   ? 'text-green-600 border-b-2 border-green-500' 
@@ -291,6 +354,7 @@ const UAEMapPicker: React.FC<UAEMapPickerProps> = ({
               Set Pickup
             </button>
             <button
+              type="button"
               className={`flex-1 pb-2 font-medium text-sm flex items-center justify-center gap-1 ${
                 activeTab === 'dropoff' 
                   ? 'text-red-600 border-b-2 border-red-500' 
@@ -315,9 +379,11 @@ const UAEMapPicker: React.FC<UAEMapPickerProps> = ({
                     placeholder={`Search for ${activeTab === 'pickup' ? 'pickup' : 'dropoff'} location`}
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
+                    onKeyPress={handleSearchKeyPress}
                     className="pr-8"
                   />
                   <button 
+                    type="button"
                     className="absolute right-2 top-1/2 transform -translate-y-1/2 text-slate-400 hover:text-slate-600"
                     onClick={handleSearch}
                   >
@@ -326,6 +392,7 @@ const UAEMapPicker: React.FC<UAEMapPickerProps> = ({
                 </div>
               </div>
               <Button
+                type="button"
                 variant="outline"
                 className={`shrink-0 ${
                   activeTab === 'pickup' 
@@ -370,6 +437,7 @@ const UAEMapPicker: React.FC<UAEMapPickerProps> = ({
               </div>
               {searchResults.map((result, index) => (
                 <button
+                  type="button"
                   key={index}
                   className="w-full text-left px-3 py-2 hover:bg-slate-50 flex items-start gap-2 border-b last:border-b-0"
                   onClick={() => handleLocationSelect(result, activeTab)}
@@ -396,6 +464,6 @@ const UAEMapPicker: React.FC<UAEMapPickerProps> = ({
       )}
     </Card>
   );
-};
+}
 
 export default UAEMapPicker;
