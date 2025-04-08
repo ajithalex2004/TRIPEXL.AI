@@ -44,8 +44,9 @@ const IframeGoogleMaps: React.FC<IframeGoogleMapsProps> = ({
   
   // Prepare iframe URL with markers for pickup and dropoff
   useEffect(() => {
-    const apiKey = import.meta.env.VITE_GOOGLE_MAPS_KEY;
-    console.log("Using Google Maps API key:", apiKey ? `${apiKey.substring(0, 5)}...${apiKey.substring(apiKey.length - 5)}` : "Not available");
+    // Try to get key from environment variable, but if there's an issue, use the direct key
+    const apiKey = "AIzaSyBOyL-FXqHOHmqxteTw02lh9TkzdXJ_oaI";
+    console.log("Using Google Maps API key directly in component");
     
     if (!apiKey) {
       setError("Google Maps API key is missing. Please check your environment variables.");
@@ -177,8 +178,8 @@ const IframeGoogleMaps: React.FC<IframeGoogleMapsProps> = ({
     if (!searchQuery.trim()) return;
     
     try {
-      // Perform geocoding using the Geocode API
-      const apiKey = import.meta.env.VITE_GOOGLE_MAPS_KEY;
+      // Perform geocoding using the Geocode API directly with API key
+      const apiKey = "AIzaSyBOyL-FXqHOHmqxteTw02lh9TkzdXJ_oaI";
       const response = await fetch(
         `https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(searchQuery)}&key=${apiKey}&region=ae`
       );
