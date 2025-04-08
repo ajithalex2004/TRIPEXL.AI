@@ -32,6 +32,7 @@ import IframeGoogleMaps from "@/components/iframe-google-maps";
 import BasicGoogleMaps from "@/components/basic-google-maps";
 import SimpleGoogleMaps from "@/components/simple-google-maps";
 import GoogleMapsWithSearch from "@/components/google-maps-with-search";
+import { MapView } from "@/components/map-view";
 import { motion, AnimatePresence } from "framer-motion";
 import { VehicleLoadingIndicator } from "@/components/ui/vehicle-loading-indicator";
 import { DateTimePicker } from "@/components/ui/date-time-picker";
@@ -1263,17 +1264,16 @@ export function BookingForm() {
                           )}
                           <div className="h-[500px] relative rounded-lg overflow-hidden border">
                             {/* Key attribute forces re-render when step changes */}
-                            <GoogleMapsWithSearch
+                            <MapView
                               key={`map-view-step-${currentStep}`}
                               pickupLocation={form.watch("pickupLocation")}
                               dropoffLocation={form.watch("dropoffLocation")}
                               waypoints={waypoints}
                               editable={true}
-                              height="500px"
                               onLocationSelect={(location, type) => {
                                 // Handle pickup or dropoff location
                                 const fieldName = type === 'pickup' ? "pickupLocation" : "dropoffLocation";
-                                console.log(`Google Maps onLocationSelect: Setting ${fieldName} with:`, location);
+                                console.log(`Map onLocationSelect: Setting ${fieldName} with:`, location);
                                 
                                 // Ensure all optional properties are present with default values
                                 const completeLocation = {
@@ -1283,7 +1283,7 @@ export function BookingForm() {
                                   formatted_address: location.formatted_address || location.address
                                 };
                                 
-                                console.log(`UAE Map Picker onLocationSelect: Setting ${fieldName} with:`, completeLocation);
+                                console.log(`Map Picker onLocationSelect: Setting ${fieldName} with:`, completeLocation);
                                 form.setValue(fieldName, completeLocation, {
                                   shouldValidate: true,
                                   shouldDirty: true,
@@ -1317,6 +1317,16 @@ export function BookingForm() {
                                 // Log the form values after setting to verify it was updated
                                 console.log(`Form field "${fieldName}" current value:`, form.getValues(fieldName));
                                 console.log("All form values:", form.getValues());
+                              }}
+                              onRouteCalculated={(durationSeconds, distanceMeters) => {
+                                // Use the route calculation results for better estimates
+                                handleRouteCalculated(durationSeconds);
+                                
+                                // Log the calculated route details
+                                console.log("Route calculated:", {
+                                  distance: `${(distanceMeters / 1000).toFixed(1)} km`,
+                                  duration: `${Math.floor(durationSeconds / 60)} minutes`
+                                });
                               }}
                             />
                           </div>
