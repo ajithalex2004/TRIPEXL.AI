@@ -471,69 +471,8 @@ const GoogleMapsWithSearch: React.FC<GoogleMapsWithSearchProps> = ({
     
     if (!searchQuery.trim()) return;
     
-    // @ts-ignore
-    if (mapContainerRef.current?.searchBox) {
-      // @ts-ignore
-      const searchBox = mapContainerRef.current.searchBox;
-      searchBox.value = searchQuery;
-      
-      // Simulate a place_changed event if possible
-      const autocomplete = new google.maps.places.AutocompleteService();
-      autocomplete.getPlacePredictions(
-        {
-          input: searchQuery,
-          componentRestrictions: { country: 'ae' }
-        },
-        (predictions, status) => {
-          if (status === google.maps.places.PlacesServiceStatus.OK && predictions && predictions.length > 0) {
-            // Get the first prediction
-            const prediction = predictions[0];
-            
-            // @ts-ignore
-            const map = mapContainerRef.current.map;
-            const placesService = new google.maps.places.PlacesService(map);
-            
-            placesService.getDetails(
-              {
-                placeId: prediction.place_id,
-                fields: ['place_id', 'geometry', 'name', 'formatted_address']
-              },
-              (place, detailsStatus) => {
-                if (detailsStatus === google.maps.places.PlacesServiceStatus.OK && place && place.geometry) {
-                  // Create a location object
-                  const location: Location = {
-                    address: place.formatted_address || place.name || '',
-                    coordinates: {
-                      lat: place.geometry.location!.lat(),
-                      lng: place.geometry.location!.lng()
-                    },
-                    place_id: place.place_id || '',
-                    name: place.name || '',
-                    formatted_address: place.formatted_address || ''
-                  };
-                  
-                  // Center the map on the selected location
-                  map.setCenter(place.geometry.location!);
-                  map.setZoom(15);
-                  
-                  // Show an info window at the location
-                  createInfoWindow(map, place.geometry.location!);
-                  
-                  // Clear the search input
-                  setSearchQuery("");
-                }
-              }
-            );
-          } else {
-            // Fallback to geocoding API
-            geocodeAddress(searchQuery);
-          }
-        }
-      );
-    } else {
-      // Fallback to geocoding API
-      geocodeAddress(searchQuery);
-    }
+    // Use direct geocoding which is more reliable
+    geocodeAddress(searchQuery);
   };
   
   // Set location directly by mode (for buttons in the UI)
@@ -543,7 +482,7 @@ const GoogleMapsWithSearch: React.FC<GoogleMapsWithSearchProps> = ({
   };
   
   // Geocode an address using the Geocoding API
-  const geocodeAddress = async (address: string) => {
+  const geocodeAddress = async (address: string, autoSelect: boolean = false) => {
     try {
       const apiKey = "AIzaSyBOyL-FXqHOHmqxteTw02lh9TkzdXJ_oaI";
       const response = await fetch(
@@ -577,8 +516,14 @@ const GoogleMapsWithSearch: React.FC<GoogleMapsWithSearchProps> = ({
             location.coordinates.lng
           );
           
-          // Create an info window at the location
-          createInfoWindow(map, latLng);
+          if (autoSelect && onLocationSelect) {
+            // Directly set the location without showing the info window
+            onLocationSelect(location, searchMode);
+            console.log(`Auto-selected ${searchMode} location:`, location);
+          } else {
+            // Show the info window for manual selection
+            createInfoWindow(map, latLng);
+          }
         }
         
         // Reset the search
@@ -689,7 +634,10 @@ const GoogleMapsWithSearch: React.FC<GoogleMapsWithSearchProps> = ({
               size="sm" 
               variant="outline" 
               className="border-blue-500 text-blue-600 hover:bg-blue-50"
-              onClick={() => handleSearchSubmit(new Event('submit') as any)}
+              onClick={() => {
+                setSearchQuery('Dubai Mall');
+                geocodeAddress('Dubai Mall');
+              }}
             >
               <Search className="w-4 h-4 mr-1" />
               Search Location
@@ -702,7 +650,8 @@ const GoogleMapsWithSearch: React.FC<GoogleMapsWithSearchProps> = ({
               className="border-green-500 text-green-600 hover:bg-green-50"
               onClick={() => {
                 setSearchMode('pickup');
-                handleSearchSubmit(new Event('submit') as any);
+                setSearchQuery('Dubai Mall');
+                geocodeAddress('Dubai Mall', true);
               }}
             >
               <MapPin className="w-4 h-4 mr-1" />
@@ -716,7 +665,8 @@ const GoogleMapsWithSearch: React.FC<GoogleMapsWithSearchProps> = ({
               className="border-red-500 text-red-600 hover:bg-red-50"
               onClick={() => {
                 setSearchMode('dropoff');
-                handleSearchSubmit(new Event('submit') as any);
+                setSearchQuery('Abu Dhabi');
+                geocodeAddress('Abu Dhabi', true);
               }}
             >
               <Navigation className="w-4 h-4 mr-1" />
