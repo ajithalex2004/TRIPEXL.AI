@@ -28,6 +28,7 @@ import {
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { LoadingIndicator } from "@/components/ui/loading-indicator";
+import IframeGoogleMaps from "@/components/iframe-google-maps";
 import SimpleGoogleMaps from "@/components/simple-google-maps";
 import { motion, AnimatePresence } from "framer-motion";
 import { VehicleLoadingIndicator } from "@/components/ui/vehicle-loading-indicator";
@@ -1260,12 +1261,13 @@ export function BookingForm() {
                           )}
                           <div className="h-[500px] relative rounded-lg overflow-hidden border">
                             {/* Key attribute forces re-render when step changes */}
-                            <SimpleGoogleMaps
+                            <IframeGoogleMaps
                               key={`map-view-step-${currentStep}`}
                               pickupLocation={form.watch("pickupLocation")}
                               dropoffLocation={form.watch("dropoffLocation")}
                               waypoints={waypoints}
                               editable={true}
+                              height="500px"
                               onLocationSelect={(location, type) => {
                                 // Handle pickup or dropoff location
                                 const fieldName = type === 'pickup' ? "pickupLocation" : "dropoffLocation";
