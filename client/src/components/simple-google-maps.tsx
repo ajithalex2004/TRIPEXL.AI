@@ -2,6 +2,13 @@ import React, { useEffect, useRef, useState } from 'react';
 import { Card } from "@/components/ui/card";
 import { LoadingIndicator } from "@/components/ui/loading-indicator";
 
+// Make window.google and initMap available
+declare global {
+  interface Window {
+    initMap: () => void;
+  }
+}
+
 // Use the Location interface from booking-form
 export interface Location {
   address: string;
@@ -22,11 +29,21 @@ interface SimpleGoogleMapsProps {
   editable?: boolean;
 }
 
+// Global map reference for init callback
+let globalMapRef: React.RefObject<HTMLDivElement> | null = null;
+let globalMapOptions: any = null;
+let globalInitCallback: (() => void) | null = null;
+
 // Helper function to load Google Maps script
-const loadGoogleMapsScript = (callback: () => void) => {
+const loadGoogleMapsScript = (mapRef: React.RefObject<HTMLDivElement>, options: any, callback: () => void) => {
+  // Store references globally for the callback
+  globalMapRef = mapRef;
+  globalMapOptions = options;
+  globalInitCallback = callback;
+  
   // Check if the script is already loaded
   if (window.google && window.google.maps) {
-    callback();
+    initializeMap();
     return;
   }
 
@@ -38,21 +55,50 @@ const loadGoogleMapsScript = (callback: () => void) => {
     return;
   }
 
-  console.log("Loading Google Maps with API key.");
+  console.log("Loading Google Maps API with key:", apiKey ? "Available" : "Missing");
+  
+  // Define the initialization function
+  window.initMap = function() {
+    console.log("Google Maps initialization callback triggered");
+    initializeMap();
+  };
   
   // Create script element
   const script = document.createElement('script');
-  script.src = `https://maps.googleapis.com/maps/api/js?key=${apiKey}&libraries=places`;
+  script.src = `https://maps.googleapis.com/maps/api/js?key=${apiKey}&libraries=places&callback=initMap`;
   script.async = true;
-  script.defer = true;
   
-  script.onload = callback;
   script.onerror = () => {
     console.error("Failed to load Google Maps script.");
   };
   
   document.head.appendChild(script);
 };
+
+// Function to initialize the map (called by the callback)
+function initializeMap() {
+  if (!globalMapRef || !globalMapRef.current || !globalMapOptions) {
+    console.error("Cannot initialize map: missing references");
+    return;
+  }
+  
+  console.log("Initializing Google Maps...");
+  
+  try {
+    // Create the map
+    const map = new window.google.maps.Map(globalMapRef.current, globalMapOptions);
+    
+    // Store the map instance on the element
+    (globalMapRef.current as any)._map = map;
+    
+    // Call the original callback
+    if (globalInitCallback) {
+      globalInitCallback();
+    }
+  } catch (err) {
+    console.error("Error initializing Google Maps:", err);
+  }
+}
 
 const SimpleGoogleMaps: React.FC<SimpleGoogleMapsProps> = ({
   pickupLocation,
@@ -76,29 +122,24 @@ const SimpleGoogleMaps: React.FC<SimpleGoogleMapsProps> = ({
 
   // Initialize Google Maps
   useEffect(() => {
-    const initializeMap = () => {
-      if (!mapRef.current) return;
+    setIsLoading(true);
+    console.log("Setting up Google Maps component...");
+    
+    const onMapLoad = () => {
+      if (!mapRef.current || !(mapRef.current as any)._map) {
+        console.error("Map initialization failed");
+        setError("Failed to initialize map. Please try refreshing the page.");
+        setIsLoading(false);
+        return;
+      }
       
-      setIsLoading(true);
       try {
-        const dubai = { lat: 25.276987, lng: 55.296249 };
-        
-        // Create map instance
-        const mapOptions: google.maps.MapOptions = {
-          center: dubai,
-          zoom: 11,
-          mapTypeControl: true,
-          streetViewControl: false,
-          fullscreenControl: true,
-          zoomControl: true,
-          mapId: 'DEMO_MAP_ID'
-        };
-        
-        const map = new google.maps.Map(mapRef.current, mapOptions);
+        console.log("Map initialized, setting up components...");
+        const map = (mapRef.current as any)._map;
         googleMapRef.current = map;
         
         // Create info window for markers
-        infoWindowRef.current = new google.maps.InfoWindow();
+        infoWindowRef.current = new window.google.maps.InfoWindow();
         
         // Setup search box
         const input = document.createElement("input");
@@ -112,13 +153,13 @@ const SimpleGoogleMaps: React.FC<SimpleGoogleMapsProps> = ({
         input.style.boxShadow = "0 2px 4px rgba(0,0,0,0.1)";
         input.style.fontSize = "14px";
         
-        map.controls[google.maps.ControlPosition.TOP_CENTER].push(input);
+        map.controls[window.google.maps.ControlPosition.TOP_CENTER].push(input);
         
-        const searchBox = new google.maps.places.SearchBox(input);
+        const searchBox = new window.google.maps.places.SearchBox(input);
         searchBoxRef.current = searchBox;
         
         // Add directions renderer
-        const directionsRenderer = new google.maps.DirectionsRenderer({
+        const directionsRenderer = new window.google.maps.DirectionsRenderer({
           map,
           suppressMarkers: true, // We'll create our own markers
           polylineOptions: {
@@ -144,16 +185,28 @@ const SimpleGoogleMaps: React.FC<SimpleGoogleMapsProps> = ({
         
         setIsLoaded(true);
         setIsLoading(false);
+        console.log("Google Maps setup complete!");
       } catch (err) {
-        console.error("Error initializing Google Maps:", err);
+        console.error("Error initializing Google Maps components:", err);
         setError("Failed to initialize map. Please try refreshing the page.");
         setIsLoading(false);
       }
     };
     
-    loadGoogleMapsScript(() => {
-      initializeMap();
-    });
+    // Configure map options
+    const dubai = { lat: 25.276987, lng: 55.296249 };
+    const mapOptions = {
+      center: dubai,
+      zoom: 11,
+      mapTypeControl: true,
+      streetViewControl: false,
+      fullscreenControl: true,
+      zoomControl: true,
+      mapId: 'DEMO_MAP_ID'
+    };
+    
+    // Load Google Maps with callback
+    loadGoogleMapsScript(mapRef, mapOptions, onMapLoad);
     
     return () => {
       // Clean up
@@ -161,6 +214,7 @@ const SimpleGoogleMaps: React.FC<SimpleGoogleMapsProps> = ({
       if (dropoffMarkerRef.current) dropoffMarkerRef.current.setMap(null);
       waypointMarkersRef.current.forEach(marker => marker.setMap(null));
       if (directionsRendererRef.current) directionsRendererRef.current.setMap(null);
+      console.log("Google Maps component cleanup");
     };
   }, [editable]);
   
