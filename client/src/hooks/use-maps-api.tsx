@@ -64,5 +64,4 @@ export function useMapsApi(apiKey: string): MapsApiState {
   return state;
 }
 
-// Also export as default for backward compatibility
-export default useMapsApi;
+// We're no longer exporting a default for better compatibility with Fast Refresh

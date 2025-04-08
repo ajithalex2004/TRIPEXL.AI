@@ -41,6 +41,7 @@ const addGlobalErrorListener = (callbackName: string, reject: (reason: any) => v
 export function loadGoogleMaps(apiKey: string): Promise<any> {
   // Return existing promise if already loading or loaded
   if (googleMapsPromise) {
+    console.log("Google Maps loading already in progress, returning existing promise");
     return googleMapsPromise;
   }
 
@@ -50,15 +51,16 @@ export function loadGoogleMaps(apiKey: string): Promise<any> {
     return Promise.resolve(window.google.maps);
   }
 
-  // Check if script tag already exists
+  // Check if script tag already exists but failed
   const existingScript = document.getElementById(SCRIPT_ID);
   if (existingScript) {
-    console.log("Google Maps script tag already exists, removing it first");
+    console.log("Google Maps script tag already exists, removing it to try again");
     existingScript.remove();
   }
 
   // Clear any previous Google Maps auth errors
   if (window.gm_authFailure) {
+    console.log("Clearing previous gm_authFailure handler");
     delete window.gm_authFailure;
   }
 
