@@ -1123,10 +1123,10 @@ export const MapView: React.FC<MapViewProps> = ({
     </Alert>
   );
 
-  // Force fallback mode and ensure it's a constant value to prevent re-renders
+  // ALWAYS use fallback mode regardless of Google Maps API state
+  // This ensures a consistent experience across all environments
   const forceFallbackMode = true;
-  // Always use fallback mode due to persistent Google Maps API issues
-  const shouldUseFallback = true;
+  const shouldUseFallback = true; // Hard-coded to true to guarantee fallback is shown
   
   return (
     <Card ref={mapContainerRef} className="overflow-hidden">

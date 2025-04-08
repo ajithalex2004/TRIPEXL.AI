@@ -125,7 +125,7 @@ async function initializeServer() {
     const port = process.env.PORT || 5000;
     log(`Attempting to start server on port ${port}...`);
 
-    server.listen(port, "0.0.0.0", () => {
+    server.listen(Number(port), "0.0.0.0", () => {
       log(`Server successfully started and listening on port ${port}`);
       log(`Server is accessible at http://localhost:${port}`);
     });
