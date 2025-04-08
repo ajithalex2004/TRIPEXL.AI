@@ -1123,9 +1123,10 @@ export const MapView: React.FC<MapViewProps> = ({
     </Alert>
   );
 
-  // Force fallback mode for now since Google Maps is having issues
+  // Force fallback mode and ensure it's a constant value to prevent re-renders
   const forceFallbackMode = true;
-  const shouldUseFallback = forceFallbackMode || mapError || loadError;
+  // Always use fallback mode due to persistent Google Maps API issues
+  const shouldUseFallback = true;
   
   return (
     <Card ref={mapContainerRef} className="overflow-hidden">
