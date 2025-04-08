@@ -28,6 +28,7 @@ import {
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { LoadingIndicator } from "@/components/ui/loading-indicator";
+import SimpleGoogleMaps from "@/components/simple-google-maps";
 import { MapView } from "@/components/map-view";
 import { SimpleMapView } from "@/components/simple-map-view";
 import { motion, AnimatePresence } from "framer-motion";
@@ -1261,62 +1262,60 @@ export function BookingForm() {
                           )}
                           <div className="h-[500px] relative rounded-lg overflow-hidden border">
                             {/* Key attribute forces re-render when step changes */}
-                            <MapView
+                            <SimpleGoogleMaps
                               key={`map-view-step-${currentStep}`}
                               pickupLocation={form.watch("pickupLocation")}
                               dropoffLocation={form.watch("dropoffLocation")}
                               waypoints={waypoints}
-                              routePreferences={{
-                                optimizeWaypoints: true,
-                                avoidHighways: false,
-                                avoidTolls: false, 
-                                provideRouteAlternatives: true,
-                                travelMode: 'DRIVING'
-                              }}
+                              editable={true}
                               onLocationSelect={(location, type) => {
-                                if (type === 'waypoint') {
-                                  // Add new waypoint to the waypoints array
-                                  console.log("Adding waypoint:", location);
-                                  const completeWaypoint = {
-                                    ...location,
-                                    place_id: location.place_id || "",
-                                    name: location.name || location.address,
-                                    formatted_address: location.formatted_address || location.address
-                                  };
+                                // Handle pickup or dropoff location
+                                const fieldName = type === 'pickup' ? "pickupLocation" : "dropoffLocation";
+                                console.log(`Setting form field "${fieldName}" with location:`, location);
+                                
+                                // Ensure all optional properties are present with default values
+                                const completeLocation = {
+                                  ...location,
+                                  place_id: location.place_id || "",
+                                  name: location.name || location.address,
+                                  formatted_address: location.formatted_address || location.address
+                                };
+                                
+                                console.log(`SimpleGoogleMaps onLocationSelect: Setting ${fieldName} with:`, completeLocation);
+                                form.setValue(fieldName, completeLocation, {
+                                  shouldValidate: true,
+                                  shouldDirty: true,
+                                  shouldTouch: true
+                                });
+                                
+                                // Calculate route if both pickup and dropoff are set
+                                if (form.watch("pickupLocation") && form.watch("dropoffLocation")) {
+                                  // Calculate an estimate for route duration
+                                  const p1 = form.watch("pickupLocation").coordinates;
+                                  const p2 = form.watch("dropoffLocation").coordinates;
                                   
-                                  setWaypoints(prev => [...prev, completeWaypoint]);
+                                  // Haversine formula for distance calculation
+                                  const R = 6371; // Earth's radius in km
+                                  const dLat = (p2.lat - p1.lat) * Math.PI / 180;
+                                  const dLon = (p2.lng - p1.lng) * Math.PI / 180;
+                                  const a = 
+                                    Math.sin(dLat/2) * Math.sin(dLat/2) +
+                                    Math.cos(p1.lat * Math.PI / 180) * Math.cos(p2.lat * Math.PI / 180) * 
+                                    Math.sin(dLon/2) * Math.sin(dLon/2);
+                                  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+                                  const distance = R * c;
                                   
-                                  // Show toast notification
-                                  toast({
-                                    title: "Waypoint added",
-                                    description: `Added waypoint at ${location.address}`,
-                                  });
-                                } else {
-                                  // Handle pickup or dropoff location as before
-                                  const fieldName = type === 'pickup' ? "pickupLocation" : "dropoffLocation";
-                                  console.log(`Setting form field "${fieldName}" with location:`, location);
+                                  // Assume average speed of 40 km/h in UAE cities
+                                  const durationInSeconds = (distance / 40) * 60 * 60;
                                   
-                                  // Ensure all optional properties are present with default values
-                                  const completeLocation = {
-                                    ...location,
-                                    place_id: location.place_id || "",
-                                    name: location.name || location.address,
-                                    formatted_address: location.formatted_address || location.address
-                                  };
-                                  
-                                  console.log(`MapView onLocationSelect: Setting ${fieldName} with:`, completeLocation);
-                                  form.setValue(fieldName, completeLocation, {
-                                    shouldValidate: true,
-                                    shouldDirty: true,
-                                    shouldTouch: true
-                                  });
-                                  
-                                  // Log the form values after setting to verify it was updated
-                                  console.log(`Form field "${fieldName}" current value:`, form.getValues(fieldName));
-                                  console.log("All form values:", form.getValues());
+                                  // Call the route calculation handler
+                                  handleRouteCalculated(durationInSeconds);
                                 }
+                                
+                                // Log the form values after setting to verify it was updated
+                                console.log(`Form field "${fieldName}" current value:`, form.getValues(fieldName));
+                                console.log("All form values:", form.getValues());
                               }}
-                              onRouteCalculated={handleRouteCalculated}
                             />
                           </div>
                         </div>
