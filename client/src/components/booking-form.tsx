@@ -31,6 +31,7 @@ import { LoadingIndicator } from "@/components/ui/loading-indicator";
 import IframeGoogleMaps from "@/components/iframe-google-maps";
 import BasicGoogleMaps from "@/components/basic-google-maps";
 import SimpleGoogleMaps from "@/components/simple-google-maps";
+import GoogleMapsWithSearch from "@/components/google-maps-with-search";
 import { motion, AnimatePresence } from "framer-motion";
 import { VehicleLoadingIndicator } from "@/components/ui/vehicle-loading-indicator";
 import { DateTimePicker } from "@/components/ui/date-time-picker";
@@ -1262,7 +1263,7 @@ export function BookingForm() {
                           )}
                           <div className="h-[500px] relative rounded-lg overflow-hidden border">
                             {/* Key attribute forces re-render when step changes */}
-                            <BasicGoogleMaps
+                            <GoogleMapsWithSearch
                               key={`map-view-step-${currentStep}`}
                               pickupLocation={form.watch("pickupLocation")}
                               dropoffLocation={form.watch("dropoffLocation")}
