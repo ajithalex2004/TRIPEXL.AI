@@ -299,6 +299,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.log("Received booking request:", JSON.stringify(req.body, null, 2));
 
       try {
+        // Log the employee ID value for debugging
+        console.log("Employee ID from request:", req.body.employeeId, "Type:", typeof req.body.employeeId);
+        
+        // Ensure employeeId is a number before validation
+        if (req.body.employeeId && typeof req.body.employeeId !== 'number') {
+          req.body.employeeId = Number(req.body.employeeId);
+          console.log("Converted employeeId to number:", req.body.employeeId);
+        }
+        
         const result = insertBookingSchema.safeParse(req.body);
 
         if (!result.success) {
@@ -308,6 +317,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
             details: result.error.issues
           });
         }
+
+        // Double-check employee ID is a number
+        console.log("Employee ID after validation:", result.data.employeeId, "Type:", typeof result.data.employeeId);
 
         // Determine initial status based on priority
         const isHighPriority = ["Critical", "Emergency", "High"].includes(result.data.priority);
@@ -325,6 +337,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         console.log("Creating booking with data:", JSON.stringify(bookingData, null, 2));
 
         // Create the booking
+        console.log("About to call storage.createBooking...");
         const booking = await storage.createBooking(bookingData);
         console.log("Successfully created booking:", JSON.stringify(booking, null, 2));
 
@@ -342,6 +355,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           co2Emissions
         });
 
+        console.log("Final booking data being returned:", JSON.stringify(updatedBooking, null, 2));
         res.status(201).json(updatedBooking);
       } catch (error: any) {
         console.error("Error creating booking:", error);

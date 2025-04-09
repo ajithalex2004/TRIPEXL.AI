@@ -720,16 +720,35 @@ export class DatabaseStorage implements IStorage {
       dbData.created_at = new Date();
       dbData.updated_at = new Date();
       
-      // Ensure all ID fields are numbers
+      // CRITICAL FIX: Ensure employeeId is converted to a proper number and in snake_case format
       if (bookingData.employeeId !== undefined) {
-        // Convert employee_id to number and ensure it's in snake_case
-        const employeeIdNum = Number(bookingData.employeeId);
-        if (isNaN(employeeIdNum)) {
-          throw new Error(`Invalid employeeId format: ${bookingData.employeeId} - must be a valid number`);
+        // First, ensure it's a valid number by explicitly converting it
+        let employeeIdNum: number;
+        
+        if (typeof bookingData.employeeId === 'string') {
+          employeeIdNum = parseInt(bookingData.employeeId, 10);
+          console.log(`Converting string employeeId '${bookingData.employeeId}' to number: ${employeeIdNum}`);
+        } else if (typeof bookingData.employeeId === 'number') {
+          employeeIdNum = bookingData.employeeId;
+          console.log(`EmployeeId is already a number: ${employeeIdNum}`);
+        } else {
+          // Try to convert whatever it is to a number
+          employeeIdNum = Number(bookingData.employeeId);
+          console.log(`Converting employeeId of type ${typeof bookingData.employeeId} to number: ${employeeIdNum}`);
         }
+        
+        if (isNaN(employeeIdNum)) {
+          throw new Error(`Invalid employeeId format: ${bookingData.employeeId} (type: ${typeof bookingData.employeeId}) - must be a valid number`);
+        }
+        
+        // Assign the numeric version to employee_id (snake_case)
         dbData.employee_id = employeeIdNum;
+        console.log(`Setting employee_id in database to: ${dbData.employee_id} (type: ${typeof dbData.employee_id})`);
+        
         // Remove the camelCase property to avoid conflicts
         delete dbData.employeeId;
+      } else {
+        console.log("WARNING: No employeeId provided in booking data");
       }
       
       // Ensure number fields are properly typed with snake_case naming
@@ -748,14 +767,31 @@ export class DatabaseStorage implements IStorage {
       delete dbData.co2Emissions;
       delete dbData.createdAt;
       delete dbData.updatedAt;
+      
+      // Final log of data before insert
+      console.log("About to insert booking with data:", JSON.stringify(dbData, null, 2));
 
-      const [booking] = await db
-        .insert(schema.bookings)
-        .values(dbData)
-        .returning();
+      try {
+        const [booking] = await db
+          .insert(schema.bookings)
+          .values(dbData)
+          .returning();
 
-      console.log("Successfully created booking:", booking);
-      return booking;
+        console.log("Successfully created booking:", booking);
+        return booking;
+      } catch (dbError) {
+        console.error("Database error creating booking:", dbError);
+        
+        // Check if this is a constraint violation and provide more details
+        if (dbError.message && dbError.message.includes('violates foreign key constraint')) {
+          if (dbError.message.includes('employee_id')) {
+            throw new Error(`The employee ID ${dbData.employee_id} does not exist in the database. Please select a valid employee.`);
+          }
+        }
+        
+        // Re-throw the original error if it wasn't one we could provide better info for
+        throw dbError;
+      }
     } catch (error) {
       console.error("Error creating booking:", error);
       throw new Error(error instanceof Error ? error.message : "Failed to create booking");
