@@ -255,17 +255,50 @@ export function BookingForm() {
       console.log("Creating booking with data:", JSON.stringify(data, null, 2));
       
       try {
+        toast({
+          title: "Submitting booking",
+          description: "Please wait while we process your booking request...",
+        });
+        
         const response = await apiRequest("POST", "/api/bookings", data);
         console.log("Booking API response status:", response.status);
         
         if (!response.ok) {
-          const errorData = await response.json().catch(() => ({}));
-          console.error("Booking API error response:", errorData);
-          throw new Error(errorData.message || `Failed to create booking: ${response.status} ${response.statusText}`);
+          let errorMessage = `Failed to create booking: ${response.status} ${response.statusText}`;
+          
+          try {
+            const errorData = await response.json();
+            console.error("Booking API error response:", errorData);
+            
+            if (errorData.error) {
+              errorMessage = errorData.error;
+            }
+            
+            if (errorData.details) {
+              if (typeof errorData.details === 'string') {
+                errorMessage += `: ${errorData.details}`;
+              } else if (Array.isArray(errorData.details)) {
+                errorMessage += `: ${errorData.details.join(", ")}`;
+              } else if (typeof errorData.details === 'object') {
+                errorMessage += `: ${JSON.stringify(errorData.details)}`;
+              }
+            }
+          } catch (jsonError) {
+            console.error("Could not parse error response as JSON:", jsonError);
+          }
+          
+          throw new Error(errorMessage);
         }
         
-        const responseData = await response.json();
-        console.log("Booking API success response:", responseData);
+        let responseData;
+        try {
+          responseData = await response.json();
+          console.log("Booking API success response:", responseData);
+        } catch (jsonError) {
+          console.error("Error parsing success response:", jsonError);
+          throw new Error("Server returned invalid response format");
+        }
+        
         return responseData;
       } catch (error) {
         console.error("Error in booking mutation:", error);
@@ -274,7 +307,8 @@ export function BookingForm() {
     },
     onSuccess: (data) => {
       console.log("Booking created successfully:", data);
-      setCreatedReferenceNo(data.referenceNo);
+      // Store reference number from response (snake_case) or fall back to camelCase
+      setCreatedReferenceNo(data.reference_no || data.referenceNo || "Unknown");
       setShowSuccessDialog(true);
       queryClient.invalidateQueries({ queryKey: ["/api/bookings"] });
       form.reset();
@@ -286,8 +320,8 @@ export function BookingForm() {
     onError: (error: Error) => {
       console.error("Booking creation error:", error);
       toast({
-        title: "Error",
-        description: error.message || "Failed to create booking",
+        title: "Error creating booking",
+        description: error.message || "Failed to create booking. Please try again.",
         variant: "destructive",
       });
     },

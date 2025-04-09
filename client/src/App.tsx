@@ -22,6 +22,7 @@ import PerformanceSnapshotPage from "@/pages/performance-snapshot";
 import FuelPricePage from "@/pages/fuel-price-page";
 import FuelManagementPage from "@/pages/fuel-management-page";
 import MapTestPage from "@/pages/map-test";
+import DebugPage from "@/pages/debug";
 
 
 // Initialize QueryClient
@@ -81,6 +82,7 @@ function Router() {
       <Route path="/performance" component={() => <ProtectedRoute component={PerformanceSnapshotPage} />} />
       <Route path="/fuel-prices" component={() => <ProtectedRoute component={FuelPricePage} />} />
       <Route path="/fuel-management" component={() => <ProtectedRoute component={FuelManagementPage} />} />
+      <Route path="/debug" component={() => <ProtectedRoute component={DebugPage} />} />
 
       {/* 404 Route */}
       <Route component={NotFound} />

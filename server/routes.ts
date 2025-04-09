@@ -4,6 +4,7 @@ import { storage } from "./storage";
 import { db } from "./db";
 import { schema } from "./db";
 import { log } from "./vite";
+import { logBookingDbOperation } from "./debug/booking-debug";
 import vehicleGroupRouter from "./routes/vehicle-groups";
 import vehicleTypeMasterRouter from "./routes/vehicle-type-master";
 import { ecoRoutesRouter } from "./routes/eco-routes";
@@ -49,6 +50,54 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json({ status: "healthy" });
     });
     log("Health check endpoint registered");
+    
+    // Debug API for booking analysis
+    app.get("/api/debug/booking", (req, res) => {
+      try {
+        // Trigger a test log message to verify the debug system
+        logBookingDbOperation('debug-api-check', { timestamp: new Date().toISOString() });
+        
+        // Get booking ID from query parameters if available
+        const bookingId = req.query.id ? Number(req.query.id) : undefined;
+        
+        // Send info about the debug mode
+        res.json({
+          status: "active",
+          message: "Booking debug system is active. Check server logs for detailed information.",
+          note: "Debug information is being logged to the server console.",
+          debugEndpoints: {
+            "/api/debug/booking": "Check debug status",
+            "/api/debug/booking?id=123": "Log specific booking ID information"
+          },
+          bookingId: bookingId ? `Debugging for booking ID: ${bookingId}` : "No specific booking ID provided"
+        });
+        
+        // Log diagnostic information if a booking ID was provided
+        if (bookingId) {
+          log(`[DEBUG] Request for debugging booking ID: ${bookingId}`);
+          storage.getBookings()
+            .then(bookings => {
+              const booking = bookings.find(b => b.id === bookingId);
+              if (booking) {
+                logBookingDbOperation('debug-api-booking-found', booking);
+              } else {
+                logBookingDbOperation('debug-api-booking-not-found', { bookingId });
+              }
+            })
+            .catch(error => {
+              log(`[DEBUG] Error retrieving booking ${bookingId}: ${error.message}`);
+            });
+        }
+        
+      } catch (error: any) {
+        log(`[DEBUG] Error in debug endpoint: ${error.message}`);
+        res.status(500).json({ 
+          error: "Error in debug system",
+          message: error.message
+        });
+      }
+    });
+    log("Booking debug endpoint registered");
 
     // Initialize default user
     log("Initializing default user...");

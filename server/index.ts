@@ -7,6 +7,7 @@ import { createServer } from "http";
 import authRouter from "./routes/auth";
 import path from "path";
 import { initializeFuelPriceService } from "./services/fuel-price-service";
+import { bookingDebugMiddleware } from "./debug/booking-debug";
 
 // Add global error handlers
 process.on("uncaughtException", (error) => {
@@ -26,6 +27,9 @@ const app = express();
 // Essential middleware
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
+
+// Add booking debugging middleware
+app.use(bookingDebugMiddleware);
 
 // Serve static files from the public directory
 app.use(express.static(path.join(process.cwd(), 'public')));

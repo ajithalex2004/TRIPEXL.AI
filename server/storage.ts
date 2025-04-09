@@ -8,6 +8,7 @@ import { type VehicleTypeMaster, type InsertVehicleTypeMaster, type FuelType, Ve
 import { type ApprovalWorkflow, type InsertApprovalWorkflow } from '@shared/schema';
 import { db } from "./db";
 import { eq, desc, and } from "drizzle-orm";
+import { logBookingDbOperation } from "./debug/booking-debug";
 import * as schema from "@shared/schema";
 import { sql } from 'drizzle-orm';
 
@@ -711,7 +712,9 @@ export class DatabaseStorage implements IStorage {
   }
   async createBooking(bookingData: InsertBooking): Promise<Booking> {
     try {
+      // Enhanced debugging
       console.log("Creating booking with data:", JSON.stringify(bookingData, null, 2));
+      logBookingDbOperation('create-booking-start', bookingData);
 
       // Convert camelCase properties to snake_case for database
       const dbData: any = { ...bookingData };
@@ -738,7 +741,38 @@ export class DatabaseStorage implements IStorage {
         }
         
         if (isNaN(employeeIdNum)) {
-          throw new Error(`Invalid employeeId format: ${bookingData.employeeId} (type: ${typeof bookingData.employeeId}) - must be a valid number`);
+          const error = new Error(`Invalid employeeId format: ${bookingData.employeeId} (type: ${typeof bookingData.employeeId}) - must be a valid number`);
+          logBookingDbOperation('create-booking-error-employeeId-invalid', { 
+            error: error.message, 
+            employeeId: bookingData.employeeId 
+          });
+          throw error;
+        }
+        
+        // Check if employee exists
+        try {
+          const employee = await db
+            .select({ id: schema.employees.id })
+            .from(schema.employees)
+            .where(eq(schema.employees.id, employeeIdNum))
+            .limit(1);
+          
+          if (employee.length === 0) {
+            logBookingDbOperation('create-booking-error-employee-not-found', { employeeId: employeeIdNum });
+            throw new Error(`Employee with ID ${employeeIdNum} not found in the database`);
+          }
+          
+          // Log successful employee check
+          logBookingDbOperation('create-booking-employee-check', { 
+            employeeId: employeeIdNum,
+            employeeFound: true 
+          });
+        } catch (employeeCheckError) {
+          logBookingDbOperation('create-booking-error-employee-check', { 
+            error: employeeCheckError instanceof Error ? employeeCheckError.message : String(employeeCheckError),
+            employeeId: employeeIdNum 
+          });
+          throw employeeCheckError;
         }
         
         // Assign the numeric version to employee_id (snake_case)
@@ -749,6 +783,7 @@ export class DatabaseStorage implements IStorage {
         delete dbData.employeeId;
       } else {
         console.log("WARNING: No employeeId provided in booking data");
+        logBookingDbOperation('create-booking-warning-no-employeeId', {});
       }
       
       // Ensure number fields are properly typed with snake_case naming
@@ -768,19 +803,42 @@ export class DatabaseStorage implements IStorage {
       delete dbData.createdAt;
       delete dbData.updatedAt;
       
+      // Make sure reference_no is set if it's not already
+      if (!dbData.reference_no) {
+        dbData.reference_no = `BK${Date.now()}${Math.floor(Math.random() * 1000)}`;
+      }
+      
       // Final log of data before insert
       console.log("About to insert booking with data:", JSON.stringify(dbData, null, 2));
+      logBookingDbOperation('create-booking-before-insert', dbData);
 
       try {
+        // Create the SQL string for logging purposes
+        const insertSql = `
+INSERT INTO bookings (
+  ${Object.keys(dbData).join(',\n  ')}
+) VALUES (
+  ${Object.keys(dbData).map((_, i) => `$${i + 1}`).join(', ')}
+)
+RETURNING *;`;
+        
+        logSqlQuery(insertSql, Object.values(dbData));
+        
+        // Perform the actual insert
         const [booking] = await db
           .insert(schema.bookings)
           .values(dbData)
           .returning();
 
         console.log("Successfully created booking:", booking);
+        logBookingDbOperation('create-booking-success', booking);
         return booking;
       } catch (dbError) {
         console.error("Database error creating booking:", dbError);
+        logBookingDbOperation('create-booking-error-database', { 
+          error: dbError instanceof Error ? dbError.message : String(dbError),
+          dbData 
+        });
         
         // Check if this is a constraint violation and provide more details
         if (dbError.message && dbError.message.includes('violates foreign key constraint')) {
@@ -794,6 +852,9 @@ export class DatabaseStorage implements IStorage {
       }
     } catch (error) {
       console.error("Error creating booking:", error);
+      logBookingDbOperation('create-booking-error-general', { 
+        error: error instanceof Error ? error.message : String(error) 
+      });
       throw new Error(error instanceof Error ? error.message : "Failed to create booking");
     }
   }
