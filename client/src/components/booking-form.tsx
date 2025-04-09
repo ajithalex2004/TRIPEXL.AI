@@ -387,6 +387,7 @@ export function BookingForm() {
       
       // Get the employee ID and ensure it's valid
       // Note: we're storing this as employee_id for the API
+      // Get employee data from form
       let employeeIdValue = data.employeeId;
       
       // Check if employeeId is already a number or can be converted to one
@@ -411,8 +412,10 @@ export function BookingForm() {
       console.log("Employee ID for booking:", employeeIdValue, "Type:", typeof employeeIdValue);
       
       // Use snake_case for all keys in the API request as required by the backend
+      // IMPORTANT: Include both formats for backward compatibility - the server will pick the right one
       const bookingData = {
-        employee_id: employeeIdValue,
+        employee_id: employeeIdValue, // Snake case version
+        employeeId: employeeIdValue,  // Camel case version for redundancy
         booking_type: data.bookingType,
         purpose: data.purpose,
         priority: data.priority,

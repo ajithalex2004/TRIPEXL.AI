@@ -347,6 +347,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
     app.post("/api/bookings", async (req, res) => {
       const debugId = Date.now().toString();
       console.log(`[BOOKING-${debugId}] Received booking request:`, JSON.stringify(req.body, null, 2));
+      
+      // Log the exact shape of the request body
+      console.log(`[BOOKING-${debugId}] Request body keys:`, Object.keys(req.body));
+      console.log(`[BOOKING-${debugId}] employee_id value:`, req.body.employee_id);
+      console.log(`[BOOKING-${debugId}] employeeId value:`, req.body.employeeId);
+      console.log(`[BOOKING-${debugId}] booking_type:`, req.body.booking_type);
+      console.log(`[BOOKING-${debugId}] Required fields check:
+        employee_id: ${req.body.employee_id ? '✓' : '✗'}
+        booking_type: ${req.body.booking_type ? '✓' : '✗'}
+        purpose: ${req.body.purpose ? '✓' : '✗'}
+        priority: ${req.body.priority ? '✓' : '✗'}
+        pickup_location: ${req.body.pickup_location ? '✓' : '✗'}
+        dropoff_location: ${req.body.dropoff_location ? '✓' : '✗'}
+        pickup_time: ${req.body.pickup_time ? '✓' : '✗'}
+        dropoff_time: ${req.body.dropoff_time ? '✓' : '✗'}`);
 
       try {
         // STEP 1: Validate and normalize the employee ID
@@ -764,10 +779,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
         
         console.log(`Found employee: ${employee.employee_name} (ID: ${employee.employee_id})`);
+        console.log(`Employee details for booking - ID: ${employee.id}, employee_id: ${employee.employee_id} (type: ${typeof employee.employee_id})`);
         
+        // Return with both snake_case and camelCase for compatibility
         return res.json({
           id: employee.id,
-          employeeId: employee.employee_id,
+          employee_id: employee.employee_id,  // Add snake_case version for direct use
+          employeeId: employee.employee_id,   // Keep camelCase for backward compatibility 
           employeeName: employee.employee_name,
           emailId: employee.email_id,
           department: employee.department,
