@@ -120,6 +120,42 @@ export const MapView: React.FC<MapViewProps> = ({
     loadError ? `Error loading map: ${loadError.message}` : null
   );
   
+  // Memoize map options to prevent re-renders
+  const mapOptions = useRef({
+    mapTypeControl: true, // Show map type controls (satellite, terrain)
+    mapTypeControlOptions: {
+      style: 2, // HORIZONTAL_BAR style (mimics google.maps.MapTypeControlStyle.HORIZONTAL_BAR)
+      position: 1, // TOP_RIGHT position (mimics google.maps.ControlPosition.TOP_RIGHT)
+    },
+    streetViewControl: true, // Enable street view for better user experience
+    fullscreenControl: true, // Allow fullscreen mode
+    zoomControl: true, // Make sure zoom controls are visible
+    gestureHandling: "auto", // Allows full control over zooming and panning
+    clickableIcons: true, // Enable clickable POIs for better location discovery
+    mapTypeId: 'roadmap',
+    styles: [
+      {
+        featureType: "poi",
+        elementType: "labels",
+        stylers: [{ visibility: "off" }]
+      }
+    ]
+  });
+  
+  // Update mapOptions.current.mapTypeId when Google Maps API is loaded
+  useEffect(() => {
+    if (isLoaded && typeof google !== 'undefined' && google.maps && google.maps.MapTypeId) {
+      mapOptions.current = {
+        ...mapOptions.current,
+        mapTypeId: google.maps.MapTypeId.ROADMAP,
+        mapTypeControlOptions: {
+          style: google.maps.MapTypeControlStyle.HORIZONTAL_BAR,
+          position: google.maps.ControlPosition.TOP_RIGHT,
+        }
+      };
+    }
+  }, [isLoaded]);
+  
   // Effect to update mapsInitialized state based on isLoaded
   useEffect(() => {
     console.log("Map load state:", { isLoaded, loadError });
@@ -846,7 +882,7 @@ export const MapView: React.FC<MapViewProps> = ({
   };
 
   // Handle map load completion
-  const handleMapLoad = (map: google.maps.Map) => {
+  const handleMapLoad = useCallback((map: google.maps.Map) => {
     console.log("Google Maps map loaded successfully");
     setMap(map);
     
@@ -857,6 +893,11 @@ export const MapView: React.FC<MapViewProps> = ({
         const placesService = new google.maps.places.PlacesService(map);
         setPlacesService(placesService);
         console.log("Places service initialized successfully");
+        
+        // Make sure the map type is set correctly and doesn't flicker
+        if (google.maps.MapTypeId) {
+          map.setMapTypeId(google.maps.MapTypeId.ROADMAP);
+        }
       } else {
         setMapError("Google Maps API did not load properly. Please refresh the page and try again.");
       }
@@ -864,7 +905,7 @@ export const MapView: React.FC<MapViewProps> = ({
       console.error("Error initializing Places service:", error);
       setMapError("Failed to initialize map services. Please refresh the page.");
     }
-  };
+  }, []);
 
   // Handle search predictions is now integrated directly into the debouncedSearch function
   // for better flow control and handling of API responses
@@ -1411,22 +1452,7 @@ export const MapView: React.FC<MapViewProps> = ({
             }}
             zoom={defaultZoom}
             center={defaultCenter}
-            options={{
-              mapTypeControl: true, // Show map type controls (satellite, terrain)
-              streetViewControl: true, // Enable street view for better user experience
-              fullscreenControl: true, // Allow fullscreen mode
-              zoomControl: true, // Make sure zoom controls are visible
-              gestureHandling: "auto", // Allows full control over zooming and panning
-              clickableIcons: true, // Enable clickable POIs for better location discovery
-              mapTypeId: typeof google !== 'undefined' && google.maps && google.maps.MapTypeId ? google.maps.MapTypeId.ROADMAP : 'roadmap',
-              styles: [
-                {
-                  featureType: "poi",
-                  elementType: "labels",
-                  stylers: [{ visibility: "off" }]
-                }
-              ]
-            }}
+            options={mapOptions.current}
             onClick={handleMapClick}
             onLoad={handleMapLoad}
           >
