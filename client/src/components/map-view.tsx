@@ -5,13 +5,18 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { GoogleMap, Marker, InfoWindow, Polyline } from "@react-google-maps/api";
 import { VehicleLoadingIndicator } from "@/components/ui/vehicle-loading-indicator";
 import { Button } from "@/components/ui/button";
-import { MapPin, Clock, Search, Locate, AlertCircle, CircleCheck, Info as InfoIcon, X } from "lucide-react";
+import { MapPin, Clock, Search, Locate, AlertCircle, CircleCheck, Info as InfoIcon, X, Mic } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Combobox } from "@/components/ui/combobox";
 import { calculateRoute, convertToGoogleMapsRoute, RouteWaypoint } from "@/lib/geoapify-route-service";
 import MapFallback from "@/components/map-fallback";
 // Import the useMapsApi hook
 import { useMapsApi } from "@/hooks/use-maps-api";
+
+// Import accessibility components
+import AccessibilityToggle from "@/components/accessibility/accessibility-toggle";
+import AccessibleMarker from "@/components/accessibility/accessible-marker";
+import VoiceGuidance from "@/components/accessibility/voice-guidance";
 
 const defaultCenter = {
   lat: 24.466667,  // Abu Dhabi coordinates as default
@@ -169,6 +174,9 @@ export const MapView: React.FC<MapViewProps> = ({
   const [routePolyline, setRoutePolyline] = useState<google.maps.Polyline | null>(null);
   const [routeInfo, setRouteInfo] = useState<RouteInfo | null>(null);
   
+  // Accessibility features
+  const [accessibilityEnabled, setAccessibilityEnabled] = useState(false);
+  
   // Map references
   const mapRef = useRef<GoogleMap>(null);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -273,10 +281,16 @@ export const MapView: React.FC<MapViewProps> = ({
               `${Math.floor(durationInMinutes / 60)} hr ${durationInMinutes % 60} mins`;
             
             // Update route info
-            setRouteInfo({
+            const routeInfoData = {
               distance: distanceText,
               duration: durationText
-            });
+            };
+            setRouteInfo(routeInfoData);
+            
+            // Announce route calculation for accessibility
+            if (accessibilityEnabled) {
+              VoiceGuidance.announceRouteCalculation(distanceText, durationText);
+            }
             
             // Extract the path coordinates from the overview_path
             if (map && route.overview_path) {
@@ -386,10 +400,16 @@ export const MapView: React.FC<MapViewProps> = ({
           `${Math.floor(durationInMinutes / 60)} hr ${durationInMinutes % 60} mins`;
         
         // Update route info
-        setRouteInfo({
+        const routeInfoData = {
           distance: distanceText,
           duration: durationText
-        });
+        };
+        setRouteInfo(routeInfoData);
+        
+        // Announce route calculation for accessibility
+        if (accessibilityEnabled) {
+          VoiceGuidance.announceRouteCalculation(distanceText, durationText);
+        }
         
         // Draw the route on the map
         if (map && geoapifyResult.features && geoapifyResult.features.length > 0) {
@@ -479,10 +499,16 @@ export const MapView: React.FC<MapViewProps> = ({
           `${Math.floor(durationInMinutes / 60)} hr ${durationInMinutes % 60} mins`;
         
         // Update route info with our calculation
-        setRouteInfo({
+        const routeInfoData = {
           distance: distanceText,
           duration: durationText
-        });
+        };
+        setRouteInfo(routeInfoData);
+        
+        // Announce route calculation for accessibility
+        if (accessibilityEnabled) {
+          VoiceGuidance.announceRouteCalculation(distanceText, durationText);
+        }
         
         if (map) {
           // Draw a simple straight line between points
@@ -677,6 +703,12 @@ export const MapView: React.FC<MapViewProps> = ({
         
         console.log("Setting popup location data:", popupData);
         setPopupLocation(popupData);
+        
+        // Announce the selected location for accessibility
+        if (accessibilityEnabled) {
+          const address = popupData.formatted_address || `Location at coordinates ${popupData.lat.toFixed(4)}, ${popupData.lng.toFixed(4)}`;
+          VoiceGuidance.speak(`Location selected: ${address}. You can now set this as a pickup or dropoff point.`);
+        }
       } else {
         console.warn("No geocode results found for clicked location");
         // Still show popup even without detailed address
@@ -691,6 +723,11 @@ export const MapView: React.FC<MapViewProps> = ({
         
         console.log("Setting fallback popup location data:", fallbackPopupData);
         setPopupLocation(fallbackPopupData);
+        
+        // Announce the selected location for accessibility (fallback case)
+        if (accessibilityEnabled) {
+          VoiceGuidance.speak(`Location selected at coordinates ${e.latLng.lat().toFixed(4)}, ${e.latLng.lng().toFixed(4)}. You can now set this as a pickup or dropoff point.`);
+        }
       }
     } catch (error: any) {
       console.error("Error geocoding location:", error);
@@ -754,6 +791,25 @@ export const MapView: React.FC<MapViewProps> = ({
         
         // Call the parent component's callback with the new location and type
         onLocationSelect(location, type);
+        
+        // Announce location selection for accessibility
+        if (accessibilityEnabled) {
+          let typeText = '';
+          switch(type) {
+            case 'pickup':
+              typeText = 'pickup location';
+              break;
+            case 'dropoff':
+              typeText = 'dropoff location';
+              break;
+            case 'waypoint':
+              typeText = 'waypoint';
+              break;
+          }
+          
+          const locationName = location.formatted_address || location.address;
+          VoiceGuidance.formatLocationForSpeech(typeText, locationName);
+        }
         
         // Clear the popup and search field after selecting a location
         setPopupLocation(null);
@@ -902,14 +958,22 @@ export const MapView: React.FC<MapViewProps> = ({
           const lng = result.geometry.location.lng();
           
           // Create a popup for the selected place
-          setPopupLocation({
+          const locationData = {
             lat,
             lng,
             address: result.formatted_address || "Selected location",
             place_id: result.place_id || "",
             name: result.name || result.formatted_address || "Selected location",
             formatted_address: result.formatted_address || "Selected location"
-          });
+          };
+          
+          setPopupLocation(locationData);
+          
+          // Announce the selected location for accessibility
+          if (accessibilityEnabled) {
+            const locationName = result.name || result.formatted_address || "Selected location";
+            VoiceGuidance.speak(`Found location: ${locationName}. You can now set this as a pickup or dropoff point.`);
+          }
           
           // Pan to the selected location
           map.panTo({ lat, lng });
@@ -1174,14 +1238,47 @@ export const MapView: React.FC<MapViewProps> = ({
   return (
     <Card ref={mapContainerRef} className="overflow-hidden">
       <div className="p-4 border-b">
-        {!shouldUseFallback && searchBox}
-        {shouldUseFallback && (
-          <div className="flex items-center justify-between">
-            <p className="text-sm text-amber-600 font-medium">
-              Using simplified map view with all booking features available
-            </p>
+        <div className="flex items-center justify-between mb-2">
+          <div className="flex-1">
+            {!shouldUseFallback && searchBox}
+            {shouldUseFallback && (
+              <div className="flex items-center">
+                <p className="text-sm text-amber-600 font-medium">
+                  Using simplified map view with all booking features available
+                </p>
+              </div>
+            )}
           </div>
-        )}
+          <div className="ml-2">
+            <AccessibilityToggle 
+              onToggle={(enabled) => {
+                setAccessibilityEnabled(enabled);
+                if (enabled) {
+                  VoiceGuidance.announceMapGuidance();
+                  
+                  // Announce current state if we already have locations set
+                  if (pickupLocation) {
+                    setTimeout(() => {
+                      VoiceGuidance.formatLocationForSpeech("pickup location", pickupLocation.address);
+                    }, 3000);
+                  }
+                  
+                  if (dropoffLocation) {
+                    setTimeout(() => {
+                      VoiceGuidance.formatLocationForSpeech("dropoff location", dropoffLocation.address);
+                    }, 5000);
+                  }
+                  
+                  if (routeInfo) {
+                    setTimeout(() => {
+                      VoiceGuidance.announceRouteCalculation(routeInfo.distance, routeInfo.duration);
+                    }, 7000);
+                  }
+                }
+              }}
+            />
+          </div>
+        </div>
       </div>
       
       <div className="relative">
@@ -1260,30 +1357,55 @@ export const MapView: React.FC<MapViewProps> = ({
           >
             {/* Pickup location marker */}
             {pickupLocation && (
-              <Marker
-                position={pickupLocation.coordinates}
-                icon={{
-                  url: "https://maps.google.com/mapfiles/ms/icons/green-dot.png",
-                  scaledSize: typeof google !== 'undefined' ? new google.maps.Size(32, 32) : undefined,
-                  labelOrigin: typeof google !== 'undefined' ? new google.maps.Point(16, -10) : undefined
-                }}
-                label={{
-                  text: "Pickup",
-                  color: "#1e3a8a",
-                  fontWeight: "bold",
-                  fontSize: "12px"
-                }}
-                onClick={() => {
-                  setPopupLocation({
-                    lat: pickupLocation.coordinates.lat,
-                    lng: pickupLocation.coordinates.lng,
-                    address: pickupLocation.address,
-                    place_id: pickupLocation.place_id || "",
-                    name: pickupLocation.name || pickupLocation.formatted_address || pickupLocation.address,
-                    formatted_address: pickupLocation.formatted_address || pickupLocation.address
-                  });
-                }}
-              />
+              accessibilityEnabled ? (
+                <AccessibleMarker
+                  position={pickupLocation.coordinates}
+                  label="Pickup"
+                  type="pickup"
+                  address={pickupLocation.address}
+                  accessibilityEnabled={accessibilityEnabled}
+                  onClick={() => {
+                    setPopupLocation({
+                      lat: pickupLocation.coordinates.lat,
+                      lng: pickupLocation.coordinates.lng,
+                      address: pickupLocation.address,
+                      place_id: pickupLocation.place_id || "",
+                      name: pickupLocation.name || pickupLocation.formatted_address || pickupLocation.address,
+                      formatted_address: pickupLocation.formatted_address || pickupLocation.address
+                    });
+
+                    // Announce for accessibility
+                    if (accessibilityEnabled) {
+                      VoiceGuidance.speak(`Pickup location selected at ${pickupLocation.address || 'selected coordinates'}`);
+                    }
+                  }}
+                />
+              ) : (
+                <Marker
+                  position={pickupLocation.coordinates}
+                  icon={{
+                    url: "https://maps.google.com/mapfiles/ms/icons/green-dot.png",
+                    scaledSize: typeof google !== 'undefined' ? new google.maps.Size(32, 32) : undefined,
+                    labelOrigin: typeof google !== 'undefined' ? new google.maps.Point(16, -10) : undefined
+                  }}
+                  label={{
+                    text: "Pickup",
+                    color: "#1e3a8a",
+                    fontWeight: "bold",
+                    fontSize: "12px"
+                  }}
+                  onClick={() => {
+                    setPopupLocation({
+                      lat: pickupLocation.coordinates.lat,
+                      lng: pickupLocation.coordinates.lng,
+                      address: pickupLocation.address,
+                      place_id: pickupLocation.place_id || "",
+                      name: pickupLocation.name || pickupLocation.formatted_address || pickupLocation.address,
+                      formatted_address: pickupLocation.formatted_address || pickupLocation.address
+                    });
+                  }}
+                />
+              )
             )}
 
             {/* Waypoint markers */}
@@ -1291,41 +1413,75 @@ export const MapView: React.FC<MapViewProps> = ({
 
             {/* Dropoff location marker */}
             {dropoffLocation && (
-              <Marker
-                position={dropoffLocation.coordinates}
-                icon={{
-                  url: "https://maps.google.com/mapfiles/ms/icons/red-dot.png",
-                  scaledSize: typeof google !== 'undefined' ? new google.maps.Size(32, 32) : undefined,
-                  labelOrigin: typeof google !== 'undefined' ? new google.maps.Point(16, -10) : undefined
-                }}
-                label={{
-                  text: "Dropoff",
-                  color: "#7f1d1d",
-                  fontWeight: "bold",
-                  fontSize: "12px"
-                }}
-                onClick={() => {
-                  setPopupLocation({
-                    lat: dropoffLocation.coordinates.lat,
-                    lng: dropoffLocation.coordinates.lng,
-                    address: dropoffLocation.address,
-                    place_id: dropoffLocation.place_id || "",
-                    name: dropoffLocation.name || dropoffLocation.formatted_address || dropoffLocation.address,
-                    formatted_address: dropoffLocation.formatted_address || dropoffLocation.address
-                  });
-                }}
-              />
+              accessibilityEnabled ? (
+                <AccessibleMarker
+                  position={dropoffLocation.coordinates}
+                  label="Dropoff"
+                  type="dropoff"
+                  address={dropoffLocation.address}
+                  accessibilityEnabled={accessibilityEnabled}
+                  onClick={() => {
+                    setPopupLocation({
+                      lat: dropoffLocation.coordinates.lat,
+                      lng: dropoffLocation.coordinates.lng,
+                      address: dropoffLocation.address,
+                      place_id: dropoffLocation.place_id || "",
+                      name: dropoffLocation.name || dropoffLocation.formatted_address || dropoffLocation.address,
+                      formatted_address: dropoffLocation.formatted_address || dropoffLocation.address
+                    });
+
+                    // Announce for accessibility
+                    if (accessibilityEnabled) {
+                      VoiceGuidance.speak(`Dropoff location selected at ${dropoffLocation.address || 'selected coordinates'}`);
+                    }
+                  }}
+                />
+              ) : (
+                <Marker
+                  position={dropoffLocation.coordinates}
+                  icon={{
+                    url: "https://maps.google.com/mapfiles/ms/icons/red-dot.png",
+                    scaledSize: typeof google !== 'undefined' ? new google.maps.Size(32, 32) : undefined,
+                    labelOrigin: typeof google !== 'undefined' ? new google.maps.Point(16, -10) : undefined
+                  }}
+                  label={{
+                    text: "Dropoff",
+                    color: "#7f1d1d",
+                    fontWeight: "bold",
+                    fontSize: "12px"
+                  }}
+                  onClick={() => {
+                    setPopupLocation({
+                      lat: dropoffLocation.coordinates.lat,
+                      lng: dropoffLocation.coordinates.lng,
+                      address: dropoffLocation.address,
+                      place_id: dropoffLocation.place_id || "",
+                      name: dropoffLocation.name || dropoffLocation.formatted_address || dropoffLocation.address,
+                      formatted_address: dropoffLocation.formatted_address || dropoffLocation.address
+                    });
+                  }}
+                />
+              )
             )}
 
             {/* We will use a simple marker to signal the clicked location */}
             {popupLocation && (
-              <Marker
-                position={{ lat: popupLocation.lat, lng: popupLocation.lng }}
-                icon={{
-                  url: "https://maps.google.com/mapfiles/ms/icons/blue-dot.png",
-                  scaledSize: typeof google !== 'undefined' ? new google.maps.Size(32, 32) : undefined
-                }}
-              />
+              accessibilityEnabled ? (
+                <AccessibleMarker
+                  position={{ lat: popupLocation.lat, lng: popupLocation.lng }}
+                  type="selected"
+                  address={popupLocation.formatted_address}
+                  accessibilityEnabled={accessibilityEnabled}
+                />
+              ) : (
+                <Marker
+                  position={{ lat: popupLocation.lat, lng: popupLocation.lng }}
+                  icon={{
+                    url: "https://maps.google.com/mapfiles/ms/icons/blue-dot.png",
+                    scaledSize: typeof google !== 'undefined' ? new google.maps.Size(32, 32) : undefined
+                  }}
+                />
+              )
             )}
             
             {/* Side panel with location actions instead of InfoWindow */}
@@ -1364,10 +1520,19 @@ export const MapView: React.FC<MapViewProps> = ({
                           place_id: popupLocation.place_id || ""
                         };
                         
+                        // Provide voice feedback if accessibility is enabled
+                        if (accessibilityEnabled) {
+                          VoiceGuidance.announceLocationSelection(
+                            location,
+                            'pickup'
+                          );
+                        }
+                        
                         onLocationSelect(location, 'pickup');
                         setPopupLocation(null); // Close popup after selection
                       }
                     }}
+                    aria-label={`Set ${popupLocation?.formatted_address || 'selected location'} as pickup location`}
                   >
                     <span className="mr-2">📍</span> Set as Pickup Location
                   </button>
@@ -1389,10 +1554,19 @@ export const MapView: React.FC<MapViewProps> = ({
                           place_id: popupLocation.place_id || ""
                         };
                         
+                        // Provide voice feedback if accessibility is enabled
+                        if (accessibilityEnabled) {
+                          VoiceGuidance.announceLocationSelection(
+                            location,
+                            'dropoff'
+                          );
+                        }
+                        
                         onLocationSelect(location, 'dropoff');
                         setPopupLocation(null); // Close popup after selection
                       }
                     }}
+                    aria-label={`Set ${popupLocation?.formatted_address || 'selected location'} as dropoff location`}
                   >
                     <span className="mr-2">📍</span> Set as Dropoff Location
                   </button>
