@@ -46,46 +46,65 @@ const AccessibilityToggle: React.FC<AccessibilityToggleProps> = ({
   const [settings, setSettings] = useState(defaultSettings);
   const [showSettings, setShowSettings] = useState(false);
 
-  // Load settings from localStorage on component mount
+  // Load settings from localStorage only once on component mount
   useEffect(() => {
-    const savedSettings = localStorage.getItem(ACCESSIBILITY_SETTINGS_KEY);
-    if (savedSettings) {
-      try {
+    try {
+      const savedSettings = localStorage.getItem(ACCESSIBILITY_SETTINGS_KEY);
+      if (savedSettings) {
         const parsedSettings = JSON.parse(savedSettings);
         setSettings(parsedSettings);
         
-        // Notify parent component of initial state
-        if (onToggle) {
+        // Only notify parent component if the enabled state is true (to prevent initial flicker)
+        if (onToggle && parsedSettings.enabled) {
           onToggle(parsedSettings.enabled);
         }
-      } catch (error) {
-        console.error('Failed to parse accessibility settings:', error);
       }
+    } catch (error) {
+      console.error('Failed to parse accessibility settings:', error);
     }
-  }, [onToggle]);
+  }, []); // Removed onToggle dependency to prevent re-rendering loops
 
-  // Save settings to localStorage whenever they change
+  // Save settings to localStorage with debounce
   useEffect(() => {
-    localStorage.setItem(ACCESSIBILITY_SETTINGS_KEY, JSON.stringify(settings));
+    // Use a small timeout to debounce the localStorage updates
+    // This prevents excessive writes and potential flickering
+    const timeoutId = setTimeout(() => {
+      localStorage.setItem(ACCESSIBILITY_SETTINGS_KEY, JSON.stringify(settings));
+    }, 300);
+    
+    // Cleanup the timeout if settings change before the timeout completes
+    return () => clearTimeout(timeoutId);
   }, [settings]);
 
-  // Handle toggle change
+  // Handle toggle change with optimizations to prevent flickering
   const handleToggleChange = (checked: boolean) => {
-    const newSettings = { ...settings, enabled: checked };
-    setSettings(newSettings);
+    // Only update if the state is actually changing
+    if (checked === settings.enabled) return;
     
-    // Provide feedback when accessibility is toggled
+    // Update the local state
+    setSettings(prevSettings => ({ ...prevSettings, enabled: checked }));
+    
+    // Provide feedback when accessibility is toggled (with optimization)
     if (checked && VoiceGuidance.isSpeechAvailable()) {
-      VoiceGuidance.speak('Accessibility features enabled. Voice guidance is now active.');
+      // Small delay to avoid speech during state transitions
+      setTimeout(() => {
+        VoiceGuidance.speak('Accessibility features enabled. Voice guidance is now active.');
+      }, 100);
     } else if (VoiceGuidance.isSpeechAvailable()) {
-      VoiceGuidance.speak('Accessibility features disabled.');
-      // Stop any ongoing speech
-      setTimeout(() => VoiceGuidance.stopSpeaking(), 1000);
+      // Stop any ongoing speech immediately
+      VoiceGuidance.stopSpeaking();
+      
+      // Confirmation of disabling with short delay
+      setTimeout(() => {
+        VoiceGuidance.speak('Accessibility features disabled.');
+      }, 100);
     }
     
-    // Notify parent component
+    // Notify parent component with the new value
     if (onToggle) {
-      onToggle(checked);
+      // Using setTimeout to delay the parent component update
+      // This helps prevent render cascades that can cause flickering
+      setTimeout(() => onToggle(checked), 0);
     }
   };
 

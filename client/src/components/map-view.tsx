@@ -175,7 +175,14 @@ export const MapView: React.FC<MapViewProps> = ({
   const [routeInfo, setRouteInfo] = useState<RouteInfo | null>(null);
   
   // Accessibility features
+  // Using useRef to prevent unnecessary re-renders when accessibility state changes
+  const accessibilityEnabledRef = useRef(false);
   const [accessibilityEnabled, setAccessibilityEnabled] = useState(false);
+  
+  // Update the ref whenever state changes
+  useEffect(() => {
+    accessibilityEnabledRef.current = accessibilityEnabled;
+  }, [accessibilityEnabled]);
   
   // Map references
   const mapRef = useRef<GoogleMap>(null);
@@ -287,8 +294,8 @@ export const MapView: React.FC<MapViewProps> = ({
             };
             setRouteInfo(routeInfoData);
             
-            // Announce route calculation for accessibility
-            if (accessibilityEnabled) {
+            // Announce route calculation for accessibility - using ref to prevent re-renders
+            if (accessibilityEnabledRef.current) {
               VoiceGuidance.announceRouteCalculation(distanceText, durationText);
             }
             
@@ -1252,22 +1259,37 @@ export const MapView: React.FC<MapViewProps> = ({
           <div className="ml-2">
             <AccessibilityToggle 
               onToggle={(enabled) => {
+                // Prevent extra processing if the state isn't changing
+                if (enabled === accessibilityEnabled) return;
+                
+                // Update both the state and the ref
                 setAccessibilityEnabled(enabled);
+                accessibilityEnabledRef.current = enabled;
+                
+                // Only process announcements if enabling (not when disabling)
                 if (enabled) {
-                  VoiceGuidance.announceMapGuidance();
-                  
-                  // Announce current state if we already have locations set
-                  if (pickupLocation) {
-                    setTimeout(() => {
-                      VoiceGuidance.formatLocationForSpeech("pickup location", pickupLocation.address);
-                    }, 3000);
-                  }
-                  
-                  if (dropoffLocation) {
-                    setTimeout(() => {
-                      VoiceGuidance.formatLocationForSpeech("dropoff location", dropoffLocation.address);
-                    }, 5000);
-                  }
+                  // Use a small delay to prevent immediate announcements
+                  setTimeout(() => {
+                    if (!accessibilityEnabledRef.current) return; // Double-check it's still enabled
+                    
+                    VoiceGuidance.announceMapGuidance();
+                    
+                    // Announce current state if we already have locations set
+                    // Use staggered timing to prevent voice overlap
+                    if (pickupLocation) {
+                      setTimeout(() => {
+                        if (!accessibilityEnabledRef.current) return;
+                        VoiceGuidance.formatLocationForSpeech("pickup location", pickupLocation.address);
+                      }, 2500);
+                    }
+                    
+                    if (dropoffLocation) {
+                      setTimeout(() => {
+                        if (!accessibilityEnabledRef.current) return;
+                        VoiceGuidance.formatLocationForSpeech("dropoff location", dropoffLocation.address);
+                      }, 4500);
+                    }
+                  }, 300);
                   
                   if (routeInfo) {
                     setTimeout(() => {
@@ -1357,13 +1379,13 @@ export const MapView: React.FC<MapViewProps> = ({
           >
             {/* Pickup location marker */}
             {pickupLocation && (
-              accessibilityEnabled ? (
+              accessibilityEnabledRef.current ? (
                 <AccessibleMarker
                   position={pickupLocation.coordinates}
                   label="Pickup"
                   type="pickup"
                   address={pickupLocation.address}
-                  accessibilityEnabled={accessibilityEnabled}
+                  accessibilityEnabled={accessibilityEnabledRef.current}
                   onClick={() => {
                     setPopupLocation({
                       lat: pickupLocation.coordinates.lat,
@@ -1374,8 +1396,8 @@ export const MapView: React.FC<MapViewProps> = ({
                       formatted_address: pickupLocation.formatted_address || pickupLocation.address
                     });
 
-                    // Announce for accessibility
-                    if (accessibilityEnabled) {
+                    // Announce for accessibility - using ref to prevent re-renders
+                    if (accessibilityEnabledRef.current) {
                       VoiceGuidance.speak(`Pickup location selected at ${pickupLocation.address || 'selected coordinates'}`);
                     }
                   }}
@@ -1413,13 +1435,13 @@ export const MapView: React.FC<MapViewProps> = ({
 
             {/* Dropoff location marker */}
             {dropoffLocation && (
-              accessibilityEnabled ? (
+              accessibilityEnabledRef.current ? (
                 <AccessibleMarker
                   position={dropoffLocation.coordinates}
                   label="Dropoff"
                   type="dropoff"
                   address={dropoffLocation.address}
-                  accessibilityEnabled={accessibilityEnabled}
+                  accessibilityEnabled={accessibilityEnabledRef.current}
                   onClick={() => {
                     setPopupLocation({
                       lat: dropoffLocation.coordinates.lat,
@@ -1430,8 +1452,8 @@ export const MapView: React.FC<MapViewProps> = ({
                       formatted_address: dropoffLocation.formatted_address || dropoffLocation.address
                     });
 
-                    // Announce for accessibility
-                    if (accessibilityEnabled) {
+                    // Announce for accessibility - using ref to prevent re-renders
+                    if (accessibilityEnabledRef.current) {
                       VoiceGuidance.speak(`Dropoff location selected at ${dropoffLocation.address || 'selected coordinates'}`);
                     }
                   }}
@@ -1466,12 +1488,12 @@ export const MapView: React.FC<MapViewProps> = ({
 
             {/* We will use a simple marker to signal the clicked location */}
             {popupLocation && (
-              accessibilityEnabled ? (
+              accessibilityEnabledRef.current ? (
                 <AccessibleMarker
                   position={{ lat: popupLocation.lat, lng: popupLocation.lng }}
                   type="selected"
                   address={popupLocation.formatted_address}
-                  accessibilityEnabled={accessibilityEnabled}
+                  accessibilityEnabled={accessibilityEnabledRef.current}
                 />
               ) : (
                 <Marker
@@ -1520,8 +1542,8 @@ export const MapView: React.FC<MapViewProps> = ({
                           place_id: popupLocation.place_id || ""
                         };
                         
-                        // Provide voice feedback if accessibility is enabled
-                        if (accessibilityEnabled) {
+                        // Provide voice feedback if accessibility is enabled - using ref to prevent re-renders
+                        if (accessibilityEnabledRef.current) {
                           VoiceGuidance.announceLocationSelection(
                             location,
                             'pickup'
@@ -1554,8 +1576,8 @@ export const MapView: React.FC<MapViewProps> = ({
                           place_id: popupLocation.place_id || ""
                         };
                         
-                        // Provide voice feedback if accessibility is enabled
-                        if (accessibilityEnabled) {
+                        // Provide voice feedback if accessibility is enabled - using ref to prevent re-renders
+                        if (accessibilityEnabledRef.current) {
                           VoiceGuidance.announceLocationSelection(
                             location,
                             'dropoff'

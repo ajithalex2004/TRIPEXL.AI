@@ -37,8 +37,13 @@ export const getAvailableVoices = (): SpeechSynthesisVoice[] => {
   return window.speechSynthesis.getVoices();
 };
 
+// Keep track of the last message for debouncing
+let lastSpokenMessage = '';
+let lastSpeakTime = 0;
+const DEBOUNCE_TIME_MS = 800; // Prevent duplicate messages within 800ms
+
 /**
- * Speak a text message using speech synthesis
+ * Speak a text message using speech synthesis with optimizations to prevent flickering
  */
 export const speak = (text: string, options: SpeechOptions = {}): void => {
   if (!isSpeechAvailable()) {
@@ -46,10 +51,21 @@ export const speak = (text: string, options: SpeechOptions = {}): void => {
     return;
   }
 
+  // Skip identical repeated messages within the debounce time to prevent unnecessary speech
+  const now = Date.now();
+  if (text === lastSpokenMessage && (now - lastSpeakTime) < DEBOUNCE_TIME_MS) {
+    console.log('Skipping duplicate speech message within debounce window');
+    return;
+  }
+  
+  // Update our tracking variables
+  lastSpokenMessage = text;
+  lastSpeakTime = now;
+
   // Combine default options with provided options
   const mergedOptions = { ...defaultOptions, ...options };
 
-  // Create a new utterance
+  // Create a new utterance with memory optimization
   const utterance = new SpeechSynthesisUtterance(text);
   
   // Apply the options
@@ -58,7 +74,7 @@ export const speak = (text: string, options: SpeechOptions = {}): void => {
   utterance.volume = mergedOptions.volume || 1;
   utterance.lang = mergedOptions.lang || 'en-US';
   
-  // If a specific voice is requested, try to use it
+  // Only look up voices if specifically requested (performance optimization)
   if (mergedOptions.voice) {
     const voices = getAvailableVoices();
     const requestedVoice = voices.find(v => v.name === mergedOptions.voice);
@@ -69,6 +85,19 @@ export const speak = (text: string, options: SpeechOptions = {}): void => {
 
   // Cancel any previous speech
   window.speechSynthesis.cancel();
+  
+  // Add event handlers to manage memory and performance
+  utterance.onend = () => {
+    // Help garbage collection by removing references
+    utterance.onend = null;
+    utterance.onerror = null;
+  };
+  
+  utterance.onerror = (event) => {
+    console.error('Speech synthesis error:', event);
+    utterance.onend = null;
+    utterance.onerror = null;
+  };
   
   // Speak the text
   window.speechSynthesis.speak(utterance);
