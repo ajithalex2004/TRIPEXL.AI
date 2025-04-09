@@ -711,80 +711,108 @@ export class DatabaseStorage implements IStorage {
     return await db.select().from(schema.bookings);
   }
   async createBooking(bookingData: InsertBooking): Promise<Booking> {
+    const debugId = Date.now().toString();
     try {
       // Enhanced debugging
-      console.log("Creating booking with data:", JSON.stringify(bookingData, null, 2));
+      console.log(`[BOOKING-DB-${debugId}] Creating booking with data:`, JSON.stringify(bookingData, null, 2));
       logBookingDbOperation('create-booking-start', bookingData);
 
       // Convert camelCase properties to snake_case for database
       const dbData: any = { ...bookingData };
       
-      // Set timestamps in snake_case
+      // STEP 1: Set timestamps in snake_case
       dbData.created_at = new Date();
       dbData.updated_at = new Date();
       
-      // CRITICAL FIX: Ensure employeeId is converted to a proper number and in snake_case format
-      if (bookingData.employeeId !== undefined) {
-        // First, ensure it's a valid number by explicitly converting it
-        let employeeIdNum: number;
+      // STEP 2: Handle the employee ID - this is CRITICAL for proper foreign key reference
+      console.log(`[BOOKING-DB-${debugId}] Processing employeeId value:`, bookingData.employeeId, `(type: ${typeof bookingData.employeeId})`);
+      
+      if (bookingData.employeeId === undefined || bookingData.employeeId === null) {
+        // Case 1: No employee ID provided
+        const error = new Error("Employee ID is required for booking creation");
+        logBookingDbOperation('create-booking-error-employeeId-missing', {});
+        console.error(`[BOOKING-DB-${debugId}] ERROR: No employeeId provided in booking data`);
+        throw error;
+      }
+      
+      // Strict conversion to number to ensure database compatibility
+      let employeeIdNum: number;
+      
+      // Case 2: Handle various input types for employee ID
+      if (typeof bookingData.employeeId === 'number') {
+        // Already a number, just use it
+        employeeIdNum = bookingData.employeeId;
+        console.log(`[BOOKING-DB-${debugId}] Using numeric employeeId directly:`, employeeIdNum);
+      } else if (typeof bookingData.employeeId === 'string') {
+        // Try to convert string to integer with base 10
+        const parsed = parseInt(bookingData.employeeId.trim(), 10);
         
-        if (typeof bookingData.employeeId === 'string') {
-          employeeIdNum = parseInt(bookingData.employeeId, 10);
-          console.log(`Converting string employeeId '${bookingData.employeeId}' to number: ${employeeIdNum}`);
-        } else if (typeof bookingData.employeeId === 'number') {
-          employeeIdNum = bookingData.employeeId;
-          console.log(`EmployeeId is already a number: ${employeeIdNum}`);
-        } else {
-          // Try to convert whatever it is to a number
-          employeeIdNum = Number(bookingData.employeeId);
-          console.log(`Converting employeeId of type ${typeof bookingData.employeeId} to number: ${employeeIdNum}`);
-        }
-        
-        if (isNaN(employeeIdNum)) {
-          const error = new Error(`Invalid employeeId format: ${bookingData.employeeId} (type: ${typeof bookingData.employeeId}) - must be a valid number`);
-          logBookingDbOperation('create-booking-error-employeeId-invalid', { 
-            error: error.message, 
-            employeeId: bookingData.employeeId 
+        if (isNaN(parsed)) {
+          const error = new Error(`Invalid employeeId string format: "${bookingData.employeeId}" - must be a valid number`);
+          logBookingDbOperation('create-booking-error-employeeId-invalid-string', { 
+            providedValue: bookingData.employeeId
           });
+          console.error(`[BOOKING-DB-${debugId}] ERROR: Failed to parse employeeId string: "${bookingData.employeeId}"`);
           throw error;
         }
         
-        // Check if employee exists
-        try {
-          const employee = await db
-            .select({ id: schema.employees.id })
-            .from(schema.employees)
-            .where(eq(schema.employees.id, employeeIdNum))
-            .limit(1);
-          
-          if (employee.length === 0) {
-            logBookingDbOperation('create-booking-error-employee-not-found', { employeeId: employeeIdNum });
-            throw new Error(`Employee with ID ${employeeIdNum} not found in the database`);
-          }
-          
-          // Log successful employee check
-          logBookingDbOperation('create-booking-employee-check', { 
-            employeeId: employeeIdNum,
-            employeeFound: true 
+        employeeIdNum = parsed;
+        console.log(`[BOOKING-DB-${debugId}] Converted string employeeId "${bookingData.employeeId}" to number:`, employeeIdNum);
+      } else {
+        // Last resort: try generic Number() conversion for other types
+        employeeIdNum = Number(bookingData.employeeId);
+        
+        if (isNaN(employeeIdNum)) {
+          const error = new Error(`Invalid employeeId type (${typeof bookingData.employeeId}) or format`);
+          logBookingDbOperation('create-booking-error-employeeId-invalid-type', { 
+            type: typeof bookingData.employeeId,
+            value: String(bookingData.employeeId)
           });
-        } catch (employeeCheckError) {
-          logBookingDbOperation('create-booking-error-employee-check', { 
-            error: employeeCheckError instanceof Error ? employeeCheckError.message : String(employeeCheckError),
-            employeeId: employeeIdNum 
-          });
-          throw employeeCheckError;
+          console.error(`[BOOKING-DB-${debugId}] ERROR: Failed to convert employeeId of type ${typeof bookingData.employeeId}`);
+          throw error;
         }
         
-        // Assign the numeric version to employee_id (snake_case)
-        dbData.employee_id = employeeIdNum;
-        console.log(`Setting employee_id in database to: ${dbData.employee_id} (type: ${typeof dbData.employee_id})`);
-        
-        // Remove the camelCase property to avoid conflicts
-        delete dbData.employeeId;
-      } else {
-        console.log("WARNING: No employeeId provided in booking data");
-        logBookingDbOperation('create-booking-warning-no-employeeId', {});
+        console.log(`[BOOKING-DB-${debugId}] Converted employeeId of type ${typeof bookingData.employeeId} to number:`, employeeIdNum);
       }
+      
+      // STEP 3: Always verify the employee exists to avoid foreign key errors
+      try {
+        console.log(`[BOOKING-DB-${debugId}] Verifying employee ID ${employeeIdNum} exists in database`);
+        const employee = await db
+          .select({ 
+            id: schema.employees.id,
+            name: schema.employees.employee_name 
+          })
+          .from(schema.employees)
+          .where(eq(schema.employees.id, employeeIdNum))
+          .limit(1);
+        
+        if (employee.length === 0) {
+          const error = new Error(`Employee with ID ${employeeIdNum} not found in the database`);
+          logBookingDbOperation('create-booking-error-employee-not-found', { employeeId: employeeIdNum });
+          console.error(`[BOOKING-DB-${debugId}] ERROR: Employee ID ${employeeIdNum} not found in database`);
+          throw error;
+        }
+        
+        // Log successful employee check
+        console.log(`[BOOKING-DB-${debugId}] ✓ Successfully verified employee exists:`, employee[0].name);
+        logBookingDbOperation('create-booking-employee-check', { 
+          employeeId: employeeIdNum,
+          employeeName: employee[0].name,
+          employeeFound: true 
+        });
+      } catch (employeeCheckError) {
+        logBookingDbOperation('create-booking-error-employee-check', { 
+          error: employeeCheckError instanceof Error ? employeeCheckError.message : String(employeeCheckError),
+          employeeId: employeeIdNum 
+        });
+        throw employeeCheckError;
+      }
+      
+      // STEP 4: Assign the validated employee ID to snake_case property and remove camelCase version
+      dbData.employee_id = employeeIdNum;
+      console.log(`[BOOKING-DB-${debugId}] Setting employee_id in database to:`, dbData.employee_id, `(type: ${typeof dbData.employee_id})`);
+      delete dbData.employeeId;
       
       // Ensure number fields are properly typed with snake_case naming
       if (bookingData.numBoxes !== undefined) dbData.num_boxes = Number(bookingData.numBoxes);

@@ -345,36 +345,84 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
     // Update the booking creation route
     app.post("/api/bookings", async (req, res) => {
-      console.log("Received booking request:", JSON.stringify(req.body, null, 2));
+      const debugId = Date.now().toString();
+      console.log(`[BOOKING-${debugId}] Received booking request:`, JSON.stringify(req.body, null, 2));
 
       try {
-        // Log the employee ID value for debugging
-        console.log("Employee ID from request:", req.body.employeeId, "Type:", typeof req.body.employeeId);
+        // STEP 1: Validate and normalize the employee ID
+        console.log(`[BOOKING-${debugId}] Original employee ID:`, req.body.employeeId, "Type:", typeof req.body.employeeId);
         
-        // Ensure employeeId is a number before validation
-        if (req.body.employeeId && typeof req.body.employeeId !== 'number') {
-          req.body.employeeId = Number(req.body.employeeId);
-          console.log("Converted employeeId to number:", req.body.employeeId);
+        // Check if employeeId exists at all
+        if (req.body.employeeId === undefined || req.body.employeeId === null) {
+          console.error(`[BOOKING-${debugId}] Missing employeeId in request`);
+          return res.status(400).json({
+            error: "Employee ID is required",
+            details: "Please provide a valid employee ID"
+          });
         }
         
+        // Ensure employeeId is a number before validation
+        if (typeof req.body.employeeId !== 'number') {
+          const originalValue = req.body.employeeId;
+          req.body.employeeId = Number(req.body.employeeId);
+          
+          // Check if conversion was successful
+          if (isNaN(req.body.employeeId)) {
+            console.error(`[BOOKING-${debugId}] Failed to convert employeeId "${originalValue}" to a number`);
+            return res.status(400).json({
+              error: "Invalid employee ID format",
+              details: `The value "${originalValue}" could not be converted to a valid employee ID number`
+            });
+          }
+          
+          console.log(`[BOOKING-${debugId}] Converted employeeId from "${originalValue}" to number:`, req.body.employeeId);
+        }
+        
+        // STEP 2: Validate the booking data using Zod schema
+        console.log(`[BOOKING-${debugId}] Validating booking data with schema`);
         const result = insertBookingSchema.safeParse(req.body);
 
         if (!result.success) {
-          console.error("Validation errors:", result.error.issues);
+          console.error(`[BOOKING-${debugId}] Schema validation errors:`, result.error.issues);
           return res.status(400).json({
             error: "Invalid booking data",
             details: result.error.issues
           });
         }
 
-        // Double-check employee ID is a number
-        console.log("Employee ID after validation:", result.data.employeeId, "Type:", typeof result.data.employeeId);
+        // Double-check employee ID is a number after validation
+        console.log(`[BOOKING-${debugId}] Employee ID after validation:`, result.data.employeeId, "Type:", typeof result.data.employeeId);
 
-        // Determine initial status based on priority
+        // STEP 3: Verify the employee exists in the database
+        try {
+          console.log(`[BOOKING-${debugId}] Verifying employee ID ${result.data.employeeId} exists in database`);
+          const employee = await db
+            .select()
+            .from(schema.employees)
+            .where(eq(schema.employees.id, result.data.employeeId))
+            .limit(1);
+            
+          if (employee.length === 0) {
+            console.error(`[BOOKING-${debugId}] Employee ID ${result.data.employeeId} not found in database`);
+            return res.status(400).json({
+              error: "Invalid employee ID",
+              details: `Employee with ID ${result.data.employeeId} does not exist in the system`
+            });
+          }
+          
+          console.log(`[BOOKING-${debugId}] Employee verified:`, employee[0].name);
+        } catch (employeeCheckError) {
+          console.error(`[BOOKING-${debugId}] Error checking employee:`, employeeCheckError);
+          return res.status(500).json({
+            error: "Employee verification failed",
+            details: "Unable to verify employee information"
+          });
+        }
+
+        // STEP 4: Prepare booking data with proper status
         const isHighPriority = ["Critical", "Emergency", "High"].includes(result.data.priority);
         const initialStatus = isHighPriority ? "approved" : "new";
 
-        // Prepare booking data
         const bookingData = {
           ...result.data,
           referenceNo: result.data.referenceNo || `BK${Date.now()}${Math.floor(Math.random() * 1000)}`,
@@ -383,12 +431,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
           updatedAt: new Date()
         };
 
-        console.log("Creating booking with data:", JSON.stringify(bookingData, null, 2));
+        console.log(`[BOOKING-${debugId}] Prepared booking data:`, JSON.stringify(bookingData, null, 2));
 
-        // Create the booking
-        console.log("About to call storage.createBooking...");
+        // STEP 5: Create the booking in the database
+        console.log(`[BOOKING-${debugId}] Calling storage.createBooking...`);
         const booking = await storage.createBooking(bookingData);
-        console.log("Successfully created booking:", JSON.stringify(booking, null, 2));
+        console.log(`[BOOKING-${debugId}] Successfully created booking with ID ${booking.id}:`, JSON.stringify(booking, null, 2));
 
         // Calculate and update metadata
         const totalDistance = calculateTotalDistance(booking.pickupLocation, booking.dropoffLocation);
@@ -404,13 +452,38 @@ export async function registerRoutes(app: Express): Promise<Server> {
           co2Emissions
         });
 
-        console.log("Final booking data being returned:", JSON.stringify(updatedBooking, null, 2));
+        console.log(`[BOOKING-${debugId}] Final booking data being returned:`, JSON.stringify(updatedBooking, null, 2));
         res.status(201).json(updatedBooking);
       } catch (error: any) {
-        console.error("Error creating booking:", error);
+        console.error(`[BOOKING-${debugId}] Error creating booking:`, error);
+        
+        // Determine if this is a known error type with a specific message
+        if (error.message && error.message.includes('violates foreign key constraint')) {
+          if (error.message.includes('employee_id')) {
+            return res.status(400).json({
+              error: "Invalid employee reference",
+              details: "The employee ID provided does not exist in the system"
+            });
+          } else if (error.message.includes('user_id')) {
+            return res.status(400).json({
+              error: "Invalid user reference",
+              details: "The user ID provided does not exist in the system"
+            });
+          }
+        }
+        
+        // Check for validation errors
+        if (error.name === 'ValidationError' || error.message.includes('validation failed')) {
+          return res.status(400).json({
+            error: "Validation error",
+            details: error.message
+          });
+        }
+        
+        // Default error response
         res.status(500).json({
           error: "Failed to create booking",
-          details: error.message
+          details: error.message || "Unknown error occurred"
         });
       }
     });

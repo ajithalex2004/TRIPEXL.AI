@@ -252,7 +252,10 @@ export function BookingForm() {
   // Update the mutation and onSubmit handlers
   const createBookingMutation = useMutation({
     mutationFn: async (data: any) => {
-      console.log("Creating booking with data:", JSON.stringify(data, null, 2));
+      // Enhanced logging for debugging
+      console.log("%c BOOKING SUBMISSION - START", "background: #4CAF50; color: white; padding: 2px 4px; border-radius: 2px;");
+      console.log("%c Booking Data:", "font-weight: bold;", JSON.stringify(data, null, 2));
+      console.log("Employee ID:", data.employeeId, "Type:", typeof data.employeeId);
       
       try {
         toast({
@@ -260,8 +263,9 @@ export function BookingForm() {
           description: "Please wait while we process your booking request...",
         });
         
+        console.log("Sending API request to /api/bookings...");
         const response = await apiRequest("POST", "/api/bookings", data);
-        console.log("Booking API response status:", response.status);
+        console.log("%c Booking API response status:", "font-weight: bold;", response.status, response.statusText);
         
         if (!response.ok) {
           let errorMessage = `Failed to create booking: ${response.status} ${response.statusText}`;
