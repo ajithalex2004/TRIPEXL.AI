@@ -1317,136 +1317,87 @@ export const MapView: React.FC<MapViewProps> = ({
               />
             )}
 
-            {/* InfoWindow for the selected location - simplified version */}
+            {/* We will use a simple marker to signal the clicked location */}
             {popupLocation && (
-              <InfoWindow
+              <Marker
                 position={{ lat: popupLocation.lat, lng: popupLocation.lng }}
-                onCloseClick={() => setPopupLocation(null)}
-                options={{
-                  pixelOffset: typeof google !== 'undefined' ? new google.maps.Size(0, -30) : undefined,
-                  disableAutoPan: false,
-                  maxWidth: 300
+                icon={{
+                  url: "https://maps.google.com/mapfiles/ms/icons/blue-dot.png",
+                  scaledSize: typeof google !== 'undefined' ? new google.maps.Size(32, 32) : undefined
                 }}
-              >
-                <div className="p-3">
-                  <h3 className="font-semibold mb-2">{popupLocation?.name || "Selected Location"}</h3>
-                  <p className="text-sm mb-4">{popupLocation?.formatted_address || `${popupLocation?.lat.toFixed(6)}, ${popupLocation?.lng.toFixed(6)}`}</p>
-                  
-                  <div className="flex flex-col gap-2">
-                    <button 
-                      type="button"
-                      onClick={(e) => {
-                        e.preventDefault();
-                        e.stopPropagation();
-                        console.log("DIRECT PICKUP BUTTON CLICK");
-                        alert("You clicked: Set as Pickup Location"); // Diagnostic alert
-                        try {
-                          handleLocationTypeSelect('pickup');
-                        } catch (error) {
-                          console.error("Error in pickup button click:", error);
-                          alert("Error: " + (error as any).message);
-                        }
-                      }}
-                      style={{
-                        padding: '8px 12px',
-                        backgroundColor: '#16a34a',
-                        color: 'white',
-                        border: 'none',
-                        borderRadius: '4px',
-                        cursor: 'pointer',
-                        textAlign: 'left',
-                        display: 'flex',
-                        alignItems: 'center',
-                        width: '100%',
-                        marginBottom: '8px'
-                      }}
-                    >
-                      <span style={{marginRight: '8px'}}>📍</span> Set as Pickup Location
-                    </button>
-                    
-                    <button 
-                      type="button"
-                      onClick={(e) => {
-                        e.preventDefault();
-                        e.stopPropagation();
-                        console.log("DIRECT DROPOFF BUTTON CLICK");
-                        alert("You clicked: Set as Dropoff Location"); // Diagnostic alert
-                        try {
-                          handleLocationTypeSelect('dropoff');
-                        } catch (error) {
-                          console.error("Error in dropoff button click:", error);
-                          alert("Error: " + (error as any).message);
-                        }
-                      }}
-                      style={{
-                        padding: '8px 12px',
-                        backgroundColor: '#dc2626',
-                        color: 'white',
-                        border: 'none',
-                        borderRadius: '4px',
-                        cursor: 'pointer',
-                        textAlign: 'left',
-                        display: 'flex',
-                        alignItems: 'center',
-                        width: '100%'
-                      }}
-                    >
-                      <span style={{marginRight: '8px'}}>📍</span> Set as Dropoff Location
-                    </button>
-                    
-                    {/* Add a test button for direct bypass */}
-                    <button 
-                      type="button"
-                      onClick={(e) => {
-                        e.preventDefault();
-                        e.stopPropagation();
-                        alert("Test: Creating location object directly");
-                        
-                        if (!onLocationSelect) {
-                          alert("Error: onLocationSelect callback is not provided!");
-                          return;
-                        }
-                        
-                        // Create location object directly
+              />
+            )}
+            
+            {/* Side panel with location actions instead of InfoWindow */}
+            {popupLocation && (
+              <div className="absolute top-4 right-4 bg-white rounded-lg shadow-lg p-4 w-64 z-10 border border-slate-200">
+                <div className="flex justify-between items-center mb-2">
+                  <h3 className="font-semibold text-base">Selected Location</h3>
+                  <button 
+                    type="button" 
+                    className="text-gray-400 hover:text-gray-600"
+                    onClick={() => setPopupLocation(null)}
+                  >
+                    ✕
+                  </button>
+                </div>
+                
+                <p className="text-sm text-gray-600 mb-3 break-words">
+                  {popupLocation.formatted_address || `${popupLocation.lat.toFixed(6)}, ${popupLocation.lng.toFixed(6)}`}
+                </p>
+                
+                <div className="space-y-2">
+                  <button 
+                    type="button"
+                    className="w-full py-2 px-3 bg-green-600 hover:bg-green-700 text-white rounded text-sm font-medium flex items-center"
+                    onClick={() => {
+                      console.log("Set as Pickup clicked");
+                      if (popupLocation && onLocationSelect) {
                         const location = {
-                          address: popupLocation?.formatted_address || "Selected location",
+                          address: popupLocation.formatted_address || "Selected location",
                           coordinates: {
-                            lat: popupLocation?.lat || 0,
-                            lng: popupLocation?.lng || 0
+                            lat: popupLocation.lat,
+                            lng: popupLocation.lng
                           },
-                          name: popupLocation?.name || "Selected location",
-                          formatted_address: popupLocation?.formatted_address || "Selected location",
-                          place_id: popupLocation?.place_id || ""
+                          name: popupLocation.name || "Selected location",
+                          formatted_address: popupLocation.formatted_address || "Selected location",
+                          place_id: popupLocation.place_id || ""
                         };
                         
-                        // Call callback directly
-                        try {
-                          onLocationSelect(location, 'pickup');
-                          alert("Direct location set as pickup!");
-                        } catch (error) {
-                          console.error("Error in direct location setting:", error);
-                          alert("Error: " + (error as any).message);
-                        }
-                      }}
-                      style={{
-                        padding: '8px 12px',
-                        backgroundColor: '#3b82f6',
-                        color: 'white',
-                        border: 'none',
-                        borderRadius: '4px',
-                        cursor: 'pointer',
-                        textAlign: 'left',
-                        display: 'flex',
-                        alignItems: 'center',
-                        width: '100%',
-                        marginTop: '8px'
-                      }}
-                    >
-                      <span style={{marginRight: '8px'}}>🧪</span> TEST: Direct Pickup
-                    </button>
-                  </div>
+                        onLocationSelect(location, 'pickup');
+                        setPopupLocation(null); // Close popup after selection
+                      }
+                    }}
+                  >
+                    <span className="mr-2">📍</span> Set as Pickup Location
+                  </button>
+                  
+                  <button 
+                    type="button"
+                    className="w-full py-2 px-3 bg-red-600 hover:bg-red-700 text-white rounded text-sm font-medium flex items-center"
+                    onClick={() => {
+                      console.log("Set as Dropoff clicked");
+                      if (popupLocation && onLocationSelect) {
+                        const location = {
+                          address: popupLocation.formatted_address || "Selected location",
+                          coordinates: {
+                            lat: popupLocation.lat,
+                            lng: popupLocation.lng
+                          },
+                          name: popupLocation.name || "Selected location",
+                          formatted_address: popupLocation.formatted_address || "Selected location",
+                          place_id: popupLocation.place_id || ""
+                        };
+                        
+                        onLocationSelect(location, 'dropoff');
+                        setPopupLocation(null); // Close popup after selection
+                      }
+                    }}
+                  >
+                    <span className="mr-2">📍</span> Set as Dropoff Location
+                  </button>
                 </div>
-              </InfoWindow>
+              </div>
             )}
           </GoogleMap>
         )}
