@@ -726,8 +726,20 @@ export class DatabaseStorage implements IStorage {
       
       // STEP 2: Handle the employee ID - this is CRITICAL for proper foreign key reference
       // Handle both camelCase (employeeId) and snake_case (employee_id) for backward compatibility
-      const employeeIdValue = bookingData.employee_id !== undefined ? bookingData.employee_id : bookingData.employeeId;
-      console.log(`[BOOKING-DB-${debugId}] Processing employee ID value:`, employeeIdValue, `(type: ${typeof employeeIdValue})`);
+      let employeeIdValue = undefined;
+      
+      // First check employee_id (snake_case) which is the database field name
+      if (bookingData.employee_id !== undefined && bookingData.employee_id !== null) {
+        employeeIdValue = bookingData.employee_id;
+        console.log(`[BOOKING-DB-${debugId}] Found employee_id (snake_case):`, employeeIdValue, `(type: ${typeof employeeIdValue})`);
+      } 
+      // Then check employeeId (camelCase) as fallback
+      else if (bookingData.employeeId !== undefined && bookingData.employeeId !== null) {
+        employeeIdValue = bookingData.employeeId;
+        console.log(`[BOOKING-DB-${debugId}] Found employeeId (camelCase):`, employeeIdValue, `(type: ${typeof employeeIdValue})`);
+      }
+      
+      console.log(`[BOOKING-DB-${debugId}] Final employee ID value:`, employeeIdValue, `(type: ${typeof employeeIdValue})`);
       
       if (employeeIdValue === undefined || employeeIdValue === null) {
         // Case 1: No employee ID provided

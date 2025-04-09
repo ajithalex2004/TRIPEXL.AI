@@ -621,19 +621,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
         
         // Return detailed employee information
         res.json({
-          id: employee.id, 
-          employeeId: employee.employeeId,
-          employeeName: employee.employeeName,
-          name: employee.employeeName, // For backward compatibility
-          email: employee.emailId,
+          id: employee.id,
+          // Include both snake_case and camelCase formats for compatibility
+          employee_id: employee.employee_id, // Snake case version (DB format)
+          employeeId: employee.employee_id,  // Camel case for backward compatibility
+          employee_name: employee.employee_name, // Snake case version
+          employeeName: employee.employee_name,  // Camel case version
+          name: employee.employee_name, // For more backward compatibility
+          email: employee.email_id,
+          email_id: employee.email_id, // Snake case
+          emailId: employee.email_id,  // Camel case
           department: employee.department,
           designation: employee.designation,
           region: employee.region,
           unit: employee.unit,
-          mobileNumber: employee.mobileNumber,
-          employeeType: employee.employeeType,
-          employeeRole: employee.employeeRole,
-          hierarchyLevel: employee.hierarchyLevel
+          mobile_number: employee.mobile_number, // Snake case
+          mobileNumber: employee.mobile_number,  // Camel case
+          employee_type: employee.employee_type, // Snake case
+          employeeType: employee.employee_type,  // Camel case
+          employee_role: employee.employee_role, // Snake case
+          employeeRole: employee.employee_role,  // Camel case
+          hierarchy_level: employee.hierarchy_level, // Snake case
+          hierarchyLevel: employee.hierarchy_level   // Camel case
         });
       } catch (error) {
         console.error('Error fetching employee:', error);

@@ -55,6 +55,20 @@ export async function apiRequest(
   console.log(`🔍 API REQUEST: ${method} ${url}`);
   if (data) {
     console.log('Request Payload:', JSON.stringify(data, null, 2));
+    
+    // Special enhanced logging for booking API
+    if (url.includes('/bookings') && method.toUpperCase() === 'POST') {
+      console.log('⚠️ BOOKING REQUEST DETAILS ⚠️');
+      console.log('Employee ID:', data.employee_id, 'Type:', typeof data.employee_id);
+      console.log('employeeId:', data.employeeId, 'Type:', typeof data.employeeId);
+      console.log('ID fields comparison:', { 
+        employee_id: data.employee_id, 
+        employeeId: data.employeeId,
+        equal: data.employee_id === data.employeeId
+      });
+      console.log('All keys in booking request:', Object.keys(data));
+      console.log('⚠️ END BOOKING DETAILS ⚠️');
+    }
   }
   
   try {

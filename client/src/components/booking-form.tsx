@@ -141,8 +141,10 @@ export function BookingForm() {
     resolver: zodResolver(insertBookingSchema),
     mode: "onChange",
     defaultValues: {
-      employeeId: employee?.employeeId || "",
-      employeeName: employee?.employeeName || "", // Add employee name field for UI display
+      // Support both snake_case and camelCase for employee IDs to ensure compatibility
+      employee_id: employee?.employee_id || employee?.employeeId || "",  // Use snake_case (DB format)
+      employeeId: employee?.employeeId || employee?.employee_id || "",   // Keep camelCase for compatibility
+      employeeName: employee?.employeeName || employee?.employee_name || "", // Add employee name field for UI display
       bookingType: "",
       purpose: "",
       priority: "",
@@ -167,14 +169,21 @@ export function BookingForm() {
 
   // Set employee ID once available
   React.useEffect(() => {
-    if (employee?.employeeId) {
-      console.log("Setting employee ID:", employee.employeeId, "Type:", typeof employee.employeeId);
-      form.setValue("employeeId", employee.employeeId);
+    // Get employee ID from either camelCase or snake_case property
+    const employeeId = employee?.employee_id || employee?.employeeId;
+    
+    if (employeeId) {
+      console.log("Setting employee ID:", employeeId, "Type:", typeof employeeId);
+      
+      // Set both snake_case and camelCase versions to ensure compatibility
+      form.setValue("employee_id", employeeId);  // snake_case (DB format)
+      form.setValue("employeeId", employeeId);   // camelCase (compatibility)
       
       // Also set employee name if available
-      if (employee.employeeName) {
-        console.log("Setting employee name:", employee.employeeName);
-        form.setValue("employeeName", employee.employeeName);
+      const employeeName = employee?.employee_name || employee?.employeeName;
+      if (employeeName) {
+        console.log("Setting employee name:", employeeName);
+        form.setValue("employeeName", employeeName);
       }
     }
   }, [employee, form]);
@@ -386,15 +395,18 @@ export function BookingForm() {
       }
       
       // Get the employee ID and ensure it's valid
-      // Note: we're storing this as employee_id for the API
-      // Get employee data from form
-      let employeeIdValue = data.employeeId;
+      // Note: we prefer employee_id (snake_case) as it matches DB column
+      // Get employee data from form, preferring the snake_case version that matches the DB schema
+      let employeeIdValue = data.employee_id || data.employeeId;
+      
+      console.log("Employee ID value from form:", employeeIdValue, "Type:", typeof employeeIdValue);
       
       // Check if employeeId is already a number or can be converted to one
       if (typeof employeeIdValue === 'string') {
         const employeeIdNum = Number(employeeIdValue);
         if (!isNaN(employeeIdNum)) {
           employeeIdValue = employeeIdNum;
+          console.log("Converted employee ID to number:", employeeIdValue);
         }
       }
       
@@ -758,12 +770,28 @@ export function BookingForm() {
                       <EmployeeEmailSearch 
                         onEmployeeFound={(employeeData) => {
                           console.log("Employee found via email search:", employeeData);
-                          if (employeeData?.employeeId) {
+                          
+                          // Get the employee_id (prefer snake_case as it matches the database column)
+                          const employeeId = employeeData?.employee_id !== undefined 
+                            ? employeeData.employee_id
+                            : employeeData?.employeeId; // Fallback to camelCase if needed
+
+                          if (employeeId) {
                             // Set employee ID as a number if possible, otherwise as string
-                            const employeeIdValue = !isNaN(Number(employeeData.employeeId)) 
-                              ? Number(employeeData.employeeId) 
-                              : employeeData.employeeId;
+                            const employeeIdValue = !isNaN(Number(employeeId)) 
+                              ? Number(employeeId) 
+                              : employeeId;
                               
+                            console.log("Setting employee_id in form:", employeeIdValue, "(type:", typeof employeeIdValue, ")");
+                            
+                            // Set both snake_case and camelCase versions to ensure they're in the form data
+                            form.setValue("employee_id", employeeIdValue, {
+                              shouldValidate: true,
+                              shouldDirty: true,
+                              shouldTouch: true
+                            });
+                            
+                            // Also set camelCase version for compatibility
                             form.setValue("employeeId", employeeIdValue, {
                               shouldValidate: true,
                               shouldDirty: true,
@@ -771,8 +799,9 @@ export function BookingForm() {
                             });
                             
                             // Also set employee name for display
-                            if (employeeData?.employeeName) {
-                              form.setValue("employeeName", employeeData.employeeName, {
+                            const employeeName = employeeData?.employee_name || employeeData?.employeeName;
+                            if (employeeName) {
+                              form.setValue("employeeName", employeeName, {
                                 shouldValidate: true,
                                 shouldDirty: true,
                                 shouldTouch: true
@@ -781,7 +810,7 @@ export function BookingForm() {
                             
                             toast({
                               title: "Employee Found",
-                              description: `Employee details for ${employeeData.employeeName || 'employee'} automatically populated`,
+                              description: `Employee details for ${employeeName || 'employee'} automatically populated`,
                               variant: "default",
                             });
                           }
