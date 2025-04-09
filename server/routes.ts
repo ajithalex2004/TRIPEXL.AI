@@ -396,21 +396,47 @@ export async function registerRoutes(app: Express): Promise<Server> {
         // STEP 3: Verify the employee exists in the database
         try {
           console.log(`[BOOKING-${debugId}] Verifying employee ID ${result.data.employeeId} exists in database`);
-          const employee = await db
+          
+          // Look up by employeeId string field first (the employee_id field)
+          const employeeIdStr = String(result.data.employeeId);
+          console.log(`[BOOKING-${debugId}] Searching for employee with employee_id:`, employeeIdStr);
+          
+          const employeeByEmployeeId = await db
             .select()
             .from(schema.employees)
-            .where(eq(schema.employees.id, result.data.employeeId))
+            .where(eq(schema.employees.employee_id, employeeIdStr))
             .limit(1);
             
-          if (employee.length === 0) {
-            console.error(`[BOOKING-${debugId}] Employee ID ${result.data.employeeId} not found in database`);
-            return res.status(400).json({
-              error: "Invalid employee ID",
-              details: `Employee with ID ${result.data.employeeId} does not exist in the system`
-            });
+          if (employeeByEmployeeId.length > 0) {
+            console.log(`[BOOKING-${debugId}] Employee found by employee_id:`, employeeByEmployeeId[0].employee_name);
+            
+            // Update the employeeId to use the internal ID for database relations
+            // Store the internal ID as employee_id (snake_case) for DB compatibility
+            result.data.employee_id = employeeByEmployeeId[0].id;
+            console.log(`[BOOKING-${debugId}] Updated employee_id to internal ID:`, result.data.employee_id);
+          } else {
+            // Fallback: try looking up by internal id
+            console.log(`[BOOKING-${debugId}] Employee not found by employee_id, trying internal id`);
+            
+            const employee = await db
+              .select()
+              .from(schema.employees)
+              .where(eq(schema.employees.id, result.data.employeeId))
+              .limit(1);
+              
+            if (employee.length === 0) {
+              console.error(`[BOOKING-${debugId}] Employee ID ${result.data.employeeId} not found in database`);
+              return res.status(400).json({
+                error: "Invalid employee ID",
+                details: `Employee with ID ${result.data.employeeId} does not exist in the system`
+              });
+            }
+            
+            // Store the internal ID as employee_id (snake_case) for DB compatibility
+            result.data.employee_id = employee[0].id;
+            console.log(`[BOOKING-${debugId}] Employee verified by internal id:`, employee[0].employee_name);
+            console.log(`[BOOKING-${debugId}] Updated employee_id to internal ID:`, result.data.employee_id);
           }
-          
-          console.log(`[BOOKING-${debugId}] Employee verified:`, employee[0].name);
         } catch (employeeCheckError) {
           console.error(`[BOOKING-${debugId}] Error checking employee:`, employeeCheckError);
           return res.status(500).json({
@@ -425,10 +451,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
         const bookingData = {
           ...result.data,
-          referenceNo: result.data.referenceNo || `BK${Date.now()}${Math.floor(Math.random() * 1000)}`,
+          reference_no: result.data.reference_no || `BK${Date.now()}${Math.floor(Math.random() * 1000)}`,
           status: initialStatus,
-          createdAt: new Date(),
-          updatedAt: new Date()
+          created_at: new Date(),
+          updated_at: new Date()
         };
 
         console.log(`[BOOKING-${debugId}] Prepared booking data:`, JSON.stringify(bookingData, null, 2));
@@ -439,7 +465,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         console.log(`[BOOKING-${debugId}] Successfully created booking with ID ${booking.id}:`, JSON.stringify(booking, null, 2));
 
         // Calculate and update metadata
-        const totalDistance = calculateTotalDistance(booking.pickupLocation, booking.dropoffLocation);
+        const totalDistance = calculateTotalDistance(booking.pickup_location, booking.dropoff_location);
         const estimatedCost = calculateEstimatedCost(booking);
         const co2Emissions = calculateCO2Emissions(booking);
 
@@ -510,11 +536,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
     function calculateEstimatedCost(booking: any): number {
       // Basic cost calculation
       const baseRate = 2.5; // Base rate per km
-      const distance = calculateTotalDistance(booking.pickupLocation, booking.dropoffLocation);
+      const distance = calculateTotalDistance(booking.pickup_location, booking.dropoff_location);
       let estimatedCost = distance * baseRate;
 
       // Add surcharges based on booking type and priority
-      if (booking.bookingType === "ambulance") estimatedCost *= 1.5;
+      if (booking.booking_type === "ambulance") estimatedCost *= 1.5;
       if (booking.priority === "CRITICAL" || booking.priority === "EMERGENCY") estimatedCost *= 1.3;
 
       return parseFloat(estimatedCost.toFixed(2));
@@ -522,7 +548,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
     function calculateCO2Emissions(booking: any): number {
       // Average CO2 emissions calculation (in kg)
-      const distance = calculateTotalDistance(booking.pickupLocation, booking.dropoffLocation);
+      const distance = calculateTotalDistance(booking.pickup_location, booking.dropoff_location);
       const avgEmissionRate = 0.12; // kg CO2 per km (average)
       return parseFloat((distance * avgEmissionRate).toFixed(2));
     }

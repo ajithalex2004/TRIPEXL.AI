@@ -168,7 +168,14 @@ export function BookingForm() {
   // Set employee ID once available
   React.useEffect(() => {
     if (employee?.employeeId) {
-      form.setValue("employeeId", employee?.employeeId);
+      console.log("Setting employee ID:", employee.employeeId, "Type:", typeof employee.employeeId);
+      form.setValue("employeeId", employee.employeeId);
+      
+      // Also set employee name if available
+      if (employee.employeeName) {
+        console.log("Setting employee name:", employee.employeeName);
+        form.setValue("employeeName", employee.employeeName);
+      }
     }
   }, [employee, form]);
 
