@@ -173,6 +173,7 @@ export const MapView: React.FC<MapViewProps> = ({
   const [popupLocation, setPopupLocation] = useState<PopupLocation | null>(null);
   const [routePolyline, setRoutePolyline] = useState<google.maps.Polyline | null>(null);
   const [routeInfo, setRouteInfo] = useState<RouteInfo | null>(null);
+  const [showRouteInfo, setShowRouteInfo] = useState(true);
   
   // Accessibility features
   // Using useRef to prevent unnecessary re-renders when accessibility state changes
@@ -293,6 +294,7 @@ export const MapView: React.FC<MapViewProps> = ({
               duration: durationText
             };
             setRouteInfo(routeInfoData);
+            setShowRouteInfo(true); // Reset visibility whenever a new route is calculated
             
             // Announce route calculation for accessibility - using ref to prevent re-renders
             if (accessibilityEnabledRef.current) {
@@ -412,6 +414,7 @@ export const MapView: React.FC<MapViewProps> = ({
           duration: durationText
         };
         setRouteInfo(routeInfoData);
+        setShowRouteInfo(true); // Reset visibility whenever a new route is calculated
         
         // Announce route calculation for accessibility
         if (accessibilityEnabledRef.current) {
@@ -516,10 +519,16 @@ export const MapView: React.FC<MapViewProps> = ({
           duration: durationText
         };
         setRouteInfo(routeInfoData);
+        setShowRouteInfo(true); // Reset visibility whenever a new route is calculated
         
         // Announce route calculation for accessibility
-        if (accessibilityEnabled) {
-          VoiceGuidance.announceRouteCalculation(distanceText, durationText);
+        if (accessibilityEnabledRef.current) {
+          setTimeout(() => {
+            if (accessibilityEnabledRef.current) {
+              VoiceGuidance.announceRouteCalculation(distanceText, durationText);
+              VoiceGuidance.speak("Trip estimate is now displayed on your screen");
+            }
+          }, 500);
         }
         
         if (map) {
@@ -1164,13 +1173,22 @@ export const MapView: React.FC<MapViewProps> = ({
   // Route info component
   // Two separate route info components:
   // 1. Floating card on the map
-  const routeInfoFloatingCard = routeInfo && (
+  const routeInfoFloatingCard = routeInfo && showRouteInfo && (
     <div className="absolute top-4 left-4 z-10 bg-white/95 p-4 rounded-lg shadow-lg border border-blue-300 animate-in fade-in duration-300 slide-in-from-left-3">
-      <div className="flex items-center mb-3">
-        <div className="bg-blue-100 p-1.5 rounded-full mr-2">
-          <MapPin className="h-4 w-4 text-blue-700" />
+      <div className="flex items-center justify-between mb-3">
+        <div className="flex items-center">
+          <div className="bg-blue-100 p-1.5 rounded-full mr-2">
+            <MapPin className="h-4 w-4 text-blue-700" />
+          </div>
+          <h3 className="font-semibold text-lg text-blue-800">Trip Estimate</h3>
         </div>
-        <h3 className="font-semibold text-lg text-blue-800">Trip Estimate</h3>
+        <button 
+          className="p-1.5 rounded-full hover:bg-gray-100 transition-colors" 
+          onClick={() => setShowRouteInfo(false)}
+          aria-label="Close trip estimate"
+        >
+          <X className="h-4 w-4 text-gray-500" />
+        </button>
       </div>
       <div className="pt-2 border-t border-blue-100">
         <div className="flex items-center mb-3 bg-blue-50/60 p-2 rounded-md">
