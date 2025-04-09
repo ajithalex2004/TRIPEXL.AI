@@ -630,21 +630,28 @@ export const MapView: React.FC<MapViewProps> = ({
   // Handle click on the map
   const handleMapClick = async (e: google.maps.MapMouseEvent) => {
     // Add more detailed logging
-    console.log("Map click event:", e);
-    console.log("Map editable:", editable);
-    console.log("Maps initialized:", mapsInitialized);
-    console.log("Google maps object available:", typeof google !== 'undefined');
+    console.log("📍 MAP CLICK EVENT TRIGGERED");
+    console.log("📍 Click coordinates:", e.latLng?.lat(), e.latLng?.lng());
+    console.log("📍 Map editable:", editable);
+    console.log("📍 Component props:", { 
+      hasPickupLocation: !!pickupLocation, 
+      hasDropoffLocation: !!dropoffLocation,
+      hasOnLocationSelect: !!onLocationSelect,
+      hasOnRouteCalculated: !!onRouteCalculated
+    });
     
     if (!e.latLng || !mapsInitialized || typeof google === 'undefined') {
-      console.error("Cannot handle map click: missing required data");
+      console.error("❌ Cannot handle map click: missing required data");
       return;
     }
     
     // Skip click handling if not in editable mode
     if (!editable) {
-      console.log("Skipping map click handling - map is not in editable mode");
+      console.log("⚠️ Skipping map click handling - map is not in editable mode");
       return;
     }
+    
+    console.log("✅ Processing map click - all conditions met");
 
     try {
       console.log("Processing map click at:", e.latLng.lat(), e.latLng.lng());
@@ -695,14 +702,22 @@ export const MapView: React.FC<MapViewProps> = ({
 
   // Handle selection of a location type (pickup/dropoff/waypoint)
   const handleLocationTypeSelect = (type: 'pickup' | 'dropoff' | 'waypoint') => {
+    console.log("🔘 LOCATION TYPE SELECTION:", type);
+    console.log("🔘 Has popup location:", !!popupLocation);
+    console.log("🔘 Has map reference:", !!map);
+    console.log("🔘 Has onLocationSelect callback:", !!onLocationSelect);
+    
+    // Alert to make sure we know this function is being called
+    alert(`DEBUG: handleLocationTypeSelect called for type: ${type}`);
+    
     if (!popupLocation) {
-      console.error("Cannot set location: missing popupLocation");
+      console.error("❌ Cannot set location: missing popupLocation");
       setMapError("Location details not available. Please try clicking on the map again.");
       return;
     }
     
     if (!map) {
-      console.error("Cannot set location: missing map instance");
+      console.error("❌ Cannot set location: missing map instance");
       setMapError("Map is not fully loaded. Please refresh the page and try again.");
       return;
     }
@@ -1302,7 +1317,7 @@ export const MapView: React.FC<MapViewProps> = ({
               />
             )}
 
-            {/* InfoWindow for the selected location */}
+            {/* InfoWindow for the selected location - simplified version */}
             {popupLocation && (
               <InfoWindow
                 position={{ lat: popupLocation.lat, lng: popupLocation.lng }}
@@ -1313,7 +1328,124 @@ export const MapView: React.FC<MapViewProps> = ({
                   maxWidth: 300
                 }}
               >
-                {infoWindowContent}
+                <div className="p-3">
+                  <h3 className="font-semibold mb-2">{popupLocation?.name || "Selected Location"}</h3>
+                  <p className="text-sm mb-4">{popupLocation?.formatted_address || `${popupLocation?.lat.toFixed(6)}, ${popupLocation?.lng.toFixed(6)}`}</p>
+                  
+                  <div className="flex flex-col gap-2">
+                    <button 
+                      type="button"
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        console.log("DIRECT PICKUP BUTTON CLICK");
+                        alert("You clicked: Set as Pickup Location"); // Diagnostic alert
+                        try {
+                          handleLocationTypeSelect('pickup');
+                        } catch (error) {
+                          console.error("Error in pickup button click:", error);
+                          alert("Error: " + (error as any).message);
+                        }
+                      }}
+                      style={{
+                        padding: '8px 12px',
+                        backgroundColor: '#16a34a',
+                        color: 'white',
+                        border: 'none',
+                        borderRadius: '4px',
+                        cursor: 'pointer',
+                        textAlign: 'left',
+                        display: 'flex',
+                        alignItems: 'center',
+                        width: '100%',
+                        marginBottom: '8px'
+                      }}
+                    >
+                      <span style={{marginRight: '8px'}}>📍</span> Set as Pickup Location
+                    </button>
+                    
+                    <button 
+                      type="button"
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        console.log("DIRECT DROPOFF BUTTON CLICK");
+                        alert("You clicked: Set as Dropoff Location"); // Diagnostic alert
+                        try {
+                          handleLocationTypeSelect('dropoff');
+                        } catch (error) {
+                          console.error("Error in dropoff button click:", error);
+                          alert("Error: " + (error as any).message);
+                        }
+                      }}
+                      style={{
+                        padding: '8px 12px',
+                        backgroundColor: '#dc2626',
+                        color: 'white',
+                        border: 'none',
+                        borderRadius: '4px',
+                        cursor: 'pointer',
+                        textAlign: 'left',
+                        display: 'flex',
+                        alignItems: 'center',
+                        width: '100%'
+                      }}
+                    >
+                      <span style={{marginRight: '8px'}}>📍</span> Set as Dropoff Location
+                    </button>
+                    
+                    {/* Add a test button for direct bypass */}
+                    <button 
+                      type="button"
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        alert("Test: Creating location object directly");
+                        
+                        if (!onLocationSelect) {
+                          alert("Error: onLocationSelect callback is not provided!");
+                          return;
+                        }
+                        
+                        // Create location object directly
+                        const location = {
+                          address: popupLocation?.formatted_address || "Selected location",
+                          coordinates: {
+                            lat: popupLocation?.lat || 0,
+                            lng: popupLocation?.lng || 0
+                          },
+                          name: popupLocation?.name || "Selected location",
+                          formatted_address: popupLocation?.formatted_address || "Selected location",
+                          place_id: popupLocation?.place_id || ""
+                        };
+                        
+                        // Call callback directly
+                        try {
+                          onLocationSelect(location, 'pickup');
+                          alert("Direct location set as pickup!");
+                        } catch (error) {
+                          console.error("Error in direct location setting:", error);
+                          alert("Error: " + (error as any).message);
+                        }
+                      }}
+                      style={{
+                        padding: '8px 12px',
+                        backgroundColor: '#3b82f6',
+                        color: 'white',
+                        border: 'none',
+                        borderRadius: '4px',
+                        cursor: 'pointer',
+                        textAlign: 'left',
+                        display: 'flex',
+                        alignItems: 'center',
+                        width: '100%',
+                        marginTop: '8px'
+                      }}
+                    >
+                      <span style={{marginRight: '8px'}}>🧪</span> TEST: Direct Pickup
+                    </button>
+                  </div>
+                </div>
               </InfoWindow>
             )}
           </GoogleMap>
