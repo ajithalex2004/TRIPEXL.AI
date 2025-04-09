@@ -262,7 +262,7 @@ export function BookingForm() {
       // Enhanced logging for debugging
       console.log("%c BOOKING SUBMISSION - START", "background: #4CAF50; color: white; padding: 2px 4px; border-radius: 2px;");
       console.log("%c Booking Data:", "font-weight: bold;", JSON.stringify(data, null, 2));
-      console.log("Employee ID:", data.employeeId, "Type:", typeof data.employeeId);
+      console.log("Employee ID:", data.employee_id, "Type:", typeof data.employee_id);
       
       try {
         toast({

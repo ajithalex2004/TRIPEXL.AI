@@ -350,33 +350,40 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       try {
         // STEP 1: Validate and normalize the employee ID
-        console.log(`[BOOKING-${debugId}] Original employee ID:`, req.body.employeeId, "Type:", typeof req.body.employeeId);
+        // Handle both camelCase and snake_case field names for backward compatibility
+        const employeeIdValue = req.body.employee_id !== undefined ? req.body.employee_id : req.body.employeeId;
         
-        // Check if employeeId exists at all
-        if (req.body.employeeId === undefined || req.body.employeeId === null) {
-          console.error(`[BOOKING-${debugId}] Missing employeeId in request`);
+        console.log(`[BOOKING-${debugId}] Original employee ID:`, employeeIdValue, "Type:", typeof employeeIdValue);
+        
+        // Check if employee_id exists at all
+        if (employeeIdValue === undefined || employeeIdValue === null) {
+          console.error(`[BOOKING-${debugId}] Missing employee_id in request`);
           return res.status(400).json({
             error: "Employee ID is required",
             details: "Please provide a valid employee ID"
           });
         }
         
-        // Ensure employeeId is a number before validation
-        if (typeof req.body.employeeId !== 'number') {
-          const originalValue = req.body.employeeId;
-          req.body.employeeId = Number(req.body.employeeId);
+        // Ensure employee_id is a number before validation
+        let formattedEmployeeId = employeeIdValue;
+        if (typeof employeeIdValue !== 'number') {
+          const originalValue = employeeIdValue;
+          formattedEmployeeId = Number(employeeIdValue);
           
           // Check if conversion was successful
-          if (isNaN(req.body.employeeId)) {
-            console.error(`[BOOKING-${debugId}] Failed to convert employeeId "${originalValue}" to a number`);
+          if (isNaN(formattedEmployeeId)) {
+            console.error(`[BOOKING-${debugId}] Failed to convert employee_id "${originalValue}" to a number`);
             return res.status(400).json({
               error: "Invalid employee ID format",
               details: `The value "${originalValue}" could not be converted to a valid employee ID number`
             });
           }
           
-          console.log(`[BOOKING-${debugId}] Converted employeeId from "${originalValue}" to number:`, req.body.employeeId);
+          console.log(`[BOOKING-${debugId}] Converted employee_id from "${originalValue}" to number:`, formattedEmployeeId);
         }
+        
+        // Update the req.body with normalized employee_id
+        req.body.employee_id = formattedEmployeeId;
         
         // STEP 2: Validate the booking data using Zod schema
         console.log(`[BOOKING-${debugId}] Validating booking data with schema`);
@@ -391,14 +398,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
 
         // Double-check employee ID is a number after validation
-        console.log(`[BOOKING-${debugId}] Employee ID after validation:`, result.data.employeeId, "Type:", typeof result.data.employeeId);
+        console.log(`[BOOKING-${debugId}] Employee ID after validation:`, result.data.employee_id, "Type:", typeof result.data.employee_id);
 
         // STEP 3: Verify the employee exists in the database
         try {
-          console.log(`[BOOKING-${debugId}] Verifying employee ID ${result.data.employeeId} exists in database`);
+          console.log(`[BOOKING-${debugId}] Verifying employee ID ${result.data.employee_id} exists in database`);
           
-          // Look up by employeeId string field first (the employee_id field)
-          const employeeIdStr = String(result.data.employeeId);
+          // Look up by employee_id string field first (the employee_id field)
+          const employeeIdStr = String(result.data.employee_id);
           console.log(`[BOOKING-${debugId}] Searching for employee with employee_id:`, employeeIdStr);
           
           const employeeByEmployeeId = await db
@@ -421,14 +428,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
             const employee = await db
               .select()
               .from(schema.employees)
-              .where(eq(schema.employees.id, result.data.employeeId))
+              .where(eq(schema.employees.id, result.data.employee_id))
               .limit(1);
               
             if (employee.length === 0) {
-              console.error(`[BOOKING-${debugId}] Employee ID ${result.data.employeeId} not found in database`);
+              console.error(`[BOOKING-${debugId}] Employee ID ${result.data.employee_id} not found in database`);
               return res.status(400).json({
                 error: "Invalid employee ID",
-                details: `Employee with ID ${result.data.employeeId} does not exist in the system`
+                details: `Employee with ID ${result.data.employee_id} does not exist in the system`
               });
             }
             

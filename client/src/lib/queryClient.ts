@@ -18,16 +18,41 @@ export async function apiRequest(
     ...(data ? { "Content-Type": "application/json" } : {}),
     ...(token ? { "Authorization": `Bearer ${token}` } : {})
   };
-
-  const res = await fetch(url, {
-    method,
-    headers,
-    body: data ? JSON.stringify(data) : undefined,
-    credentials: "include",
-  });
-
-  await throwIfResNotOk(res);
-  return res;
+  
+  // Enhanced debugging
+  console.log(`🔍 API REQUEST: ${method} ${url}`);
+  if (data) {
+    console.log('Request Payload:', JSON.stringify(data, null, 2));
+  }
+  
+  try {
+    const res = await fetch(url, {
+      method,
+      headers,
+      body: data ? JSON.stringify(data) : undefined,
+      credentials: "include",
+    });
+    
+    // Log response details
+    console.log(`📡 API RESPONSE: ${res.status} ${res.statusText}`);
+    
+    // Clone the response so we can log its content without consuming it
+    const clonedRes = res.clone();
+    try {
+      const responseText = await clonedRes.text();
+      if (responseText) {
+        console.log('Response:', responseText.substring(0, 500) + (responseText.length > 500 ? '...' : ''));
+      }
+    } catch (e) {
+      console.log('Could not log response body:', e);
+    }
+    
+    await throwIfResNotOk(res);
+    return res;
+  } catch (error) {
+    console.error('API Request Failed:', error);
+    throw error;
+  }
 }
 
 type UnauthorizedBehavior = "returnNull" | "throw";
