@@ -629,40 +629,61 @@ export const MapView: React.FC<MapViewProps> = ({
 
   // Handle click on the map
   const handleMapClick = async (e: google.maps.MapMouseEvent) => {
-    if (!e.latLng || !mapsInitialized || typeof google === 'undefined' || !editable) return;
+    // Add more detailed logging
+    console.log("Map click event:", e);
+    console.log("Map editable:", editable);
+    console.log("Maps initialized:", mapsInitialized);
+    console.log("Google maps object available:", typeof google !== 'undefined');
+    
+    if (!e.latLng || !mapsInitialized || typeof google === 'undefined') {
+      console.error("Cannot handle map click: missing required data");
+      return;
+    }
+    
+    // Skip click handling if not in editable mode
+    if (!editable) {
+      console.log("Skipping map click handling - map is not in editable mode");
+      return;
+    }
 
     try {
+      console.log("Processing map click at:", e.latLng.lat(), e.latLng.lng());
       setIsLoading(true);
       setMapError(null);
       
-      if (typeof google === 'undefined') {
-        throw new Error("Google Maps API is not initialized in handleMapClick");
-      }
       const geocoder = new google.maps.Geocoder();
       const result = await geocoder.geocode({ location: { lat: e.latLng.lat(), lng: e.latLng.lng() } });
+      console.log("Geocode result:", result);
 
-      if (result.results[0]) {
+      if (result.results && result.results.length > 0) {
         const place = result.results[0];
         console.log("Map click geocode result:", place);
-        setPopupLocation({
+        
+        const popupData = {
           lat: e.latLng.lat(),
           lng: e.latLng.lng(),
           address: place.formatted_address || "Selected location",
           place_id: place.place_id || "",
           name: (place as any).name || place.formatted_address || "Selected location",
           formatted_address: place.formatted_address || "Selected location"
-        });
+        };
+        
+        console.log("Setting popup location data:", popupData);
+        setPopupLocation(popupData);
       } else {
         console.warn("No geocode results found for clicked location");
         // Still show popup even without detailed address
-        setPopupLocation({
+        const fallbackPopupData = {
           lat: e.latLng.lat(),
           lng: e.latLng.lng(),
           address: "Selected location",
           place_id: "",
           name: "Selected location",
           formatted_address: `Lat: ${e.latLng.lat().toFixed(6)}, Lng: ${e.latLng.lng().toFixed(6)}`
-        });
+        };
+        
+        console.log("Setting fallback popup location data:", fallbackPopupData);
+        setPopupLocation(fallbackPopupData);
       }
     } catch (error: any) {
       console.error("Error geocoding location:", error);
@@ -944,43 +965,40 @@ export const MapView: React.FC<MapViewProps> = ({
 
   // InfoWindow content for selected locations - styled with distinct colors for better usability
   const infoWindowContent = (
-    <div className="p-3 min-w-[240px]">
+    <div className="info-window-content p-3 min-w-[240px]">
       <h3 className="font-semibold text-primary mb-2">{popupLocation?.name || popupLocation?.formatted_address || "Selected Location"}</h3>
       <p className="text-sm text-muted-foreground mb-4">{popupLocation?.formatted_address || `${popupLocation?.lat.toFixed(6)}, ${popupLocation?.lng.toFixed(6)}`}</p>
       
       <div className="flex flex-col gap-2.5">
-        <Button 
+        <button 
           type="button"
-          size="sm" 
-          variant="default" 
           onClick={() => handleLocationTypeSelect('pickup')}
-          className="justify-start w-full bg-green-600 hover:bg-green-700 text-white"
+          className="py-2 px-3 rounded text-sm font-medium bg-green-600 hover:bg-green-700 text-white w-full text-left flex items-center"
           data-action="set-pickup"
         >
-          <MapPin className="mr-2 h-4 w-4" /> Set as Pickup Location
-        </Button>
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mr-2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg>
+          Set as Pickup Location
+        </button>
         
-        <Button 
+        <button 
           type="button"
-          size="sm" 
-          variant="default" 
           onClick={() => handleLocationTypeSelect('dropoff')}
-          className="justify-start w-full bg-red-600 hover:bg-red-700 text-white"
+          className="py-2 px-3 rounded text-sm font-medium bg-red-600 hover:bg-red-700 text-white w-full text-left flex items-center"
           data-action="set-dropoff"
         >
-          <MapPin className="mr-2 h-4 w-4" /> Set as Dropoff Location
-        </Button>
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mr-2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg>
+          Set as Dropoff Location
+        </button>
         
-        <Button 
+        <button 
           type="button"
-          size="sm" 
-          variant="outline" 
           onClick={() => handleLocationTypeSelect('waypoint')}
-          className="justify-start w-full border-blue-500 text-blue-600 hover:bg-blue-50"
+          className="py-2 px-3 rounded text-sm font-medium border border-blue-500 text-blue-600 hover:bg-blue-50 w-full text-left flex items-center"
           data-action="add-waypoint"
         >
-          <MapPin className="mr-2 h-4 w-4" /> Add as Waypoint
-        </Button>
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mr-2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg>
+          Add as Waypoint
+        </button>
       </div>
       
       <style>
@@ -1295,9 +1313,7 @@ export const MapView: React.FC<MapViewProps> = ({
                   maxWidth: 300
                 }}
               >
-                <div className="info-window-content">
-                  {infoWindowContent}
-                </div>
+                {infoWindowContent}
               </InfoWindow>
             )}
           </GoogleMap>

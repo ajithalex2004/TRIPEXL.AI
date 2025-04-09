@@ -1269,7 +1269,7 @@ export function BookingForm() {
                               pickupLocation={form.watch("pickupLocation")}
                               dropoffLocation={form.watch("dropoffLocation")}
                               waypoints={waypoints}
-                              editable={true}
+                              editable={true} // Force editable mode
                               onLocationSelect={(location, type) => {
                                 // Handle pickup or dropoff location
                                 const fieldName = type === 'pickup' ? "pickupLocation" : "dropoffLocation";
