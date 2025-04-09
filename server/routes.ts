@@ -350,11 +350,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Log the exact shape of the request body
       console.log(`[BOOKING-${debugId}] Request body keys:`, Object.keys(req.body));
-      console.log(`[BOOKING-${debugId}] employee_id value:`, req.body.employee_id);
-      console.log(`[BOOKING-${debugId}] employeeId value:`, req.body.employeeId);
+      console.log(`[BOOKING-${debugId}] employee_id value:`, req.body.employee_id, "Type:", typeof req.body.employee_id);
+      console.log(`[BOOKING-${debugId}] employeeId value:`, req.body.employeeId, "Type:", typeof req.body.employeeId);
       console.log(`[BOOKING-${debugId}] booking_type:`, req.body.booking_type);
       console.log(`[BOOKING-${debugId}] Required fields check:
-        employee_id: ${req.body.employee_id ? '✓' : '✗'}
+        employee_id: ${req.body.employee_id ? '✓' : '✗'} (${typeof req.body.employee_id})
         booking_type: ${req.body.booking_type ? '✓' : '✗'}
         purpose: ${req.body.purpose ? '✓' : '✗'}
         priority: ${req.body.priority ? '✓' : '✗'}
@@ -366,7 +366,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       try {
         // STEP 1: Validate and normalize the employee ID
         // Handle both camelCase and snake_case field names for backward compatibility
-        const employeeIdValue = req.body.employee_id !== undefined ? req.body.employee_id : req.body.employeeId;
+        let employeeIdValue = req.body.employee_id !== undefined ? req.body.employee_id : req.body.employeeId;
         
         console.log(`[BOOKING-${debugId}] Original employee ID:`, employeeIdValue, "Type:", typeof employeeIdValue);
         
@@ -377,6 +377,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
             error: "Employee ID is required",
             details: "Please provide a valid employee ID"
           });
+        }
+        
+        // Special case handling for string values that may look like numbers (e.g., "1004")
+        // Some clients may send the employee ID as a string representation of a number
+        if (typeof employeeIdValue === 'string' && /^\d+$/.test(employeeIdValue.trim())) {
+          employeeIdValue = Number(employeeIdValue.trim());
+          console.log(`[BOOKING-${debugId}] Converted numeric string employee_id to number:`, employeeIdValue);
         }
         
         // Ensure employee_id is a number before validation
@@ -399,6 +406,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         
         // Update the req.body with normalized employee_id
         req.body.employee_id = formattedEmployeeId;
+        
+        // For compatibility, ensure both snake_case and camelCase formats are available
+        req.body.employeeId = formattedEmployeeId;
         
         // STEP 2: Validate the booking data using Zod schema
         console.log(`[BOOKING-${debugId}] Validating booking data with schema`);

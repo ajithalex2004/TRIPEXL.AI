@@ -792,14 +792,42 @@ export class DatabaseStorage implements IStorage {
       // STEP 3: Always verify the employee exists to avoid foreign key errors
       try {
         console.log(`[BOOKING-DB-${debugId}] Verifying employee ID ${employeeIdNum} exists in database`);
-        const employee = await db
+        
+        // First, try to find by internal ID
+        let employee = await db
           .select({ 
             id: schema.employees.id,
-            name: schema.employees.employee_name 
+            name: schema.employees.employee_name,
+            employee_id: schema.employees.employee_id  // Include employee_id string field
           })
           .from(schema.employees)
           .where(eq(schema.employees.id, employeeIdNum))
           .limit(1);
+        
+        // If not found by internal ID, try to find by employee_id string field
+        if (employee.length === 0) {
+          console.log(`[BOOKING-DB-${debugId}] ⚠️ Employee not found by internal ID, trying employee_id string field...`);
+          
+          // Convert to string to match the string field in the database
+          const employeeIdStr = String(employeeIdNum);
+          
+          employee = await db
+            .select({ 
+              id: schema.employees.id,
+              name: schema.employees.employee_name,
+              employee_id: schema.employees.employee_id
+            })
+            .from(schema.employees)
+            .where(eq(schema.employees.employee_id, employeeIdStr))
+            .limit(1);
+            
+          if (employee.length > 0) {
+            console.log(`[BOOKING-DB-${debugId}] ✓ Found employee by employee_id string field:`, employee[0]);
+            // Update the employeeIdNum to use the internal ID for foreign key reference
+            employeeIdNum = employee[0].id;
+            console.log(`[BOOKING-DB-${debugId}] Updated employeeIdNum to internal ID:`, employeeIdNum);
+          }
+        }
         
         if (employee.length === 0) {
           const error = new Error(`Employee with ID ${employeeIdNum} not found in the database`);
@@ -810,10 +838,12 @@ export class DatabaseStorage implements IStorage {
         
         // Log successful employee check
         console.log(`[BOOKING-DB-${debugId}] ✓ Successfully verified employee exists:`, employee[0].name);
+        console.log(`[BOOKING-DB-${debugId}] Employee details: internal ID = ${employee[0].id}, employee_id = ${employee[0].employee_id}`);
         logBookingDbOperation('create-booking-employee-check', { 
           employeeId: employeeIdNum,
           employeeName: employee[0].name,
-          employeeFound: true 
+          employeeFound: true,
+          originalEmployeeId: employee[0].employee_id
         });
       } catch (employeeCheckError) {
         logBookingDbOperation('create-booking-error-employee-check', { 

@@ -271,7 +271,27 @@ export function BookingForm() {
       // Enhanced logging for debugging
       console.log("%c BOOKING SUBMISSION - START", "background: #4CAF50; color: white; padding: 2px 4px; border-radius: 2px;");
       console.log("%c Booking Data:", "font-weight: bold;", JSON.stringify(data, null, 2));
-      console.log("Employee ID:", data.employee_id, "Type:", typeof data.employee_id);
+      
+      // Ensure employee_id is definitely a number before submitting
+      if (data.employee_id !== undefined) {
+        // Force convert to number if it's not already
+        if (typeof data.employee_id !== 'number') {
+          data.employee_id = Number(data.employee_id);
+          console.log("Converted employee_id to number:", data.employee_id);
+        }
+      }
+      
+      // For backward compatibility, ensure employeeId is also set and is a number
+      if (data.employeeId !== undefined) {
+        if (typeof data.employeeId !== 'number') {
+          data.employeeId = Number(data.employeeId);
+          console.log("Converted employeeId to number:", data.employeeId);
+        }
+      }
+      
+      console.log("Final employee ID values:");
+      console.log("- employee_id:", data.employee_id, "(type:", typeof data.employee_id, ")");
+      console.log("- employeeId:", data.employeeId, "(type:", typeof data.employeeId, ")");
       
       // Log validation info for key required fields
       console.log("VALIDATION CHECK: Required Fields");
