@@ -374,7 +374,8 @@ export function BookingForm() {
         return;
       }
       
-      // Convert employeeId to a number and ensure it's valid
+      // Get the employee ID and ensure it's valid
+      // Note: we're storing this as employee_id for the API
       let employeeIdValue = data.employeeId;
       
       // Check if employeeId is already a number or can be converted to one
@@ -396,19 +397,22 @@ export function BookingForm() {
         return;
       }
       
+      console.log("Employee ID for booking:", employeeIdValue, "Type:", typeof employeeIdValue);
+      
+      // Convert all camelCase keys to snake_case for the API schema
       const bookingData = {
-        employeeId: employeeIdValue,
-        bookingType: data.bookingType,
+        employee_id: employeeIdValue,
+        booking_type: data.bookingType,
         purpose: data.purpose,
         priority: data.priority,
-        pickupLocation: {
+        pickup_location: {
           address: data.pickupLocation.address,
           coordinates: {
             lat: Number(data.pickupLocation.coordinates.lat),
             lng: Number(data.pickupLocation.coordinates.lng)
           }
         },
-        dropoffLocation: {
+        dropoff_location: {
           address: data.dropoffLocation.address,
           coordinates: {
             lat: Number(data.dropoffLocation.coordinates.lat),
@@ -416,21 +420,21 @@ export function BookingForm() {
           }
         },
         waypoints: formattedWaypoints, // Add waypoints to the booking data
-        pickupTime: new Date(data.pickupTime).toISOString(),
-        dropoffTime: new Date(data.dropoffTime).toISOString(),
+        pickup_time: new Date(data.pickupTime).toISOString(),
+        dropoff_time: new Date(data.dropoffTime).toISOString(),
         remarks: data.remarks || "",
         ...(data.bookingType === "freight" ? {
-          cargoType: data.cargoType,
-          numBoxes: Number(data.numBoxes),
+          cargo_type: data.cargoType,
+          num_boxes: Number(data.numBoxes),
           weight: Number(data.weight),
-          boxSize: data.boxSize
+          box_size: data.boxSize
         } : {}),
         ...(data.bookingType === "passenger" ? {
-          tripType: data.tripType,
-          numPassengers: Number(data.numPassengers),
-          withDriver: Boolean(data.withDriver),
-          bookingForSelf: Boolean(data.bookingForSelf),
-          passengerDetails: data.passengerDetails
+          trip_type: data.tripType,
+          num_passengers: Number(data.numPassengers),
+          with_driver: Boolean(data.withDriver),
+          booking_for_self: Boolean(data.bookingForSelf),
+          passenger_details: data.passengerDetails
         } : {})
       };
 
