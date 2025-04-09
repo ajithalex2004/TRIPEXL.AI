@@ -414,8 +414,13 @@ export const MapView: React.FC<MapViewProps> = ({
         setRouteInfo(routeInfoData);
         
         // Announce route calculation for accessibility
-        if (accessibilityEnabled) {
-          VoiceGuidance.announceRouteCalculation(distanceText, durationText);
+        if (accessibilityEnabledRef.current) {
+          setTimeout(() => {
+            if (accessibilityEnabledRef.current) {
+              VoiceGuidance.announceRouteCalculation(distanceText, durationText);
+              VoiceGuidance.speak("Trip estimate is now displayed on your screen");
+            }
+          }, 500);
         }
         
         // Draw the route on the map
@@ -1157,6 +1162,36 @@ export const MapView: React.FC<MapViewProps> = ({
   };
 
   // Route info component
+  // Two separate route info components:
+  // 1. Floating card on the map
+  const routeInfoFloatingCard = routeInfo && (
+    <div className="absolute top-4 left-4 z-10 bg-white/95 p-4 rounded-lg shadow-lg border border-blue-300 animate-in fade-in duration-300 slide-in-from-left-3">
+      <div className="flex items-center mb-3">
+        <div className="bg-blue-100 p-1.5 rounded-full mr-2">
+          <MapPin className="h-4 w-4 text-blue-700" />
+        </div>
+        <h3 className="font-semibold text-lg text-blue-800">Trip Estimate</h3>
+      </div>
+      <div className="pt-2 border-t border-blue-100">
+        <div className="flex items-center mb-3 bg-blue-50/60 p-2 rounded-md">
+          <MapPin className="mr-2 h-5 w-5 text-blue-600" />
+          <div>
+            <div className="text-xs text-blue-500 uppercase font-semibold">Distance</div>
+            <div className="text-md font-bold text-blue-700">{routeInfo.distance}</div>
+          </div>
+        </div>
+        <div className="flex items-center bg-blue-50/60 p-2 rounded-md">
+          <Clock className="mr-2 h-5 w-5 text-blue-600" />
+          <div>
+            <div className="text-xs text-blue-500 uppercase font-semibold">Estimated Time</div>
+            <div className="text-md font-bold text-blue-700">{routeInfo.duration}</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+  
+  // 2. Regular component below the map (for reference)
   const routeInfoComponent = routeInfo && (
     <div className="mt-4 p-3 bg-slate-50 rounded-md border border-slate-200">
       <div className="flex items-center">
@@ -1505,6 +1540,9 @@ export const MapView: React.FC<MapViewProps> = ({
                 />
               )
             )}
+            
+            {/* Floating route info card */}
+            {routeInfoFloatingCard}
             
             {/* Side panel with location actions instead of InfoWindow */}
             {popupLocation && (
