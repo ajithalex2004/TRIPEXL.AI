@@ -950,28 +950,34 @@ export const MapView: React.FC<MapViewProps> = ({
       
       <div className="flex flex-col gap-2.5">
         <Button 
+          type="button"
           size="sm" 
           variant="default" 
           onClick={() => handleLocationTypeSelect('pickup')}
           className="justify-start w-full bg-green-600 hover:bg-green-700 text-white"
+          data-action="set-pickup"
         >
           <MapPin className="mr-2 h-4 w-4" /> Set as Pickup Location
         </Button>
         
         <Button 
+          type="button"
           size="sm" 
           variant="default" 
           onClick={() => handleLocationTypeSelect('dropoff')}
           className="justify-start w-full bg-red-600 hover:bg-red-700 text-white"
+          data-action="set-dropoff"
         >
           <MapPin className="mr-2 h-4 w-4" /> Set as Dropoff Location
         </Button>
         
         <Button 
+          type="button"
           size="sm" 
           variant="outline" 
           onClick={() => handleLocationTypeSelect('waypoint')}
           className="justify-start w-full border-blue-500 text-blue-600 hover:bg-blue-50"
+          data-action="add-waypoint"
         >
           <MapPin className="mr-2 h-4 w-4" /> Add as Waypoint
         </Button>
