@@ -364,19 +364,29 @@ export function BookingForm() {
       }
       
       // Convert employeeId to a number and ensure it's valid
-      const employeeIdNum = data.employeeId ? Number(data.employeeId) : null;
-      if (isNaN(employeeIdNum) || !employeeIdNum) {
-        console.error("Invalid employee ID:", data.employeeId);
+      let employeeIdValue = data.employeeId;
+      
+      // Check if employeeId is already a number or can be converted to one
+      if (typeof employeeIdValue === 'string') {
+        const employeeIdNum = Number(employeeIdValue);
+        if (!isNaN(employeeIdNum)) {
+          employeeIdValue = employeeIdNum;
+        }
+      }
+      
+      // Final validation to ensure we have a valid employeeId
+      if (!employeeIdValue) {
+        console.error("Missing or invalid employee ID:", data.employeeId);
         toast({
-          title: "Invalid employee ID",
-          description: "Please select a valid employee using the email search",
+          title: "Employee information required",
+          description: "Please search for and select a valid employee using the email search field",
           variant: "destructive"
         });
         return;
       }
       
       const bookingData = {
-        employeeId: employeeIdNum,
+        employeeId: employeeIdValue,
         bookingType: data.bookingType,
         purpose: data.purpose,
         priority: data.priority,
@@ -714,22 +724,35 @@ export function BookingForm() {
                     transition={{ duration: 0.5 }}
                     className="space-y-4"
                   >
-                    {/* Add Email Search component above Employee ID/Name fields */}
+                    {/* Email Search component with auto-population of employee details */}
                     <div className="mb-4">
                       <EmployeeEmailSearch 
                         onEmployeeFound={(employeeData) => {
                           console.log("Employee found via email search:", employeeData);
                           if (employeeData?.employeeId) {
-                            form.setValue("employeeId", employeeData.employeeId);
+                            // Set employee ID as a number if possible, otherwise as string
+                            const employeeIdValue = !isNaN(Number(employeeData.employeeId)) 
+                              ? Number(employeeData.employeeId) 
+                              : employeeData.employeeId;
+                              
+                            form.setValue("employeeId", employeeIdValue, {
+                              shouldValidate: true,
+                              shouldDirty: true,
+                              shouldTouch: true
+                            });
                             
                             // Also set employee name for display
                             if (employeeData?.employeeName) {
-                              form.setValue("employeeName", employeeData.employeeName);
+                              form.setValue("employeeName", employeeData.employeeName, {
+                                shouldValidate: true,
+                                shouldDirty: true,
+                                shouldTouch: true
+                              });
                             }
                             
                             toast({
-                              title: "Employee Details Auto-filled",
-                              description: `Successfully retrieved details for ${employeeData.employeeName || 'employee'}`,
+                              title: "Employee Found",
+                              description: `Employee details for ${employeeData.employeeName || 'employee'} automatically populated`,
                               variant: "default",
                             });
                           }
@@ -746,7 +769,12 @@ export function BookingForm() {
                           <FormItem>
                             <FormLabel>Employee ID</FormLabel>
                             <FormControl>
-                              <Input {...field} readOnly value={field.value || employee?.employeeId || ""} />
+                              <Input 
+                                {...field} 
+                                readOnly 
+                                className={field.value ? "bg-muted" : ""}
+                                value={field.value || employee?.employeeId || ""} 
+                              />
                             </FormControl>
                             <FormMessage />
                           </FormItem>
@@ -762,6 +790,7 @@ export function BookingForm() {
                               <Input 
                                 {...field}
                                 readOnly 
+                                className={field.value ? "bg-muted" : ""}
                                 value={field.value || employee?.employeeName || employee?.name || ""}
                               />
                             </FormControl>
