@@ -725,9 +725,11 @@ export class DatabaseStorage implements IStorage {
       dbData.updated_at = new Date();
       
       // STEP 2: Handle the employee ID - this is CRITICAL for proper foreign key reference
-      console.log(`[BOOKING-DB-${debugId}] Processing employeeId value:`, bookingData.employeeId, `(type: ${typeof bookingData.employeeId})`);
+      // Handle both camelCase (employeeId) and snake_case (employee_id) for backward compatibility
+      const employeeIdValue = bookingData.employee_id !== undefined ? bookingData.employee_id : bookingData.employeeId;
+      console.log(`[BOOKING-DB-${debugId}] Processing employee ID value:`, employeeIdValue, `(type: ${typeof employeeIdValue})`);
       
-      if (bookingData.employeeId === undefined || bookingData.employeeId === null) {
+      if (employeeIdValue === undefined || employeeIdValue === null) {
         // Case 1: No employee ID provided
         const error = new Error("Employee ID is required for booking creation");
         logBookingDbOperation('create-booking-error-employeeId-missing', {});
@@ -739,40 +741,40 @@ export class DatabaseStorage implements IStorage {
       let employeeIdNum: number;
       
       // Case 2: Handle various input types for employee ID
-      if (typeof bookingData.employeeId === 'number') {
+      if (typeof employeeIdValue === 'number') {
         // Already a number, just use it
-        employeeIdNum = bookingData.employeeId;
-        console.log(`[BOOKING-DB-${debugId}] Using numeric employeeId directly:`, employeeIdNum);
-      } else if (typeof bookingData.employeeId === 'string') {
+        employeeIdNum = employeeIdValue;
+        console.log(`[BOOKING-DB-${debugId}] Using numeric employee_id directly:`, employeeIdNum);
+      } else if (typeof employeeIdValue === 'string') {
         // Try to convert string to integer with base 10
-        const parsed = parseInt(bookingData.employeeId.trim(), 10);
+        const parsed = parseInt(employeeIdValue.trim(), 10);
         
         if (isNaN(parsed)) {
-          const error = new Error(`Invalid employeeId string format: "${bookingData.employeeId}" - must be a valid number`);
+          const error = new Error(`Invalid employee_id string format: "${employeeIdValue}" - must be a valid number`);
           logBookingDbOperation('create-booking-error-employeeId-invalid-string', { 
-            providedValue: bookingData.employeeId
+            providedValue: employeeIdValue
           });
-          console.error(`[BOOKING-DB-${debugId}] ERROR: Failed to parse employeeId string: "${bookingData.employeeId}"`);
+          console.error(`[BOOKING-DB-${debugId}] ERROR: Failed to parse employee_id string: "${employeeIdValue}"`);
           throw error;
         }
         
         employeeIdNum = parsed;
-        console.log(`[BOOKING-DB-${debugId}] Converted string employeeId "${bookingData.employeeId}" to number:`, employeeIdNum);
+        console.log(`[BOOKING-DB-${debugId}] Converted string employee_id "${employeeIdValue}" to number:`, employeeIdNum);
       } else {
         // Last resort: try generic Number() conversion for other types
-        employeeIdNum = Number(bookingData.employeeId);
+        employeeIdNum = Number(employeeIdValue);
         
         if (isNaN(employeeIdNum)) {
-          const error = new Error(`Invalid employeeId type (${typeof bookingData.employeeId}) or format`);
+          const error = new Error(`Invalid employee_id type (${typeof employeeIdValue}) or format`);
           logBookingDbOperation('create-booking-error-employeeId-invalid-type', { 
-            type: typeof bookingData.employeeId,
-            value: String(bookingData.employeeId)
+            type: typeof employeeIdValue,
+            value: String(employeeIdValue)
           });
-          console.error(`[BOOKING-DB-${debugId}] ERROR: Failed to convert employeeId of type ${typeof bookingData.employeeId}`);
+          console.error(`[BOOKING-DB-${debugId}] ERROR: Failed to convert employee_id of type ${typeof employeeIdValue}`);
           throw error;
         }
         
-        console.log(`[BOOKING-DB-${debugId}] Converted employeeId of type ${typeof bookingData.employeeId} to number:`, employeeIdNum);
+        console.log(`[BOOKING-DB-${debugId}] Converted employee_id of type ${typeof employeeIdValue} to number:`, employeeIdNum);
       }
       
       // STEP 3: Always verify the employee exists to avoid foreign key errors

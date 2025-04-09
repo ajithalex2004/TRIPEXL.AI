@@ -264,6 +264,17 @@ export function BookingForm() {
       console.log("%c Booking Data:", "font-weight: bold;", JSON.stringify(data, null, 2));
       console.log("Employee ID:", data.employee_id, "Type:", typeof data.employee_id);
       
+      // Log validation info for key required fields
+      console.log("VALIDATION CHECK: Required Fields");
+      console.log("- employee_id:", data.employee_id ? "✓" : "✗", data.employee_id);
+      console.log("- booking_type:", data.booking_type ? "✓" : "✗", data.booking_type);
+      console.log("- purpose:", data.purpose ? "✓" : "✗", data.purpose);
+      console.log("- priority:", data.priority ? "✓" : "✗", data.priority);
+      console.log("- pickup_location:", data.pickup_location ? "✓" : "✗", JSON.stringify(data.pickup_location));
+      console.log("- dropoff_location:", data.dropoff_location ? "✓" : "✗", JSON.stringify(data.dropoff_location));
+      console.log("- pickup_time:", data.pickup_time ? "✓" : "✗", data.pickup_time);
+      console.log("- dropoff_time:", data.dropoff_time ? "✓" : "✗", data.dropoff_time);
+      
       try {
         toast({
           title: "Submitting booking",
@@ -399,7 +410,7 @@ export function BookingForm() {
       
       console.log("Employee ID for booking:", employeeIdValue, "Type:", typeof employeeIdValue);
       
-      // Convert all camelCase keys to snake_case for the API schema
+      // Use snake_case for all keys in the API request as required by the backend
       const bookingData = {
         employee_id: employeeIdValue,
         booking_type: data.bookingType,
