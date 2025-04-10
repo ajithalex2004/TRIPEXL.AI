@@ -494,10 +494,40 @@ export const MapView: React.FC<MapViewProps> = ({
           `${durationInMinutes} mins` : 
           `${Math.floor(durationInMinutes / 60)} hr ${durationInMinutes % 60} mins`;
         
+        // Try to get traffic data for Geoapify route as well
+        let trafficData;
+        try {
+          // Try to get traffic conditions for this route if Google Maps is available
+          if (typeof google !== 'undefined' && google.maps) {
+            const optimizationResult = await routeOptimizer.getOptimizedRoute(
+              pickupLocation,
+              dropoffLocation,
+              waypoints,
+              {
+                enableTraffic: true,
+                avoidHighways: routePreferences.avoidHighways,
+                avoidTolls: routePreferences.avoidTolls,
+                optimizeWaypoints: routePreferences.optimizeWaypoints
+              }
+            );
+            
+            trafficData = {
+              trafficConditions: optimizationResult.trafficConditions,
+              trafficAlerts: optimizationResult.trafficAlerts,
+              weatherAlerts: optimizationResult.weatherAlerts
+            };
+            
+            console.log("Traffic data retrieved for Geoapify route:", trafficData);
+          }
+        } catch (trafficError) {
+          console.error("Failed to get traffic data for Geoapify route:", trafficError);
+        }
+        
         // Update route info
-        const routeInfoData = {
+        const routeInfoData: RouteInfo = {
           distance: distanceText,
-          duration: durationText
+          duration: durationText,
+          ...(trafficData || {}) // Add traffic data if available
         };
         setRouteInfo(routeInfoData);
         setShowRouteInfo(true); // Reset visibility whenever a new route is calculated
@@ -599,10 +629,75 @@ export const MapView: React.FC<MapViewProps> = ({
           `${durationInMinutes} mins` : 
           `${Math.floor(durationInMinutes / 60)} hr ${durationInMinutes % 60} mins`;
         
+        // Try to estimate basic traffic conditions even for straight-line calculation
+        let trafficData;
+        try {
+          // Use the route optimizer if Google Maps is available for a basic traffic estimate
+          if (typeof google !== 'undefined' && google.maps) {
+            const optimizationResult = await routeOptimizer.getOptimizedRoute(
+              pickupLocation,
+              dropoffLocation,
+              waypoints,
+              {
+                enableTraffic: true,
+                avoidHighways: routePreferences.avoidHighways,
+                avoidTolls: routePreferences.avoidTolls,
+                optimizeWaypoints: routePreferences.optimizeWaypoints
+              }
+            );
+            
+            trafficData = {
+              trafficConditions: optimizationResult.trafficConditions,
+              trafficAlerts: optimizationResult.trafficAlerts,
+              weatherAlerts: optimizationResult.weatherAlerts
+            };
+            
+            console.log("Traffic data retrieved for straight-line route:", trafficData);
+          } else {
+            // Basic fallback traffic simulation if Google Maps is not available
+            // This is a very simplified traffic model that uses time of day to estimate congestion
+            const now = new Date();
+            const hour = now.getHours();
+            
+            // Morning rush hour: 7-10 AM, Evening rush hour: 4-7 PM
+            const isPeakHour = (hour >= 7 && hour <= 10) || (hour >= 16 && hour <= 19);
+            
+            // Weekend vs. weekday
+            const isWeekend = now.getDay() === 0 || now.getDay() === 6;
+            
+            // Simplified congestion model
+            let congestionLevel = isWeekend ? 80 : 65; // Base level - better on weekends
+            if (isPeakHour && !isWeekend) congestionLevel = 40; // Worst during weekday peak hours
+            
+            // Estimate average speed based on congestion
+            const averageSpeed = congestionLevel > 80 ? 60 : 
+                               congestionLevel > 50 ? 45 : 30; // km/h
+            
+            trafficData = {
+              trafficConditions: {
+                congestionLevel: congestionLevel,
+                averageSpeed: averageSpeed,
+                trafficDelay: isPeakHour && !isWeekend ? 
+                  Math.round(distance * 10) : // Delay in seconds
+                  0
+              },
+              trafficAlerts: isPeakHour && !isWeekend ? 
+                ["Using estimated traffic conditions based on time of day"] : 
+                [],
+              weatherAlerts: []
+            };
+            
+            console.log("Estimated basic traffic data for straight-line route:", trafficData);
+          }
+        } catch (trafficError) {
+          console.error("Could not retrieve traffic data:", trafficError);
+        }
+        
         // Update route info with our calculation
-        const routeInfoData = {
+        const routeInfoData: RouteInfo = {
           distance: distanceText,
-          duration: durationText
+          duration: durationText,
+          ...(trafficData || {}) // Add traffic data if available
         };
         setRouteInfo(routeInfoData);
         setShowRouteInfo(true); // Reset visibility whenever a new route is calculated
@@ -1289,13 +1384,57 @@ export const MapView: React.FC<MapViewProps> = ({
             <div className="text-md font-bold text-blue-700">{routeInfo.distance}</div>
           </div>
         </div>
-        <div className="flex items-center bg-blue-50/60 p-2 rounded-md">
+        <div className="flex items-center mb-3 bg-blue-50/60 p-2 rounded-md">
           <Clock className="mr-2 h-5 w-5 text-blue-600" />
           <div>
             <div className="text-xs text-blue-500 uppercase font-semibold">Estimated Time</div>
             <div className="text-md font-bold text-blue-700">{routeInfo.duration}</div>
           </div>
         </div>
+        
+        {/* Traffic conditions section */}
+        {routeInfo.trafficConditions && (
+          <div className="flex items-center mb-3 bg-blue-50/60 p-2 rounded-md">
+            <div className={`mr-2 h-5 w-5 rounded-full flex items-center justify-center ${
+              routeInfo.trafficConditions.congestionLevel > 80 ? 'bg-green-100 text-green-600' :
+              routeInfo.trafficConditions.congestionLevel > 50 ? 'bg-yellow-100 text-yellow-600' :
+              'bg-red-100 text-red-600'
+            }`}>
+              {routeInfo.trafficConditions.congestionLevel > 80 ? 
+                <CircleCheck className="h-4 w-4" /> : 
+                <AlertCircle className="h-4 w-4" />
+              }
+            </div>
+            <div>
+              <div className="text-xs text-blue-500 uppercase font-semibold">Traffic</div>
+              <div className="text-md font-bold text-blue-700">
+                {routeInfo.trafficConditions.congestionLevel > 80 ? 'Light' :
+                routeInfo.trafficConditions.congestionLevel > 50 ? 'Moderate' :
+                'Heavy'} 
+                {routeInfo.trafficConditions.averageSpeed ? 
+                  ` (${Math.round(routeInfo.trafficConditions.averageSpeed)} km/h)` : ''}
+              </div>
+            </div>
+          </div>
+        )}
+        
+        {/* Traffic alerts section */}
+        {routeInfo.trafficAlerts && routeInfo.trafficAlerts.length > 0 && (
+          <div className="mb-3 bg-yellow-50 p-2 rounded-md border border-yellow-200">
+            <div className="flex items-center mb-1">
+              <AlertTriangle className="mr-2 h-4 w-4 text-yellow-600" />
+              <div className="text-xs text-yellow-700 uppercase font-semibold">Traffic Alerts</div>
+            </div>
+            <ul className="text-xs text-yellow-800 pl-6 list-disc">
+              {routeInfo.trafficAlerts.slice(0, 2).map((alert, index) => (
+                <li key={index}>{alert}</li>
+              ))}
+              {routeInfo.trafficAlerts.length > 2 && (
+                <li className="font-semibold">+{routeInfo.trafficAlerts.length - 2} more alerts</li>
+              )}
+            </ul>
+          </div>
+        )}
       </div>
     </div>
   );
@@ -1311,6 +1450,44 @@ export const MapView: React.FC<MapViewProps> = ({
         <Clock className="mr-2 h-4 w-4 text-blue-600" />
         <span className="text-sm font-medium">Time: {routeInfo.duration}</span>
       </div>
+      
+      {/* Traffic information in the detailed view */}
+      {routeInfo.trafficConditions && (
+        <div className="flex items-center mt-1">
+          <div className={`mr-2 h-4 w-4 rounded-full flex items-center justify-center ${
+            routeInfo.trafficConditions.congestionLevel > 80 ? 'bg-green-100 text-green-600' :
+            routeInfo.trafficConditions.congestionLevel > 50 ? 'bg-yellow-100 text-yellow-600' :
+            'bg-red-100 text-red-600'
+          }`}>
+            {routeInfo.trafficConditions.congestionLevel > 80 ? 
+              <CircleCheck className="h-3 w-3" /> : 
+              <AlertCircle className="h-3 w-3" />
+            }
+          </div>
+          <span className="text-sm font-medium">
+            Traffic: 
+            {routeInfo.trafficConditions.congestionLevel > 80 ? ' Light' :
+            routeInfo.trafficConditions.congestionLevel > 50 ? ' Moderate' :
+            ' Heavy'} 
+            {routeInfo.trafficConditions.averageSpeed ? 
+              ` (${Math.round(routeInfo.trafficConditions.averageSpeed)} km/h)` : ''}
+          </span>
+        </div>
+      )}
+      
+      {routeInfo.trafficAlerts && routeInfo.trafficAlerts.length > 0 && (
+        <div className="mt-2 p-2 bg-yellow-50 rounded border border-yellow-200">
+          <div className="flex items-center">
+            <AlertTriangle className="mr-2 h-3 w-3 text-yellow-600" />
+            <span className="text-xs font-semibold text-yellow-700">Traffic Alerts</span>
+          </div>
+          <ul className="text-xs text-yellow-800 pl-4 mt-1 list-disc">
+            {routeInfo.trafficAlerts.map((alert, index) => (
+              <li key={index}>{alert}</li>
+            ))}
+          </ul>
+        </div>
+      )}
     </div>
   );
 
