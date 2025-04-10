@@ -132,30 +132,67 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
     // Auth routes
     log("Registering auth routes...");
-    app.post("/api/login", async (req, res) => {
-      const { emailId, password } = req.body;
-      console.log('Login attempt initiated for:', emailId);
+    
+    // Add a GET endpoint to retrieve current user info
+    app.get("/api/auth/user", async (req, res) => {
+      // Check for authentication token
+      const authHeader = req.headers.authorization;
+      if (!authHeader) {
+        console.log(`[USER-GET] ERROR: No authorization token provided`);
+        return res.status(401).json({ error: "No authorization token provided" });
+      }
 
+      const token = authHeader.split(" ")[1];
+      if (!token) {
+        console.log(`[USER-GET] ERROR: Invalid authorization header format`);
+        return res.status(401).json({ error: "Invalid authorization header" });
+      }
+      
       try {
+        // Verify the token and get user ID
+        const decoded = jwt.verify(token, process.env.JWT_SECRET || 'dev-secret-key') as { userId: number, email: string };
+        console.log(`[USER-GET] Token verified for user:`, decoded);
+        
+        // Retrieve user from database
+        const user = await storage.getUser(decoded.userId);
+        if (!user) {
+          console.log(`[USER-GET] User not found for ID:`, decoded.userId);
+          return res.status(404).json({ error: "User not found" });
+        }
+        
+        // Remove sensitive information
+        const { password, ...safeUser } = user;
+        
+        console.log(`[USER-GET] Successfully retrieved user:`, safeUser.email_id);
+        return res.json(safeUser);
+      } catch (error) {
+        console.error(`[USER-GET] Token verification error:`, error);
+        return res.status(401).json({ error: "Invalid token" });
+      }
+    });
+    
+    // Handle /api/auth/login for backward compatibility
+    app.post("/api/auth/login", async (req, res) => {
+      try {
+        const { userName, password } = req.body;
+        console.log('Login attempt initiated for:', userName);
+
         // Input validation
-        if (!emailId || !password) {
+        if (!userName || !password) {
           return res.status(400).json({
-            error: "Email and password are required"
+            error: "Username and password are required"
           });
         }
 
-        // Find user
-        const user = await storage.findUserByEmail(emailId);
+        // Find user - try by username or email
+        const user = await storage.findUserByEmail(userName) || 
+                    await storage.getUserByUserName(userName);
+                    
         if (!user) {
           return res.status(401).json({
             error: "Invalid credentials"
           });
         }
-
-        // Generate test hash for comparison
-        const testHash = await bcrypt.hash('Admin@123', '$2a$10$XHaK5MpJ8jyZK0k4z9kFn.2ZyLWXZE5qWnl3olBxVVXVrpnUxZmEi'.slice(0, 29));
-        console.log('Test hash:', testHash);
-        console.log('Stored hash:', user.password);
 
         // Verify password
         const isValidPassword = await bcrypt.compare(password, user.password);
@@ -171,8 +208,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const token = jwt.sign(
           {
             userId: user.id,
-            email: user.emailId,
-            userType: user.userType
+            email: user.email_id
           },
           process.env.JWT_SECRET || 'dev-secret-key',
           { expiresIn: '24h' }
@@ -182,14 +218,76 @@ export async function registerRoutes(app: Express): Promise<Server> {
         await storage.updateUserLastLogin(user.id);
 
         // Send response
-        console.log('Login successful for:', emailId);
+        console.log('Login successful for:', userName);
         const { password: _, ...userData } = user;
         res.json({
           token,
           user: userData,
           message: "Login successful"
         });
+      } catch (error: any) {
+        console.error('Login error:', error);
+        res.status(500).json({
+          error: "Server error during login",
+          details: error.message
+        });
+      }
+    });
+    
+    // Original login endpoint
+    app.post("/api/login", async (req, res) => {
+      try {
+        const { userName, password } = req.body;
+        console.log('Login attempt initiated for:', userName);
 
+        // Input validation
+        if (!userName || !password) {
+          return res.status(400).json({
+            error: "Username and password are required"
+          });
+        }
+
+        // Find user - try by username or email
+        const user = await storage.findUserByEmail(userName) || 
+                    await storage.getUserByUserName(userName);
+                    
+        if (!user) {
+          return res.status(401).json({
+            error: "Invalid credentials"
+          });
+        }
+
+        // Verify password
+        const isValidPassword = await bcrypt.compare(password, user.password);
+        console.log('Password validation result:', isValidPassword);
+
+        if (!isValidPassword) {
+          return res.status(401).json({
+            error: "Invalid credentials"
+          });
+        }
+
+        // Generate token
+        const token = jwt.sign(
+          {
+            userId: user.id,
+            email: user.email_id
+          },
+          process.env.JWT_SECRET || 'dev-secret-key',
+          { expiresIn: '24h' }
+        );
+
+        // Update last login
+        await storage.updateUserLastLogin(user.id);
+
+        // Send response
+        console.log('Login successful for:', userName);
+        const { password: _, ...userData } = user;
+        res.json({
+          token,
+          user: userData,
+          message: "Login successful"
+        });
       } catch (error: any) {
         console.error('Login error:', error);
         res.status(500).json({
