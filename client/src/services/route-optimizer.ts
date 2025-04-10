@@ -44,16 +44,43 @@ const WEATHER_CACHE_DURATION = 10 * 60 * 1000; // 10 minutes
 export class RouteOptimizer {
   private async getBasicDirections(
     origin: Location,
-    destination: Location
+    destination: Location,
+    waypoints: Location[] = [],
+    options: {
+      enableTraffic?: boolean;
+      avoidHighways?: boolean;
+      avoidTolls?: boolean;
+      optimizeWaypoints?: boolean;
+    } = {}
   ): Promise<google.maps.DirectionsResult> {
     const directionsService = new google.maps.DirectionsService();
     try {
+      // Format waypoints for Google Maps
+      const googleWaypoints = waypoints.map(wp => ({
+        location: new google.maps.LatLng(wp.coordinates.lat, wp.coordinates.lng),
+        stopover: true
+      }));
+      
+      console.log("Route optimizer using Google Maps with parameters:", {
+        origin: origin.coordinates,
+        destination: destination.coordinates,
+        waypoints: googleWaypoints,
+        options
+      });
+      
       const result = await directionsService.route({
         origin: origin.coordinates,
         destination: destination.coordinates,
+        waypoints: googleWaypoints,
         travelMode: google.maps.TravelMode.DRIVING,
-        provideRouteAlternatives: true,
-        optimizeWaypoints: true
+        drivingOptions: options.enableTraffic ? {
+          departureTime: new Date(), // Use current time for real-time traffic
+          trafficModel: google.maps.TrafficModel.BEST_GUESS
+        } : undefined,
+        avoidHighways: options.avoidHighways,
+        avoidTolls: options.avoidTolls,
+        optimizeWaypoints: options.optimizeWaypoints ?? true,
+        provideRouteAlternatives: true
       });
       return result;
     } catch (error) {
@@ -72,41 +99,57 @@ export class RouteOptimizer {
 
   private async getTrafficInfo(
     origin: Location,
-    destination: Location
+    destination: Location,
+    waypoints: Location[] = [],
+    options = { enableTraffic: true }
   ): Promise<TrafficInfo> {
     try {
-      const result = await this.getBasicDirections(origin, destination);
+      // Get directions with real-time traffic enabled
+      const result = await this.getBasicDirections(origin, destination, waypoints, {
+        enableTraffic: true,
+        optimizeWaypoints: true
+      });
+      
       const route = result.routes[0];
       const legs = route.legs[0];
       const segments: TrafficSegment[] = [];
       const incidents: TrafficIncident[] = [];
 
-      // Process route segments
+      // Process route segments with traffic info
       if (legs?.steps) {
         for (let i = 0; i < legs.steps.length; i++) {
           const step = legs.steps[i];
           const nextStep = legs.steps[i + 1];
 
           if (nextStep) {
+            // Check for traffic_speed_entry if available for more accurate congestion data
             const duration = step.duration?.value || 0;
+            const durationInTraffic = step.duration_in_traffic?.value || duration;
             const distance = step.distance?.value || 0;
-            const speed = (distance / 1000) / (duration / 3600); // km/h
-
+            
+            // Calculate speed with traffic consideration
+            const speed = (distance / 1000) / (durationInTraffic / 3600); // km/h
             const congestionLevel = this.calculateSegmentCongestion(speed, step);
-
+            
+            // Check if this step has severe congestion (using duration vs duration_in_traffic)
+            const hasTrafficDelay = durationInTraffic > (duration * 1.3); // 30% delay due to traffic
+            
             segments.push({
               start: step.start_location,
               end: step.end_location,
-              duration: duration,
+              duration: durationInTraffic,
               congestionLevel: congestionLevel
             });
 
-            if (congestionLevel > 150) {
+            // Generate traffic incidents based on congestion level
+            if (congestionLevel > 150 || hasTrafficDelay) {
               incidents.push({
                 location: step.start_location,
                 type: "Heavy Traffic",
-                description: "Severe congestion detected",
-                severity: 3
+                description: hasTrafficDelay ? 
+                  "Significant traffic delay detected" : 
+                  "Severe congestion detected",
+                severity: hasTrafficDelay ? 4 : 3
               });
             }
           }
