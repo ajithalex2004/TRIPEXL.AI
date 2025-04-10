@@ -963,11 +963,26 @@ RETURNING *;`;
         console.log("SQL query for booking insert:", insertSql);
         console.log("SQL params:", Object.values(dbData));
         
+        // DEBUG: Log more information about the data being inserted
+        console.log("DETAILED DEBUG - INSERT OPERATION");
+        console.log("======================================");
+        console.log("Data type:", typeof dbData);
+        console.log("Is Array:", Array.isArray(dbData));
+        console.log("Has employee_id:", dbData.hasOwnProperty('employee_id'));
+        console.log("employee_id value:", dbData.employee_id, "type:", typeof dbData.employee_id);
+        console.log("booking_type value:", dbData.booking_type, "type:", typeof dbData.booking_type);
+        console.log("pickup_location type:", typeof dbData.pickup_location);
+        console.log("dropoff_location type:", typeof dbData.dropoff_location);
+        console.log("pickup_time value:", dbData.pickup_time);
+        console.log("dropoff_time value:", dbData.dropoff_time);
+        console.log("======================================");
+        
         // Perform the actual insert with enhanced logging and validation
         console.log("Executing INSERT operation with data:", JSON.stringify(dbData, null, 2));
         
         let result;
         try {
+          console.log("About to execute db.insert()...");
           result = await db
             .insert(schema.bookings)
             .values(dbData)
