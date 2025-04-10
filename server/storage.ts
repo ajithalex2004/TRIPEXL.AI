@@ -1178,6 +1178,107 @@ RETURNING *;`;
       throw new Error(`Database error: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   }
+  
+  async findEmployeeByEmail(email: string): Promise<Employee | null> {
+    try {
+      console.log(`Finding employee by email: ${email}`);
+      
+      if (!email) {
+        console.error('Missing required parameter: email');
+        return null;
+      }
+      
+      // Validate email format
+      if (!email.includes('@') || !email.includes('.')) {
+        console.error('Invalid email format:', email);
+        return null;
+      }
+      
+      // Query database
+      const [employee] = await db
+        .select()
+        .from(schema.employees)
+        .where(eq(schema.employees.email_id, email));
+      
+      if (employee) {
+        console.log(`Found employee by email: ${employee.employee_name} (ID: ${employee.employee_id})`);
+      } else {
+        console.log(`No employee found with email: ${email}`);
+      }
+      
+      return employee || null;
+    } catch (error) {
+      console.error('Error finding employee by email:', error);
+      throw new Error(`Database error: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
+  }
+  
+  async findUserByEmployeeEmail(email: string): Promise<User | null> {
+    try {
+      console.log(`Finding user by employee email: ${email}`);
+      
+      // First find the employee by email
+      const employee = await this.findEmployeeByEmail(email);
+      if (!employee) {
+        console.log(`No employee found with email: ${email}`);
+        return null;
+      }
+      
+      // Then find user with matching email
+      const user = await this.findUserByEmail(email);
+      
+      if (user) {
+        console.log(`Found user by employee email: ${user.user_name}`);
+      } else {
+        console.log(`No user found with email: ${email}`);
+      }
+      
+      return user;
+    } catch (error) {
+      console.error('Error finding user by employee email:', error);
+      throw new Error(`Database error: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
+  }
+  
+  async mapEmployeeToUser(employee: Employee): Promise<User | null> {
+    try {
+      console.log(`Mapping employee ID ${employee.employee_id} to user`);
+      
+      // Find user with matching email
+      const user = await this.findUserByEmail(employee.email_id);
+      
+      if (user) {
+        console.log(`Employee (ID: ${employee.employee_id}) mapped to user: ${user.user_name}`);
+      } else {
+        console.log(`No user found for employee with ID: ${employee.employee_id}`);
+      }
+      
+      return user;
+    } catch (error) {
+      console.error('Error mapping employee to user:', error);
+      throw new Error(`Database error: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
+  }
+  
+  async mapUserToEmployee(user: User): Promise<Employee | null> {
+    try {
+      console.log(`Mapping user ${user.user_name} to employee`);
+      
+      // Find employee with matching email
+      const employee = await this.findEmployeeByEmail(user.email_id);
+      
+      if (employee) {
+        console.log(`User ${user.user_name} mapped to employee: ${employee.employee_name} (ID: ${employee.employee_id})`);
+      } else {
+        console.log(`No employee found for user: ${user.user_name}`);
+      }
+      
+      return employee;
+    } catch (error) {
+      console.error('Error mapping user to employee:', error);
+      throw new Error(`Database error: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
+  }
 
   async findUserByEmail(emailId: string): Promise<User | null> {
     try {

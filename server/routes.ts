@@ -835,35 +835,58 @@ export async function registerRoutes(app: Express): Promise<Server> {
     // Add endpoint to search for employee by email
     app.get("/api/employee/search", async (req, res) => {
       try {
-        const { email } = req.query;
+        const { email, employee_id } = req.query;
         
-        if (!email) {
-          return res.status(400).json({ error: "Email parameter is required" });
+        if (!email && !employee_id) {
+          return res.status(400).json({ error: "Either email or employee_id parameter is required" });
         }
         
-        console.log(`Searching for employee with email: ${email}`);
+        let employee = null;
         
-        // Find employee by email
-        const [employee] = await db
-          .select({
-            id: employees.id,
-            employee_id: employees.employee_id,
-            employee_name: employees.employee_name,
-            email_id: employees.email_id,
-            department: employees.department,
-            designation: employees.designation,
-            mobile_number: employees.mobile_number
-          })
-          .from(employees)
-          .where(eq(employees.email_id, email.toString()));
+        // Search by email if provided
+        if (email) {
+          console.log(`Searching for employee with email: ${email}`);
+          employee = await storage.findEmployeeByEmail(email.toString());
+          
+          if (!employee) {
+            console.log(`No employee found with email: ${email}`);
+          }
+        }
         
+        // If no employee found by email and employee_id is provided, try that
+        if (!employee && employee_id) {
+          console.log(`Searching for employee with ID: ${employee_id}`);
+          employee = await storage.findEmployeeByEmployeeId(employee_id.toString());
+          
+          if (!employee) {
+            console.log(`No employee found with ID: ${employee_id}`);
+          }
+        }
+        
+        // If still no employee found, return 404
         if (!employee) {
-          console.log(`No employee found with email: ${email}`);
-          return res.status(404).json({ error: "No employee found with this email" });
+          return res.status(404).json({ 
+            error: "Employee not found",
+            message: "No employee found with the provided email or ID"
+          });
         }
         
         console.log(`Found employee: ${employee.employee_name} (ID: ${employee.employee_id})`);
         console.log(`Employee details for booking - ID: ${employee.id}, employee_id: ${employee.employee_id} (type: ${typeof employee.employee_id})`);
+        
+        // Find the associated user if any
+        let associatedUser = null;
+        try {
+          associatedUser = await storage.mapEmployeeToUser(employee);
+          if (associatedUser) {
+            console.log(`Found associated user: ${associatedUser.user_name}`);
+          } else {
+            console.log(`No associated user found for employee ${employee.employee_name}`);
+          }
+        } catch (err) {
+          console.warn("Error getting associated user:", err);
+          // Continue without user data
+        }
         
         // Return with both snake_case and camelCase for compatibility
         return res.json({
@@ -874,11 +897,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
           emailId: employee.email_id,
           department: employee.department,
           designation: employee.designation,
-          mobileNumber: employee.mobile_number
+          mobileNumber: employee.mobile_number,
+          region: employee.region,
+          hierarchy_level: employee.hierarchy_level,
+          user: associatedUser ? {
+            id: associatedUser.id,
+            user_name: associatedUser.user_name,
+            user_type: associatedUser.user_type
+          } : null
         });
       } catch (error: any) {
-        console.error("Error searching for employee by email:", error);
-        res.status(500).json({ error: "Failed to search for employee" });
+        console.error("Error searching for employee:", error);
+        res.status(500).json({ error: "Failed to search for employee", details: error.message });
       }
     });
 
@@ -939,7 +969,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
           });
         }
 
-        res.json(employee);
+        // Find the associated user if any
+        let associatedUser = null;
+        try {
+          associatedUser = await storage.mapEmployeeToUser(employee);
+          if (associatedUser) {
+            console.log(`Found associated user: ${associatedUser.user_name}`);
+          } else {
+            console.log(`No associated user found for employee ${employee.employee_name}`);
+          }
+        } catch (err) {
+          console.warn("Error getting associated user:", err);
+          // Continue without user data
+        }
+        
+        // Return the response with the user information if available
+        res.json({
+          ...employee,
+          user: associatedUser ? {
+            id: associatedUser.id,
+            user_name: associatedUser.user_name,
+            user_type: associatedUser.user_type
+          } : null
+        });
 
       } catch (error: any) {
         console.error("Error validating employee:", error);
