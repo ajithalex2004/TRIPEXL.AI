@@ -117,6 +117,13 @@ export function BookingForm() {
   const [, setLocation] = useLocation();
   const [activeTab, setActiveTab] = React.useState("booking");
   
+  // Employee selection state - important for proper employee_id handling
+  const [selectedEmployee, setSelectedEmployee] = React.useState<any>(null);
+  
+  // Location state
+  const [pickupLocation, setPickupLocation] = React.useState<Location | null>(null);
+  const [dropoffLocation, setDropoffLocation] = React.useState<Location | null>(null);
+  
   // Booking confirmation preview state
   const [showBookingPreview, setShowBookingPreview] = React.useState(false);
   const [bookingDataForPreview, setBookingDataForPreview] = React.useState<any>(null);
@@ -832,8 +839,15 @@ export function BookingForm() {
       // STEP 7: Construct the booking data with proper formatting
       const bookingData = {
         // Employee information - employee_id MUST be a number for DB compatibility
+        // Critical: Ensure employee ID is a valid number - database expects this!
         employee_id: Number(employeeIdValue),
         
+        // Explicitly include the employee ID as a string to help with matching
+        employee_code: selectedEmployee?.employee_id || String(employeeIdValue) || "",
+        
+        // Employee name for record-keeping
+        employee_name: selectedEmployee?.employee_name || employee?.employeeName || "",
+
         // Booking details - convert to snake_case for backend
         booking_type: data.bookingType,
         purpose: data.purpose,

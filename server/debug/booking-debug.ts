@@ -1,197 +1,109 @@
+/**
+ * Booking Debug Utility
+ * 
+ * This utility provides enhanced debugging functions for booking operations.
+ * It helps isolate and debug issues in the booking creation and update process.
+ */
 import { Request, Response, NextFunction } from 'express';
-import { v4 as uuidv4 } from 'uuid';
 
-interface DebugEntry {
-  timestamp: string;
-  level: 'info' | 'warn' | 'error' | 'debug';
-  message: string;
-  data?: any;
-  stackTrace?: string;
-}
-
-interface BookingDebugSession {
-  sessionId: string;
-  bookingId?: number;
-  status: 'pending' | 'completed' | 'failed';
-  startTime: string;
-  endTime?: string;
-  entries: DebugEntry[];
-}
-
-class BookingDebugManager {
-  private sessions: Map<string, BookingDebugSession>;
-  private maxSessions: number;
-
-  constructor(maxSessions = 20) {
-    this.sessions = new Map();
-    this.maxSessions = maxSessions;
-  }
-
-  createSession(): string {
-    // Clean up old sessions if we exceed the maximum
-    if (this.sessions.size >= this.maxSessions) {
-      const sessionsArray = Array.from(this.sessions.entries());
-      sessionsArray.sort((a, b) => {
-        const timeA = new Date(a[1].startTime).getTime();
-        const timeB = new Date(b[1].startTime).getTime();
-        return timeA - timeB; // Sort oldest first
-      });
-
-      // Remove oldest session(s)
-      const toRemove = Math.max(1, Math.floor(this.maxSessions * 0.2)); // Remove at least 1 or 20% of max
-      for (let i = 0; i < toRemove && i < sessionsArray.length; i++) {
-        this.sessions.delete(sessionsArray[i][0]);
+/**
+ * Middleware for logging booking-related requests
+ */
+export const bookingDebugMiddleware = (req: Request, res: Response, next: NextFunction) => {
+  // Only apply to booking-related endpoints
+  if (req.url.includes('/api/bookings')) {
+    const requestId = Date.now().toString();
+    console.log(`[BOOKING-REQ-${requestId}] ${req.method} ${req.url}`);
+    
+    if (req.method === 'POST' && req.body) {
+      // For POST requests (creating bookings), analyze the payload
+      console.log(`[BOOKING-REQ-${requestId}] Request body:`, JSON.stringify(req.body, null, 2));
+      
+      // Check if employee_id is present and valid
+      if (req.body.employee_id) {
+        console.log(`[BOOKING-REQ-${requestId}] employee_id: ${req.body.employee_id} (${typeof req.body.employee_id})`);
+        
+        // Check if it's a valid number
+        if (isNaN(Number(req.body.employee_id))) {
+          console.warn(`[BOOKING-REQ-${requestId}] WARNING: employee_id is not a valid number`);
+        }
+      } else {
+        console.warn(`[BOOKING-REQ-${requestId}] WARNING: employee_id is missing from request body`);
       }
     }
-
-    const sessionId = uuidv4();
-    this.sessions.set(sessionId, {
-      sessionId,
-      status: 'pending',
-      startTime: new Date().toISOString(),
-      entries: []
-    });
-
-    return sessionId;
-  }
-
-  getSession(sessionId: string): BookingDebugSession | undefined {
-    return this.sessions.get(sessionId);
-  }
-
-  getSessionIds(): string[] {
-    return Array.from(this.sessions.keys());
-  }
-
-  getAllSessions(): BookingDebugSession[] {
-    return Array.from(this.sessions.values()).sort((a, b) => {
-      return new Date(b.startTime).getTime() - new Date(a.startTime).getTime(); // Newest first
-    });
-  }
-
-  logInfo(sessionId: string, message: string, data?: any): void {
-    this._addEntry(sessionId, 'info', message, data);
-  }
-
-  logDebug(sessionId: string, message: string, data?: any): void {
-    this._addEntry(sessionId, 'debug', message, data);
-  }
-
-  logWarn(sessionId: string, message: string, data?: any): void {
-    this._addEntry(sessionId, 'warn', message, data);
-  }
-
-  logError(sessionId: string, message: string, error?: any): void {
-    let stackTrace: string | undefined;
-    let errorData: any = undefined;
     
-    if (error instanceof Error) {
-      stackTrace = error.stack;
-      errorData = {
-        name: error.name,
-        message: error.message
-      };
-    } else if (error) {
-      errorData = error;
-    }
-
-    this._addEntry(sessionId, 'error', message, errorData, stackTrace);
-  }
-
-  setBookingId(sessionId: string, bookingId: number): void {
-    const session = this.sessions.get(sessionId);
-    if (session) {
-      session.bookingId = bookingId;
-    }
-  }
-
-  completeSession(sessionId: string, success: boolean): void {
-    const session = this.sessions.get(sessionId);
-    if (session) {
-      session.status = success ? 'completed' : 'failed';
-      session.endTime = new Date().toISOString();
-    }
-  }
-
-  private _addEntry(
-    sessionId: string,
-    level: 'info' | 'warn' | 'error' | 'debug',
-    message: string,
-    data?: any,
-    stackTrace?: string
-  ): void {
-    const session = this.sessions.get(sessionId);
-    if (!session) return;
-
-    session.entries.push({
-      timestamp: new Date().toISOString(),
-      level,
-      message,
-      data,
-      stackTrace
-    });
-  }
-}
-
-export const bookingDebugManager = new BookingDebugManager();
-
-// Middleware to initialize a debug session for booking operations
-export function bookingDebugMiddleware(req: Request, res: Response, next: NextFunction) {
-  const sessionId = bookingDebugManager.createSession();
-  
-  // Attach the session ID to the request for use in handlers
-  (req as any).bookingDebugSessionId = sessionId;
-  
-  // Log initial request details
-  bookingDebugManager.logInfo(sessionId, 'New booking request received', {
-    method: req.method,
-    path: req.path,
-    query: req.query,
-    body: req.body,
-    headers: {
-      'content-type': req.headers['content-type'],
-      'user-agent': req.headers['user-agent']
-    }
-  });
-  
-  // Override res.send to capture the response
-  const originalSend = res.send;
-  res.send = function(body): Response {
-    bookingDebugManager.logInfo(sessionId, 'Response sent to client', {
-      statusCode: res.statusCode,
-      body: body && typeof body === 'string' ? 
-        (body.length > 1000 ? body.substring(0, 1000) + '... (truncated)' : body) : 
-        body
-    });
+    // Capture the original response methods to add logging
+    const originalSend = res.send;
+    const originalJson = res.json;
     
-    // Determine if the booking operation was successful based on status code
-    const success = res.statusCode >= 200 && res.statusCode < 300;
-    bookingDebugManager.completeSession(sessionId, success);
+    // Intercept response.send to log responses
+    res.send = function(body: any): Response {
+      console.log(`[BOOKING-RES-${requestId}] Status: ${res.statusCode}`);
+      return originalSend.call(this, body);
+    };
     
-    return originalSend.call(this, body);
-  };
+    // Intercept response.json to log JSON responses
+    res.json = function(body: any): Response {
+      console.log(`[BOOKING-RES-${requestId}] Status: ${res.statusCode}, Response:`, typeof body === 'object' ? JSON.stringify(body, null, 2) : body);
+      return originalJson.call(this, body);
+    };
+  }
   
   next();
+};
+
+/**
+ * Logs a detailed diagnostic for booking operations with a unique ID for tracing
+ */
+export function logBookingDbOperation(id: string, message: string) {
+  console.log(`[BOOKING-DEBUG-${id}] ${message}`);
 }
 
-// Utility function to log database operations related to bookings
-export function logBookingDbOperation(
-  operation: string,
-  data: any
-) {
-  // Create a UUID-based session ID for this standalone log
-  const sessionId = bookingDebugManager.createSession();
+/**
+ * Logs SQL query for debugging purposes
+ */
+export function logSqlQuery(id: string, query: string, params?: any) {
+  console.log(`[BOOKING-SQL-${id}] Query: ${query}`);
+  if (params) {
+    console.log(`[BOOKING-SQL-${id}] Params:`, params);
+  }
+}
+
+/**
+ * Analyzes booking data for potential issues before database insertion
+ */
+export function analyzeBookingData(id: string, bookingData: any) {
+  console.log(`[BOOKING-ANALYZE-${id}] ===== BOOKING DATA ANALYSIS =====`);
   
-  // For backward compatibility, log through console
-  console.log(`DB Operation [${operation}]:`, JSON.stringify(data, null, 2));
+  // Check for required fields
+  const requiredFields = ['employee_id', 'booking_type', 'purpose', 'priority', 'pickup_location', 'dropoff_location'];
+  for (const field of requiredFields) {
+    console.log(`[BOOKING-ANALYZE-${id}] ${field}: ${bookingData[field] ? 'Present' : 'MISSING'}`);
+    
+    // Special checks for employee_id
+    if (field === 'employee_id') {
+      console.log(`[BOOKING-ANALYZE-${id}] employee_id details:`, 
+        `Value: ${bookingData.employee_id}`,
+        `Type: ${typeof bookingData.employee_id}`,
+        `Is number: ${!isNaN(Number(bookingData.employee_id))}`
+      );
+    }
+  }
   
-  // Also log to the debug manager
-  bookingDebugManager.logDebug(
-    sessionId,
-    `Database operation: ${operation}`,
-    data
-  );
+  // Check location data structure
+  if (bookingData.pickup_location) {
+    console.log(`[BOOKING-ANALYZE-${id}] pickup_location structure:`, 
+      `Has address: ${bookingData.pickup_location.address ? 'Yes' : 'No'}`,
+      `Has coordinates: ${bookingData.pickup_location.coordinates ? 'Yes' : 'No'}`
+    );
+  }
   
-  // Complete the session
-  bookingDebugManager.completeSession(sessionId, true);
+  if (bookingData.dropoff_location) {
+    console.log(`[BOOKING-ANALYZE-${id}] dropoff_location structure:`, 
+      `Has address: ${bookingData.dropoff_location.address ? 'Yes' : 'No'}`,
+      `Has coordinates: ${bookingData.dropoff_location.coordinates ? 'Yes' : 'No'}`
+    );
+  }
+  
+  console.log(`[BOOKING-ANALYZE-${id}] ===== END ANALYSIS =====`);
 }
