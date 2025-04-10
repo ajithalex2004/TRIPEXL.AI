@@ -518,33 +518,82 @@ export async function registerRoutes(app: Express): Promise<Server> {
       } catch (error: any) {
         console.error(`[BOOKING-${debugId}] Error creating booking:`, error);
         
+        // Detailed error logging with stack trace
+        console.error(`[BOOKING-${debugId}] Error stack trace:`, error.stack);
+        
+        // Log specific error properties for database errors
+        if (error.code) {
+          console.error(`[BOOKING-${debugId}] SQL Error code:`, error.code);
+          console.error(`[BOOKING-${debugId}] SQL Error detail:`, error.detail || "No details");
+          console.error(`[BOOKING-${debugId}] SQL Error hint:`, error.hint || "No hint");
+          console.error(`[BOOKING-${debugId}] SQL Error constraint:`, error.constraint || "No constraint");
+          console.error(`[BOOKING-${debugId}] SQL Error table:`, error.table || "No table");
+          console.error(`[BOOKING-${debugId}] SQL Error column:`, error.column || "No column");
+        }
+        
+        // Log data that was being processed
+        console.error(`[BOOKING-${debugId}] Booking data that caused error:`, req.body);
+        
         // Determine if this is a known error type with a specific message
         if (error.message && error.message.includes('violates foreign key constraint')) {
           if (error.message.includes('employee_id')) {
             return res.status(400).json({
               error: "Invalid employee reference",
-              details: "The employee ID provided does not exist in the system"
+              details: "The employee ID provided does not exist in the system",
+              debug: {
+                errorMessage: error.message,
+                errorCode: error.code || 'unknown'
+              }
             });
           } else if (error.message.includes('user_id')) {
             return res.status(400).json({
               error: "Invalid user reference",
-              details: "The user ID provided does not exist in the system"
+              details: "The user ID provided does not exist in the system",
+              debug: {
+                errorMessage: error.message,
+                errorCode: error.code || 'unknown'
+              }
             });
           }
         }
         
         // Check for validation errors
-        if (error.name === 'ValidationError' || error.message.includes('validation failed')) {
+        if (error.name === 'ValidationError' || (error.message && error.message.includes('validation failed'))) {
           return res.status(400).json({
             error: "Validation error",
-            details: error.message
+            details: error.message,
+            debug: {
+              validationErrors: error.errors || error.issues || 'unknown'
+            }
           });
         }
         
-        // Default error response
+        // Check for specific Zod validation errors
+        if (error.name === 'ZodError' || (error.issues && Array.isArray(error.issues))) {
+          return res.status(400).json({
+            error: "Data validation error",
+            details: "The booking data format is invalid",
+            issues: error.issues || [],
+            message: error.message
+          });
+        }
+        
+        // Check for database errors
+        if (error.code && error.code.startsWith('23')) {
+          return res.status(400).json({
+            error: "Database constraint violation",
+            details: error.detail || error.message || "A database constraint was violated",
+            constraint: error.constraint || "unknown",
+            code: error.code
+          });
+        }
+        
+        // Default error response with enhanced debugging info
         res.status(500).json({
           error: "Failed to create booking",
-          details: error.message || "Unknown error occurred"
+          details: error.message || "Unknown error occurred",
+          errorType: error.name || typeof error,
+          code: error.code || 'unknown'
         });
       }
     });
