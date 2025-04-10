@@ -1221,48 +1221,47 @@ export function BookingForm() {
                         onEmployeeFound={(employeeData) => {
                           console.log("Employee found via email search:", employeeData);
                           
-                          // Get the employee_id (prefer snake_case as it matches the database column)
-                          const employeeId = employeeData?.employee_id !== undefined 
-                            ? employeeData.employee_id
-                            : employeeData?.employeeId; // Fallback to camelCase if needed
-
+                          // First, use the internal database ID for the employee - this is the most reliable way
+                          // This is the ID field from the employees table, not the employee_id field which is a display value
+                          const employeeId = employeeData?.id;
+                          
                           if (employeeId) {
-                            // Set employee ID as a number if possible, otherwise as string
-                            const employeeIdValue = !isNaN(Number(employeeId)) 
-                              ? Number(employeeId) 
-                              : employeeId;
+                            // Always convert to number since database expects a numeric ID
+                            const employeeIdValue = Number(employeeId);
+                            
+                            if (!isNaN(employeeIdValue)) {
+                              console.log("Setting employee_id in form:", employeeIdValue, "(type:", typeof employeeIdValue, ")");
                               
-                            console.log("Setting employee_id in form:", employeeIdValue, "(type:", typeof employeeIdValue, ")");
-                            
-                            // Set both snake_case and camelCase versions to ensure they're in the form data
-                            form.setValue("employee_id", employeeIdValue, {
-                              shouldValidate: true,
-                              shouldDirty: true,
-                              shouldTouch: true
-                            });
-                            
-                            // Also set camelCase version for compatibility
-                            form.setValue("employeeId", employeeIdValue, {
-                              shouldValidate: true,
-                              shouldDirty: true,
-                              shouldTouch: true
-                            });
-                            
-                            // Also set employee name for display
-                            const employeeName = employeeData?.employee_name || employeeData?.employeeName;
-                            if (employeeName) {
-                              form.setValue("employeeName", employeeName, {
+                              // Set both snake_case and camelCase versions to ensure they're in the form data
+                              form.setValue("employee_id", employeeIdValue, {
                                 shouldValidate: true,
                                 shouldDirty: true,
                                 shouldTouch: true
                               });
+                              
+                              // Also set camelCase version for compatibility
+                              form.setValue("employeeId", employeeIdValue, {
+                                shouldValidate: true,
+                                shouldDirty: true,
+                                shouldTouch: true
+                              });
+                              
+                              // Also set employee name for display
+                              const employeeName = employeeData?.employee_name || employeeData?.employeeName;
+                              if (employeeName) {
+                                form.setValue("employeeName", employeeName, {
+                                  shouldValidate: true,
+                                  shouldDirty: true,
+                                  shouldTouch: true
+                                });
+                              }
+                              
+                              toast({
+                                title: "Employee Found",
+                                description: `Employee details for ${employeeName || 'employee'} automatically populated`,
+                                variant: "default",
+                              });
                             }
-                            
-                            toast({
-                              title: "Employee Found",
-                              description: `Employee details for ${employeeName || 'employee'} automatically populated`,
-                              variant: "default",
-                            });
                           }
                         }}
                         defaultEmail={employee?.emailId || ""}
