@@ -612,13 +612,28 @@ export function BookingForm() {
       }));
       
       // Get the employee ID and ensure it's valid
+      // First, try to get the ID from the form data in either format
       let employeeIdValue = data.employee_id || data.employeeId;
       
-      // Convert to number if it's a string
-      if (typeof employeeIdValue === 'string') {
+      // If that fails, try to get it from the logged-in employee object
+      if (employeeIdValue === undefined || employeeIdValue === null) {
+        if (employee?.id) {
+          employeeIdValue = employee.id;
+          console.log("Using logged-in employee.id:", employeeIdValue);
+        } else if (employee?.employeeId) {
+          employeeIdValue = employee.employeeId; 
+          console.log("Using logged-in employee.employeeId:", employeeIdValue);
+        }
+      }
+      
+      // Convert to number if it's a string or any other type
+      if (typeof employeeIdValue !== 'number') {
         const employeeIdNum = Number(employeeIdValue);
         if (!isNaN(employeeIdNum)) {
           employeeIdValue = employeeIdNum;
+          console.log("Converted employee ID to number:", employeeIdValue);
+        } else {
+          throw new Error("Invalid employee ID format. Please ensure a valid employee ID is provided.");
         }
       }
       
@@ -673,8 +688,12 @@ export function BookingForm() {
       // Close the preview modal
       setShowBookingPreview(false);
       
+      // Enhanced logging of the final booking data being sent
+      console.log("%c FINAL BOOKING DATA TO SUBMIT:", "background: #ff9800; color: white; padding: 2px 4px; border-radius: 2px;", JSON.stringify(bookingData, null, 2));
+      
       // Submit the booking
-      await createBookingMutation.mutateAsync(bookingData);
+      const response = await createBookingMutation.mutateAsync(bookingData);
+      console.log("%c BOOKING CREATION RESPONSE:", "background: #4CAF50; color: white; padding: 2px 4px; border-radius: 2px;", response);
       
     } catch (error: any) {
       console.error("Booking confirmation error:", error);
