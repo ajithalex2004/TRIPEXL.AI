@@ -260,7 +260,7 @@ export function BookingConfirmationPreview({
                     </div>
                   )}
                   
-                  {bookingData.passengerDetails && bookingData.passengerDetails.length > 0 && (
+                  {bookingData.passengerDetails && Array.isArray(bookingData.passengerDetails) && bookingData.passengerDetails.length > 0 && (
                     <div className="mt-3 space-y-2">
                       <p className="text-sm font-medium">Passenger List</p>
                       <div className="border rounded-md p-3 space-y-3">
@@ -276,7 +276,7 @@ export function BookingConfirmationPreview({
                                 <p className="text-sm">{passenger.contact}</p>
                               </div>
                             </div>
-                            {index < bookingData.passengerDetails.length - 1 && <Separator className="my-2" />}
+                            {bookingData.passengerDetails && Array.isArray(bookingData.passengerDetails) && index < bookingData.passengerDetails.length - 1 && <Separator className="my-2" />}
                           </div>
                         ))}
                       </div>
@@ -318,7 +318,7 @@ export function BookingConfirmationPreview({
                     </div>
                   </div>
                   
-                  {bookingData.boxSize && bookingData.boxSize.length > 0 && (
+                  {bookingData.boxSize && Array.isArray(bookingData.boxSize) && bookingData.boxSize.length > 0 && (
                     <div className="flex items-start space-x-2">
                       <Package className="h-5 w-5 text-primary" />
                       <div>
