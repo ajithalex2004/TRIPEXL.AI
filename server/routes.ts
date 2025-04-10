@@ -237,19 +237,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
     // Original login endpoint
     app.post("/api/login", async (req, res) => {
       try {
-        const { userName, password } = req.body;
-        console.log('Login attempt initiated for:', userName);
+        // Support both userName and emailId field names
+        const emailValue = req.body.emailId || req.body.userName || req.body.email;
+        const password = req.body.password;
+        
+        console.log('Login attempt initiated for:', emailValue);
 
         // Input validation
-        if (!userName || !password) {
+        if (!emailValue || !password) {
           return res.status(400).json({
-            error: "Username and password are required"
+            error: "Email/username and password are required"
           });
         }
 
         // Find user - try by username or email
-        const user = await storage.findUserByEmail(userName) || 
-                    await storage.getUserByUserName(userName);
+        const user = await storage.findUserByEmail(emailValue) || 
+                    await storage.getUserByUserName(emailValue);
                     
         if (!user) {
           return res.status(401).json({

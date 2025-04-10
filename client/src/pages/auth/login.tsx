@@ -52,7 +52,7 @@ export default function LoginPage() {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          userName: data.userName,
+          emailId: data.userName, // Use emailId as expected by the server
           password: data.password,
         }),
       });
