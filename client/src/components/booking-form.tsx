@@ -283,52 +283,77 @@ export function BookingForm() {
       console.log("%c BOOKING SUBMISSION - START", "background: #4CAF50; color: white; padding: 2px 4px; border-radius: 2px;");
       console.log("%c Booking Data:", "font-weight: bold;", JSON.stringify(data, null, 2));
       
-      // Ensure employee_id is definitely a number before submitting
-      if (data.employee_id !== undefined) {
+      // STEP 1: Validate and normalize employee ID
+      // This is critical for the database foreign key relationship
+      if (data.employee_id !== undefined && data.employee_id !== null) {
         // Force convert to number if it's not already
         if (typeof data.employee_id !== 'number') {
-          data.employee_id = Number(data.employee_id);
+          const employeeIdNum = Number(data.employee_id);
+          if (isNaN(employeeIdNum)) {
+            throw new Error(`Invalid employee ID format: '${data.employee_id}' cannot be converted to a number`);
+          }
+          data.employee_id = employeeIdNum;
           console.log("Converted employee_id to number:", data.employee_id);
         }
+      } else {
+        throw new Error("Employee ID is required for booking creation");
       }
       
-      // For backward compatibility, ensure employeeId is also set and is a number
-      if (data.employeeId !== undefined) {
-        if (typeof data.employeeId !== 'number') {
-          data.employeeId = Number(data.employeeId);
-          console.log("Converted employeeId to number:", data.employeeId);
-        }
+      // STEP 2: Validate all required fields are present
+      const requiredFields = [
+        'booking_type', 'purpose', 'priority',
+        'pickup_location', 'dropoff_location',
+        'pickup_time', 'dropoff_time'
+      ];
+      
+      const missingFields = requiredFields.filter(field => {
+        return data[field] === undefined || data[field] === null;
+      });
+      
+      if (missingFields.length > 0) {
+        throw new Error(`Missing required fields: ${missingFields.join(', ')}`);
       }
       
-      console.log("Final employee ID values:");
-      console.log("- employee_id:", data.employee_id, "(type:", typeof data.employee_id, ")");
-      console.log("- employeeId:", data.employeeId, "(type:", typeof data.employeeId, ")");
+      // STEP 3: Location data validation
+      if (!data.pickup_location.coordinates || !data.pickup_location.address) {
+        throw new Error("Pickup location must include both coordinates and address");
+      }
       
-      // Log validation info for key required fields
-      console.log("VALIDATION CHECK: Required Fields");
-      console.log("- employee_id:", data.employee_id ? "✓" : "✗", data.employee_id);
-      console.log("- booking_type:", data.booking_type ? "✓" : "✗", data.booking_type);
-      console.log("- purpose:", data.purpose ? "✓" : "✗", data.purpose);
-      // Fix priority field capitalization (case sensitivity)
+      if (!data.dropoff_location.coordinates || !data.dropoff_location.address) {
+        throw new Error("Dropoff location must include both coordinates and address");
+      }
+      
+      // Ensure coordinates are numbers
+      if (data.pickup_location.coordinates) {
+        data.pickup_location.coordinates.lat = Number(data.pickup_location.coordinates.lat);
+        data.pickup_location.coordinates.lng = Number(data.pickup_location.coordinates.lng);
+      }
+      
+      if (data.dropoff_location.coordinates) {
+        data.dropoff_location.coordinates.lat = Number(data.dropoff_location.coordinates.lat);
+        data.dropoff_location.coordinates.lng = Number(data.dropoff_location.coordinates.lng);
+      }
+      
+      // STEP 4: Normalize priority - this is critical for enum validation on the server
       if (data.priority) {
-        // Fix case sensitivity issue - ensure priority has proper capitalization
-        // This is crucial for validation on the server side
-        if (data.priority === "normal") {
-          data.priority = "Normal";
-          console.log("Fixed capitalization for priority: normal → Normal");
-        } else if (data.priority === "critical") {
-          data.priority = "Critical";
-          console.log("Fixed capitalization for priority: critical → Critical");
-        } else if (data.priority === "emergency") {
-          data.priority = "Emergency";
-          console.log("Fixed capitalization for priority: emergency → Emergency");
-        } else if (data.priority === "high") {
-          data.priority = "High";
-          console.log("Fixed capitalization for priority: high → High");
-        } else if (data.priority === "medium") {
-          data.priority = "Medium";
-          console.log("Fixed capitalization for priority: medium → Medium");
+        if (typeof data.priority === 'string') {
+          // Make first letter uppercase and rest lowercase for consistent format
+          // (e.g., "normal" becomes "Normal", "CRITICAL" becomes "Critical")
+          data.priority = data.priority.charAt(0).toUpperCase() + data.priority.slice(1).toLowerCase();
+          
+          // Validate it's one of the accepted values
+          const validPriorities = ['Normal', 'High', 'Emergency', 'Critical', 'Medium'];
+          if (!validPriorities.includes(data.priority)) {
+            console.warn(`Unexpected priority value: ${data.priority}, defaulting to 'Normal'`);
+            data.priority = 'Normal';
+          }
+        } else {
+          console.warn(`Non-string priority value: ${data.priority}, defaulting to 'Normal'`);
+          data.priority = 'Normal';
         }
+      } else {
+        console.warn("No priority specified, defaulting to 'Normal'");
+        data.priority = 'Normal';
       }
       
       console.log("- priority:", data.priority ? "✓" : "✗", data.priority);
@@ -796,18 +821,23 @@ export function BookingForm() {
         return;
       }
       
-      // STEP 6: Construct the booking data with proper formatting
+      // STEP 6: Normalize priority value - capitalize first letter, lowercase rest
+      // This ensures compatibility with the enum values in the schema (e.g., "Normal", "High", etc.)
+      let normalizedPriority = data.priority;
+      if (typeof normalizedPriority === 'string') {
+        normalizedPriority = normalizedPriority.charAt(0).toUpperCase() + normalizedPriority.slice(1).toLowerCase();
+        console.log("Normalized priority value:", normalizedPriority);
+      }
+      
+      // STEP 7: Construct the booking data with proper formatting
       const bookingData = {
-        // Employee information - include both formats for maximum compatibility
-        employee_id: employeeIdValue, // Snake case version for DB compatibility
-        employeeId: employeeIdValue,  // Camel case version for redundancy
+        // Employee information - employee_id MUST be a number for DB compatibility
+        employee_id: Number(employeeIdValue),
         
         // Booking details - convert to snake_case for backend
         booking_type: data.bookingType,
         purpose: data.purpose,
-        // Ensure priority is properly capitalized (first letter uppercase, rest lowercase)
-        // This ensures compatibility with the enum values defined in the schema
-        priority: data.priority,
+        priority: normalizedPriority,
         pickup_location: pickupLocation,
         dropoff_location: dropoffLocation,
         waypoints: formattedWaypoints,
@@ -819,7 +849,7 @@ export function BookingForm() {
         // Optional fields
         remarks: data.remarks || "",
         
-        // Booking type specific fields
+        // Booking type specific fields - ensure all are properly typed
         ...(data.bookingType === "freight" ? {
           cargo_type: data.cargoType,
           num_boxes: Number(data.numBoxes || 0),
@@ -839,29 +869,22 @@ export function BookingForm() {
       // Close the preview modal
       setShowBookingPreview(false);
       
-      // STEP 7: Enhanced logging before submission
+      // STEP 8: Enhanced logging before submission
       console.log("%c FINAL BOOKING DATA TO SUBMIT:", "background: #ff9800; color: white; padding: 2px 4px; border-radius: 2px;");
       console.log("Employee ID:", bookingData.employee_id, "(type:", typeof bookingData.employee_id, ")");
       console.log("Booking Type:", bookingData.booking_type);
       console.log("Priority:", bookingData.priority, "(type:", typeof bookingData.priority, ")");
       console.log("Full booking data:", JSON.stringify(bookingData, null, 2));
       
-      // STEP 8: Submit the booking with enhanced error handling
-      console.log("%c SUBMITTING BOOKING DATA:", "background: #ff9800; color: white; padding: 2px 4px; border-radius: 2px;", JSON.stringify(bookingData, null, 2));
-      
-      // Ensure employee_id is properly set as a number
-      if (typeof bookingData.employee_id !== 'number') {
-        bookingData.employee_id = Number(bookingData.employee_id);
-        console.log("Converted employee_id to number:", bookingData.employee_id);
-      }
-      
-      // Force validation of the employee_id field
+      // Final validation - check employee_id is numeric and valid
       if (isNaN(bookingData.employee_id) || !bookingData.employee_id) {
         const error = new Error("Invalid employee ID format. Please select a valid employee.");
         console.error("Employee ID validation failed:", error);
         throw error;
       }
       
+      // Submit the booking
+      console.log("%c SUBMITTING BOOKING DATA:", "background: #ff9800; color: white; padding: 2px 4px; border-radius: 2px;", JSON.stringify(bookingData, null, 2));
       const response = await createBookingMutation.mutateAsync(bookingData);
       console.log("%c BOOKING CREATION RESPONSE:", "background: #4CAF50; color: white; padding: 2px 4px; border-radius: 2px;", response);
       
