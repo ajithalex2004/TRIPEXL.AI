@@ -183,7 +183,7 @@ export function BookingForm() {
       remarks: "",
       withDriver: false,
       bookingForSelf: false,
-      passengerDetails: [],
+      passengerDetails: [] as PassengerDetail[],
     }
   });
 
@@ -257,7 +257,7 @@ export function BookingForm() {
 
       // Validate that all passenger details are filled
       const hasEmptyDetails = passengerDetails.some(
-        (passenger, idx) => idx < numPassengers && (!passenger.name || !passenger.contact)
+        (passenger: PassengerDetail, idx) => idx < numPassengers && (!passenger.name || !passenger.contact)
       );
       if (hasEmptyDetails) {
         toast({
