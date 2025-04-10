@@ -12,7 +12,9 @@ import {
   FormItem,
   FormLabel,
   FormMessage,
+  FormDescription,
 } from "@/components/ui/form";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import * as z from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
@@ -26,11 +28,20 @@ const emailSearchSchema = z.object({
     .email({ message: "Please enter a valid email address" }),
 });
 
-type EmailSearchFormValues = z.infer<typeof emailSearchSchema>;
+// Form schema for employee ID input
+const employeeIdSearchSchema = z.object({
+  employeeId: z
+    .string()
+    .min(1, { message: "Employee ID is required" }),
+});
 
-interface EmployeeEmailSearchProps {
+type EmailSearchFormValues = z.infer<typeof emailSearchSchema>;
+type EmployeeIdSearchFormValues = z.infer<typeof employeeIdSearchSchema>;
+
+interface EmployeeSearchProps {
   onEmployeeFound: (employeeData: any) => void;
   defaultEmail?: string;
+  defaultEmployeeId?: string;
   className?: string;
   disabled?: boolean;
 }
@@ -38,23 +49,34 @@ interface EmployeeEmailSearchProps {
 export function EmployeeEmailSearch({
   onEmployeeFound,
   defaultEmail = "",
+  defaultEmployeeId = "",
   className = "",
   disabled = false
-}: EmployeeEmailSearchProps) {
+}: EmployeeSearchProps) {
   const { toast } = useToast();
   const [email, setEmail] = useState(defaultEmail);
+  const [employeeId, setEmployeeId] = useState(defaultEmployeeId);
+  const [searchMethod, setSearchMethod] = useState<"email" | "id">("email");
   const [isSearching, setIsSearching] = useState(false);
 
   // Initialize form with default values
-  const form = useForm<EmailSearchFormValues>({
+  const emailForm = useForm<EmailSearchFormValues>({
     resolver: zodResolver(emailSearchSchema),
     defaultValues: {
       email: defaultEmail,
     },
   });
 
-  // Set up the query but don't enable it until we need it
-  const { data: employee, isFetching, refetch } = useQuery({
+  // Initialize form for employee ID search
+  const employeeIdForm = useForm<EmployeeIdSearchFormValues>({
+    resolver: zodResolver(employeeIdSearchSchema),
+    defaultValues: {
+      employeeId: defaultEmployeeId,
+    },
+  });
+
+  // Set up the email search query but don't enable it until we need it
+  const { isFetching: isEmailFetching, refetch: refetchByEmail } = useQuery({
     queryKey: ["/api/employee/search", email],
     queryFn: async () => {
       if (!email) return null;
@@ -72,11 +94,30 @@ export function EmployeeEmailSearch({
     retry: false,
   });
 
-  // Debounced search function to prevent too many API calls
-  const debouncedSearch = useCallback(
+  // Set up the employee ID search query
+  const { isFetching: isIdFetching, refetch: refetchById } = useQuery({
+    queryKey: ["/api/users/by-employee", employeeId],
+    queryFn: async () => {
+      if (!employeeId) return null;
+      
+      const response = await apiRequest("GET", `/api/users/by-employee/${encodeURIComponent(employeeId)}`);
+      
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || "Failed to find employee by ID");
+      }
+      
+      return response.json();
+    },
+    enabled: false, // We'll manually trigger this
+    retry: false,
+  });
+
+  // Debounced search function for email
+  const debouncedEmailSearch = useCallback(
     debounce((email: string) => {
       setIsSearching(true);
-      refetch().then((result) => {
+      refetchByEmail().then((result) => {
         setIsSearching(false);
         if (result.data) {
           onEmployeeFound(result.data);
@@ -84,92 +125,206 @@ export function EmployeeEmailSearch({
       }).catch((error) => {
         setIsSearching(false);
         toast({
-          title: "Error",
-          description: error.message || "Failed to find employee with this email",
+          title: "Employee Not Found",
+          description: error.message || "No employee found with this email address",
           variant: "destructive",
         });
       });
     }, 500),
-    [refetch, onEmployeeFound, toast]
+    [refetchByEmail, onEmployeeFound, toast]
   );
 
-  // Handle form submission
-  const onSubmit = (values: EmailSearchFormValues) => {
+  // Debounced search function for employee ID
+  const debouncedIdSearch = useCallback(
+    debounce((id: string) => {
+      setIsSearching(true);
+      refetchById().then((result) => {
+        setIsSearching(false);
+        if (result.data && result.data.employee) {
+          // Format the employee data to match the expected structure
+          const formattedData = {
+            id: result.data.employee.id,
+            employee_id: result.data.employee.employee_id,
+            employee_name: result.data.employee.employee_name,
+            email_id: result.data.employee.email_id,
+            department: result.data.employee.department,
+            designation: result.data.employee.designation,
+            user: result.data.user
+          };
+          onEmployeeFound(formattedData);
+        }
+      }).catch((error) => {
+        setIsSearching(false);
+        toast({
+          title: "Employee Not Found",
+          description: error.message || "No employee found with this ID",
+          variant: "destructive",
+        });
+      });
+    }, 500),
+    [refetchById, onEmployeeFound, toast]
+  );
+
+  // Handle email form submission
+  const onEmailSubmit = (values: EmailSearchFormValues) => {
     setEmail(values.email);
-    debouncedSearch(values.email);
+    debouncedEmailSearch(values.email);
+  };
+
+  // Handle employee ID form submission
+  const onIdSubmit = (values: EmployeeIdSearchFormValues) => {
+    setEmployeeId(values.employeeId);
+    debouncedIdSearch(values.employeeId);
   };
 
   // When the email changes, update the search
   React.useEffect(() => {
-    if (email && email !== form.getValues().email) {
-      form.setValue("email", email);
-      debouncedSearch(email);
+    if (email && email !== emailForm.getValues().email) {
+      emailForm.setValue("email", email);
+      if (searchMethod === "email") {
+        debouncedEmailSearch(email);
+      }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [email]);
+  }, [email, searchMethod]);
+
+  // When the employee ID changes, update the search
+  React.useEffect(() => {
+    if (employeeId && employeeId !== employeeIdForm.getValues().employeeId) {
+      employeeIdForm.setValue("employeeId", employeeId);
+      if (searchMethod === "id") {
+        debouncedIdSearch(employeeId);
+      }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [employeeId, searchMethod]);
 
   // When component unmounts, cancel any pending debounced searches
   React.useEffect(() => {
     return () => {
-      debouncedSearch.cancel();
+      debouncedEmailSearch.cancel();
+      debouncedIdSearch.cancel();
     };
-  }, [debouncedSearch]);
+  }, [debouncedEmailSearch, debouncedIdSearch]);
+
+  const isFetching = searchMethod === "email" ? isEmailFetching : isIdFetching;
 
   return (
     <div className={`w-full ${className}`}>
-      <Form {...form}>
-        <form
-          onSubmit={form.handleSubmit(onSubmit)}
-          className="flex flex-col space-y-2"
-        >
-          <FormField
-            control={form.control}
-            name="email"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Email Address</FormLabel>
-                <div className="flex space-x-2">
-                  <FormControl>
-                    <Input
-                      placeholder="Enter email address"
-                      {...field}
-                      disabled={disabled || isSearching || isFetching}
-                      onChange={(e) => {
-                        field.onChange(e);
-                        // Trigger the debounced search on each keystroke for better UX
-                        const newValue = e.target.value;
-                        if (newValue && newValue.includes('@')) {
-                          setEmail(newValue);
-                          debouncedSearch(newValue);
-                        }
-                      }}
-                    />
-                  </FormControl>
-                  <Button 
-                    type="submit" 
-                    disabled={disabled || isSearching || isFetching}
-                    variant="secondary"
-                  >
-                    Search
-                  </Button>
-                </div>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-        </form>
-      </Form>
+      <Tabs
+        defaultValue="email"
+        onValueChange={(value) => setSearchMethod(value as "email" | "id")}
+        className="w-full"
+      >
+        <TabsList className="grid grid-cols-2 mb-2">
+          <TabsTrigger value="email">Search by Email</TabsTrigger>
+          <TabsTrigger value="id">Search by Employee ID</TabsTrigger>
+        </TabsList>
+        
+        <TabsContent value="email">
+          <Form {...emailForm}>
+            <form
+              onSubmit={emailForm.handleSubmit(onEmailSubmit)}
+              className="flex flex-col space-y-2"
+            >
+              <FormField
+                control={emailForm.control}
+                name="email"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Email Address</FormLabel>
+                    <div className="flex space-x-2">
+                      <FormControl>
+                        <Input
+                          placeholder="Enter email address"
+                          {...field}
+                          disabled={disabled || isSearching || isFetching}
+                          onChange={(e) => {
+                            field.onChange(e);
+                            // Trigger the debounced search on each keystroke for better UX
+                            const newValue = e.target.value;
+                            if (newValue && newValue.includes('@')) {
+                              setEmail(newValue);
+                              debouncedEmailSearch(newValue);
+                            }
+                          }}
+                        />
+                      </FormControl>
+                      <Button 
+                        type="submit" 
+                        disabled={disabled || isSearching || isFetching}
+                        variant="secondary"
+                      >
+                        Search
+                      </Button>
+                    </div>
+                    <FormDescription>
+                      Enter the employee's corporate email address to look up their details
+                    </FormDescription>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </form>
+          </Form>
+        </TabsContent>
+        
+        <TabsContent value="id">
+          <Form {...employeeIdForm}>
+            <form
+              onSubmit={employeeIdForm.handleSubmit(onIdSubmit)}
+              className="flex flex-col space-y-2"
+            >
+              <FormField
+                control={employeeIdForm.control}
+                name="employeeId"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Employee ID</FormLabel>
+                    <div className="flex space-x-2">
+                      <FormControl>
+                        <Input
+                          placeholder="Enter employee ID"
+                          {...field}
+                          disabled={disabled || isSearching || isFetching}
+                          onChange={(e) => {
+                            field.onChange(e);
+                            // Only search if there's actual input
+                            const newValue = e.target.value;
+                            if (newValue && newValue.length >= 3) {
+                              setEmployeeId(newValue);
+                              debouncedIdSearch(newValue);
+                            }
+                          }}
+                        />
+                      </FormControl>
+                      <Button 
+                        type="submit" 
+                        disabled={disabled || isSearching || isFetching}
+                        variant="secondary"
+                      >
+                        Search
+                      </Button>
+                    </div>
+                    <FormDescription>
+                      Enter the employee's ID number to look up their details (e.g., 1001, 1002)
+                    </FormDescription>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </form>
+          </Form>
+        </TabsContent>
+      </Tabs>
 
-      {/* Employee data display */}
-      {/* Only show loading indicator while searching */}
+      {/* Loading indicator */}
       {(isSearching || isFetching) && (
         <div className="space-y-2 mt-4">
           <Skeleton className="h-4 w-full" />
           <Skeleton className="h-4 w-3/4" />
         </div>
       )}
-      
-      {/* Employee info is no longer displayed but still processed in the background */}
     </div>
   );
 }
