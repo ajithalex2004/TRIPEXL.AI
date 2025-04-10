@@ -391,16 +391,33 @@ export function BookingForm() {
       }
     },
     onSuccess: (data) => {
-      console.log("Booking created successfully:", data);
+      console.log("%c BOOKING CREATION SUCCESS", "background: #4CAF50; color: white; padding: 2px 4px; border-radius: 2px;");
+      console.log("Response data:", data);
+      
       // Store reference number from response (snake_case) or fall back to camelCase
-      setCreatedReferenceNo(data.reference_no || data.referenceNo || "Unknown");
-      setShowSuccessDialog(true);
-      queryClient.invalidateQueries({ queryKey: ["/api/bookings"] });
-      form.reset();
+      const referenceNo = data.reference_no || data.referenceNo || "Generated";
+      setCreatedReferenceNo(referenceNo);
+      
+      // Show detailed success message
       toast({
-        title: "Success",
-        description: "Booking created successfully!",
+        title: "Booking created successfully!",
+        description: `Reference No: ${referenceNo}`,
       });
+      
+      // Clear cached data to ensure fresh data on next fetch
+      queryClient.invalidateQueries({ queryKey: ["/api/bookings"] });
+      
+      // Reset form state and show success dialog
+      form.reset();
+      setShowSuccessDialog(true);
+      
+      // Reset location fields
+      setPickupLocation(null);
+      setDropoffLocation(null);
+      setWaypoints([]);
+      
+      // Log user action for analytics
+      console.log("User completed booking creation with reference:", referenceNo);
     },
     onError: (error: Error) => {
       console.error("Booking creation error:", error);
@@ -642,9 +659,31 @@ export function BookingForm() {
         return;
       }
       
-      const data = form.getValues();
+      // Display a loading toast to indicate processing
+      toast({
+        title: "Processing booking",
+        description: "Please wait while we process your request...",
+      });
       
-      // Format waypoints data for API submission
+      const data = form.getValues();
+      console.log("%c BOOKING CONFIRMATION - START", "background: #4CAF50; color: white; padding: 2px 4px; border-radius: 2px;");
+      console.log("Form data:", data);
+      
+      // STEP 1: Validate pickup/dropoff locations
+      if (!data.pickupLocation || !data.dropoffLocation) {
+        console.error("Missing location data:", {
+          pickupLocation: data.pickupLocation,
+          dropoffLocation: data.dropoffLocation
+        });
+        toast({
+          title: "Missing location information",
+          description: "Please select both pickup and dropoff locations",
+          variant: "destructive"
+        });
+        return;
+      }
+      
+      // STEP 2: Format waypoints data for API submission
       const formattedWaypoints = waypoints.map(wp => ({
         address: wp.address,
         coordinates: {
@@ -653,9 +692,11 @@ export function BookingForm() {
         }
       }));
       
-      // Get the employee ID and ensure it's valid
+      // STEP 3: Handle employee ID - this is critical for database relations
       // First, try to get the ID from the form data in either format
       let employeeIdValue = data.employee_id || data.employeeId;
+      
+      console.log("Raw employee ID value:", employeeIdValue, "Type:", typeof employeeIdValue);
       
       // If that fails, try to get it from the logged-in employee object
       if (employeeIdValue === undefined || employeeIdValue === null) {
@@ -665,83 +706,141 @@ export function BookingForm() {
         } else if (employee?.employeeId) {
           employeeIdValue = employee.employeeId; 
           console.log("Using logged-in employee.employeeId:", employeeIdValue);
+        } else {
+          // No employee ID available at all
+          toast({
+            title: "Employee information missing",
+            description: "Please search for and select a valid employee using the email search field",
+            variant: "destructive"
+          });
+          console.error("Could not find employee ID in any available source");
+          return;
         }
       }
       
-      // Convert to number if it's a string or any other type
+      // STEP 4: Type conversion - ensure employee ID is a number
       if (typeof employeeIdValue !== 'number') {
         const employeeIdNum = Number(employeeIdValue);
         if (!isNaN(employeeIdNum)) {
           employeeIdValue = employeeIdNum;
           console.log("Converted employee ID to number:", employeeIdValue);
         } else {
-          throw new Error("Invalid employee ID format. Please ensure a valid employee ID is provided.");
+          console.error("Invalid employee ID format:", employeeIdValue);
+          toast({
+            title: "Invalid employee ID format",
+            description: "Please search for a valid employee using the email search field",
+            variant: "destructive"
+          });
+          return;
         }
       }
       
-      // Use snake_case for all keys in the API request as required by the backend
+      // STEP 5: Safely access location properties with null checks
+      const pickupLocation = data.pickupLocation ? {
+        address: data.pickupLocation.address || "",
+        coordinates: {
+          lat: Number(data.pickupLocation.coordinates?.lat || 0),
+          lng: Number(data.pickupLocation.coordinates?.lng || 0)
+        },
+        // Include UAE-specific fields if available
+        ...(data.pickupLocation.district && { district: data.pickupLocation.district }),
+        ...(data.pickupLocation.city && { city: data.pickupLocation.city }),
+        ...(data.pickupLocation.area && { area: data.pickupLocation.area }),
+        ...(data.pickupLocation.place_id && { place_id: data.pickupLocation.place_id }),
+        ...(data.pickupLocation.name && { name: data.pickupLocation.name })
+      } : null;
+      
+      const dropoffLocation = data.dropoffLocation ? {
+        address: data.dropoffLocation.address || "",
+        coordinates: {
+          lat: Number(data.dropoffLocation.coordinates?.lat || 0),
+          lng: Number(data.dropoffLocation.coordinates?.lng || 0)
+        },
+        // Include UAE-specific fields if available
+        ...(data.dropoffLocation.district && { district: data.dropoffLocation.district }),
+        ...(data.dropoffLocation.city && { city: data.dropoffLocation.city }),
+        ...(data.dropoffLocation.area && { area: data.dropoffLocation.area }),
+        ...(data.dropoffLocation.place_id && { place_id: data.dropoffLocation.place_id }),
+        ...(data.dropoffLocation.name && { name: data.dropoffLocation.name })
+      } : null;
+      
+      if (!pickupLocation || !dropoffLocation) {
+        toast({
+          title: "Incomplete location data",
+          description: "Please ensure both pickup and dropoff locations are fully specified",
+          variant: "destructive"
+        });
+        return;
+      }
+      
+      // STEP 6: Construct the booking data with proper formatting
       const bookingData = {
-        employee_id: employeeIdValue, // Snake case version
+        // Employee information - include both formats for maximum compatibility
+        employee_id: employeeIdValue, // Snake case version for DB compatibility
         employeeId: employeeIdValue,  // Camel case version for redundancy
+        
+        // Booking details - convert to snake_case for backend
         booking_type: data.bookingType,
         purpose: data.purpose,
         priority: data.priority,
-        pickup_location: {
-          address: data.pickupLocation.address,
-          coordinates: {
-            lat: Number(data.pickupLocation.coordinates.lat),
-            lng: Number(data.pickupLocation.coordinates.lng)
-          },
-          // Include UAE-specific fields if available
-          ...(data.pickupLocation.district && { district: data.pickupLocation.district }),
-          ...(data.pickupLocation.city && { city: data.pickupLocation.city }),
-          ...(data.pickupLocation.area && { area: data.pickupLocation.area })
-        },
-        dropoff_location: {
-          address: data.dropoffLocation.address,
-          coordinates: {
-            lat: Number(data.dropoffLocation.coordinates.lat),
-            lng: Number(data.dropoffLocation.coordinates.lng)
-          },
-          // Include UAE-specific fields if available
-          ...(data.dropoffLocation.district && { district: data.dropoffLocation.district }),
-          ...(data.dropoffLocation.city && { city: data.dropoffLocation.city }),
-          ...(data.dropoffLocation.area && { area: data.dropoffLocation.area })
-        },
+        pickup_location: pickupLocation,
+        dropoff_location: dropoffLocation,
         waypoints: formattedWaypoints,
+        
+        // Time fields - ensure proper ISO format
         pickup_time: new Date(data.pickupTime).toISOString(),
         dropoff_time: new Date(data.dropoffTime).toISOString(),
+        
+        // Optional fields
         remarks: data.remarks || "",
+        
+        // Booking type specific fields
         ...(data.bookingType === "freight" ? {
           cargo_type: data.cargoType,
           num_boxes: Number(data.numBoxes || 0),
           weight: Number(data.weight || 0),
-          box_size: data.boxSize || []
+          box_size: data.boxSize || "medium" // Default to medium if not specified
         } : {}),
+        
         ...(data.bookingType === "passenger" ? {
           trip_type: data.tripType || "one_way",
           num_passengers: Number(data.numPassengers || 1),
           with_driver: Boolean(data.withDriver),
           booking_for_self: Boolean(data.bookingForSelf),
-          passenger_details: data.passengerDetails || []
+          passenger_details: Array.isArray(data.passengerDetails) ? data.passengerDetails : []
         } : {})
       };
       
       // Close the preview modal
       setShowBookingPreview(false);
       
-      // Enhanced logging of the final booking data being sent
-      console.log("%c FINAL BOOKING DATA TO SUBMIT:", "background: #ff9800; color: white; padding: 2px 4px; border-radius: 2px;", JSON.stringify(bookingData, null, 2));
+      // STEP 7: Enhanced logging before submission
+      console.log("%c FINAL BOOKING DATA TO SUBMIT:", "background: #ff9800; color: white; padding: 2px 4px; border-radius: 2px;");
+      console.log("Employee ID:", bookingData.employee_id, "(type:", typeof bookingData.employee_id, ")");
+      console.log("Booking Type:", bookingData.booking_type);
+      console.log("Full booking data:", JSON.stringify(bookingData, null, 2));
       
-      // Submit the booking
+      // STEP 8: Submit the booking and handle response
       const response = await createBookingMutation.mutateAsync(bookingData);
       console.log("%c BOOKING CREATION RESPONSE:", "background: #4CAF50; color: white; padding: 2px 4px; border-radius: 2px;", response);
       
+      // Show success message with booking information
+      toast({
+        title: "Booking created successfully",
+        description: `Reference No: ${response.reference_no || response.referenceNo || "Generated"}`,
+      });
+      
+      // Reset form and show success dialog
+      setCreatedReferenceNo(response.reference_no || response.referenceNo || "Unknown");
+      setShowSuccessDialog(true);
+      
     } catch (error: any) {
       console.error("Booking confirmation error:", error);
+      
+      // Show detailed error message
       toast({
-        title: "Error",
-        description: error.message || "Failed to create booking",
+        title: "Error creating booking",
+        description: error.message || "Failed to create booking. Please try again.",
         variant: "destructive",
       });
     }
