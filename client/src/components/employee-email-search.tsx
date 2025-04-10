@@ -120,7 +120,16 @@ export function EmployeeEmailSearch({
       refetchByEmail().then((result) => {
         setIsSearching(false);
         if (result.data) {
+          // Call the parent component's callback with the employee data
           onEmployeeFound(result.data);
+          
+          // Show success indicator briefly
+          setEmployeeFound(true);
+          
+          // Hide the success indicator after 3 seconds
+          setTimeout(() => {
+            setEmployeeFound(false);
+          }, 3000);
         }
       }).catch((error) => {
         setIsSearching(false);
@@ -151,7 +160,17 @@ export function EmployeeEmailSearch({
             designation: result.data.employee.designation,
             user: result.data.user
           };
+          
+          // Call the parent component's callback with the employee data
           onEmployeeFound(formattedData);
+          
+          // Show success indicator briefly
+          setEmployeeFound(true);
+          
+          // Hide the success indicator after 3 seconds
+          setTimeout(() => {
+            setEmployeeFound(false);
+          }, 3000);
         }
       }).catch((error) => {
         setIsSearching(false);
@@ -168,13 +187,67 @@ export function EmployeeEmailSearch({
   // Handle email form submission
   const onEmailSubmit = (values: EmailSearchFormValues) => {
     setEmail(values.email);
-    debouncedEmailSearch(values.email);
+    setIsSearching(true);
+    refetchByEmail().then((result) => {
+      setIsSearching(false);
+      if (result.data) {
+        onEmployeeFound(result.data);
+        
+        // Show success indicator briefly
+        setEmployeeFound(true);
+        
+        // Hide the success indicator after 3 seconds
+        setTimeout(() => {
+          setEmployeeFound(false);
+        }, 3000);
+      }
+    }).catch((error) => {
+      setIsSearching(false);
+      toast({
+        title: "Employee Not Found",
+        description: error.message || "No employee found with this email address",
+        variant: "destructive",
+      });
+    });
   };
 
   // Handle employee ID form submission
   const onIdSubmit = (values: EmployeeIdSearchFormValues) => {
     setEmployeeId(values.employeeId);
-    debouncedIdSearch(values.employeeId);
+    setIsSearching(true);
+    refetchById().then((result) => {
+      setIsSearching(false);
+      if (result.data && result.data.employee) {
+        // Format the employee data to match the expected structure
+        const formattedData = {
+          id: result.data.employee.id,
+          employee_id: result.data.employee.employee_id,
+          employee_name: result.data.employee.employee_name,
+          email_id: result.data.employee.email_id,
+          department: result.data.employee.department,
+          designation: result.data.employee.designation,
+          user: result.data.user
+        };
+        
+        // Call the parent component's callback with the employee data
+        onEmployeeFound(formattedData);
+        
+        // Show success indicator briefly
+        setEmployeeFound(true);
+        
+        // Hide the success indicator after 3 seconds
+        setTimeout(() => {
+          setEmployeeFound(false);
+        }, 3000);
+      }
+    }).catch((error) => {
+      setIsSearching(false);
+      toast({
+        title: "Employee Not Found",
+        description: error.message || "No employee found with this ID",
+        variant: "destructive",
+      });
+    });
   };
 
   // When the email changes, update the search
@@ -209,6 +282,10 @@ export function EmployeeEmailSearch({
 
   const isFetching = searchMethod === "email" ? isEmailFetching : isIdFetching;
 
+  // We'll use a ref to maintain a hidden flag that tracks if we've successfully populated
+  // employee data, but we don't want to show the window
+  const [employeeFound, setEmployeeFound] = React.useState(false);
+  
   return (
     <div className={`w-full ${className}`}>
       <Tabs
@@ -241,6 +318,9 @@ export function EmployeeEmailSearch({
                           disabled={disabled || isSearching || isFetching}
                           onChange={(e) => {
                             field.onChange(e);
+                            // Reset employee found status when input changes
+                            setEmployeeFound(false);
+                            
                             // Trigger the debounced search on each keystroke for better UX
                             const newValue = e.target.value;
                             if (newValue && newValue.includes('@')) {
@@ -262,6 +342,13 @@ export function EmployeeEmailSearch({
                       Enter the employee's corporate email address to look up their details
                     </FormDescription>
                     <FormMessage />
+                    
+                    {/* Success indicator that appears briefly */}
+                    {employeeFound && (
+                      <div className="text-sm font-medium text-green-600 animate-pulse mt-2">
+                        ✓ Employee details found and populated
+                      </div>
+                    )}
                   </FormItem>
                 )}
               />
@@ -289,6 +376,9 @@ export function EmployeeEmailSearch({
                           disabled={disabled || isSearching || isFetching}
                           onChange={(e) => {
                             field.onChange(e);
+                            // Reset employee found status when input changes
+                            setEmployeeFound(false);
+                            
                             // Only search if there's actual input
                             const newValue = e.target.value;
                             if (newValue && newValue.length >= 3) {
@@ -310,6 +400,13 @@ export function EmployeeEmailSearch({
                       Enter the employee's ID number to look up their details (e.g., 1001, 1002)
                     </FormDescription>
                     <FormMessage />
+                    
+                    {/* Success indicator that appears briefly */}
+                    {employeeFound && (
+                      <div className="text-sm font-medium text-green-600 animate-pulse mt-2">
+                        ✓ Employee details found and populated
+                      </div>
+                    )}
                   </FormItem>
                 )}
               />

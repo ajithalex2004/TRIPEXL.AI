@@ -1267,11 +1267,8 @@ export function BookingForm() {
                                 });
                               }
                               
-                              toast({
-                                title: "Employee Found",
-                                description: `Employee details for ${employeeName || 'employee'} automatically populated`,
-                                variant: "default",
-                              });
+                              // The toast is now handled in the EmployeeEmailSearch component
+                              // with a more subtle green checkmark that appears briefly
                             }
                           }
                         }}
