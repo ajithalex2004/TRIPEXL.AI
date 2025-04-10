@@ -1,0 +1,38 @@
+framer-motion.js?v=848d3386:252 You're attempting to animate multiple children within AnimatePresence, but its mode is set to "wait". This will lead to odd visual behaviour.
+
+booking-form.tsx:2122 Create Booking Button clicked
+booking-form.tsx:2124 Current form values: 
+Object
+2
+framer-motion.js?v=848d3386:252 You're attempting to animate multiple children within AnimatePresence, but its mode is set to "wait". This will lead to odd visual behaviour.
+booking-form.tsx:2128 Form validation result: false
+booking-form.tsx:2133 Form validation failed: 
+Object
+use-toast.ts:134 Dispatching action: 
+Object
+2
+framer-motion.js?v=848d3386:252 You're attempting to animate multiple children within AnimatePresence, but its mode is set to "wait". This will lead to odd visual behaviour.
+booking-form.tsx:137 Fetching employee data...
+queryClient.ts:55 🔍 API REQUEST: GET /api/employee/current
+framer-motion.js?v=848d3386:252 You're attempting to animate multiple children within AnimatePresence, but its mode is set to "wait". This will lead to odd visual behaviour.
+framer-motion.js?v=848d3386:252 You're attempting to animate multiple children within AnimatePresence, but its mode is set to "wait". This will lead to odd visual behaviour.
+booking-form.tsx:154 Current employee data in component: undefined
+queryClient.ts:100 
+ GET https://2165f413-7bf6-4bd1-bb0f-26eed97cb88b-00-1ybcybkuebs3c.kirk.replit.dev/api/employee/current 401 (Unauthorized)
+queryClient.ts:108 📡 API RESPONSE: 401 Unauthorized
+queryClient.ts:115 Response: {"error":"No authorization token provided"}
+queryClient.ts:10 API Error Response (JSON): 
+{error: 'No authorization token provided'}
+queryClient.ts:124 API Request Failed: Error: No authorization token provided
+    at throwIfResNotOk (queryClient.ts:38:11)
+    at async apiRequest (queryClient.ts:121:5)
+    at async queryFn (booking-form.tsx:138:24)
+framer-motion.js?v=848d3386:252 You're attempting to animate multiple children within AnimatePresence, but its mode is set to "wait". This will lead to odd visual behaviour.
+framer-motion.js?v=848d3386:252 You're attempting to animate multiple children within AnimatePresence, but its mode is set to "wait". This will lead to odd visual behaviour.
+booking-form.tsx:154 Current employee data in component: undefined
+booking-form.tsx:156 Employee data error: Error: No authorization token provided
+    at throwIfResNotOk (queryClient.ts:38:11)
+    at async apiRequest (queryClient.ts:121:5)
+    at async queryFn (booking-form.tsx:138:24)
+(anonymous)	@	booking-form.tsx:156
+﻿
