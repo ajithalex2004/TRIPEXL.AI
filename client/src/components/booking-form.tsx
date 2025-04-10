@@ -871,7 +871,7 @@ export function BookingForm() {
           booking_for_self: formData.bookingForSelf === true,
           // Ensure passenger_details is always an array of the expected format
           passenger_details: Array.isArray(formData.passengerDetails) 
-            ? formData.passengerDetails.map(p => ({
+            ? formData.passengerDetails.map((p: PassengerDetail) => ({
                 name: String(p.name || ''),
                 contact: String(p.contact || '')
               })) 
@@ -1252,9 +1252,9 @@ export function BookingForm() {
       });
       if (employee) {
         form.setValue("passengerDetails", [{
-          name: employee.name,
-          contact: employee.phone
-        }], {
+          name: employee.name || '',
+          contact: employee.phone || ''
+        } as PassengerDetail], {
           shouldValidate: true,
           shouldDirty: true,
           shouldTouch: true
@@ -1267,7 +1267,7 @@ export function BookingForm() {
         shouldDirty: true,
         shouldTouch: true
       });
-      form.setValue("passengerDetails", [], {
+      form.setValue("passengerDetails", ([] as PassengerDetail[]), {
         shouldValidate: true,
         shouldDirty: true,
         shouldTouch: true
