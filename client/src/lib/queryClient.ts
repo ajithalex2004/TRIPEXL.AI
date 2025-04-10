@@ -59,6 +59,31 @@ export async function apiRequest(
     // Special enhanced logging for booking API
     if (url.includes('/bookings') && method.toUpperCase() === 'POST') {
       console.log('⚠️ BOOKING REQUEST DETAILS ⚠️');
+      
+      // Ensure both ID fields are present in the request
+      if (data.employee_id === undefined && data.employeeId !== undefined) {
+        console.log('🔄 Adding missing employee_id field from employeeId');
+        data.employee_id = Number(data.employeeId);
+      } else if (data.employeeId === undefined && data.employee_id !== undefined) {
+        console.log('🔄 Adding missing employeeId field from employee_id');
+        data.employeeId = Number(data.employee_id);
+      }
+      
+      // Validate and fix employee ID fields
+      if (data.employee_id !== undefined) {
+        if (typeof data.employee_id !== 'number') {
+          data.employee_id = Number(data.employee_id);
+          console.log('🔄 Converted employee_id to number:', data.employee_id);
+        }
+      }
+      
+      if (data.employeeId !== undefined) {
+        if (typeof data.employeeId !== 'number') {
+          data.employeeId = Number(data.employeeId);
+          console.log('🔄 Converted employeeId to number:', data.employeeId);
+        }
+      }
+      
       console.log('Employee ID:', data.employee_id, 'Type:', typeof data.employee_id);
       console.log('employeeId:', data.employeeId, 'Type:', typeof data.employeeId);
       console.log('ID fields comparison:', { 

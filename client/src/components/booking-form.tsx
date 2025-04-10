@@ -354,12 +354,35 @@ export function BookingForm() {
         
         let responseData;
         try {
-          responseData = await response.json();
-          console.log("Booking API success response:", responseData);
-        } catch (jsonError) {
-          console.error("Error parsing success response:", jsonError);
-          throw new Error("Server returned invalid response format");
+          // Get the JSON response if available
+          const responseText = await response.text();
+          if (responseText) {
+            try {
+              // Try to parse the JSON response
+              responseData = JSON.parse(responseText);
+              console.log("%c Booking API success response:", "background: #4CAF50; color: white; padding: 2px 4px; border-radius: 2px;", responseData);
+            } catch (parseError) {
+              // If JSON parsing fails, use the text response as-is
+              console.warn("Could not parse response as JSON, using text response instead:", responseText);
+              responseData = { message: responseText, raw: responseText };
+            }
+          } else {
+            // Handle empty response
+            console.log("Empty response received, but status code indicates success");
+            responseData = { message: "Booking created successfully", raw: "" };
+          }
+        } catch (responseError) {
+          console.error("Error handling response:", responseError);
+          throw new Error("Error processing server response");
         }
+        
+        // Add timestamp for debugging
+        responseData = { 
+          ...responseData, 
+          _clientTimestamp: new Date().toISOString(),
+          _status: response.status,
+          _statusText: response.statusText
+        };
         
         return responseData;
       } catch (error) {
@@ -381,9 +404,28 @@ export function BookingForm() {
     },
     onError: (error: Error) => {
       console.error("Booking creation error:", error);
+      
+      // Detailed error logging
+      console.log("%c BOOKING ERROR DETAILS", "background: #f44336; color: white; padding: 2px 4px; border-radius: 2px;");
+      console.log("Error type:", typeof error);
+      console.log("Error message:", error.message);
+      console.log("Error stack:", error.stack);
+      
+      // Provide specific error messages for common issues
+      let errorMessage = error.message || "Failed to create booking. Please try again.";
+      
+      // Enhance error message based on content
+      if (errorMessage.includes("employee") && errorMessage.includes("not found")) {
+        errorMessage = "Employee ID not found in the system. Please search for a valid employee.";
+      } else if (errorMessage.includes("employee") && errorMessage.includes("required")) {
+        errorMessage = "Employee information is required. Please search for an employee using the email search.";
+      } else if (errorMessage.includes("location")) {
+        errorMessage = "Location information is incomplete. Please select valid pickup and dropoff locations.";
+      }
+      
       toast({
         title: "Error creating booking",
-        description: error.message || "Failed to create booking. Please try again.",
+        description: errorMessage,
         variant: "destructive",
       });
     },
