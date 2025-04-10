@@ -732,16 +732,12 @@ export function BookingForm() {
         description: "Please wait while we process your request...",
       });
       
-      const data = form.getValues();
+      const formData = form.getValues();
       console.log("%c BOOKING CONFIRMATION - START", "background: #4CAF50; color: white; padding: 2px 4px; border-radius: 2px;");
-      console.log("Raw form data:", data);
+      console.log("Raw form data:", formData);
       
-      // STEP 1: Validate pickup/dropoff locations
-      if (!data.pickupLocation || !data.dropoffLocation) {
-        console.error("Missing location data:", {
-          pickupLocation: data.pickupLocation,
-          dropoffLocation: data.dropoffLocation
-        });
+      // STEP 1: Validate required fields
+      if (!formData.pickupLocation || !formData.dropoffLocation) {
         toast({
           title: "Missing location information",
           description: "Please select both pickup and dropoff locations",
@@ -750,7 +746,75 @@ export function BookingForm() {
         return;
       }
       
-      // STEP 2: Format waypoints data for API submission
+      if (!formData.pickupTime || !formData.dropoffTime) {
+        toast({
+          title: "Missing time information",
+          description: "Please select both pickup and dropoff times",
+          variant: "destructive"
+        });
+        return;
+      }
+      
+      // STEP 2: Process employee ID (critical for database relations)
+      let employeeId: number;
+      
+      // Try to get from form data or selected employee
+      if (selectedEmployee?.id) {
+        employeeId = Number(selectedEmployee.id);
+        console.log("Using selected employee ID:", employeeId);
+      } else if (formData.employee_id) {
+        employeeId = Number(formData.employee_id);
+        console.log("Using form employee_id:", employeeId);
+      } else if (employee?.id) {
+        employeeId = Number(employee.id);
+        console.log("Using logged-in employee ID:", employeeId);
+      } else {
+        toast({
+          title: "Employee information missing",
+          description: "Please search for and select a valid employee",
+          variant: "destructive"
+        });
+        return;
+      }
+      
+      // Validate employee ID is a valid number
+      if (isNaN(employeeId) || employeeId <= 0) {
+        toast({
+          title: "Invalid employee ID",
+          description: "Please select a valid employee",
+          variant: "destructive"
+        });
+        return;
+      }
+      
+      // STEP 3: Prepare location data with proper typing
+      const formattedPickupLocation = {
+        address: formData.pickupLocation.address || "",
+        coordinates: {
+          lat: Number(formData.pickupLocation.coordinates?.lat || 0),
+          lng: Number(formData.pickupLocation.coordinates?.lng || 0)
+        },
+        place_id: formData.pickupLocation.place_id,
+        name: formData.pickupLocation.name,
+        district: formData.pickupLocation.district,
+        city: formData.pickupLocation.city,
+        area: formData.pickupLocation.area
+      };
+      
+      const formattedDropoffLocation = {
+        address: formData.dropoffLocation.address || "",
+        coordinates: {
+          lat: Number(formData.dropoffLocation.coordinates?.lat || 0),
+          lng: Number(formData.dropoffLocation.coordinates?.lng || 0)
+        },
+        place_id: formData.dropoffLocation.place_id,
+        name: formData.dropoffLocation.name,
+        district: formData.dropoffLocation.district,
+        city: formData.dropoffLocation.city,
+        area: formData.dropoffLocation.area
+      };
+      
+      // STEP 4: Format waypoints data
       const formattedWaypoints = waypoints.map(wp => ({
         address: wp.address,
         coordinates: {
@@ -759,169 +823,72 @@ export function BookingForm() {
         }
       }));
       
-      // STEP 3: Handle employee ID - this is critical for database relations
-      // First, try to get the ID from the form data in either format
-      let employeeIdValue = data.employee_id || data.employeeId;
+      // STEP 5: Normalize priority format
+      const normalizedPriority = typeof formData.priority === 'string' 
+        ? formData.priority.charAt(0).toUpperCase() + formData.priority.slice(1).toLowerCase()
+        : formData.priority;
       
-      console.log("Raw employee ID value:", employeeIdValue, "Type:", typeof employeeIdValue);
-      
-      // If that fails, try to get it from the logged-in employee object
-      if (employeeIdValue === undefined || employeeIdValue === null) {
-        if (employee?.id) {
-          employeeIdValue = employee.id;
-          console.log("Using logged-in employee.id:", employeeIdValue);
-        } else if (employee?.employeeId) {
-          employeeIdValue = employee.employeeId; 
-          console.log("Using logged-in employee.employeeId:", employeeIdValue);
-        } else {
-          // No employee ID available at all
-          toast({
-            title: "Employee information missing",
-            description: "Please search for and select a valid employee using the email search field",
-            variant: "destructive"
-          });
-          console.error("Could not find employee ID in any available source");
-          return;
-        }
-      }
-      
-      // STEP 4: Type conversion - ensure employee ID is a number
-      if (typeof employeeIdValue !== 'number') {
-        const employeeIdNum = Number(employeeIdValue);
-        if (!isNaN(employeeIdNum)) {
-          employeeIdValue = employeeIdNum;
-          console.log("Converted employee ID to number:", employeeIdValue);
-        } else {
-          console.error("Invalid employee ID format:", employeeIdValue);
-          toast({
-            title: "Invalid employee ID format",
-            description: "Please search for a valid employee using the email search field",
-            variant: "destructive"
-          });
-          return;
-        }
-      }
-      
-      // STEP 5: Safely access location properties with null checks
-      const pickupLocation = data.pickupLocation ? {
-        address: data.pickupLocation.address || "",
-        coordinates: {
-          lat: Number(data.pickupLocation.coordinates?.lat || 0),
-          lng: Number(data.pickupLocation.coordinates?.lng || 0)
-        },
-        // Include UAE-specific fields if available
-        ...(data.pickupLocation.district && { district: data.pickupLocation.district }),
-        ...(data.pickupLocation.city && { city: data.pickupLocation.city }),
-        ...(data.pickupLocation.area && { area: data.pickupLocation.area }),
-        ...(data.pickupLocation.place_id && { place_id: data.pickupLocation.place_id }),
-        ...(data.pickupLocation.name && { name: data.pickupLocation.name })
-      } : null;
-      
-      const dropoffLocation = data.dropoffLocation ? {
-        address: data.dropoffLocation.address || "",
-        coordinates: {
-          lat: Number(data.dropoffLocation.coordinates?.lat || 0),
-          lng: Number(data.dropoffLocation.coordinates?.lng || 0)
-        },
-        // Include UAE-specific fields if available
-        ...(data.dropoffLocation.district && { district: data.dropoffLocation.district }),
-        ...(data.dropoffLocation.city && { city: data.dropoffLocation.city }),
-        ...(data.dropoffLocation.area && { area: data.dropoffLocation.area }),
-        ...(data.dropoffLocation.place_id && { place_id: data.dropoffLocation.place_id }),
-        ...(data.dropoffLocation.name && { name: data.dropoffLocation.name })
-      } : null;
-      
-      if (!pickupLocation || !dropoffLocation) {
-        toast({
-          title: "Incomplete location data",
-          description: "Please ensure both pickup and dropoff locations are fully specified",
-          variant: "destructive"
-        });
-        return;
-      }
-      
-      // STEP 6: Normalize priority value - capitalize first letter, lowercase rest
-      // This ensures compatibility with the enum values in the schema (e.g., "Normal", "High", etc.)
-      let normalizedPriority = data.priority;
-      if (typeof normalizedPriority === 'string') {
-        normalizedPriority = normalizedPriority.charAt(0).toUpperCase() + normalizedPriority.slice(1).toLowerCase();
-        console.log("Normalized priority value:", normalizedPriority);
-      }
-      
-      // STEP 7: Construct the booking data with proper formatting
+      // STEP 6: Build the complete booking data object
       const bookingData = {
-        // Employee information - employee_id MUST be a number for DB compatibility
-        // Critical: Ensure employee ID is a valid number - database expects this!
-        employee_id: Number(employeeIdValue),
+        // Employee data (using database internal ID)
+        employee_id: employeeId,
         
-        // Explicitly include the employee ID as a string to help with matching
-        employee_code: selectedEmployee?.employee_id || String(employeeIdValue) || "",
-        
-        // Employee name for record-keeping
+        // Employee metadata for display
+        employee_code: selectedEmployee?.employee_id || "",
         employee_name: selectedEmployee?.employee_name || employee?.employeeName || "",
-
-        // Booking details - convert to snake_case for backend
-        booking_type: data.bookingType,
-        purpose: data.purpose,
-        priority: normalizedPriority,
-        pickup_location: pickupLocation,
-        dropoff_location: dropoffLocation,
+        
+        // Location data
+        pickup_location: formattedPickupLocation,
+        dropoff_location: formattedDropoffLocation,
         waypoints: formattedWaypoints,
         
-        // Time fields - ensure proper ISO format
-        pickup_time: new Date(data.pickupTime).toISOString(),
-        dropoff_time: new Date(data.dropoffTime).toISOString(),
+        // Time data (ensure ISO format)
+        pickup_time: new Date(formData.pickupTime).toISOString(),
+        dropoff_time: new Date(formData.dropoffTime).toISOString(),
         
-        // Optional fields
-        remarks: data.remarks || "",
+        // Basic booking details
+        booking_type: formData.bookingType,
+        purpose: formData.purpose,
+        priority: normalizedPriority,
+        remarks: formData.remarks || "",
         
-        // Booking type specific fields - ensure all are properly typed
-        ...(data.bookingType === "freight" ? {
-          cargo_type: data.cargoType,
-          num_boxes: Number(data.numBoxes || 0),
-          weight: Number(data.weight || 0),
-          box_size: data.boxSize || "medium" // Default to medium if not specified
+        // Type-specific fields
+        ...(formData.bookingType === "freight" ? {
+          cargo_type: formData.cargoType,
+          num_boxes: Number(formData.numBoxes || 0),
+          weight: Number(formData.weight || 0),
+          box_size: formData.boxSize || "medium"
         } : {}),
         
-        ...(data.bookingType === "passenger" ? {
-          trip_type: data.tripType || "one_way",
-          num_passengers: Number(data.numPassengers || 1),
-          with_driver: Boolean(data.withDriver),
-          booking_for_self: Boolean(data.bookingForSelf),
-          passenger_details: Array.isArray(data.passengerDetails) ? data.passengerDetails : []
+        ...(formData.bookingType === "passenger" ? {
+          trip_type: formData.tripType || "one_way",
+          num_passengers: Number(formData.numPassengers || 1),
+          with_driver: Boolean(formData.withDriver),
+          booking_for_self: Boolean(formData.bookingForSelf),
+          passenger_details: Array.isArray(formData.passengerDetails) ? formData.passengerDetails : []
         } : {})
       };
       
       // Close the preview modal
       setShowBookingPreview(false);
       
-      // STEP 8: Enhanced logging before submission
-      console.log("%c FINAL BOOKING DATA TO SUBMIT:", "background: #ff9800; color: white; padding: 2px 4px; border-radius: 2px;");
-      console.log("Employee ID:", bookingData.employee_id, "(type:", typeof bookingData.employee_id, ")");
-      console.log("Booking Type:", bookingData.booking_type);
-      console.log("Priority:", bookingData.priority, "(type:", typeof bookingData.priority, ")");
+      // Log the data being submitted
+      console.log("%c SUBMITTING BOOKING DATA:", "background: #ff9800; color: white; padding: 2px 4px; border-radius: 2px;");
+      console.log("Employee ID:", bookingData.employee_id);
       console.log("Full booking data:", JSON.stringify(bookingData, null, 2));
       
-      // Final validation - check employee_id is numeric and valid
-      if (isNaN(bookingData.employee_id) || !bookingData.employee_id) {
-        const error = new Error("Invalid employee ID format. Please select a valid employee.");
-        console.error("Employee ID validation failed:", error);
-        throw error;
-      }
-      
       // Submit the booking
-      console.log("%c SUBMITTING BOOKING DATA:", "background: #ff9800; color: white; padding: 2px 4px; border-radius: 2px;", JSON.stringify(bookingData, null, 2));
       const response = await createBookingMutation.mutateAsync(bookingData);
-      console.log("%c BOOKING CREATION RESPONSE:", "background: #4CAF50; color: white; padding: 2px 4px; border-radius: 2px;", response);
+      console.log("Booking created successfully:", response);
       
-      // Show success message with booking information
+      // Show success message
       toast({
         title: "Booking created successfully",
-        description: `Reference No: ${response.reference_no || response.referenceNo || "Generated"}`,
+        description: `Reference No: ${response.reference_no || "Generated"}`,
       });
       
       // Reset form and show success dialog
-      setCreatedReferenceNo(response.reference_no || response.referenceNo || "Unknown");
+      setCreatedReferenceNo(response.reference_no || "Unknown");
       setShowSuccessDialog(true);
       
     } catch (error: any) {
