@@ -375,9 +375,21 @@ export function BookingForm() {
           description: "Please wait while we process your booking request...",
         });
         
-        console.log("Sending API request to /api/bookings...");
+        console.log("Sending API request to /api/bookings with data:", JSON.stringify(data, null, 2));
         const response = await apiRequest("POST", "/api/bookings", data);
         console.log("%c Booking API response status:", "font-weight: bold;", response.status, response.statusText);
+        
+        // Enhanced error logging
+        if (!response.ok) {
+          try {
+            const errorResponse = await response.clone().json();
+            console.error("BOOKING API ERROR DETAILS:", JSON.stringify(errorResponse, null, 2));
+          } catch (e) {
+            console.error("Could not parse error response as JSON:", e);
+            const textResponse = await response.clone().text();
+            console.error("Raw error response:", textResponse);
+          }
+        }
         
         if (!response.ok) {
           let errorMessage = `Failed to create booking: ${response.status} ${response.statusText}`;

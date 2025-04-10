@@ -726,12 +726,12 @@ export const bookingsRelations = relations(bookings, ({ one }) => ({
 export const insertBookingSchema = createInsertSchema(bookings)
   .extend({
     booking_type: z.enum([BookingType.FREIGHT, BookingType.PASSENGER, BookingType.AMBULANCE]),
-    purpose: z.enum(Object.values(BookingPurpose) as [string, ...string[]]),
-    priority: z.enum(Object.values(Priority) as [string, ...string[]]),
-    trip_type: z.enum(Object.values(TripType) as [string, ...string[]]).optional(),
+    purpose: z.string(), // Changed from enum for more flexibility
+    priority: z.string(), // Changed from enum for more flexibility
+    trip_type: z.string().optional(), // Changed from enum for more flexibility
     status: z.enum(["new", "pending", "approved", "confirmed", "in_progress", "completed", "cancelled"] as [string, ...string[]]).optional(),
-    cargo_type: z.enum(Object.values(CargoType) as [string, ...string[]]).optional(),
-    box_size: z.array(z.enum(Object.values(BoxSize) as [string, ...string[]])).optional(),
+    cargo_type: z.string().optional(), // Changed from enum for more flexibility
+    box_size: z.array(z.string()).optional(), // Changed from enum for more flexibility
 
     // Make location objects more flexible and nullable
     pickup_location: z.object({
