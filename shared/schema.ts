@@ -170,6 +170,11 @@ export const BoxSize = {
 export const TripType = {
   ONE_WAY: "one-way",
   ROUND_TRIP: "round-trip",
+  HOSPITAL_VISIT: "Hospital Visit",
+  ON_CALL: "On Call",
+  PATIENT: "Patient Pick Up/Drop Off",
+  MAINTENANCE: "Maintenance",
+  VIP_TRANSFER: "VIP Transfer",
 } as const;
 
 export const Priority = {
