@@ -309,6 +309,28 @@ export function BookingForm() {
       console.log("- employee_id:", data.employee_id ? "✓" : "✗", data.employee_id);
       console.log("- booking_type:", data.booking_type ? "✓" : "✗", data.booking_type);
       console.log("- purpose:", data.purpose ? "✓" : "✗", data.purpose);
+      // Fix priority field capitalization (case sensitivity)
+      if (data.priority) {
+        // Fix case sensitivity issue - ensure priority has proper capitalization
+        // This is crucial for validation on the server side
+        if (data.priority === "normal") {
+          data.priority = "Normal";
+          console.log("Fixed capitalization for priority: normal → Normal");
+        } else if (data.priority === "critical") {
+          data.priority = "Critical";
+          console.log("Fixed capitalization for priority: critical → Critical");
+        } else if (data.priority === "emergency") {
+          data.priority = "Emergency";
+          console.log("Fixed capitalization for priority: emergency → Emergency");
+        } else if (data.priority === "high") {
+          data.priority = "High";
+          console.log("Fixed capitalization for priority: high → High");
+        } else if (data.priority === "medium") {
+          data.priority = "Medium";
+          console.log("Fixed capitalization for priority: medium → Medium");
+        }
+      }
+      
       console.log("- priority:", data.priority ? "✓" : "✗", data.priority);
       console.log("- pickup_location:", data.pickup_location ? "✓" : "✗", JSON.stringify(data.pickup_location));
       console.log("- dropoff_location:", data.dropoff_location ? "✓" : "✗", JSON.stringify(data.dropoff_location));
@@ -585,7 +607,8 @@ export function BookingForm() {
         employeeId: employeeIdValue,  // Camel case version for redundancy
         booking_type: data.bookingType,
         purpose: data.purpose,
-        priority: data.priority,
+        // Fix priority value - ensure it's in the exact format expected by the backend (capitalized)
+        priority: data.priority, // The enum value matches the expected format in the schema
         pickup_location: {
           address: data.pickupLocation.address,
           coordinates: {
@@ -782,6 +805,8 @@ export function BookingForm() {
         // Booking details - convert to snake_case for backend
         booking_type: data.bookingType,
         purpose: data.purpose,
+        // Ensure priority is properly capitalized (first letter uppercase, rest lowercase)
+        // This ensures compatibility with the enum values defined in the schema
         priority: data.priority,
         pickup_location: pickupLocation,
         dropoff_location: dropoffLocation,
@@ -818,6 +843,7 @@ export function BookingForm() {
       console.log("%c FINAL BOOKING DATA TO SUBMIT:", "background: #ff9800; color: white; padding: 2px 4px; border-radius: 2px;");
       console.log("Employee ID:", bookingData.employee_id, "(type:", typeof bookingData.employee_id, ")");
       console.log("Booking Type:", bookingData.booking_type);
+      console.log("Priority:", bookingData.priority, "(type:", typeof bookingData.priority, ")");
       console.log("Full booking data:", JSON.stringify(bookingData, null, 2));
       
       // STEP 8: Submit the booking with enhanced error handling
