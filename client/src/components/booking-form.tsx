@@ -773,23 +773,23 @@ export function BookingForm() {
         purpose: formData.purpose || "general",
         priority: formData.priority || "Normal",
         
-        // Location data - ensure it matches the database schema: { address: string, coordinates: { lat: number, lng: number }}
+        // Location data - ensure it has the exact format expected by the schema
         pickup_location: {
-          address: formData.pickupLocation.address,
+          address: String(formData.pickupLocation.address || ''),
           coordinates: {
-            lat: Number(formData.pickupLocation.coordinates.lat),
-            lng: Number(formData.pickupLocation.coordinates.lng)
+            lat: parseFloat(formData.pickupLocation.coordinates?.lat || 0),
+            lng: parseFloat(formData.pickupLocation.coordinates?.lng || 0)
           }
         },
         dropoff_location: {
-          address: formData.dropoffLocation.address,
+          address: String(formData.dropoffLocation.address || ''),
           coordinates: {
-            lat: Number(formData.dropoffLocation.coordinates.lat),
-            lng: Number(formData.dropoffLocation.coordinates.lng)
+            lat: parseFloat(formData.dropoffLocation.coordinates?.lat || 0),
+            lng: parseFloat(formData.dropoffLocation.coordinates?.lng || 0)
           }
         },
         
-        // IMPORTANT: Ensure time data is formatted as strings per the database schema
+        // Format times explicitly as strings per database schema definition
         pickup_time: new Date(formData.pickupTime).toISOString(),
         dropoff_time: new Date(formData.dropoffTime).toISOString(),
         
@@ -799,33 +799,40 @@ export function BookingForm() {
         // Type-specific fields with proper conversions
         ...(formData.bookingType === "freight" ? {
           cargo_type: formData.cargoType || "general",
-          num_boxes: Number(formData.numBoxes || 1),
-          weight: Number(formData.weight || 0),
-          box_size: [formData.boxSize || "medium"] // Convert to array as per schema
+          num_boxes: parseInt(formData.numBoxes || "1", 10),
+          weight: parseInt(formData.weight || "0", 10),
+          // Ensure box_size is always an array as required by schema
+          box_size: Array.isArray(formData.boxSize) ? formData.boxSize : [formData.boxSize || "medium"]
         } : {}),
         
         ...(formData.bookingType === "passenger" ? {
           trip_type: formData.tripType || "one_way",
-          num_passengers: Number(formData.numPassengers || 1),
-          with_driver: Boolean(formData.withDriver),
-          booking_for_self: Boolean(formData.bookingForSelf),
-          // Ensure passenger_details follows the expected format
-          passenger_details: formData.passengerDetails ? formData.passengerDetails.map(p => ({
-            name: p.name,
-            contact: p.contact
-          })) : []
+          num_passengers: parseInt(formData.numPassengers || "1", 10),
+          with_driver: formData.withDriver === true,
+          booking_for_self: formData.bookingForSelf === true,
+          // Ensure passenger_details is always an array of the expected format
+          passenger_details: Array.isArray(formData.passengerDetails) 
+            ? formData.passengerDetails.map(p => ({
+                name: String(p.name || ''),
+                contact: String(p.contact || '')
+              })) 
+            : []
         } : {})
       };
       
       // Add waypoints if any
       if (waypoints.length > 0) {
-        bookingData.waypoints = waypoints.map(wp => ({
-          address: wp.address,
+        // Ensure waypoints have the correct format expected by the schema
+        const formattedWaypoints = waypoints.map(wp => ({
+          address: String(wp.address || ''),
           coordinates: {
-            lat: Number(wp.coordinates.lat),
-            lng: Number(wp.coordinates.lng)
+            lat: parseFloat(String(wp.coordinates?.lat || 0)),
+            lng: parseFloat(String(wp.coordinates?.lng || 0))
           }
         }));
+        
+        // Add to booking data
+        bookingData.waypoints = formattedWaypoints;
       }
       
       console.log("Submitting booking data:", JSON.stringify(bookingData, null, 2));
