@@ -174,8 +174,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
     // Handle /api/auth/login for backward compatibility
     app.post("/api/auth/login", async (req, res) => {
       try {
-        const { userName, password } = req.body;
-        console.log('Login attempt initiated for:', userName);
+        // Support both userName and emailId field names
+        const emailValue = req.body.emailId || req.body.userName || req.body.email;
+        const password = req.body.password;
+        console.log('Login attempt initiated for:', emailValue);
 
         // Input validation
         if (!userName || !password) {
@@ -218,7 +220,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         await storage.updateUserLastLogin(user.id);
 
         // Send response
-        console.log('Login successful for:', userName);
+        console.log('Login successful for:', user.email_id);
         const { password: _, ...userData } = user;
         res.json({
           token,
@@ -284,7 +286,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         await storage.updateUserLastLogin(user.id);
 
         // Send response
-        console.log('Login successful for:', userName);
+        console.log('Login successful for:', emailValue);
         const { password: _, ...userData } = user;
         res.json({
           token,
