@@ -416,7 +416,71 @@ export async function registerRoutes(app: Express): Promise<Server> {
         // For compatibility, ensure both snake_case and camelCase formats are available
         req.body.employeeId = formattedEmployeeId;
         
-        // STEP 2: Validate the booking data using Zod schema
+        // STEP 2: Format location data to ensure proper structure
+        console.log(`[BOOKING-${debugId}] Formatting location data for consistency`);
+        
+        // Format pickup_location
+        if (req.body.pickup_location) {
+          try {
+            // Ensure address is a string
+            if (req.body.pickup_location.address) {
+              req.body.pickup_location.address = String(req.body.pickup_location.address);
+            }
+            
+            // Ensure coordinates are properly formatted
+            if (req.body.pickup_location.coordinates) {
+              req.body.pickup_location.coordinates = {
+                lat: parseFloat(String(req.body.pickup_location.coordinates.lat || 0)),
+                lng: parseFloat(String(req.body.pickup_location.coordinates.lng || 0))
+              };
+            }
+            
+            console.log(`[BOOKING-${debugId}] Formatted pickup_location:`, JSON.stringify(req.body.pickup_location));
+          } catch (locationError) {
+            console.error(`[BOOKING-${debugId}] Error formatting pickup_location:`, locationError);
+          }
+        }
+        
+        // Format dropoff_location
+        if (req.body.dropoff_location) {
+          try {
+            // Ensure address is a string
+            if (req.body.dropoff_location.address) {
+              req.body.dropoff_location.address = String(req.body.dropoff_location.address);
+            }
+            
+            // Ensure coordinates are properly formatted
+            if (req.body.dropoff_location.coordinates) {
+              req.body.dropoff_location.coordinates = {
+                lat: parseFloat(String(req.body.dropoff_location.coordinates.lat || 0)),
+                lng: parseFloat(String(req.body.dropoff_location.coordinates.lng || 0))
+              };
+            }
+            
+            console.log(`[BOOKING-${debugId}] Formatted dropoff_location:`, JSON.stringify(req.body.dropoff_location));
+          } catch (locationError) {
+            console.error(`[BOOKING-${debugId}] Error formatting dropoff_location:`, locationError);
+          }
+        }
+        
+        // Format waypoints if present
+        if (req.body.waypoints && Array.isArray(req.body.waypoints)) {
+          try {
+            req.body.waypoints = req.body.waypoints.map((wp: any) => ({
+              address: String(wp?.address || ''),
+              coordinates: {
+                lat: parseFloat(String(wp?.coordinates?.lat || 0)),
+                lng: parseFloat(String(wp?.coordinates?.lng || 0))
+              }
+            }));
+            
+            console.log(`[BOOKING-${debugId}] Formatted ${req.body.waypoints.length} waypoints`);
+          } catch (waypointsError) {
+            console.error(`[BOOKING-${debugId}] Error formatting waypoints:`, waypointsError);
+          }
+        }
+        
+        // STEP 3: Validate the booking data using Zod schema
         console.log(`[BOOKING-${debugId}] Validating booking data with schema`);
         const result = insertBookingSchema.safeParse(req.body);
 
