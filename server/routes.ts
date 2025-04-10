@@ -341,6 +341,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
     });
 
     // Get all bookings
+    // Simple test endpoint to verify API connectivity
+    app.get("/api/bookings/test", (req, res) => {
+      console.log("Booking test endpoint called");
+      res.status(200).json({
+        message: "Booking API is working",
+        timestamp: new Date().toISOString(),
+        environment: {
+          nodeEnv: process.env.NODE_ENV || 'development',
+          dbConnected: !!pool && !!db
+        }
+      });
+    });
+    
     app.get("/api/bookings", async (_req, res) => {
       try {
         const bookings = await storage.getBookings();
