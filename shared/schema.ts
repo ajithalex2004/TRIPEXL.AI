@@ -645,7 +645,6 @@ export const locationsMaster = pgTable("locations_master", {
 
 export const bookings = pgTable("bookings", {
   id: serial("id").primaryKey(),
-  user_id: integer("user_id").references(() => users.id),
   employee_id: integer("employee_id").references(() => employees.id),
   booking_type: text("booking_type").notNull(),
   purpose: text("purpose").notNull(),
@@ -709,10 +708,6 @@ export const otpVerifications = pgTable("otp_verifications", {
 });
 
 export const bookingsRelations = relations(bookings, ({ one }) => ({
-  user: one(users, {
-    fields: [bookings.user_id],
-    references: [users.id],
-  }),
   vehicle: one(vehicles, {
     fields: [bookings.assigned_vehicle_id],
     references: [vehicles.id],
