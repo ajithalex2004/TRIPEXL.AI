@@ -947,6 +947,29 @@ export class DatabaseStorage implements IStorage {
         dbData.reference_no = `BK${Date.now()}${Math.floor(Math.random() * 1000)}`;
       }
       
+      // STEP 5: Extract coordinates from location objects for direct database storage
+      console.log(`[BOOKING-DB-${debugId}] Processing location coordinates...`);
+      
+      if (bookingData.pickup_location && bookingData.pickup_location.coordinates) {
+        // Extract pickup coordinates
+        dbData.pickup_latitude = bookingData.pickup_location.coordinates.lat;
+        dbData.pickup_longitude = bookingData.pickup_location.coordinates.lng;
+        console.log(`[BOOKING-DB-${debugId}] Extracted pickup coordinates: lat=${dbData.pickup_latitude}, lng=${dbData.pickup_longitude}`);
+      } else {
+        console.error(`[BOOKING-DB-${debugId}] ERROR: Missing pickup location coordinates`);
+        throw new Error("Pickup location coordinates are required");
+      }
+      
+      if (bookingData.dropoff_location && bookingData.dropoff_location.coordinates) {
+        // Extract dropoff coordinates
+        dbData.dropoff_latitude = bookingData.dropoff_location.coordinates.lat;
+        dbData.dropoff_longitude = bookingData.dropoff_location.coordinates.lng;
+        console.log(`[BOOKING-DB-${debugId}] Extracted dropoff coordinates: lat=${dbData.dropoff_latitude}, lng=${dbData.dropoff_longitude}`);
+      } else {
+        console.error(`[BOOKING-DB-${debugId}] ERROR: Missing dropoff location coordinates`);
+        throw new Error("Dropoff location coordinates are required");
+      }
+      
       // Final log of data before insert
       console.log("About to insert booking with data:", JSON.stringify(dbData, null, 2));
 
