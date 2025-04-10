@@ -1324,9 +1324,9 @@ export function BookingForm() {
                         onEmployeeFound={(employeeData) => {
                           console.log("Employee found via email search:", employeeData);
                           
-                          // First, use the internal database ID for the employee - this is the most reliable way
-                          // This is the ID field from the employees table, not the employee_id field which is a display value
-                          const employeeId = employeeData?.id;
+                          // Use the actual employee_id field, which is what the booking schema expects
+                          // NOT the internal database ID of the employee record
+                          const employeeId = employeeData?.employee_id;
                           
                           if (employeeId) {
                             // Always convert to number since database expects a numeric ID
