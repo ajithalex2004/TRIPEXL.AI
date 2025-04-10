@@ -918,7 +918,9 @@ INSERT INTO bookings (
 )
 RETURNING *;`;
         
-        logSqlQuery(insertSql, Object.values(dbData));
+        // Log the SQL query for debugging
+        console.log("SQL query for booking insert:", insertSql);
+        console.log("SQL params:", Object.values(dbData));
         
         // Perform the actual insert with enhanced logging and validation
         console.log("Executing INSERT operation with data:", JSON.stringify(dbData, null, 2));
@@ -944,7 +946,8 @@ RETURNING *;`;
         // Validate the result
         if (!result || result.length === 0) {
           const error = new Error("Database INSERT succeeded but returned no data");
-          logBookingDbOperation('create-booking-error-no-data', { error: error.message });
+          // Use undefined for sessionId since we don't have it, 'booking' for entity
+          console.log("Database INSERT succeeded but returned no data");
           throw error;
         }
         
@@ -952,7 +955,8 @@ RETURNING *;`;
         
         if (!booking || !booking.id) {
           const error = new Error("Invalid booking data returned from database");
-          logBookingDbOperation('create-booking-error-invalid-data', { error: error.message });
+          // Log error with proper console output
+          console.error("Invalid booking data returned from database");
           throw error;
         }
 
