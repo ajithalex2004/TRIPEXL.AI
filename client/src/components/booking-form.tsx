@@ -52,7 +52,7 @@ import { BookingConfirmationAnimation } from "@/components/booking-confirmation-
 import { Skeleton } from "@/components/ui/skeleton";
 import { EmployeeEmailSearch } from "@/components/employee-email-search";
 
-// Update the Location interface to match schema requirements
+// Update the Location interface to match schema requirements with UAE-specific properties
 export interface Location {
   address: string;
   coordinates: {
@@ -62,6 +62,11 @@ export interface Location {
   place_id?: string;
   name?: string;
   formatted_address?: string;
+  // UAE-specific location properties
+  district?: string;
+  city?: string;
+  area?: string;
+  place_types?: string[];
 }
 
 // Helper function to get minimum pickup time
@@ -1302,7 +1307,7 @@ export function BookingForm() {
                               <FormItem>
                                 <FormLabel>Pickup Location *</FormLabel>
                                 <FormControl>
-                                  <LocationInput
+                                  <UAELocationAutocomplete
                                     value={field.value?.address || ""}
                                     placeholder="Enter pickup location"
                                     onLocationSelect={(location) => {
@@ -1327,6 +1332,8 @@ export function BookingForm() {
                                       });
                                     }}
                                     inputId="pickup-location"
+                                    isPickup={true}
+                                    className="w-full"
                                   />
                                 </FormControl>
                                 <FormMessage />
@@ -1341,7 +1348,7 @@ export function BookingForm() {
                               <FormItem>
                                 <FormLabel>Dropoff Location *</FormLabel>
                                 <FormControl>
-                                  <LocationInput
+                                  <UAELocationAutocomplete
                                     value={field.value?.address || ""}
                                     placeholder="Enter dropoff location"
                                     onLocationSelect={(location) => {
@@ -1366,6 +1373,8 @@ export function BookingForm() {
                                       });
                                     }}
                                     inputId="dropoff-location"
+                                    isPickup={false}
+                                    className="w-full"
                                   />
                                 </FormControl>
                                 <FormMessage />

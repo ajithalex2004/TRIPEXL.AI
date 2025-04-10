@@ -50,6 +50,11 @@ export interface Location {
   place_id?: string;
   name?: string;
   formatted_address?: string;
+  // UAE-specific location properties
+  district?: string;
+  city?: string;
+  area?: string;
+  place_types?: string[];
 }
 
 export interface RouteInfo {
