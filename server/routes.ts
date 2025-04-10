@@ -22,6 +22,7 @@ import mastersRouter from "./routes/masters"; // Added import statement
 import { initializeFuelPriceService, updateFuelPrices, getFuelPriceHistory, triggerFuelPriceUpdate, runWamFuelPriceScraper } from "./services/fuel-price-service";
 import { performanceRouter } from "./routes/performance-snapshot";
 import fuelTypesRouter from "./routes/fuel-types";
+import userEmployeeRouter from "./routes/user-employee-router";
 
 // Configure multer for handling file uploads
 const upload = multer({
@@ -123,6 +124,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
     // Approval workflows routes are registered later with the /api prefix
 
     app.use(mastersRouter); // Added mastersRouter
+    
+    // Register user-employee mapping router
+    log("Registering user-employee mapping routes...");
+    app.use("/api/users", userEmployeeRouter);
+    log("User-employee mapping routes registered");
 
     // Auth routes
     log("Registering auth routes...");
