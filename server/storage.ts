@@ -8,7 +8,7 @@ import { type VehicleTypeMaster, type InsertVehicleTypeMaster, type FuelType, Ve
 import { type ApprovalWorkflow, type InsertApprovalWorkflow } from '@shared/schema';
 import { db } from "./db";
 import { eq, desc, and } from "drizzle-orm";
-import { logBookingDbOperation } from "./debug/booking-debug";
+import { logBookingRequest, logBookingError } from "./debug/booking-debug";
 import * as schema from "@shared/schema";
 import { sql } from 'drizzle-orm';
 
@@ -713,15 +713,12 @@ export class DatabaseStorage implements IStorage {
   async createBooking(bookingData: InsertBooking): Promise<Booking> {
     const debugId = Date.now().toString();
     try {
-      // Import debugging utilities
-      const { logBookingDbOperation, analyzeBookingData } = await import('./debug/booking-debug');
-      
       // Enhanced debugging
-      logBookingDbOperation(debugId, "Creating booking - Starting process");
+      console.log(`[BOOKING-DB-${debugId}] Creating booking - Starting process`);
       console.log(`[BOOKING-DB-${debugId}] Creating booking with data:`, JSON.stringify(bookingData, null, 2));
       
       // Run data analysis on incoming booking data
-      analyzeBookingData(debugId, bookingData);
+      console.log(`[BOOKING-DB-${debugId}] Analyzing booking data:`, JSON.stringify(bookingData, null, 2));
       
       // Convert camelCase properties to snake_case for database
       const dbData: any = { ...bookingData };
@@ -731,7 +728,7 @@ export class DatabaseStorage implements IStorage {
       dbData.updated_at = new Date();
       
       // STEP 2: Handle the employee ID - this is CRITICAL for proper foreign key reference
-      logBookingDbOperation(debugId, "Validating employee_id...");
+      console.log(`[BOOKING-DB-${debugId}] Validating employee_id...`);
       
       // Handle both camelCase (employeeId) and snake_case (employee_id) for backward compatibility
       let employeeIdValue = undefined;
@@ -739,12 +736,12 @@ export class DatabaseStorage implements IStorage {
       // First check employee_id (snake_case) which is the database field name
       if (bookingData.employee_id !== undefined && bookingData.employee_id !== null) {
         employeeIdValue = bookingData.employee_id;
-        logBookingDbOperation(debugId, `Found employee_id (snake_case): ${employeeIdValue} (type: ${typeof employeeIdValue})`);
+        console.log(`[BOOKING-DB-${debugId}] Found employee_id (snake_case): ${employeeIdValue} (type: ${typeof employeeIdValue})`);
       } 
       // Then check employeeId (camelCase) as fallback
       else if (bookingData.employeeId !== undefined && bookingData.employeeId !== null) {
         employeeIdValue = bookingData.employeeId;
-        logBookingDbOperation(debugId, `Found employeeId (camelCase): ${employeeIdValue} (type: ${typeof employeeIdValue})`);
+        console.log(`[BOOKING-DB-${debugId}] Found employeeId (camelCase): ${employeeIdValue} (type: ${typeof employeeIdValue})`);
       }
       
       // Ensure employee_id is a number
@@ -760,7 +757,7 @@ export class DatabaseStorage implements IStorage {
             throw new Error(`Invalid employee ID format: "${originalValue}" is not a valid number`);
           }
           
-          logBookingDbOperation(debugId, `Converted employee_id from "${originalValue}" to number: ${employeeIdValue}`);
+          console.log(`[BOOKING-DB-${debugId}] Converted employee_id from "${originalValue}" to number: ${employeeIdValue}`);
         }
         
         // Update dbData with the validated employee_id
@@ -791,12 +788,12 @@ export class DatabaseStorage implements IStorage {
             if (employeeByCode) {
               // Use the internal ID from the found employee
               dbData.employee_id = employeeByCode.id;
-              logBookingDbOperation(debugId, `Found employee by employee_id code: ${employeeByCode.employee_name} (ID: ${employeeByCode.id})`);
+              console.log(`[BOOKING-DB-${debugId}] Found employee by employee_id code: ${employeeByCode.employee_name} (ID: ${employeeByCode.id})`);
             } else {
               throw new Error(`Employee with ID ${employeeIdValue} not found in database`);
             }
           } else {
-            logBookingDbOperation(debugId, `Verified employee exists: ${employee.employee_name} (ID: ${employee.id})`);
+            console.log(`[BOOKING-DB-${debugId}] Verified employee exists: ${employee.employee_name} (ID: ${employee.id})`);
           }
         } catch (error) {
           console.error(`[BOOKING-DB-${debugId}] Error verifying employee:`, error);

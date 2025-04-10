@@ -4,7 +4,8 @@ import { storage } from "./storage";
 import { db } from "./db";
 import { schema } from "./db";
 import { log } from "./vite";
-import { logBookingDbOperation } from "./debug/booking-debug";
+// Import debug utils
+import { logBookingRequest, logBookingError } from "./debug/booking-debug";
 import vehicleGroupRouter from "./routes/vehicle-groups";
 import vehicleTypeMasterRouter from "./routes/vehicle-type-master";
 import { ecoRoutesRouter } from "./routes/eco-routes";
@@ -55,7 +56,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     app.get("/api/debug/booking", (req, res) => {
       try {
         // Trigger a test log message to verify the debug system
-        logBookingDbOperation('debug-api-check', { timestamp: new Date().toISOString() });
+        console.log('[DEBUG] API check:', { timestamp: new Date().toISOString() });
         
         // Get booking ID from query parameters if available
         const bookingId = req.query.id ? Number(req.query.id) : undefined;
@@ -79,9 +80,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
             .then(bookings => {
               const booking = bookings.find(b => b.id === bookingId);
               if (booking) {
-                logBookingDbOperation('debug-api-booking-found', booking);
+                console.log('[DEBUG] Booking found:', booking);
               } else {
-                logBookingDbOperation('debug-api-booking-not-found', { bookingId });
+                console.log('[DEBUG] Booking not found for ID:', bookingId);
               }
             })
             .catch(error => {
@@ -346,14 +347,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
     // Update the booking creation route
     app.post("/api/bookings", async (req, res) => {
       const debugId = Date.now().toString();
-      console.log(`[BOOKING-${debugId}] Received booking request:`, JSON.stringify(req.body, null, 2));
       
-      // Enhanced logging for booking creation
-      console.log(`[BOOKING-${debugId}] ===== BOOKING CREATION REQUEST - START =====`);
-      console.log(`[BOOKING-${debugId}] Request body keys:`, Object.keys(req.body));
-      console.log(`[BOOKING-${debugId}] employee_id value:`, req.body.employee_id, "Type:", typeof req.body.employee_id);
-      console.log(`[BOOKING-${debugId}] employeeId value:`, req.body.employeeId, "Type:", typeof req.body.employeeId);
-      console.log(`[BOOKING-${debugId}] booking_type:`, req.body.booking_type);
+      // Import the booking debug helper
+      const { logBookingRequest, logBookingError } = require('./debug/booking-debug');
+      
+      // Use our enhanced logging helper for detailed diagnostics
+      console.log(`[BOOKING-${debugId}] Received booking request`);
+      const validationSummary = logBookingRequest(req, debugId);
       
       // Log all required fields for detailed debugging
       console.log(`[BOOKING-${debugId}] Required fields check:
