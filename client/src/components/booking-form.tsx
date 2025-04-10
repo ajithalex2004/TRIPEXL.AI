@@ -544,6 +544,47 @@ export function BookingForm() {
         return;
       }
       
+      // Enhanced validation: check for coordinates in pickup location
+      if (!data.pickupLocation.coordinates || 
+          typeof data.pickupLocation.coordinates.lat !== 'number' || 
+          typeof data.pickupLocation.coordinates.lng !== 'number' ||
+          isNaN(data.pickupLocation.coordinates.lat) ||
+          isNaN(data.pickupLocation.coordinates.lng)) {
+        console.error("Invalid pickup location coordinates:", data.pickupLocation);
+        toast({
+          title: "Invalid pickup location",
+          description: "Please select a valid pickup location with the map",
+          variant: "destructive"
+        });
+        return;
+      }
+      
+      // Enhanced validation: check for coordinates in dropoff location
+      if (!data.dropoffLocation.coordinates || 
+          typeof data.dropoffLocation.coordinates.lat !== 'number' || 
+          typeof data.dropoffLocation.coordinates.lng !== 'number' ||
+          isNaN(data.dropoffLocation.coordinates.lat) ||
+          isNaN(data.dropoffLocation.coordinates.lng)) {
+        console.error("Invalid dropoff location coordinates:", data.dropoffLocation);
+        toast({
+          title: "Invalid dropoff location",
+          description: "Please select a valid dropoff location with the map",
+          variant: "destructive"
+        });
+        return;
+      }
+      
+      // Check for employee data
+      if (!employee?.id) {
+        console.error("No employee ID available - this will cause booking creation to fail");
+        toast({
+          title: "Missing Employee Information",
+          description: "Please select an employee by searching with their email ID first.",
+          variant: "destructive",
+        });
+        return;
+      }
+      
       // Prepare data for the confirmation preview
       const previewData = {
         bookingType: data.bookingType,
@@ -861,6 +902,29 @@ export function BookingForm() {
       
       console.log("Submitting booking data:", JSON.stringify(bookingData, null, 2));
       
+      // ENHANCED VALIDATION CHECKS
+      console.log("VALIDATION: Checking critical fields:");
+      console.log("- employee_id present:", bookingData.employee_id !== undefined && bookingData.employee_id !== null);
+      console.log("- employee_id type:", typeof bookingData.employee_id);
+      console.log("- employee_id value:", bookingData.employee_id);
+      console.log("- booking_type:", bookingData.booking_type);
+      console.log("- purpose:", bookingData.purpose);
+      console.log("- priority:", bookingData.priority);
+      console.log("- pickup_location present:", bookingData.pickup_location !== undefined);
+      console.log("- pickup_location has address:", bookingData.pickup_location?.address);
+      console.log("- pickup_location type:", typeof bookingData.pickup_location);
+      console.log("- pickup_location coordinates type:", typeof bookingData.pickup_location?.coordinates);
+      console.log("- pickup_location has coordinates:", 
+        bookingData.pickup_location?.coordinates?.lat !== undefined && 
+        bookingData.pickup_location?.coordinates?.lng !== undefined);
+      console.log("- dropoff_location present:", bookingData.dropoff_location !== undefined);
+      console.log("- dropoff_location has address:", bookingData.dropoff_location?.address);
+      console.log("- dropoff_location has coordinates:", 
+        bookingData.dropoff_location?.coordinates?.lat !== undefined && 
+        bookingData.dropoff_location?.coordinates?.lng !== undefined);
+      console.log("- pickup_time:", bookingData.pickup_time);
+      console.log("- dropoff_time:", bookingData.dropoff_time);
+      
       try {
         console.log("STEP 1: About to call createBookingMutation.mutateAsync with data:", JSON.stringify(bookingData, null, 2));
         
@@ -869,6 +933,7 @@ export function BookingForm() {
         
         try {
           // First, make a direct fetch to see if we have API connectivity
+          console.log("Making direct API call to /api/bookings...");
           const testResponse = await fetch('/api/bookings', {
             method: 'POST',
             headers: {
@@ -878,12 +943,32 @@ export function BookingForm() {
           });
           
           console.log("STEP 2: Direct fetch API response status:", testResponse.status);
+          
+          if (!testResponse.ok) {
+            console.error("API request failed with status:", testResponse.status);
+            const errorText = await testResponse.text();
+            console.error("Error response:", errorText);
+            
+            try {
+              const errorJson = JSON.parse(errorText);
+              console.error("Parsed error details:", errorJson);
+              throw new Error(errorJson.error || errorJson.message || "API request failed");
+            } catch (parseError) {
+              console.error("Could not parse error response as JSON:", parseError);
+              throw new Error(`API request failed with status ${testResponse.status}: ${errorText.substring(0, 100)}...`);
+            }
+          }
+          
           const testData = await testResponse.json();
           console.log("STEP 3: Direct fetch API response data:", testData);
           
-          // Now try the mutation
-          const response = await createBookingMutation.mutateAsync(bookingData);
-          console.log("STEP 4: Booking created successfully via mutation:", response);
+          if (testData.error) {
+            throw new Error(testData.error + (testData.details ? `: ${JSON.stringify(testData.details)}` : ''));
+          }
+          
+          // Successfully created booking via direct fetch, so we don't need to call the mutation
+          const response = testData;
+          console.log("STEP 4: Booking created successfully:", response);
           
           // Show success message
           toast({
