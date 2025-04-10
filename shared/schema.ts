@@ -295,7 +295,15 @@ export const locations = z.object({
   coordinates: z.object({
     lat: z.number(),
     lng: z.number()
-  })
+  }),
+  // Add optional fields to match the Location interface in the frontend
+  place_id: z.string().optional(),
+  name: z.string().optional(),
+  formatted_address: z.string().optional(),
+  district: z.string().optional(),
+  city: z.string().optional(),
+  area: z.string().optional(),
+  place_types: z.array(z.string()).optional()
 });
 
 export const timeWindow = z.object({
