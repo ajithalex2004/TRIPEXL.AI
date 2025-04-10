@@ -5,13 +5,15 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { GoogleMap, Marker, InfoWindow, Polyline } from "@react-google-maps/api";
 import { VehicleLoadingIndicator } from "@/components/ui/vehicle-loading-indicator";
 import { Button } from "@/components/ui/button";
-import { MapPin, Clock, Search, Locate, AlertCircle, CircleCheck, Info as InfoIcon, X, Mic } from "lucide-react";
+import { MapPin, Clock, Search, Locate, AlertCircle, CircleCheck, Info as InfoIcon, X, Mic, AlertTriangle } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Combobox } from "@/components/ui/combobox";
 import { calculateRoute, convertToGoogleMapsRoute, RouteWaypoint } from "@/lib/geoapify-route-service";
 import MapFallback from "@/components/map-fallback";
 // Import the useMapsApi hook
 import { useMapsApi } from "@/hooks/use-maps-api";
+// Import the route optimizer for traffic insights
+import { routeOptimizer } from "@/services/route-optimizer";
 
 // Import accessibility components
 import AccessibilityToggle from "@/components/accessibility/accessibility-toggle";
@@ -60,6 +62,13 @@ export interface Location {
 export interface RouteInfo {
   distance: string;
   duration: string;
+  trafficConditions?: {
+    congestionLevel: number;
+    averageSpeed: number;
+    trafficDelay?: number;
+  };
+  trafficAlerts?: string[];
+  weatherAlerts?: string[];
 }
 
 export interface RoutePreferences {
@@ -329,10 +338,46 @@ export const MapView: React.FC<MapViewProps> = ({
               `${durationInMinutes} mins` : 
               `${Math.floor(durationInMinutes / 60)} hr ${durationInMinutes % 60} mins`;
             
-            // Update route info
-            const routeInfoData = {
+            // Get traffic data from the routeOptimizer
+            let trafficData;
+            try {
+              // Try to get traffic conditions for this route
+              const optimizationResult = await routeOptimizer.getOptimizedRoute(
+                pickupLocation,
+                dropoffLocation,
+                waypoints,
+                {
+                  enableTraffic: true,
+                  avoidHighways: routePreferences.avoidHighways,
+                  avoidTolls: routePreferences.avoidTolls,
+                  optimizeWaypoints: routePreferences.optimizeWaypoints
+                }
+              );
+              
+              trafficData = {
+                trafficConditions: optimizationResult.trafficConditions,
+                trafficAlerts: optimizationResult.trafficAlerts,
+                weatherAlerts: optimizationResult.weatherAlerts
+              };
+              
+              console.log("Traffic data retrieved:", trafficData);
+            } catch (trafficError) {
+              console.error("Failed to get traffic data:", trafficError);
+              trafficData = {
+                trafficConditions: {
+                  congestionLevel: 100, // Default to no congestion
+                  averageSpeed: 60 // Default average speed in km/h
+                },
+                trafficAlerts: [],
+                weatherAlerts: []
+              };
+            }
+            
+            // Update route info with traffic data
+            const routeInfoData: RouteInfo = {
               distance: distanceText,
-              duration: durationText
+              duration: durationText,
+              ...trafficData
             };
             setRouteInfo(routeInfoData);
             setShowRouteInfo(true); // Reset visibility whenever a new route is calculated
