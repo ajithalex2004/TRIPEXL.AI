@@ -657,7 +657,13 @@ export function BookingForm() {
             lng: Number(data.dropoffLocation.coordinates.lng)
           }
         },
-        waypoints: formattedWaypoints,
+        waypoints: waypoints.map(wp => ({
+          address: wp.address,
+          coordinates: {
+            lat: Number(wp.coordinates.lat),
+            lng: Number(wp.coordinates.lng)
+          }
+        })),
         pickup_time: new Date(data.pickupTime).toISOString(),
         dropoff_time: new Date(data.dropoffTime).toISOString(),
         remarks: data.remarks || "",
