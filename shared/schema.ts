@@ -741,28 +741,52 @@ export const insertBookingSchema = createInsertSchema(bookings)
     cargo_type: z.string().optional(), // Changed from enum for more flexibility
     box_size: z.array(z.string()).optional(), // Changed from enum for more flexibility
 
-    // Make location objects more flexible and nullable
+    // Location objects must be provided for booking
     pickup_location: z.object({
       address: z.string(),
       coordinates: z.object({
         lat: z.number(),
         lng: z.number()
-      })
-    }).nullable(),
+      }),
+      // Optional additional location fields
+      place_id: z.string().optional(),
+      name: z.string().optional(),
+      formatted_address: z.string().optional(),
+      district: z.string().optional(),
+      city: z.string().optional(),
+      area: z.string().optional(),
+      place_types: z.array(z.string()).optional()
+    }),
     dropoff_location: z.object({
       address: z.string(),
       coordinates: z.object({
         lat: z.number(),
         lng: z.number()
-      })
-    }).nullable(),
+      }),
+      // Optional additional location fields
+      place_id: z.string().optional(),
+      name: z.string().optional(),
+      formatted_address: z.string().optional(),
+      district: z.string().optional(),
+      city: z.string().optional(),
+      area: z.string().optional(),
+      place_types: z.array(z.string()).optional()
+    }),
     waypoints: z.array(
       z.object({
         address: z.string(),
         coordinates: z.object({
           lat: z.number(),
           lng: z.number()
-        })
+        }),
+        // Optional additional location fields
+        place_id: z.string().optional(),
+        name: z.string().optional(),
+        formatted_address: z.string().optional(),
+        district: z.string().optional(),
+        city: z.string().optional(),
+        area: z.string().optional(),
+        place_types: z.array(z.string()).optional()
       })
     ).optional(),
 
