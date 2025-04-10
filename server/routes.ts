@@ -354,9 +354,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
     app.post("/api/bookings", async (req, res) => {
       const debugId = Date.now().toString();
       
-      // Import the booking debug helper
-      const { logBookingRequest, logBookingError } = require('./debug/booking-debug');
-      
       // Use our enhanced logging helper for detailed diagnostics
       console.log(`[BOOKING-${debugId}] Received booking request`);
       const validationSummary = logBookingRequest(req, debugId);
