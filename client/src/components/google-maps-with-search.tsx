@@ -45,7 +45,7 @@ const GoogleMapsWithSearch: React.FC<GoogleMapsWithSearchProps> = ({
   const [showInfoWindow, setShowInfoWindow] = useState(false);
   const [selectedLocation, setSelectedLocation] = useState<Location | null>(null);
   
-  // Load the Google Maps API
+  // Load the Google Maps API using the optimized loader
   useEffect(() => {
     // Use the environment variable for the API key
     const GOOGLE_MAPS_API_KEY = import.meta.env.VITE_GOOGLE_MAPS_KEY;
@@ -58,58 +58,38 @@ const GoogleMapsWithSearch: React.FC<GoogleMapsWithSearchProps> = ({
     }
     
     console.log("Google Maps API Key available:", GOOGLE_MAPS_API_KEY ? "Yes (key length: " + GOOGLE_MAPS_API_KEY.length + ")" : "No");
+    console.log("Using environment variable:", GOOGLE_MAPS_API_KEY ? "Yes" : "No");
     
     let isMounted = true;
     
-    const loadGoogleMaps = () => {
-      // Check if the API is already loaded
-      if (window.google && window.google.maps) {
-        if (isMounted) {
-          setIsLoading(false);
-          initializeMap();
-        }
-        return;
-      }
-      
-      // If not loaded, create a script tag
-      const script = document.createElement('script');
-      script.src = `https://maps.googleapis.com/maps/api/js?key=${GOOGLE_MAPS_API_KEY}&libraries=places&callback=initMap`;
-      script.async = true;
-      script.defer = true;
-      
-      // Setup the callback
-      window.initMap = () => {
-        if (isMounted) {
-          console.log("Google Maps API loaded via callback");
-          setIsLoading(false);
-          initializeMap();
-        }
-      };
-      
-      // Handle errors
-      script.onerror = () => {
-        if (isMounted) {
-          console.error("Failed to load Google Maps API");
-          setError("Failed to load Google Maps. Please check your internet connection.");
-          setIsLoading(false);
-        }
-      };
-      
-      // Append to document
-      document.head.appendChild(script);
-    };
+    // Check if the API is already loaded
+    if (window.google && window.google.maps) {
+      console.log("Google Maps already loaded in component - initializing map directly");
+      setIsLoading(false);
+      initializeMap();
+      return;
+    }
     
-    // Start loading the API
-    loadGoogleMaps();
+    // Use the optimized loader
+    loadGoogleMaps(GOOGLE_MAPS_API_KEY)
+      .then(() => {
+        if (isMounted) {
+          console.log("Google Maps API loaded successfully");
+          setIsLoading(false);
+          initializeMap();
+        }
+      })
+      .catch(err => {
+        console.error("Error loading Google Maps API:", err);
+        if (isMounted) {
+          setError("Failed to load maps. Please check your internet connection.");
+          setIsLoading(false);
+        }
+      });
     
     // Clean up
     return () => {
       isMounted = false;
-      // Clean up the global callback when component unmounts
-      if (window.initMap) {
-        // @ts-ignore
-        window.initMap = null;
-      }
     };
   }, []);
   
