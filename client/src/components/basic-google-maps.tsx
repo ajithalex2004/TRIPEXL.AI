@@ -43,8 +43,17 @@ const BasicGoogleMaps: React.FC<BasicGoogleMapsProps> = ({
   
   // Load the Google Maps API
   useEffect(() => {
-    // We'll use a direct API key for maximum reliability
-    const GOOGLE_MAPS_API_KEY = "AIzaSyBOyL-FXqHOHmqxteTw02lh9TkzdXJ_oaI";
+    // Use the environment variable for the API key
+    const GOOGLE_MAPS_API_KEY = import.meta.env.VITE_GOOGLE_MAPS_KEY;
+    
+    if (!GOOGLE_MAPS_API_KEY) {
+      console.error("Google Maps API key is missing from environment variables");
+      setError("Maps configuration error. Please contact support.");
+      setIsLoading(false);
+      return;
+    }
+    
+    console.log("Google Maps API Key available:", GOOGLE_MAPS_API_KEY ? "Yes (key length: " + GOOGLE_MAPS_API_KEY.length + ")" : "No");
     
     let isMounted = true;
     
@@ -359,7 +368,14 @@ const BasicGoogleMaps: React.FC<BasicGoogleMapsProps> = ({
   // Geocode an address using the Geocoding API
   const geocodeAddress = async (address: string) => {
     try {
-      const apiKey = "AIzaSyBOyL-FXqHOHmqxteTw02lh9TkzdXJ_oaI";
+      const apiKey = import.meta.env.VITE_GOOGLE_MAPS_KEY;
+      
+      if (!apiKey) {
+        console.error("Google Maps API key is missing from environment variables");
+        setError("Maps configuration error. Please contact support.");
+        return;
+      }
+      
       const response = await fetch(
         `https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(address)}&key=${apiKey}&region=ae`
       );
