@@ -896,13 +896,51 @@ RETURNING *;`;
         
         logSqlQuery(insertSql, Object.values(dbData));
         
-        // Perform the actual insert
-        const [booking] = await db
-          .insert(schema.bookings)
-          .values(dbData)
-          .returning();
+        // Perform the actual insert with enhanced logging and validation
+        console.log("Executing INSERT operation with data:", JSON.stringify(dbData, null, 2));
+        
+        let result;
+        try {
+          result = await db
+            .insert(schema.bookings)
+            .values(dbData)
+            .returning();
+            
+          console.log("INSERT query completed successfully, result:", result);
+        } catch (insertError) {
+          console.error("ERROR during INSERT operation:", insertError);
+          if (insertError.code) {
+            console.error(`SQL error code: ${insertError.code}, detail: ${insertError.detail || "None"}`);
+          }
+          
+          // Rethrow with more specific information
+          throw new Error(`Database INSERT failed: ${insertError.message}`);
+        }
+        
+        // Validate the result
+        if (!result || result.length === 0) {
+          const error = new Error("Database INSERT succeeded but returned no data");
+          logBookingDbOperation('create-booking-error-no-data', { error: error.message });
+          throw error;
+        }
+        
+        const [booking] = result;
+        
+        if (!booking || !booking.id) {
+          const error = new Error("Invalid booking data returned from database");
+          logBookingDbOperation('create-booking-error-invalid-data', { error: error.message });
+          throw error;
+        }
 
-        console.log("Successfully created booking:", booking);
+        console.log("SUCCESS: Created booking with ID:", booking.id);
+        console.log("Booking details:", JSON.stringify({
+          id: booking.id,
+          reference_no: booking.reference_no,
+          employee_id: booking.employee_id,
+          status: booking.status,
+          booking_type: booking.booking_type
+        }, null, 2));
+        
         logBookingDbOperation('create-booking-success', booking);
         return booking;
       } catch (dbError) {
