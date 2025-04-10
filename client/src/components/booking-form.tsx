@@ -826,19 +826,41 @@ export function BookingForm() {
       console.log("Submitting booking data:", JSON.stringify(bookingData, null, 2));
       
       try {
-        // Submit the booking to the API
-        const response = await createBookingMutation.mutateAsync(bookingData);
-        console.log("Booking created successfully:", response);
+        console.log("STEP 1: About to call createBookingMutation.mutateAsync with data:", JSON.stringify(bookingData, null, 2));
         
-        // Show success message
-        toast({
-          title: "Booking created successfully",
-          description: `Reference No: ${response.reference_no || "Generated"}`,
-        });
+        // Submit the booking to the API with enhanced debugging
+        console.time('Booking API Call');
         
-        // Reset form and show success dialog
-        setCreatedReferenceNo(response.reference_no || "Unknown");
-        setShowSuccessDialog(true);
+        try {
+          // First, make a direct fetch to see if we have API connectivity
+          const testResponse = await fetch('/api/bookings', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(bookingData),
+          });
+          
+          console.log("STEP 2: Direct fetch API response status:", testResponse.status);
+          const testData = await testResponse.json();
+          console.log("STEP 3: Direct fetch API response data:", testData);
+          
+          // Now try the mutation
+          const response = await createBookingMutation.mutateAsync(bookingData);
+          console.log("STEP 4: Booking created successfully via mutation:", response);
+          
+          // Show success message
+          toast({
+            title: "Booking created successfully",
+            description: `Reference No: ${response.reference_no || "Generated"}`,
+          });
+          
+          // Reset form and show success dialog
+          setCreatedReferenceNo(response.reference_no || "Unknown");
+          setShowSuccessDialog(true);
+        } finally {
+          console.timeEnd('Booking API Call');
+        }
       } catch (apiError: any) {
         console.error("API Error in booking creation:", apiError);
         
