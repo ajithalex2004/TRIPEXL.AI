@@ -734,7 +734,7 @@ export function BookingForm() {
       
       const data = form.getValues();
       console.log("%c BOOKING CONFIRMATION - START", "background: #4CAF50; color: white; padding: 2px 4px; border-radius: 2px;");
-      console.log("Form data:", data);
+      console.log("Raw form data:", data);
       
       // STEP 1: Validate pickup/dropoff locations
       if (!data.pickupLocation || !data.dropoffLocation) {
