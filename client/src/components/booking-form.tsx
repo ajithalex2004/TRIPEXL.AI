@@ -51,6 +51,7 @@ import { format } from "date-fns";
 import { BookingConfirmationAnimation } from "@/components/booking-confirmation-animation";
 import { Skeleton } from "@/components/ui/skeleton";
 import { EmployeeEmailSearch } from "@/components/employee-email-search";
+import { BookingConfirmationPreview } from "@/components/booking-confirmation-preview";
 
 // Update the Location interface to match schema requirements with UAE-specific properties
 export interface Location {
@@ -115,6 +116,10 @@ export function BookingForm() {
   const [createdReferenceNo, setCreatedReferenceNo] = React.useState<string>("");
   const [, setLocation] = useLocation();
   const [activeTab, setActiveTab] = React.useState("booking");
+  
+  // Booking confirmation preview state
+  const [showBookingPreview, setShowBookingPreview] = React.useState(false);
+  const [bookingDataForPreview, setBookingDataForPreview] = React.useState<any>(null);
 
   // Employee data query with logging
   const { data: employee, isLoading: employeeLoading, error: employeeError } = useQuery({
@@ -400,6 +405,39 @@ export function BookingForm() {
         return;
       }
       
+      // Prepare data for the confirmation preview
+      const previewData = {
+        bookingType: data.bookingType,
+        purpose: data.purpose,
+        priority: data.priority,
+        pickupLocation: data.pickupLocation,
+        dropoffLocation: data.dropoffLocation,
+        pickupTime: data.pickupTime,
+        dropoffTime: data.dropoffTime,
+        employeeName: data.employeeName,
+        employeeId: data.employeeId || data.employee_id,
+        // Freight specific fields
+        cargoType: data.cargoType,
+        numBoxes: data.numBoxes,
+        weight: data.weight,
+        boxSize: data.boxSize,
+        // Passenger specific fields
+        tripType: data.tripType,
+        numPassengers: data.numPassengers,
+        passengerDetails: data.passengerDetails,
+        withDriver: data.withDriver,
+        // Common additional fields
+        remarks: data.remarks,
+        referenceNo: data.referenceNo
+      };
+      
+      // Show the booking confirmation preview
+      setBookingDataForPreview(previewData);
+      setShowBookingPreview(true);
+      
+      // The actual form submission will happen when the user confirms in the preview modal
+      return;
+      
       // Format waypoints data for API submission
       const formattedWaypoints = waypoints.map(wp => ({
         address: wp.address,
@@ -548,6 +586,104 @@ export function BookingForm() {
     form.reset();
     setActiveTab("history");
     setLocation("/booking-history");
+  };
+  
+  // Handle booking preview confirmation
+  const handleBookingConfirmation = async () => {
+    try {
+      if (!bookingDataForPreview) {
+        toast({
+          title: "Error",
+          description: "Booking data is missing. Please try again.",
+          variant: "destructive"
+        });
+        return;
+      }
+      
+      const data = form.getValues();
+      
+      // Format waypoints data for API submission
+      const formattedWaypoints = waypoints.map(wp => ({
+        address: wp.address,
+        coordinates: {
+          lat: Number(wp.coordinates.lat),
+          lng: Number(wp.coordinates.lng)
+        }
+      }));
+      
+      // Get the employee ID and ensure it's valid
+      let employeeIdValue = data.employee_id || data.employeeId;
+      
+      // Convert to number if it's a string
+      if (typeof employeeIdValue === 'string') {
+        const employeeIdNum = Number(employeeIdValue);
+        if (!isNaN(employeeIdNum)) {
+          employeeIdValue = employeeIdNum;
+        }
+      }
+      
+      // Use snake_case for all keys in the API request as required by the backend
+      const bookingData = {
+        employee_id: employeeIdValue, // Snake case version
+        employeeId: employeeIdValue,  // Camel case version for redundancy
+        booking_type: data.bookingType,
+        purpose: data.purpose,
+        priority: data.priority,
+        pickup_location: {
+          address: data.pickupLocation.address,
+          coordinates: {
+            lat: Number(data.pickupLocation.coordinates.lat),
+            lng: Number(data.pickupLocation.coordinates.lng)
+          },
+          // Include UAE-specific fields if available
+          ...(data.pickupLocation.district && { district: data.pickupLocation.district }),
+          ...(data.pickupLocation.city && { city: data.pickupLocation.city }),
+          ...(data.pickupLocation.area && { area: data.pickupLocation.area })
+        },
+        dropoff_location: {
+          address: data.dropoffLocation.address,
+          coordinates: {
+            lat: Number(data.dropoffLocation.coordinates.lat),
+            lng: Number(data.dropoffLocation.coordinates.lng)
+          },
+          // Include UAE-specific fields if available
+          ...(data.dropoffLocation.district && { district: data.dropoffLocation.district }),
+          ...(data.dropoffLocation.city && { city: data.dropoffLocation.city }),
+          ...(data.dropoffLocation.area && { area: data.dropoffLocation.area })
+        },
+        waypoints: formattedWaypoints,
+        pickup_time: new Date(data.pickupTime).toISOString(),
+        dropoff_time: new Date(data.dropoffTime).toISOString(),
+        remarks: data.remarks || "",
+        ...(data.bookingType === "freight" ? {
+          cargo_type: data.cargoType,
+          num_boxes: Number(data.numBoxes || 0),
+          weight: Number(data.weight || 0),
+          box_size: data.boxSize || []
+        } : {}),
+        ...(data.bookingType === "passenger" ? {
+          trip_type: data.tripType || "one_way",
+          num_passengers: Number(data.numPassengers || 1),
+          with_driver: Boolean(data.withDriver),
+          booking_for_self: Boolean(data.bookingForSelf),
+          passenger_details: data.passengerDetails || []
+        } : {})
+      };
+      
+      // Close the preview modal
+      setShowBookingPreview(false);
+      
+      // Submit the booking
+      await createBookingMutation.mutateAsync(bookingData);
+      
+    } catch (error: any) {
+      console.error("Booking confirmation error:", error);
+      toast({
+        title: "Error",
+        description: error.message || "Failed to create booking",
+        variant: "destructive",
+      });
+    }
   };
 
 
@@ -807,6 +943,16 @@ export function BookingForm() {
 
   return (
     <>
+      {/* Booking Confirmation Preview Modal */}
+      {bookingDataForPreview && (
+        <BookingConfirmationPreview
+          open={showBookingPreview}
+          onClose={() => setShowBookingPreview(false)}
+          onConfirm={handleBookingConfirmation}
+          bookingData={bookingDataForPreview}
+          isSubmitting={createBookingMutation.isPending}
+        />
+      )}
       <Card className="transform transition-all duration-200 hover:shadow-lg">
         <CardHeader>
           <motion.h2
