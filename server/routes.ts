@@ -180,15 +180,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
         console.log('Login attempt initiated for:', emailValue);
 
         // Input validation
-        if (!userName || !password) {
+        if (!emailValue || !password) {
           return res.status(400).json({
-            error: "Username and password are required"
+            error: "Email/username and password are required"
           });
         }
 
         // Find user - try by username or email
-        const user = await storage.findUserByEmail(userName) || 
-                    await storage.getUserByUserName(userName);
+        const user = await storage.findUserByEmail(emailValue) || 
+                    await storage.getUserByUserName(emailValue);
                     
         if (!user) {
           return res.status(401).json({
@@ -236,6 +236,39 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
     });
     
+    // Get current user information from auth token
+    app.get("/api/auth/user", async (req, res) => {
+      const authHeader = req.headers.authorization;
+      if (!authHeader) {
+        return res.status(401).json({ error: "Authorization header missing" });
+      }
+
+      const token = authHeader.split(" ")[1];
+      if (!token) {
+        return res.status(401).json({ error: "Invalid authorization header format" });
+      }
+
+      try {
+        // Verify the token
+        const decoded = jwt.verify(token, process.env.JWT_SECRET || 'dev-secret-key') as { userId: number, email: string };
+        
+        // Get user information
+        const user = await storage.getUser(decoded.userId);
+        if (!user) {
+          return res.status(404).json({ error: "User not found" });
+        }
+        
+        // Remove sensitive information
+        const { password, ...userInfo } = user;
+        
+        // Return user data
+        res.json(userInfo);
+      } catch (error) {
+        console.error("Error verifying token:", error);
+        return res.status(401).json({ error: "Invalid or expired token" });
+      }
+    });
+
     // Original login endpoint
     app.post("/api/login", async (req, res) => {
       try {
