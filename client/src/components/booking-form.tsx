@@ -832,6 +832,10 @@ export function BookingForm() {
           ...(formData.pickupLocation.area && { area: String(formData.pickupLocation.area) }),
           ...(formData.pickupLocation.place_types && { place_types: formData.pickupLocation.place_types })
         },
+        // Add explicit latitude and longitude values for database direct storage
+        pickup_latitude: parseFloat(String(formData.pickupLocation.coordinates?.lat || 0)),
+        pickup_longitude: parseFloat(String(formData.pickupLocation.coordinates?.lng || 0)),
+        
         dropoff_location: {
           address: String(formData.dropoffLocation.address || ''),
           coordinates: {
@@ -847,6 +851,9 @@ export function BookingForm() {
           ...(formData.dropoffLocation.area && { area: String(formData.dropoffLocation.area) }),
           ...(formData.dropoffLocation.place_types && { place_types: formData.dropoffLocation.place_types })
         },
+        // Add explicit latitude and longitude values for database direct storage
+        dropoff_latitude: parseFloat(String(formData.dropoffLocation.coordinates?.lat || 0)),
+        dropoff_longitude: parseFloat(String(formData.dropoffLocation.coordinates?.lng || 0)),
         
         // Format times explicitly as strings per database schema definition
         pickup_time: new Date(formData.pickupTime).toISOString(),
