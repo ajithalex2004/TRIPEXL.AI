@@ -4,6 +4,7 @@ import { LoadingIndicator } from '@/components/ui/loading-indicator';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { MapPin, Navigation, Search } from 'lucide-react';
+import { loadGoogleMaps } from '@/lib/google-maps-loader';
 
 // Location interface
 export interface Location {
