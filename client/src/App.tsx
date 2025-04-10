@@ -37,7 +37,7 @@ const queryClient = new QueryClient({
 
 function ProtectedRoute({ component: Component }: { component: React.ComponentType }) {
   const [, setLocation] = useLocation();
-  const token = localStorage.getItem("token");
+  const token = localStorage.getItem("auth_token");
 
   React.useEffect(() => {
     if (!token) {

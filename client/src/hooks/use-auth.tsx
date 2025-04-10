@@ -19,7 +19,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     queryKey: ["/api/auth/user"],
     queryFn: async () => {
       try {
-        const token = localStorage.getItem("token");
+        const token = localStorage.getItem("auth_token");
         if (!token) return null;
 
         const res = await fetch("/api/auth/user", {
@@ -43,7 +43,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const logout = async () => {
     try {
       // Clear token from local storage
-      localStorage.removeItem("token");
+      localStorage.removeItem("auth_token");
       
       // Invalidate the auth query to trigger a refetch
       queryClient.invalidateQueries({ queryKey: ["/api/auth/user"] });
