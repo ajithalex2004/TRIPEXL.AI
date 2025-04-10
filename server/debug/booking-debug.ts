@@ -176,30 +176,22 @@ export function bookingDebugMiddleware(req: Request, res: Response, next: NextFu
 
 // Utility function to log database operations related to bookings
 export function logBookingDbOperation(
-  sessionId: string,
-  operationType: string,
-  entity: string,
-  data: any,
-  result?: any,
-  error?: any
+  operation: string,
+  data: any
 ) {
-  if (!sessionId) return;
-
-  if (error) {
-    bookingDebugManager.logError(
-      sessionId,
-      `Database error during ${operationType} of ${entity}`,
-      error
-    );
-    return;
-  }
-
+  // Create a UUID-based session ID for this standalone log
+  const sessionId = bookingDebugManager.createSession();
+  
+  // For backward compatibility, log through console
+  console.log(`DB Operation [${operation}]:`, JSON.stringify(data, null, 2));
+  
+  // Also log to the debug manager
   bookingDebugManager.logDebug(
     sessionId,
-    `Database ${operationType} - ${entity}`,
-    {
-      input: data,
-      result: result
-    }
+    `Database operation: ${operation}`,
+    data
   );
+  
+  // Complete the session
+  bookingDebugManager.completeSession(sessionId, true);
 }

@@ -969,17 +969,18 @@ RETURNING *;`;
           booking_type: booking.booking_type
         }, null, 2));
         
-        logBookingDbOperation('create-booking-success', booking);
+        // Success - booking created successfully
+        console.log("Booking created successfully:", booking.id);
         return booking;
       } catch (dbError) {
         console.error("Database error creating booking:", dbError);
-        logBookingDbOperation('create-booking-error-database', { 
+        console.error("Database operation failed:", { 
           error: dbError instanceof Error ? dbError.message : String(dbError),
           dbData 
         });
         
         // Check if this is a constraint violation and provide more details
-        if (dbError.message && dbError.message.includes('violates foreign key constraint')) {
+        if (dbError instanceof Error && dbError.message && dbError.message.includes('violates foreign key constraint')) {
           if (dbError.message.includes('employee_id')) {
             throw new Error(`The employee ID ${dbData.employee_id} does not exist in the database. Please select a valid employee.`);
           }
@@ -990,7 +991,7 @@ RETURNING *;`;
       }
     } catch (error) {
       console.error("Error creating booking:", error);
-      logBookingDbOperation('create-booking-error-general', { 
+      console.error("General booking error:", { 
         error: error instanceof Error ? error.message : String(error) 
       });
       throw new Error(error instanceof Error ? error.message : "Failed to create booking");
