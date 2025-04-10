@@ -432,45 +432,58 @@ export async function registerRoutes(app: Express): Promise<Server> {
         try {
           console.log(`[BOOKING-${debugId}] Verifying employee ID ${result.data.employee_id} exists in database`);
           
-          // Look up by employee_id string field first (the employee_id field)
-          const employeeIdStr = String(result.data.employee_id);
-          console.log(`[BOOKING-${debugId}] Searching for employee with employee_id:`, employeeIdStr);
+          // CRITICAL FIX: For PostgreSQL, ensure we have a numeric value for DB lookup
+          const employeeId = typeof result.data.employee_id === 'string' 
+            ? parseInt(result.data.employee_id) 
+            : result.data.employee_id;
+            
+          console.log(`[BOOKING-${debugId}] Using employeeId (number):`, employeeId, typeof employeeId);
           
-          const employeeByEmployeeId = await db
+          // First try lookup by internal database ID (the primary key)
+          const employeeByInternalId = await db
             .select()
             .from(schema.employees)
-            .where(eq(schema.employees.employee_id, employeeIdStr))
+            .where(eq(schema.employees.id, employeeId))
             .limit(1);
+          
+          if (employeeByInternalId.length > 0) {
+            console.log(`[BOOKING-${debugId}] Employee found by internal id:`, employeeByInternalId[0].employee_name);
             
-          if (employeeByEmployeeId.length > 0) {
-            console.log(`[BOOKING-${debugId}] Employee found by employee_id:`, employeeByEmployeeId[0].employee_name);
-            
-            // Update the employeeId to use the internal ID for database relations
-            // Store the internal ID as employee_id (snake_case) for DB compatibility
-            result.data.employee_id = employeeByEmployeeId[0].id;
-            console.log(`[BOOKING-${debugId}] Updated employee_id to internal ID:`, result.data.employee_id);
+            // Already using internal ID, just ensure type is correct
+            result.data.employee_id = employeeByInternalId[0].id;
+            console.log(`[BOOKING-${debugId}] Using internal ID for DB relations:`, result.data.employee_id);
           } else {
-            // Fallback: try looking up by internal id
-            console.log(`[BOOKING-${debugId}] Employee not found by employee_id, trying internal id`);
+            // Try looking up by employee_id field (the "display ID" shown to users)
+            console.log(`[BOOKING-${debugId}] Employee not found by internal ID, trying employee_id field`);
             
-            const employee = await db
+            // Convert to string for this lookup since employee_id is stored as string in DB
+            const employeeIdStr = String(result.data.employee_id);
+            console.log(`[BOOKING-${debugId}] Looking up with employee_id string:`, employeeIdStr);
+            
+            const employeeByDisplayId = await db
               .select()
-              .from(schema.employees)
-              .where(eq(schema.employees.id, result.data.employee_id))
+              .from(schema.employees) 
+              .where(eq(schema.employees.employee_id, employeeIdStr))
               .limit(1);
               
-            if (employee.length === 0) {
-              console.error(`[BOOKING-${debugId}] Employee ID ${result.data.employee_id} not found in database`);
+            if (employeeByDisplayId.length === 0) {
+              console.error(`[BOOKING-${debugId}] No employee found with either ID ${result.data.employee_id}`);
               return res.status(400).json({
                 error: "Invalid employee ID",
                 details: `Employee with ID ${result.data.employee_id} does not exist in the system`
               });
             }
             
-            // Store the internal ID as employee_id (snake_case) for DB compatibility
-            result.data.employee_id = employee[0].id;
-            console.log(`[BOOKING-${debugId}] Employee verified by internal id:`, employee[0].employee_name);
-            console.log(`[BOOKING-${debugId}] Updated employee_id to internal ID:`, result.data.employee_id);
+            // Use the internal ID for database relations
+            result.data.employee_id = employeeByDisplayId[0].id;
+            console.log(`[BOOKING-${debugId}] Employee found by display ID:`, employeeByDisplayId[0].employee_name);
+            console.log(`[BOOKING-${debugId}] Using internal ID for DB relations:`, result.data.employee_id);
+          }
+          
+          // Final validation to ensure we have a number value
+          if (typeof result.data.employee_id !== 'number') {
+            result.data.employee_id = Number(result.data.employee_id);
+            console.log(`[BOOKING-${debugId}] Converted employee_id to number:`, result.data.employee_id);
           }
         } catch (employeeCheckError) {
           console.error(`[BOOKING-${debugId}] Error checking employee:`, employeeCheckError);
