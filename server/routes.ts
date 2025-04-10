@@ -348,11 +348,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const debugId = Date.now().toString();
       console.log(`[BOOKING-${debugId}] Received booking request:`, JSON.stringify(req.body, null, 2));
       
-      // Log the exact shape of the request body
+      // Enhanced logging for booking creation
+      console.log(`[BOOKING-${debugId}] ===== BOOKING CREATION REQUEST - START =====`);
       console.log(`[BOOKING-${debugId}] Request body keys:`, Object.keys(req.body));
       console.log(`[BOOKING-${debugId}] employee_id value:`, req.body.employee_id, "Type:", typeof req.body.employee_id);
       console.log(`[BOOKING-${debugId}] employeeId value:`, req.body.employeeId, "Type:", typeof req.body.employeeId);
       console.log(`[BOOKING-${debugId}] booking_type:`, req.body.booking_type);
+      
+      // Log all required fields for detailed debugging
       console.log(`[BOOKING-${debugId}] Required fields check:
         employee_id: ${req.body.employee_id ? '✓' : '✗'} (${typeof req.body.employee_id})
         booking_type: ${req.body.booking_type ? '✓' : '✗'}
@@ -364,14 +367,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
         dropoff_time: ${req.body.dropoff_time ? '✓' : '✗'}`);
 
       try {
-        // STEP 1: Validate and normalize the employee ID
+        // STEP 1: Validate and normalize the employee ID - this is critical for DB operations
         // Handle both camelCase and snake_case field names for backward compatibility
         let employeeIdValue = req.body.employee_id !== undefined ? req.body.employee_id : req.body.employeeId;
         
         console.log(`[BOOKING-${debugId}] Original employee ID:`, employeeIdValue, "Type:", typeof employeeIdValue);
         
-        // Check if employee_id exists at all
-        if (employeeIdValue === undefined || employeeIdValue === null) {
+        // Enhanced validation - check if employee_id exists and has a value
+        if (employeeIdValue === undefined || employeeIdValue === null || employeeIdValue === '') {
           console.error(`[BOOKING-${debugId}] Missing employee_id in request`);
           return res.status(400).json({
             error: "Employee ID is required",

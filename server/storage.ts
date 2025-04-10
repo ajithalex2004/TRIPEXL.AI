@@ -715,8 +715,8 @@ export class DatabaseStorage implements IStorage {
     try {
       // Enhanced debugging
       console.log(`[BOOKING-DB-${debugId}] Creating booking with data:`, JSON.stringify(bookingData, null, 2));
-      logBookingDbOperation('create-booking-start', bookingData);
-
+      console.log(`[BOOKING-DB-${debugId}] ===== BOOKING DB OPERATION START =====`);
+      
       // Convert camelCase properties to snake_case for database
       const dbData: any = { ...bookingData };
       
@@ -725,6 +725,7 @@ export class DatabaseStorage implements IStorage {
       dbData.updated_at = new Date();
       
       // STEP 2: Handle the employee ID - this is CRITICAL for proper foreign key reference
+      console.log(`[BOOKING-DB-${debugId}] Validating employee_id...`);
       // Handle both camelCase (employeeId) and snake_case (employee_id) for backward compatibility
       let employeeIdValue = undefined;
       
@@ -737,6 +738,29 @@ export class DatabaseStorage implements IStorage {
       else if (bookingData.employeeId !== undefined && bookingData.employeeId !== null) {
         employeeIdValue = bookingData.employeeId;
         console.log(`[BOOKING-DB-${debugId}] Found employeeId (camelCase):`, employeeIdValue, `(type: ${typeof employeeIdValue})`);
+      }
+      
+      // Ensure employee_id is a number
+      if (employeeIdValue !== undefined && employeeIdValue !== null) {
+        // Convert to number if it's not already
+        if (typeof employeeIdValue !== 'number') {
+          const originalValue = employeeIdValue;
+          employeeIdValue = Number(employeeIdValue);
+          
+          // Check if conversion was successful
+          if (isNaN(employeeIdValue)) {
+            console.error(`[BOOKING-DB-${debugId}] Failed to convert employee_id "${originalValue}" to a number`);
+            throw new Error(`Invalid employee ID format: "${originalValue}" is not a valid number`);
+          }
+          
+          console.log(`[BOOKING-DB-${debugId}] Converted employee_id from "${originalValue}" to number: ${employeeIdValue}`);
+        }
+        
+        // Update dbData with the validated employee_id
+        dbData.employee_id = employeeIdValue;
+      } else {
+        console.error(`[BOOKING-DB-${debugId}] No valid employee_id found in booking data`);
+        throw new Error("Employee ID is required for booking creation");
       }
       
       console.log(`[BOOKING-DB-${debugId}] Final employee ID value:`, employeeIdValue, `(type: ${typeof employeeIdValue})`);

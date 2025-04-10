@@ -820,7 +820,22 @@ export function BookingForm() {
       console.log("Booking Type:", bookingData.booking_type);
       console.log("Full booking data:", JSON.stringify(bookingData, null, 2));
       
-      // STEP 8: Submit the booking and handle response
+      // STEP 8: Submit the booking with enhanced error handling
+      console.log("%c SUBMITTING BOOKING DATA:", "background: #ff9800; color: white; padding: 2px 4px; border-radius: 2px;", JSON.stringify(bookingData, null, 2));
+      
+      // Ensure employee_id is properly set as a number
+      if (typeof bookingData.employee_id !== 'number') {
+        bookingData.employee_id = Number(bookingData.employee_id);
+        console.log("Converted employee_id to number:", bookingData.employee_id);
+      }
+      
+      // Force validation of the employee_id field
+      if (isNaN(bookingData.employee_id) || !bookingData.employee_id) {
+        const error = new Error("Invalid employee ID format. Please select a valid employee.");
+        console.error("Employee ID validation failed:", error);
+        throw error;
+      }
+      
       const response = await createBookingMutation.mutateAsync(bookingData);
       console.log("%c BOOKING CREATION RESPONSE:", "background: #4CAF50; color: white; padding: 2px 4px; border-radius: 2px;", response);
       
