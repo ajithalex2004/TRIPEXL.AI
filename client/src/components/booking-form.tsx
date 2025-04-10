@@ -773,7 +773,7 @@ export function BookingForm() {
         purpose: formData.purpose || "general",
         priority: formData.priority || "Normal",
         
-        // Location data
+        // Location data - ensure it matches the database schema: { address: string, coordinates: { lat: number, lng: number }}
         pickup_location: {
           address: formData.pickupLocation.address,
           coordinates: {
@@ -789,26 +789,31 @@ export function BookingForm() {
           }
         },
         
-        // Time data
+        // IMPORTANT: Ensure time data is formatted as strings per the database schema
         pickup_time: new Date(formData.pickupTime).toISOString(),
         dropoff_time: new Date(formData.dropoffTime).toISOString(),
         
         // Common fields
         remarks: formData.remarks || "",
         
-        // Type-specific fields
+        // Type-specific fields with proper conversions
         ...(formData.bookingType === "freight" ? {
           cargo_type: formData.cargoType || "general",
           num_boxes: Number(formData.numBoxes || 1),
           weight: Number(formData.weight || 0),
-          box_size: formData.boxSize || "medium"
+          box_size: [formData.boxSize || "medium"] // Convert to array as per schema
         } : {}),
         
         ...(formData.bookingType === "passenger" ? {
           trip_type: formData.tripType || "one_way",
           num_passengers: Number(formData.numPassengers || 1),
           with_driver: Boolean(formData.withDriver),
-          booking_for_self: Boolean(formData.bookingForSelf)
+          booking_for_self: Boolean(formData.bookingForSelf),
+          // Ensure passenger_details follows the expected format
+          passenger_details: formData.passengerDetails ? formData.passengerDetails.map(p => ({
+            name: p.name,
+            contact: p.contact
+          })) : []
         } : {})
       };
       
