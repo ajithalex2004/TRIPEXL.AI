@@ -71,7 +71,7 @@ export default function LoginPage() {
         throw new Error(responseData.error || "Invalid username or password");
       }
 
-      localStorage.setItem("token", responseData.token);
+      localStorage.setItem("auth_token", responseData.token);
       toast({
         title: "Success",
         description: "Login successful",
