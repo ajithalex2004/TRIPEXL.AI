@@ -530,6 +530,20 @@ export function BookingForm() {
         return;
       }
       
+      // Validate that we have pickup and dropoff locations before submitting
+      if (!data.pickupLocation || !data.dropoffLocation) {
+        console.error("Missing location data:", {
+          pickupLocation: data.pickupLocation,
+          dropoffLocation: data.dropoffLocation
+        });
+        toast({
+          title: "Missing location information",
+          description: "Please select both pickup and dropoff locations",
+          variant: "destructive"
+        });
+        return;
+      }
+      
       // Prepare data for the confirmation preview
       const previewData = {
         bookingType: data.bookingType,
@@ -561,30 +575,6 @@ export function BookingForm() {
       setShowBookingPreview(true);
       
       // The actual form submission will happen when the user confirms in the preview modal
-      return;
-      
-      // Format waypoints data for API submission
-      const formattedWaypoints = waypoints.map(wp => ({
-        address: wp.address,
-        coordinates: {
-          lat: Number(wp.coordinates.lat),
-          lng: Number(wp.coordinates.lng)
-        }
-      }));
-
-      // Validate that we have pickup and dropoff locations before submitting
-      if (!data.pickupLocation || !data.dropoffLocation) {
-        console.error("Missing location data:", {
-          pickupLocation: data.pickupLocation,
-          dropoffLocation: data.dropoffLocation
-        });
-        toast({
-          title: "Missing location information",
-          description: "Please select both pickup and dropoff locations",
-          variant: "destructive"
-        });
-        return;
-      }
 
       // Check for required fields
       if (!data.bookingType || !data.purpose || !data.priority) {
@@ -736,49 +726,28 @@ export function BookingForm() {
       console.log("%c BOOKING CONFIRMATION - START", "background: #4CAF50; color: white; padding: 2px 4px; border-radius: 2px;");
       console.log("Raw form data:", formData);
       
-      // STEP 1: Validate required fields
-      if (!formData.pickupLocation || !formData.dropoffLocation) {
+      // Validate required fields
+      if (!formData.pickupLocation || !formData.dropoffLocation || !formData.pickupTime || !formData.dropoffTime) {
         toast({
-          title: "Missing location information",
-          description: "Please select both pickup and dropoff locations",
+          title: "Missing required information",
+          description: "Please ensure all required fields are filled",
           variant: "destructive"
         });
         return;
       }
       
-      if (!formData.pickupTime || !formData.dropoffTime) {
-        toast({
-          title: "Missing time information",
-          description: "Please select both pickup and dropoff times",
-          variant: "destructive"
-        });
-        return;
+      // Get the employee ID
+      let employeeId = selectedEmployee?.id;
+      
+      if (!employeeId) {
+        if (formData.employee_id) {
+          employeeId = Number(formData.employee_id);
+        } else if (employee?.id) {
+          employeeId = Number(employee.id);
+        }
       }
       
-      // STEP 2: Process employee ID (critical for database relations)
-      let employeeId: number;
-      
-      // Try to get from form data or selected employee - PRIORITIZE selectedEmployee
-      if (selectedEmployee?.id) {
-        employeeId = Number(selectedEmployee.id);
-        console.log("Using selected employee ID:", employeeId);
-      } else if (formData.employee_id) {
-        employeeId = Number(formData.employee_id);
-        console.log("Using form employee_id:", employeeId);
-      } else if (employee?.id) {
-        employeeId = Number(employee.id);
-        console.log("Using logged-in employee ID:", employeeId);
-      } else {
-        toast({
-          title: "Employee information missing",
-          description: "Please search for and select a valid employee",
-          variant: "destructive"
-        });
-        return;
-      }
-      
-      // Validate employee ID is a valid number
-      if (isNaN(employeeId) || employeeId <= 0) {
+      if (!employeeId || isNaN(employeeId) || employeeId <= 0) {
         toast({
           title: "Invalid employee ID",
           description: "Please select a valid employee",
@@ -787,109 +756,71 @@ export function BookingForm() {
         return;
       }
       
-      // STEP 3: Prepare location data with STRICT typing to match schema expectations
-      // Type cast the pickup and dropoff locations to fix TypeScript errors
-      const pickup = formData.pickupLocation as Location;
-      const dropoff = formData.dropoffLocation as Location;
-      
-      const formattedPickupLocation = {
-        address: pickup.address || "",
-        coordinates: {
-          lat: Number(pickup.coordinates?.lat || 0),
-          lng: Number(pickup.coordinates?.lng || 0)
-        },
-        // Only include these fields if they exist
-        ...(pickup.place_id ? { place_id: pickup.place_id } : {}),
-        ...(pickup.name ? { name: pickup.name } : {}),
-        ...(pickup.district ? { district: pickup.district } : {}),
-        ...(pickup.city ? { city: pickup.city } : {}),
-        ...(pickup.area ? { area: pickup.area } : {})
-      };
-      
-      const formattedDropoffLocation = {
-        address: dropoff.address || "",
-        coordinates: {
-          lat: Number(dropoff.coordinates?.lat || 0),
-          lng: Number(dropoff.coordinates?.lng || 0)
-        },
-        // Only include these fields if they exist
-        ...(dropoff.place_id ? { place_id: dropoff.place_id } : {}),
-        ...(dropoff.name ? { name: dropoff.name } : {}),
-        ...(dropoff.district ? { district: dropoff.district } : {}),
-        ...(dropoff.city ? { city: dropoff.city } : {}),
-        ...(dropoff.area ? { area: dropoff.area } : {})
-      };
-      
-      // STEP 4: Format waypoints data - only include if not empty
-      const formattedWaypoints = waypoints.length > 0 ? waypoints.map(wp => ({
-        address: wp.address,
-        coordinates: {
-          lat: Number(wp.coordinates.lat),
-          lng: Number(wp.coordinates.lng)
-        }
-      })) : [];
-      
-      // STEP 5: Normalize priority format
-      const normalizedPriority = typeof formData.priority === 'string' 
-        ? formData.priority.charAt(0).toUpperCase() + formData.priority.slice(1).toLowerCase()
-        : 'Normal'; // Default to Normal if missing
-      
-      // STEP 6: Build the complete booking data object with ONLY required fields
-      const bookingData: any = {
-        // Employee data (using database internal ID) - CRITICAL FIELD
-        employee_id: employeeId,
-        
-        // Location data
-        pickup_location: formattedPickupLocation,
-        dropoff_location: formattedDropoffLocation,
-        
-        // Time data (ensure ISO format)
-        pickup_time: new Date(formData.pickupTime).toISOString(),
-        dropoff_time: new Date(formData.dropoffTime).toISOString(),
-        
-        // Basic booking details
-        booking_type: formData.bookingType || "passenger", // Default if missing
-        purpose: formData.purpose || "general",            // Default if missing
-        priority: normalizedPriority,
-        remarks: formData.remarks || ""
-      };
-      
-      // Only add waypoints if there are any
-      if (formattedWaypoints.length > 0) {
-        bookingData.waypoints = formattedWaypoints;
-      }
-      
-      // Add type-specific fields only if needed
-      if (formData.bookingType === "freight") {
-        bookingData.cargo_type = formData.cargoType || "general";
-        bookingData.num_boxes = Number(formData.numBoxes || 1);
-        bookingData.weight = Number(formData.weight || 0);
-        if (formData.boxSize) {
-          bookingData.box_size = Array.isArray(formData.boxSize) ? 
-            formData.boxSize : [formData.boxSize || "medium"];
-        }
-      } else if (formData.bookingType === "passenger") {
-        bookingData.trip_type = formData.tripType || "one_way";
-        bookingData.num_passengers = Number(formData.numPassengers || 1);
-        bookingData.with_driver = Boolean(formData.withDriver);
-        bookingData.booking_for_self = Boolean(formData.bookingForSelf);
-        
-        if (Array.isArray(formData.passengerDetails) && formData.passengerDetails.length > 0) {
-          bookingData.passenger_details = formData.passengerDetails;
-        }
-      }
-      
       // Close the preview modal
       setShowBookingPreview(false);
       
-      // Log the data being submitted
-      console.log("%c SUBMITTING BOOKING DATA:", "background: #ff9800; color: white; padding: 2px 4px; border-radius: 2px;");
-      console.log("Employee ID:", bookingData.employee_id, "Type:", typeof bookingData.employee_id);
-      console.log("Priority:", bookingData.priority, "Type:", typeof bookingData.priority);
-      console.log("Full booking data:", JSON.stringify(bookingData, null, 2));
+      // Prepare the simplified data object for API
+      const bookingData = {
+        // Basic required fields
+        employee_id: employeeId,
+        booking_type: formData.bookingType || "passenger",
+        purpose: formData.purpose || "general",
+        priority: formData.priority || "Normal",
+        
+        // Location data
+        pickup_location: {
+          address: formData.pickupLocation.address,
+          coordinates: {
+            lat: Number(formData.pickupLocation.coordinates.lat),
+            lng: Number(formData.pickupLocation.coordinates.lng)
+          }
+        },
+        dropoff_location: {
+          address: formData.dropoffLocation.address,
+          coordinates: {
+            lat: Number(formData.dropoffLocation.coordinates.lat),
+            lng: Number(formData.dropoffLocation.coordinates.lng)
+          }
+        },
+        
+        // Time data
+        pickup_time: new Date(formData.pickupTime).toISOString(),
+        dropoff_time: new Date(formData.dropoffTime).toISOString(),
+        
+        // Common fields
+        remarks: formData.remarks || "",
+        
+        // Type-specific fields
+        ...(formData.bookingType === "freight" ? {
+          cargo_type: formData.cargoType || "general",
+          num_boxes: Number(formData.numBoxes || 1),
+          weight: Number(formData.weight || 0),
+          box_size: formData.boxSize || "medium"
+        } : {}),
+        
+        ...(formData.bookingType === "passenger" ? {
+          trip_type: formData.tripType || "one_way",
+          num_passengers: Number(formData.numPassengers || 1),
+          with_driver: Boolean(formData.withDriver),
+          booking_for_self: Boolean(formData.bookingForSelf)
+        } : {})
+      };
       
-      // Submit the booking with enhanced error catching
+      // Add waypoints if any
+      if (waypoints.length > 0) {
+        bookingData.waypoints = waypoints.map(wp => ({
+          address: wp.address,
+          coordinates: {
+            lat: Number(wp.coordinates.lat),
+            lng: Number(wp.coordinates.lng)
+          }
+        }));
+      }
+      
+      console.log("Submitting booking data:", JSON.stringify(bookingData, null, 2));
+      
       try {
+        // Submit the booking to the API
         const response = await createBookingMutation.mutateAsync(bookingData);
         console.log("Booking created successfully:", response);
         
@@ -905,16 +836,20 @@ export function BookingForm() {
       } catch (apiError: any) {
         console.error("API Error in booking creation:", apiError);
         
-        // Enhanced error message based on error details
-        let errorMessage = apiError.message || "Failed to create booking";
+        // Show error message with detailed information if available
+        let errorMessage = "Failed to create booking";
         
-        // Check for specific error patterns
-        if (errorMessage.includes("employee_id")) {
-          errorMessage = "Employee ID not found or invalid. Please select a valid employee.";
-        } else if (errorMessage.includes("location")) {
-          errorMessage = "Invalid location data. Please ensure both pickup and dropoff locations are set.";
-        } else if (errorMessage.includes("time")) {
-          errorMessage = "Invalid time data. Please ensure pickup and dropoff times are valid.";
+        if (apiError.message) {
+          errorMessage = apiError.message;
+          
+          // Check for specific error patterns
+          if (errorMessage.includes("employee_id")) {
+            errorMessage = "Employee ID not found or invalid. Please select a valid employee.";
+          } else if (errorMessage.includes("location")) {
+            errorMessage = "Invalid location data. Please ensure both pickup and dropoff locations are set.";
+          } else if (errorMessage.includes("time")) {
+            errorMessage = "Invalid time data. Please ensure pickup and dropoff times are valid.";
+          }
         }
         
         toast({
@@ -926,7 +861,6 @@ export function BookingForm() {
     } catch (error: any) {
       console.error("Booking confirmation error:", error);
       
-      // Show detailed error message
       toast({
         title: "Error processing booking",
         description: error.message || "Failed to process booking data. Please try again.",
