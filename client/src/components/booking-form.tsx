@@ -777,16 +777,32 @@ export function BookingForm() {
         pickup_location: {
           address: String(formData.pickupLocation.address || ''),
           coordinates: {
-            lat: parseFloat(formData.pickupLocation.coordinates?.lat || 0),
-            lng: parseFloat(formData.pickupLocation.coordinates?.lng || 0)
-          }
+            lat: parseFloat(String(formData.pickupLocation.coordinates?.lat || 0)),
+            lng: parseFloat(String(formData.pickupLocation.coordinates?.lng || 0))
+          },
+          // Include all optional fields that are present in the Location interface
+          ...(formData.pickupLocation.place_id && { place_id: String(formData.pickupLocation.place_id) }),
+          ...(formData.pickupLocation.name && { name: String(formData.pickupLocation.name) }),
+          ...(formData.pickupLocation.formatted_address && { formatted_address: String(formData.pickupLocation.formatted_address) }),
+          ...(formData.pickupLocation.district && { district: String(formData.pickupLocation.district) }),
+          ...(formData.pickupLocation.city && { city: String(formData.pickupLocation.city) }),
+          ...(formData.pickupLocation.area && { area: String(formData.pickupLocation.area) }),
+          ...(formData.pickupLocation.place_types && { place_types: formData.pickupLocation.place_types })
         },
         dropoff_location: {
           address: String(formData.dropoffLocation.address || ''),
           coordinates: {
-            lat: parseFloat(formData.dropoffLocation.coordinates?.lat || 0),
-            lng: parseFloat(formData.dropoffLocation.coordinates?.lng || 0)
-          }
+            lat: parseFloat(String(formData.dropoffLocation.coordinates?.lat || 0)),
+            lng: parseFloat(String(formData.dropoffLocation.coordinates?.lng || 0))
+          },
+          // Include all optional fields that are present in the Location interface
+          ...(formData.dropoffLocation.place_id && { place_id: String(formData.dropoffLocation.place_id) }),
+          ...(formData.dropoffLocation.name && { name: String(formData.dropoffLocation.name) }),
+          ...(formData.dropoffLocation.formatted_address && { formatted_address: String(formData.dropoffLocation.formatted_address) }),
+          ...(formData.dropoffLocation.district && { district: String(formData.dropoffLocation.district) }),
+          ...(formData.dropoffLocation.city && { city: String(formData.dropoffLocation.city) }),
+          ...(formData.dropoffLocation.area && { area: String(formData.dropoffLocation.area) }),
+          ...(formData.dropoffLocation.place_types && { place_types: formData.dropoffLocation.place_types })
         },
         
         // Format times explicitly as strings per database schema definition
@@ -828,7 +844,15 @@ export function BookingForm() {
           coordinates: {
             lat: parseFloat(String(wp.coordinates?.lat || 0)),
             lng: parseFloat(String(wp.coordinates?.lng || 0))
-          }
+          },
+          // Include all optional fields that are present in the Location interface
+          ...(wp.place_id && { place_id: String(wp.place_id) }),
+          ...(wp.name && { name: String(wp.name) }),
+          ...(wp.formatted_address && { formatted_address: String(wp.formatted_address) }),
+          ...(wp.district && { district: String(wp.district) }),
+          ...(wp.city && { city: String(wp.city) }),
+          ...(wp.area && { area: String(wp.area) }),
+          ...(wp.place_types && { place_types: wp.place_types })
         }));
         
         // Add to booking data
