@@ -42,7 +42,11 @@ export interface IStorage {
   createEmployee(employeeData: InsertEmployee): Promise<Employee>;
   findEmployeeByIdAndEmail(employeeId: string, email: string): Promise<Employee | null>;
   findEmployeeByEmployeeId(employeeId: string): Promise<Employee | null>;
+  findEmployeeByEmail(email: string): Promise<Employee | null>;
   findUserByEmployeeId(employeeId: string): Promise<User | null>;
+  findUserByEmployeeEmail(email: string): Promise<User | null>;
+  mapEmployeeToUser(employee: Employee): Promise<User | null>;
+  mapUserToEmployee(user: User): Promise<Employee | null>;
   getAllEmployees(): Promise<Employee[]>;
   getEmployeeById(id: number): Promise<Employee | null>;
   updateEmployee(id: number, data: Partial<InsertEmployee>): Promise<Employee>;
