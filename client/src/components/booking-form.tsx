@@ -70,6 +70,12 @@ export interface Location {
   place_types?: string[];
 }
 
+// Interface for passenger details
+export interface PassengerDetail {
+  name: string;
+  contact: string;
+}
+
 // Helper function to get minimum pickup time
 function getMinimumPickupTime(): Date {
   const now = new Date();
@@ -95,11 +101,7 @@ function getMinimumOffset(priority: string): number {
   }
 }
 
-// Add interface for passenger details
-interface PassengerDetail {
-  name: string;
-  contact: string;
-}
+// PassengerDetail interface is defined above
 
 // Removed default locations as per user request
 const DEFAULT_PICKUP_LOCATION = null;
