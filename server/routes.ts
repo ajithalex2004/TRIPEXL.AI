@@ -614,8 +614,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
     });
 
-    // Helper functions for calculating booking metadata
-    function calculateTotalDistance(pickup: any, dropoff: any): number {
+    // Using arrow functions instead for ES module compatibility
+    const calculateTotalDistance = (pickup: any, dropoff: any): number => {
       // Calculate distance using coordinates
       const R = 6371; // Earth's radius in km
       const lat1 = pickup.coordinates.lat * Math.PI / 180;
@@ -631,9 +631,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const distance = R * c; // Distance in km
 
       return parseFloat(distance.toFixed(2));
-    }
+    };
 
-    function calculateEstimatedCost(booking: any): number {
+    const calculateEstimatedCost = (booking: any): number => {
       // Basic cost calculation
       const baseRate = 2.5; // Base rate per km
       const distance = calculateTotalDistance(booking.pickup_location, booking.dropoff_location);
@@ -644,14 +644,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (booking.priority === "CRITICAL" || booking.priority === "EMERGENCY") estimatedCost *= 1.3;
 
       return parseFloat(estimatedCost.toFixed(2));
-    }
+    };
 
-    function calculateCO2Emissions(booking: any): number {
+    const calculateCO2Emissions = (booking: any): number => {
       // Average CO2 emissions calculation (in kg)
       const distance = calculateTotalDistance(booking.pickup_location, booking.dropoff_location);
       const avgEmissionRate = 0.12; // kg CO2 per km (average)
       return parseFloat((distance * avgEmissionRate).toFixed(2));
-    }
+    };
 
     // Update the employee endpoint for better performance
     app.get("/api/employee/current", async (req, res) => {
