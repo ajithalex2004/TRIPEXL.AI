@@ -1,7 +1,7 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import { db } from "./db";
+import { db, pool } from "./db";
 import { schema } from "./db";
 import { log } from "./vite";
 // Import debug utils
@@ -349,7 +349,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         timestamp: new Date().toISOString(),
         environment: {
           nodeEnv: process.env.NODE_ENV || 'development',
-          dbConnected: !!pool && !!db
+          dbConnected: !!db
         }
       });
     });

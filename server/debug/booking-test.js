@@ -1,5 +1,5 @@
 // Simple script to test the booking API endpoints
-const axios = require('axios');
+import axios from 'axios';
 
 const API_BASE_URL = 'http://localhost:5000';
 
