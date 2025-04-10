@@ -380,6 +380,20 @@ export function BookingForm() {
 
   const onSubmit = async (data: any) => {
     try {
+      console.log("%c FORM SUBMISSION", "background: #4CAF50; color: white; padding: 2px 4px; border-radius: 2px;");
+      console.log("Full form data:", data);
+      
+      // Show form errors if any
+      if (Object.keys(form.formState.errors).length > 0) {
+        console.error("Form has validation errors:", form.formState.errors);
+        toast({
+          title: "Form validation failed",
+          description: "Please check the form for errors",
+          variant: "destructive"
+        });
+        return;
+      }
+      
       // Format waypoints data for API submission
       const formattedWaypoints = waypoints.map(wp => ({
         address: wp.address,
@@ -391,6 +405,10 @@ export function BookingForm() {
 
       // Validate that we have pickup and dropoff locations before submitting
       if (!data.pickupLocation || !data.dropoffLocation) {
+        console.error("Missing location data:", {
+          pickupLocation: data.pickupLocation,
+          dropoffLocation: data.dropoffLocation
+        });
         toast({
           title: "Missing location information",
           description: "Please select both pickup and dropoff locations",
@@ -399,7 +417,7 @@ export function BookingForm() {
         return;
       }
 
-      // Check for required fields and convert employeeId to number
+      // Check for required fields
       if (!data.bookingType || !data.purpose || !data.priority) {
         console.error("Missing required booking form fields:", {
           bookingType: data.bookingType,
@@ -416,10 +434,20 @@ export function BookingForm() {
       
       // Get the employee ID and ensure it's valid
       // Note: we prefer employee_id (snake_case) as it matches DB column
-      // Get employee data from form, preferring the snake_case version that matches the DB schema
       let employeeIdValue = data.employee_id || data.employeeId;
       
-      console.log("Employee ID value from form:", employeeIdValue, "Type:", typeof employeeIdValue);
+      console.log("Raw employee ID value from form:", employeeIdValue, "Type:", typeof employeeIdValue);
+      
+      // Employee ID must be present
+      if (employeeIdValue === undefined || employeeIdValue === null || employeeIdValue === "") {
+        console.error("Missing employee ID in form data");
+        toast({
+          title: "Employee information required",
+          description: "Please search for and select a valid employee using the email search field",
+          variant: "destructive"
+        });
+        return;
+      }
       
       // Check if employeeId is already a number or can be converted to one
       if (typeof employeeIdValue === 'string') {
@@ -430,21 +458,25 @@ export function BookingForm() {
         }
       }
       
-      // Final validation to ensure we have a valid employeeId
-      if (!employeeIdValue) {
-        console.error("Missing or invalid employee ID:", data.employeeId);
+      // Validate pickup and dropoff times
+      if (!data.pickupTime || !data.dropoffTime) {
+        console.error("Missing time information:", {
+          pickupTime: data.pickupTime,
+          dropoffTime: data.dropoffTime
+        });
         toast({
-          title: "Employee information required",
-          description: "Please search for and select a valid employee using the email search field",
+          title: "Time information required",
+          description: "Please select valid pickup and dropoff times",
           variant: "destructive"
         });
         return;
       }
       
-      console.log("Employee ID for booking:", employeeIdValue, "Type:", typeof employeeIdValue);
+      console.log("Final employee ID for booking:", employeeIdValue, "Type:", typeof employeeIdValue);
+      console.log("Pickup location:", data.pickupLocation);
+      console.log("Dropoff location:", data.dropoffLocation);
       
       // Use snake_case for all keys in the API request as required by the backend
-      // IMPORTANT: Include both formats for backward compatibility - the server will pick the right one
       const bookingData = {
         employee_id: employeeIdValue, // Snake case version
         employeeId: employeeIdValue,  // Camel case version for redundancy
@@ -465,27 +497,35 @@ export function BookingForm() {
             lng: Number(data.dropoffLocation.coordinates.lng)
           }
         },
-        waypoints: formattedWaypoints, // Add waypoints to the booking data
+        waypoints: formattedWaypoints,
         pickup_time: new Date(data.pickupTime).toISOString(),
         dropoff_time: new Date(data.dropoffTime).toISOString(),
         remarks: data.remarks || "",
         ...(data.bookingType === "freight" ? {
           cargo_type: data.cargoType,
-          num_boxes: Number(data.numBoxes),
-          weight: Number(data.weight),
-          box_size: data.boxSize
+          num_boxes: Number(data.numBoxes || 0),
+          weight: Number(data.weight || 0),
+          box_size: data.boxSize || "medium"
         } : {}),
         ...(data.bookingType === "passenger" ? {
-          trip_type: data.tripType,
-          num_passengers: Number(data.numPassengers),
+          trip_type: data.tripType || "one_way",
+          num_passengers: Number(data.numPassengers || 1),
           with_driver: Boolean(data.withDriver),
           booking_for_self: Boolean(data.bookingForSelf),
-          passenger_details: data.passengerDetails
+          passenger_details: data.passengerDetails || []
         } : {})
       };
 
-      console.log("Submitting booking with waypoints:", formattedWaypoints.length);
+      console.log("About to submit booking data:", bookingData);
+      toast({
+        title: "Submitting booking",
+        description: "Please wait while your booking is being processed...",
+      });
+      
+      // Explicitly call the mutation function
       await createBookingMutation.mutateAsync(bookingData);
+      
+      console.log("Booking submission successful!");
     } catch (error: any) {
       console.error("Form submission error:", error);
       toast({
@@ -1584,7 +1624,28 @@ export function BookingForm() {
                     </Button>
                   ) : (
                     <Button
-                      type="submit"
+                      type="button" 
+                      onClick={() => {
+                        console.log("Create Booking Button clicked");
+                        const formData = form.getValues();
+                        console.log("Current form values:", formData);
+                        
+                        // Manual validation
+                        form.trigger().then(isValid => {
+                          console.log("Form validation result:", isValid);
+                          if (isValid) {
+                            console.log("Form is valid, submitting...");
+                            form.handleSubmit(onSubmit)();
+                          } else {
+                            console.error("Form validation failed:", form.formState.errors);
+                            toast({
+                              title: "Form validation failed",
+                              description: "Please check the form for errors",
+                              variant: "destructive"
+                            });
+                          }
+                        });
+                      }}
                       disabled={createBookingMutation.isPending}
                       className="bg-primary text-white hover:bg-primary/90"
                     >
