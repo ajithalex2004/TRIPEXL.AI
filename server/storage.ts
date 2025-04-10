@@ -768,7 +768,7 @@ export class DatabaseStorage implements IStorage {
       if (employeeIdValue === undefined || employeeIdValue === null) {
         // Case 1: No employee ID provided
         const error = new Error("Employee ID is required for booking creation");
-        logBookingDbOperation('create-booking-error-employeeId-missing', {});
+        console.error("ERROR: Missing employee ID for booking creation");
         console.error(`[BOOKING-DB-${debugId}] ERROR: No employeeId provided in booking data`);
         throw error;
       }
@@ -787,10 +787,8 @@ export class DatabaseStorage implements IStorage {
         
         if (isNaN(parsed)) {
           const error = new Error(`Invalid employee_id string format: "${employeeIdValue}" - must be a valid number`);
-          logBookingDbOperation('create-booking-error-employeeId-invalid-string', { 
-            providedValue: employeeIdValue
-          });
           console.error(`[BOOKING-DB-${debugId}] ERROR: Failed to parse employee_id string: "${employeeIdValue}"`);
+          console.error("Invalid employee ID string format:", { providedValue: employeeIdValue });
           throw error;
         }
         
@@ -802,11 +800,11 @@ export class DatabaseStorage implements IStorage {
         
         if (isNaN(employeeIdNum)) {
           const error = new Error(`Invalid employee_id type (${typeof employeeIdValue}) or format`);
-          logBookingDbOperation('create-booking-error-employeeId-invalid-type', { 
+          console.error(`[BOOKING-DB-${debugId}] ERROR: Failed to convert employee_id of type ${typeof employeeIdValue}`);
+          console.error("Invalid employee ID type:", { 
             type: typeof employeeIdValue,
             value: String(employeeIdValue)
           });
-          console.error(`[BOOKING-DB-${debugId}] ERROR: Failed to convert employee_id of type ${typeof employeeIdValue}`);
           throw error;
         }
         
@@ -855,22 +853,22 @@ export class DatabaseStorage implements IStorage {
         
         if (employee.length === 0) {
           const error = new Error(`Employee with ID ${employeeIdNum} not found in the database`);
-          logBookingDbOperation('create-booking-error-employee-not-found', { employeeId: employeeIdNum });
           console.error(`[BOOKING-DB-${debugId}] ERROR: Employee ID ${employeeIdNum} not found in database`);
+          console.error("Employee not found:", { employeeId: employeeIdNum });
           throw error;
         }
         
         // Log successful employee check
         console.log(`[BOOKING-DB-${debugId}] ✓ Successfully verified employee exists:`, employee[0].name);
         console.log(`[BOOKING-DB-${debugId}] Employee details: internal ID = ${employee[0].id}, employee_id = ${employee[0].employee_id}`);
-        logBookingDbOperation('create-booking-employee-check', { 
+        console.log("Employee verification successful:", { 
           employeeId: employeeIdNum,
           employeeName: employee[0].name,
           employeeFound: true,
           originalEmployeeId: employee[0].employee_id
         });
       } catch (employeeCheckError) {
-        logBookingDbOperation('create-booking-error-employee-check', { 
+        console.error("Error checking employee:", { 
           error: employeeCheckError instanceof Error ? employeeCheckError.message : String(employeeCheckError),
           employeeId: employeeIdNum 
         });
@@ -906,7 +904,6 @@ export class DatabaseStorage implements IStorage {
       
       // Final log of data before insert
       console.log("About to insert booking with data:", JSON.stringify(dbData, null, 2));
-      logBookingDbOperation('create-booking-before-insert', dbData);
 
       try {
         // Create the SQL string for logging purposes
