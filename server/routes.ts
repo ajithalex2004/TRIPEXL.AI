@@ -419,7 +419,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       try {
-        const { user, token } = await authService.verifyOTP(userId, otp);
+        // Get OTP verification record
+        const verification = await storage.getOtpVerification(userId);
+        
+        if (!verification) {
+          return res.status(400).json({ error: "No verification code found" });
+        }
+        
+        if (verification.otp !== otp) {
+          return res.status(400).json({ error: "Invalid verification code" });
+        }
+        
+        // Mark user as verified
+        const user = await storage.markUserAsVerified(userId);
+        
+        // Generate token
+        const token = createToken(user.id, user.email_id);
+        
         res.json({ message: "Account verified successfully", token, user });
       } catch (error: any) {
         res.status(400).json({ error: error.message });

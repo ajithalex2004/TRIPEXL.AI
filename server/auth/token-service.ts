@@ -20,19 +20,29 @@ export interface TokenPayload {
  * Creates a JWT token with consistent secret key
  */
 export function createToken(userId: number, email?: string): string {
-  console.log(`Creating token for user ${userId}` + (email ? ` with email ${email}` : ''));
-  
-  // Only add email if it's provided, to maintain backward compatibility
+  // Always include email if provided, force the email field to be present
   const payload: any = { userId };
+  
+  // Add email for more complete token payload
   if (email) {
     payload.email = email;
+    console.log(`Creating token with userId=${userId} and email=${email}`);
+  } else {
+    console.log(`Creating token with userId=${userId} only (no email)`);
   }
   
-  return jwt.sign(
+  // Sign the token
+  const token = jwt.sign(
     payload,
     JWT_SECRET,
     { expiresIn: '24h' }
   );
+  
+  // Decode to verify structure
+  const decoded = jwt.decode(token);
+  console.log(`Token created successfully: ${JSON.stringify(decoded)}`);
+  
+  return token;
 }
 
 /**
