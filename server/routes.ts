@@ -525,10 +525,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
         
         // By now, userId should be normalized
         console.log(`[BOOKINGS-GET] User authenticated with ID: ${decoded.userId}`);
-      } catch (error) {
+        
+        // Add the verified user to the request
+        (req as any).user = decoded;
+      } catch (error: any) {
         console.log(`[BOOKINGS-GET] ERROR: Token verification failed:`, error);
-        // More user-friendly error message
-        return res.status(401).json({ error: "Your session has expired. Please login again." });
+        // More specific error message based on the error
+        if (error.name === 'TokenExpiredError' || error.message === 'Token expired') {
+          return res.status(401).json({ error: "Your session has expired. Please login again." });
+        }
+        return res.status(401).json({ error: "Authentication failed. Please login again." });
       }
       
       try {
