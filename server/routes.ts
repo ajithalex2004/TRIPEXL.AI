@@ -544,27 +544,54 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Verify the token
       let decodedUserId: number;
+      
+      // For debugging purposes, print important information
+      console.log(`[BOOKING-${debugId}] JWT_SECRET exists: ${!!process.env.JWT_SECRET}`);
+      console.log(`[BOOKING-${debugId}] Token being verified:`, token.substring(0, 10) + '...');
+      
       try {
         // Check actual token format (we've determined the token only contains userId)
-        const decoded = jwt.verify(token, process.env.JWT_SECRET || 'dev-secret-key');
+        const secretKey = process.env.JWT_SECRET || 'dev-secret-key';
+        console.log(`[BOOKING-${debugId}] Using secret key:`, secretKey.substring(0, 3) + '...');
+        
+        const decoded = jwt.verify(token, secretKey);
+        console.log(`[BOOKING-${debugId}] Decoded token:`, JSON.stringify(decoded));
         
         // Extract userId from the decoded token, no matter what its structure is
         if (typeof decoded === 'object' && decoded !== null) {
+          // Log all properties of the decoded token
+          console.log(`[BOOKING-${debugId}] Token properties:`, Object.keys(decoded));
+          
           decodedUserId = (decoded as any).userId;
+          console.log(`[BOOKING-${debugId}] Found userId in token:`, decodedUserId);
           
           if (!decodedUserId) {
-            console.log(`[BOOKING-${debugId}] ERROR: Token does not contain userId`, decoded);
-            return res.status(401).json({ error: "Invalid token format" });
+            console.log(`[BOOKING-${debugId}] ERROR: Token does not contain userId`);
+            // Try to find any user identifier in the token
+            const possibleIds = ['id', 'user_id', 'userId', 'sub'];
+            for (const idField of possibleIds) {
+              if ((decoded as any)[idField]) {
+                decodedUserId = (decoded as any)[idField];
+                console.log(`[BOOKING-${debugId}] Found alternative user ID field: ${idField} = ${decodedUserId}`);
+                break;
+              }
+            }
+            
+            if (!decodedUserId) {
+              console.log(`[BOOKING-${debugId}] ERROR: Could not find any user identifier in token`);
+              return res.status(401).json({ error: "Invalid token format - missing user identifier" });
+            }
           }
           
           console.log(`[BOOKING-${debugId}] User authenticated with userId: ${decodedUserId}`);
         } else {
           console.log(`[BOOKING-${debugId}] ERROR: Token payload is not an object`, decoded);
-          return res.status(401).json({ error: "Invalid token format" });
+          return res.status(401).json({ error: "Invalid token format - payload not object" });
         }
-      } catch (error) {
-        console.log(`[BOOKING-${debugId}] ERROR: Invalid token`, error);
-        return res.status(401).json({ error: "Invalid or expired token" });
+      } catch (error: any) {
+        console.log(`[BOOKING-${debugId}] ERROR: Invalid token`, error.message);
+        console.log(`[BOOKING-${debugId}] ERROR details:`, error);
+        return res.status(401).json({ error: "Invalid or expired token", details: error.message });
       }
       
       // Use our enhanced logging helper for detailed diagnostics
