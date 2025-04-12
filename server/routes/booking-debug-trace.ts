@@ -53,12 +53,21 @@ bookingDebugTraceRouter.post('/insert-minimal-booking', async (req: Request, res
     const employeeId = employees[0].id;
     console.log(`[BOOKING-DEBUG-${debugId}] Using employee ID ${employeeId}`);
 
-    // Create minimal booking data matching the actual database schema
+    // Define the booking data directly - no separate lat/lng fields, only JSON objects
     const pickup = { lat: 25.1234, lng: 55.1234 };
     const dropoff = { lat: 25.5678, lng: 55.5678 };
     
-    // To avoid issues with timestamp fields, we'll use raw SQL insertion
-    console.log(`[BOOKING-DEBUG-${debugId}] Using raw SQL insert to bypass schema validation issues`);
+    const pickupLocation = JSON.stringify({
+      address: "Test Address 1",
+      coordinates: pickup
+    });
+    
+    const dropoffLocation = JSON.stringify({
+      address: "Test Address 2",
+      coordinates: dropoff
+    });
+    
+    console.log(`[BOOKING-DEBUG-${debugId}] Using correct JSON location format for database schema`);
     
     try {
       // Insert using raw SQL to bypass schema validation/conversion
@@ -69,14 +78,8 @@ bookingDebugTraceRouter.post('/insert-minimal-booking', async (req: Request, res
           pickup_time, dropoff_time, reference_no, status
         ) VALUES (
           ${employeeId}, 'passenger', 'general', 'Normal',
-          ${JSON.stringify({
-            address: "Test Address 1",
-            coordinates: pickup
-          })}::json, 
-          ${JSON.stringify({
-            address: "Test Address 2",
-            coordinates: dropoff
-          })}::json,
+          ${pickupLocation}::json, 
+          ${dropoffLocation}::json,
           '2025-04-12T12:00:00Z', '2025-04-12T13:00:00Z',
           ${`DEBUG-${debugId}`}, 'new'
         ) RETURNING *
