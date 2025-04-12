@@ -510,8 +510,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Verify the token using our token service
       try {
-        const decoded = verifyToken(token) as { userId: number, email: string };
-        console.log(`[BOOKINGS-GET] User authenticated: ${decoded.email}`);
+        const decoded = verifyToken(token);
+        // Accept tokens with either userId or user_id field
+        if (!decoded || (!decoded.userId && !decoded.user_id)) {
+          console.log(`[BOOKINGS-GET] ERROR: Token missing userId`);
+          return res.status(401).json({ error: "Invalid token format" });
+        }
+        
+        const userId = decoded.userId || decoded.user_id;
+        console.log(`[BOOKINGS-GET] User authenticated with ID: ${userId}`);
       } catch (error) {
         console.log(`[BOOKINGS-GET] ERROR: Invalid token`, error);
         return res.status(401).json({ error: "Invalid or expired token" });
