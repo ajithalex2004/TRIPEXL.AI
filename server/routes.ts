@@ -541,6 +541,34 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       try {
         const bookings = await storage.getBookings();
+        
+        // Log the first booking to debug format issues
+        if (bookings.length > 0) {
+          console.log('[BOOKINGS-GET] First booking sample:', JSON.stringify(bookings[0]));
+          
+          // Check for potential format issues
+          const firstBooking = bookings[0];
+          console.log('[BOOKINGS-GET] Pickup location type:', typeof firstBooking.pickup_location);
+          if (typeof firstBooking.pickup_location === 'string') {
+            try {
+              // Try to parse the location if it's a string
+              console.log('[BOOKINGS-GET] Attempting to parse pickup_location string');
+              bookings.forEach(booking => {
+                if (typeof booking.pickup_location === 'string') {
+                  booking.pickup_location = JSON.parse(booking.pickup_location);
+                }
+                if (typeof booking.dropoff_location === 'string') {
+                  booking.dropoff_location = JSON.parse(booking.dropoff_location);
+                }
+              });
+              console.log('[BOOKINGS-GET] Successfully parsed location strings to objects');
+            } catch (parseError) {
+              console.error('[BOOKINGS-GET] Failed to parse location string:', parseError);
+            }
+          }
+        }
+        
+        console.log(`[BOOKINGS-GET] Returning ${bookings.length} bookings`);
         res.json(bookings);
       } catch (error: any) {
         console.error(`[BOOKINGS-GET] ERROR:`, error);
