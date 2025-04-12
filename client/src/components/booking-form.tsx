@@ -833,9 +833,10 @@ export function BookingForm() {
           ...(formData.pickupLocation.place_types && { place_types: formData.pickupLocation.place_types })
         },
         
-        // CRITICAL FIX: Add top-level latitude and longitude fields required by the database schema
-        pickup_latitude: parseFloat(String(formData.pickupLocation.coordinates?.lat || 0)),
-        pickup_longitude: parseFloat(String(formData.pickupLocation.coordinates?.lng || 0)),
+        // CRITICAL FIX: Remove separate lat/lng fields - not in actual database schema
+        // These fields don't exist in the actual database structure, which uses JSON location objects
+        // pickup_latitude: parseFloat(String(formData.pickupLocation.coordinates?.lat || 0)),
+        // pickup_longitude: parseFloat(String(formData.pickupLocation.coordinates?.lng || 0)),
         
         dropoff_location: {
           address: String(formData.dropoffLocation.address || ''),
@@ -853,9 +854,10 @@ export function BookingForm() {
           ...(formData.dropoffLocation.place_types && { place_types: formData.dropoffLocation.place_types })
         },
         
-        // CRITICAL FIX: Add top-level latitude and longitude fields required by the database schema
-        dropoff_latitude: parseFloat(String(formData.dropoffLocation.coordinates?.lat || 0)),
-        dropoff_longitude: parseFloat(String(formData.dropoffLocation.coordinates?.lng || 0)),
+        // CRITICAL FIX: Remove separate lat/lng fields - not in actual database schema
+        // These fields don't exist in the actual database structure, which uses JSON location objects
+        // dropoff_latitude: parseFloat(String(formData.dropoffLocation.coordinates?.lat || 0)),
+        // dropoff_longitude: parseFloat(String(formData.dropoffLocation.coordinates?.lng || 0)),
         
         // Format times explicitly as strings per database schema definition
         pickup_time: new Date(formData.pickupTime).toISOString(),

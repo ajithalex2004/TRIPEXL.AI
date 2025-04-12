@@ -105,10 +105,10 @@ bookingDebugTraceRouter.post('/insert-minimal-booking', async (req: Request, res
       if (booking) {
         console.log(`[BOOKING-DEBUG-${debugId}] SUCCESS - Created booking:`, booking.id || 'ID unknown');
         
-        // Create a simple query to fetch the last created booking
+        // Create a simple query to fetch the last created booking with reference_no matching our debug ID
         const lastBooking = await db.select()
           .from(schema.bookings)
-          .orderBy(sql`${schema.bookings.created_at} DESC`)
+          .where(sql`${schema.bookings.reference_no} = ${`DEBUG-${debugId}`}`)
           .limit(1);
           
         if (lastBooking && lastBooking.length > 0) {
