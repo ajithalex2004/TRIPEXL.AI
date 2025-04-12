@@ -23,6 +23,7 @@ import { initializeFuelPriceService, updateFuelPrices, getFuelPriceHistory, trig
 import { performanceRouter } from "./routes/performance-snapshot";
 import fuelTypesRouter from "./routes/fuel-types";
 import userEmployeeRouter from "./routes/user-employee-router";
+import bookingDebugRouter from "./routes/booking-debug";
 
 // Configure multer for handling file uploads
 const upload = multer({
