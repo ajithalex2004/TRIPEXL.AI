@@ -30,6 +30,51 @@ function BookingHistoryPage() {
   const { data: bookings, isLoading } = useQuery<Booking[]>({
     queryKey: ["/api/bookings"],
   });
+  
+  // Debug bookings data
+  console.log("BOOKINGS DATA:", bookings);
+  
+  // Add direct fetch test to check API response
+  const testFetchBookings = async () => {
+    try {
+      const authToken = localStorage.getItem('auth_token');
+      if (!authToken) {
+        alert("No auth token found! Please login first.");
+        return;
+      }
+      
+      alert("Testing direct fetch from /api/bookings...");
+      
+      const response = await fetch('/api/bookings', {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${authToken}`
+        }
+      });
+      
+      const statusText = `API Response Status: ${response.status} ${response.statusText}`;
+      console.log(statusText);
+      alert(statusText);
+      
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error("API Error:", errorText);
+        alert(`API Error: ${errorText}`);
+        return;
+      }
+      
+      const data = await response.json();
+      console.log("DIRECT FETCH DATA:", data);
+      alert(`Found ${data.length} bookings in database. Check console for details.`);
+    } catch (error) {
+      console.error("Test fetch error:", error);
+      alert(`Error testing API: ${error instanceof Error ? error.message : String(error)}`);
+    }
+  };
+  
+  // Run test fetch on page load
+  setTimeout(testFetchBookings, 2000);
 
   // Filter states
   const [searchQuery, setSearchQuery] = useState("");

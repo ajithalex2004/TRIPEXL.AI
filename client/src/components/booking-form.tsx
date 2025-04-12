@@ -518,12 +518,21 @@ export function BookingForm() {
 
   const onSubmit = async (data: any) => {
     try {
-      console.log("%c FORM SUBMISSION", "background: #4CAF50; color: white; padding: 2px 4px; border-radius: 2px;");
-      console.log("Full form data:", data);
+      console.log("%c FORM SUBMISSION", "background: #ff0000; color: white; padding: 2px 4px; border-radius: 2px;");
+      console.log("Full form data:", JSON.stringify(data, null, 2));
+      
+      // Display an alert to confirm form submission
+      alert("Form submission initiated with data: " + JSON.stringify({
+        employee_id: data.employee_id,
+        booking_type: data.booking_type,
+        pickup_location: data.pickupLocation?.address,
+        dropoff_location: data.dropoffLocation?.address,
+      }));
       
       // Show form errors if any
       if (Object.keys(form.formState.errors).length > 0) {
         console.error("Form has validation errors:", form.formState.errors);
+        alert("Form has validation errors: " + JSON.stringify(form.formState.errors));
         toast({
           title: "Form validation failed",
           description: "Please check the form for errors",
@@ -765,6 +774,9 @@ export function BookingForm() {
         return;
       }
       
+      // Display alert for debugging
+      alert("Starting booking confirmation process...");
+      
       // Display a loading toast to indicate processing
       toast({
         title: "Processing booking",
@@ -772,8 +784,9 @@ export function BookingForm() {
       });
       
       const formData = form.getValues();
-      console.log("%c BOOKING CONFIRMATION - START", "background: #4CAF50; color: white; padding: 2px 4px; border-radius: 2px;");
-      console.log("Raw form data:", formData);
+      console.log("%c BOOKING CONFIRMATION - START", "background: #ff0000; color: white; padding: 2px 4px; border-radius: 2px;");
+      console.log("Raw form data:", JSON.stringify(formData, null, 2));
+      alert("Form data is valid and about to be submitted to API");
       
       // Validate required fields
       if (!formData.pickupLocation || !formData.dropoffLocation || !formData.pickupTime || !formData.dropoffTime) {
