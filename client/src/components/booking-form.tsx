@@ -832,7 +832,8 @@ export function BookingForm() {
           ...(formData.pickupLocation.area && { area: String(formData.pickupLocation.area) }),
           ...(formData.pickupLocation.place_types && { place_types: formData.pickupLocation.place_types })
         },
-        // Add explicit latitude and longitude values for database direct storage
+        
+        // CRITICAL FIX: Add top-level latitude and longitude fields required by the database schema
         pickup_latitude: parseFloat(String(formData.pickupLocation.coordinates?.lat || 0)),
         pickup_longitude: parseFloat(String(formData.pickupLocation.coordinates?.lng || 0)),
         
@@ -851,7 +852,8 @@ export function BookingForm() {
           ...(formData.dropoffLocation.area && { area: String(formData.dropoffLocation.area) }),
           ...(formData.dropoffLocation.place_types && { place_types: formData.dropoffLocation.place_types })
         },
-        // Add explicit latitude and longitude values for database direct storage
+        
+        // CRITICAL FIX: Add top-level latitude and longitude fields required by the database schema
         dropoff_latitude: parseFloat(String(formData.dropoffLocation.coordinates?.lat || 0)),
         dropoff_longitude: parseFloat(String(formData.dropoffLocation.coordinates?.lng || 0)),
         
@@ -941,12 +943,24 @@ export function BookingForm() {
         console.time('Booking API Call');
         
         try {
-          // First, make a direct fetch to see if we have API connectivity
+          // First, make a direct fetch with proper authorization to see if we have API connectivity
           console.log("Making direct API call to /api/bookings...");
+          
+          // Get the auth token from localStorage
+          const authToken = localStorage.getItem('auth_token');
+          
+          if (!authToken) {
+            console.error("CRITICAL ERROR: No auth token found in localStorage");
+            throw new Error("Authentication token missing. Please log in again.");
+          }
+          
+          console.log("Auth token available:", authToken ? "Yes" : "No");
+          
           const testResponse = await fetch('/api/bookings', {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
+              'Authorization': `Bearer ${authToken}`
             },
             body: JSON.stringify(bookingData),
           });
