@@ -53,7 +53,10 @@ bookingDebugTraceRouter.post('/insert-minimal-booking', async (req: Request, res
     const employeeId = employees[0].id;
     console.log(`[BOOKING-DEBUG-${debugId}] Using employee ID ${employeeId}`);
 
-    // Create minimal booking data matching the database schema
+    // Create minimal booking data matching the actual database schema
+    const pickup = { lat: 25.1234, lng: 55.1234 };
+    const dropoff = { lat: 25.5678, lng: 55.5678 };
+    
     const minimalBooking = {
       employee_id: employeeId,
       booking_type: "passenger",
@@ -61,15 +64,15 @@ bookingDebugTraceRouter.post('/insert-minimal-booking', async (req: Request, res
       priority: "Normal",
       pickup_location: {
         address: "Test Address 1",
-        coordinates: { lat: 25.1234, lng: 55.1234 }
+        coordinates: pickup
       },
       dropoff_location: {
         address: "Test Address 2",
-        coordinates: { lat: 25.5678, lng: 55.5678 }
+        coordinates: dropoff
       },
-      // Format pickup and dropoff times as strings to match db schema
-      pickup_time: "2025-04-12T12:00:00Z", // Use plain string
-      dropoff_time: "2025-04-12T13:00:00Z", // Use plain string
+      // Use strings for time fields as the database actually has these as text (not timestamp)
+      pickup_time: "2025-04-12T12:00:00Z",
+      dropoff_time: "2025-04-12T13:00:00Z",
       reference_no: `DEBUG-${debugId}`,
       status: "new"
       // Removed created_at and updated_at, they'll be auto-generated
