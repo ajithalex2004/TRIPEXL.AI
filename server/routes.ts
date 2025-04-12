@@ -6,6 +6,7 @@ import { schema } from "./db";
 import { log } from "./vite";
 // Import debug utils
 import { logBookingRequest, logBookingError } from "./debug/booking-debug";
+import { createToken, verifyToken } from "./auth/token-service";
 import vehicleGroupRouter from "./routes/vehicle-groups";
 import vehicleTypeMasterRouter from "./routes/vehicle-type-master";
 import { ecoRoutesRouter } from "./routes/eco-routes";
