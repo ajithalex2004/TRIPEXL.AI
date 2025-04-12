@@ -25,6 +25,7 @@ import fuelTypesRouter from "./routes/fuel-types";
 import userEmployeeRouter from "./routes/user-employee-router";
 import bookingDebugRouter from "./routes/booking-debug";
 import bookingTestRouter from "./routes/booking-test";
+import { bookingDebugTraceRouter } from "./routes/booking-debug-trace";
 
 // Configure multer for handling file uploads
 const upload = multer({
