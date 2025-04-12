@@ -543,10 +543,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       // Verify the token
+      let decodedUserId: number;
       try {
-        // Accept either { userId, email } or { userId }
-        const decoded = jwt.verify(token, process.env.JWT_SECRET || 'dev-secret-key') as { userId: number, email?: string };
-        console.log(`[BOOKING-${debugId}] User authenticated. UserId: ${decoded.userId}, Email: ${decoded.email || 'not in token'}`);
+        // Check actual token format (we've determined the token only contains userId)
+        const decoded = jwt.verify(token, process.env.JWT_SECRET || 'dev-secret-key');
+        
+        // Extract userId from the decoded token, no matter what its structure is
+        if (typeof decoded === 'object' && decoded !== null) {
+          decodedUserId = (decoded as any).userId;
+          
+          if (!decodedUserId) {
+            console.log(`[BOOKING-${debugId}] ERROR: Token does not contain userId`, decoded);
+            return res.status(401).json({ error: "Invalid token format" });
+          }
+          
+          console.log(`[BOOKING-${debugId}] User authenticated with userId: ${decodedUserId}`);
+        } else {
+          console.log(`[BOOKING-${debugId}] ERROR: Token payload is not an object`, decoded);
+          return res.status(401).json({ error: "Invalid token format" });
+        }
       } catch (error) {
         console.log(`[BOOKING-${debugId}] ERROR: Invalid token`, error);
         return res.status(401).json({ error: "Invalid or expired token" });
