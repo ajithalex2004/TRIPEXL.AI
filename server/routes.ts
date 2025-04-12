@@ -6,7 +6,7 @@ import { schema } from "./db";
 import { log } from "./vite";
 // Import debug utils
 import { logBookingRequest, logBookingError } from "./debug/booking-debug";
-import { createToken, verifyToken } from "./auth/token-service";
+import { createToken, verifyToken, isValidTokenPayload } from "./auth/token-service";
 import vehicleGroupRouter from "./routes/vehicle-groups";
 import vehicleTypeMasterRouter from "./routes/vehicle-type-master";
 import { ecoRoutesRouter } from "./routes/eco-routes";
@@ -508,20 +508,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(401).json({ error: "Invalid authorization header" });
       }
       
-      // Verify the token using our token service
+      // Verify the token using our improved token service
       try {
+        // Enhanced debugging for token verification
+        console.log(`[BOOKINGS-GET] DEBUG: Token to verify:`, token.substring(0, 15) + '...');
+        console.log(`[BOOKINGS-GET] DEBUG: Using improved token-service`);
+        
+        // The token service now handles normalization of user IDs
         const decoded = verifyToken(token);
-        // Accept tokens with either userId or user_id field
-        if (!decoded || (!decoded.userId && !decoded.user_id)) {
-          console.log(`[BOOKINGS-GET] ERROR: Token missing userId`);
-          return res.status(401).json({ error: "Invalid token format" });
+        
+        // Check if the token has valid information
+        if (!isValidTokenPayload(decoded)) {
+          console.log(`[BOOKINGS-GET] ERROR: Invalid token payload:`, JSON.stringify(decoded));
+          return res.status(401).json({ error: "Invalid token format - missing user identifier" });
         }
         
-        const userId = decoded.userId || decoded.user_id;
-        console.log(`[BOOKINGS-GET] User authenticated with ID: ${userId}`);
+        // By now, userId should be normalized
+        console.log(`[BOOKINGS-GET] User authenticated with ID: ${decoded.userId}`);
       } catch (error) {
-        console.log(`[BOOKINGS-GET] ERROR: Invalid token`, error);
-        return res.status(401).json({ error: "Invalid or expired token" });
+        console.log(`[BOOKINGS-GET] ERROR: Token verification failed:`, error);
+        // More user-friendly error message
+        return res.status(401).json({ error: "Your session has expired. Please login again." });
       }
       
       try {
