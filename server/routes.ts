@@ -24,6 +24,7 @@ import { performanceRouter } from "./routes/performance-snapshot";
 import fuelTypesRouter from "./routes/fuel-types";
 import userEmployeeRouter from "./routes/user-employee-router";
 import bookingDebugRouter from "./routes/booking-debug";
+import bookingTestRouter from "./routes/booking-test";
 
 // Configure multer for handling file uploads
 const upload = multer({
@@ -993,6 +994,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
     log("Registering eco-routes...");
     app.use(ecoRoutesRouter);
     log("Eco-routes registered");
+    
+    // Add booking test router for diagnostics
+    log("Registering booking test router...");
+    app.use("/api/booking-test", bookingTestRouter);
+    log("Booking test router registered");
     
     // Add fuel types router
     log("Registering fuel types router...");
