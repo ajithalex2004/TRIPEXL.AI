@@ -1001,6 +1001,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
     app.use("/api/booking-test", bookingTestRouter);
     log("Booking test router registered");
     
+    // Register booking debug trace router for diagnosing issues
+    app.use("/api/booking-debug-trace", bookingDebugTraceRouter);
+    log("Booking debug trace router registered");
+    
     // Add fuel types router
     log("Registering fuel types router...");
     app.use("/api/fuel-types", fuelTypesRouter);

@@ -3,6 +3,7 @@ import { db } from '../db';
 import * as schema from '../../shared/schema';
 import { z } from 'zod';
 import jwt from 'jsonwebtoken';
+import { SQL, eq, sql } from 'drizzle-orm';
 
 const bookingDebugTraceRouter = Router();
 
@@ -77,11 +78,12 @@ bookingDebugTraceRouter.post('/insert-minimal-booking', async (req: Request, res
 
     try {
       // Attempt the insert
-      const [booking] = await db
+      const result = await db
         .insert(schema.bookings)
-        .values(minimalBooking)
+        .values([minimalBooking as any]) // Cast to any to bypass type checking for debug purposes
         .returning();
-
+      
+      const booking = result[0];
       console.log(`[BOOKING-DEBUG-${debugId}] SUCCESS - Created booking:`, booking.id);
       
       return res.status(201).json({
@@ -89,7 +91,7 @@ bookingDebugTraceRouter.post('/insert-minimal-booking', async (req: Request, res
         message: "Successfully created debug booking",
         booking
       });
-    } catch (insertError) {
+    } catch (insertError: any) { // Explicitly type as any for error handling
       console.error(`[BOOKING-DEBUG-${debugId}] INSERT ERROR:`, insertError);
       
       // Enhanced error reporting for database errors
@@ -107,11 +109,11 @@ bookingDebugTraceRouter.post('/insert-minimal-booking', async (req: Request, res
         constraint: insertError.constraint
       });
     }
-  } catch (error) {
+  } catch (error: any) {
     console.error(`[BOOKING-DEBUG-${debugId}] ERROR:`, error);
     return res.status(500).json({
       error: "Error during debug process",
-      message: error.message
+      message: error.message || "Unknown error"
     });
   }
 });
@@ -120,7 +122,7 @@ bookingDebugTraceRouter.post('/insert-minimal-booking', async (req: Request, res
 bookingDebugTraceRouter.get('/check-database', async (req: Request, res: Response) => {
   try {
     // Check if we can query the database
-    const [dbResult] = await db.execute(sql`SELECT 1 as value`);
+    const result = await db.execute(sql`SELECT 1 as value`);
     
     // Check if we can access the employees table
     const employeeCount = await db.select({ count: sql`count(*)` }).from(schema.employees);
@@ -128,16 +130,23 @@ bookingDebugTraceRouter.get('/check-database', async (req: Request, res: Respons
     // Check if we can access the bookings table
     const bookingCount = await db.select({ count: sql`count(*)` }).from(schema.bookings);
     
+    // Safely convert and parse the counts
+    const empCount = employeeCount[0] && employeeCount[0].count ? 
+                    parseInt(employeeCount[0].count.toString()) : 0;
+                    
+    const bkCount = bookingCount[0] && bookingCount[0].count ? 
+                   parseInt(bookingCount[0].count.toString()) : 0;
+    
     return res.status(200).json({
       database_connected: true,
-      employee_count: parseInt(employeeCount[0].count.toString()),
-      booking_count: parseInt(bookingCount[0].count.toString())
+      employee_count: empCount,
+      booking_count: bkCount
     });
-  } catch (error) {
+  } catch (error: any) {
     console.error("Database check error:", error);
     return res.status(500).json({
       database_connected: false,
-      error: error.message
+      error: error.message || "Unknown database error"
     });
   }
 });
@@ -156,11 +165,11 @@ bookingDebugTraceRouter.get('/last-bookings', async (req: Request, res: Response
       bookings_found: bookings.length,
       bookings
     });
-  } catch (error) {
+  } catch (error: any) {
     console.error("Error fetching recent bookings:", error);
     return res.status(500).json({
       error: "Failed to fetch bookings",
-      message: error.message
+      message: error.message || "Unknown error"
     });
   }
 });
