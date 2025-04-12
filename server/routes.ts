@@ -215,15 +215,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
           });
         }
 
-        // Generate token
-        const token = jwt.sign(
-          {
-            userId: user.id,
-            email: user.email_id
-          },
-          process.env.JWT_SECRET || 'dev-secret-key',
-          { expiresIn: '24h' }
-        );
+        // Generate token - using createToken from token-service.ts to maintain consistency
+        const token = createToken(user.id, user.email_id);
+        console.log(`Created token for user ${user.id} with email ${user.email_id}. Token: ${token.substring(0, 20)}...`);
 
         // Update last login
         await storage.updateUserLastLogin(user.id);
@@ -233,7 +227,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const { password: _, ...userData } = user;
         res.json({
           token,
-          user: userData,
+          ...userData, // Flattening the user data for backward compatibility
           message: "Login successful"
         });
       } catch (error: any) {
