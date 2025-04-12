@@ -671,13 +671,9 @@ export const bookings = pgTable("bookings", {
   booking_for_self: boolean("booking_for_self").default(false),
   passenger_details: json("passenger_details").$type<{ name: string; contact: string }[]>(),
 
-  // Location details
+  // Location details - only store as JSON objects, no separate lat/lng fields
   pickup_location: json("pickup_location").$type<z.infer<typeof locations>>().notNull(),
-  pickup_latitude: decimal("pickup_latitude", { precision: 10, scale: 6 }).notNull(), // Added field for direct lat access
-  pickup_longitude: decimal("pickup_longitude", { precision: 10, scale: 6 }).notNull(), // Added field for direct lng access
   dropoff_location: json("dropoff_location").$type<z.infer<typeof locations>>().notNull(),
-  dropoff_latitude: decimal("dropoff_latitude", { precision: 10, scale: 6 }).notNull(), // Added field for direct lat access
-  dropoff_longitude: decimal("dropoff_longitude", { precision: 10, scale: 6 }).notNull(), // Added field for direct lng access
   waypoints: json("waypoints").$type<z.infer<typeof locations>[]>().default([]),
   pickup_time: timestamp("pickup_time").notNull(), // Changed from text to timestamp
   dropoff_time: timestamp("dropoff_time").notNull(), // Changed from text to timestamp
@@ -745,12 +741,6 @@ export const insertBookingSchema = createInsertSchema(bookings)
     cargo_type: z.string().optional(), // Changed from enum for more flexibility
     box_size: z.array(z.string()).optional(), // Changed from enum for more flexibility
     employee_id: z.number().int().positive(), // Ensure employee_id is always an integer
-
-    // The following are direct lat/lng values for database storage
-    pickup_latitude: z.number(), // Explicit lat value for pickup location
-    pickup_longitude: z.number(), // Explicit lng value for pickup location
-    dropoff_latitude: z.number(), // Explicit lat value for dropoff location
-    dropoff_longitude: z.number(), // Explicit lng value for dropoff location
     
     // Time fields - ensuring they're parsed as proper dates
     pickup_time: z.coerce.date(), // Convert string dates to Date objects
