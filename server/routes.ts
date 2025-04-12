@@ -153,8 +153,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       try {
-        // Verify the token and get user ID
-        const decoded = jwt.verify(token, process.env.JWT_SECRET || 'dev-secret-key') as { userId: number, email: string };
+        // Verify the token and get user ID using token service
+        const decoded = verifyToken(token) as { userId: number, email: string };
         console.log(`[USER-GET] Token verified for user:`, decoded);
         
         // Retrieve user from database
@@ -253,8 +253,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       try {
-        // Verify the token
-        const decoded = jwt.verify(token, process.env.JWT_SECRET || 'dev-secret-key') as { userId: number, email: string };
+        // Verify the token using token service
+        const decoded = verifyToken(token) as { userId: number, email: string };
         
         // Get user information
         const user = await storage.getUser(decoded.userId);
@@ -508,9 +508,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(401).json({ error: "Invalid authorization header" });
       }
       
-      // Verify the token
+      // Verify the token using our token service
       try {
-        const decoded = jwt.verify(token, process.env.JWT_SECRET || 'dev-secret-key') as { userId: number, email: string };
+        const decoded = verifyToken(token) as { userId: number, email: string };
         console.log(`[BOOKINGS-GET] User authenticated: ${decoded.email}`);
       } catch (error) {
         console.log(`[BOOKINGS-GET] ERROR: Invalid token`, error);
@@ -551,11 +551,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.log(`[BOOKING-${debugId}] Token being verified:`, token.substring(0, 10) + '...');
       
       try {
-        // Check actual token format (we've determined the token only contains userId)
-        const secretKey = process.env.JWT_SECRET || 'dev-secret-key';
-        console.log(`[BOOKING-${debugId}] Using secret key:`, secretKey.substring(0, 3) + '...');
+        // Use our token service for consistent JWT verification
+        console.log(`[BOOKING-${debugId}] Verifying token using token service`);
         
-        const decoded = jwt.verify(token, secretKey);
+        const decoded = verifyToken(token);
         console.log(`[BOOKING-${debugId}] Decoded token:`, JSON.stringify(decoded));
         
         // Extract userId from the decoded token, no matter what its structure is
