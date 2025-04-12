@@ -308,15 +308,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
           });
         }
 
-        // Generate token
-        const token = jwt.sign(
-          {
-            userId: user.id,
-            email: user.email_id
-          },
-          process.env.JWT_SECRET || 'dev-secret-key',
-          { expiresIn: '24h' }
-        );
+        // Generate token using the token-service for consistency
+        const token = createToken(user.id, user.email_id);
+        console.log(`Created token for user ${user.id} with email ${user.email_id}. Token: ${token.substring(0, 20)}...`);
 
         // Update last login
         await storage.updateUserLastLogin(user.id);
@@ -394,16 +388,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
           name: user.full_name
         });
 
-        // Generate token for immediate login
-        const token = jwt.sign(
-          {
-            userId: user.id,
-            email: user.email_id,
-            userType: user.user_type
-          },
-          process.env.JWT_SECRET || 'dev-secret-key',
-          { expiresIn: '24h' }
-        );
+        // Generate token for immediate login using token-service for consistency
+        const token = createToken(user.id, user.email_id);
+        console.log(`Created token for new user ${user.id} with email ${user.email_id}. Token: ${token.substring(0, 20)}...`);
 
         res.status(201).json({
           message: "Registration successful",
