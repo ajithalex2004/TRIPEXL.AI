@@ -40,8 +40,8 @@ function BookingHistoryPage() {
 
   // Filter logic
   const filteredBookings = bookings?.filter((booking) => {
-    const matchesSearch = booking.referenceNo?.toLowerCase().includes(searchQuery.toLowerCase()) || !searchQuery;
-    const matchesType = typeFilter === "all" || booking.bookingType === typeFilter;
+    const matchesSearch = booking.reference_no?.toLowerCase().includes(searchQuery.toLowerCase()) || !searchQuery;
+    const matchesType = typeFilter === "all" || booking.booking_type === typeFilter;
     const matchesPurpose = purposeFilter === "all" || booking.purpose === purposeFilter;
     const matchesPriority = priorityFilter === "all" || booking.priority === priorityFilter;
 
@@ -197,22 +197,22 @@ function BookingHistoryPage() {
                               transition={{ duration: 0.2 }}
                               className="border-white/10 backdrop-blur-sm transition-all duration-200 hover:bg-background/40"
                             >
-                              <TableCell className="font-medium">{booking.referenceNo}</TableCell>
-                              <TableCell className="capitalize">{booking.bookingType}</TableCell>
+                              <TableCell className="font-medium">{booking.reference_no}</TableCell>
+                              <TableCell className="capitalize">{booking.booking_type}</TableCell>
                               <TableCell>{booking.purpose}</TableCell>
                               <TableCell>
                                 <div className="flex flex-col">
-                                  <span className="font-medium">{booking.pickupLocation.address}</span>
+                                  <span className="font-medium">{booking.pickup_location.address}</span>
                                   <span className="text-sm text-muted-foreground">
-                                    {format(new Date(booking.pickupTime), "MMM d, yyyy HH:mm")}
+                                    {booking.pickup_time ? format(new Date(booking.pickup_time), "MMM d, yyyy HH:mm") : "N/A"}
                                   </span>
                                 </div>
                               </TableCell>
                               <TableCell>
                                 <div className="flex flex-col">
-                                  <span className="font-medium">{booking.dropoffLocation.address}</span>
+                                  <span className="font-medium">{booking.dropoff_location.address}</span>
                                   <span className="text-sm text-muted-foreground">
-                                    {format(new Date(booking.dropoffTime), "MMM d, yyyy HH:mm")}
+                                    {booking.dropoff_time ? format(new Date(booking.dropoff_time), "MMM d, yyyy HH:mm") : "N/A"}
                                   </span>
                                 </div>
                               </TableCell>
@@ -247,7 +247,7 @@ function BookingHistoryPage() {
                                 </span>
                               </TableCell>
                               <TableCell className="text-muted-foreground">
-                                {format(new Date(booking.createdAt), "MMM d, yyyy HH:mm")}
+                                {format(new Date(booking.created_at), "MMM d, yyyy HH:mm")}
                               </TableCell>
                             </motion.tr>
                           ))
