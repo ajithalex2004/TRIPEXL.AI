@@ -154,9 +154,22 @@ bookingDebugTraceRouter.get('/check-database', async (req: Request, res: Respons
 // Add database helper for examining bookings
 bookingDebugTraceRouter.get('/last-bookings', async (req: Request, res: Response) => {
   try {
-    // Get the most recent bookings
+    // Get the most recent bookings (avoid fetching columns that don't exist)
     const bookings = await db
-      .select()
+      .select({
+        id: schema.bookings.id,
+        employee_id: schema.bookings.employee_id,
+        booking_type: schema.bookings.booking_type,
+        purpose: schema.bookings.purpose,
+        priority: schema.bookings.priority,
+        pickup_location: schema.bookings.pickup_location,
+        dropoff_location: schema.bookings.dropoff_location,
+        pickup_time: schema.bookings.pickup_time,
+        dropoff_time: schema.bookings.dropoff_time,
+        reference_no: schema.bookings.reference_no,
+        status: schema.bookings.status,
+        created_at: schema.bookings.created_at
+      })
       .from(schema.bookings)
       .orderBy(sql`${schema.bookings.created_at} DESC`)
       .limit(5);
