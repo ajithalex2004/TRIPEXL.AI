@@ -57,44 +57,76 @@ bookingDebugTraceRouter.post('/insert-minimal-booking', async (req: Request, res
     const pickup = { lat: 25.1234, lng: 55.1234 };
     const dropoff = { lat: 25.5678, lng: 55.5678 };
     
-    const minimalBooking = {
-      employee_id: employeeId,
-      booking_type: "passenger",
-      purpose: "general",
-      priority: "Normal",
-      pickup_location: {
-        address: "Test Address 1",
-        coordinates: pickup
-      },
-      dropoff_location: {
-        address: "Test Address 2",
-        coordinates: dropoff
-      },
-      // Use strings for time fields as the database actually has these as text (not timestamp)
-      pickup_time: "2025-04-12T12:00:00Z",
-      dropoff_time: "2025-04-12T13:00:00Z",
-      reference_no: `DEBUG-${debugId}`,
-      status: "new"
-      // Removed created_at and updated_at, they'll be auto-generated
-    };
-
-    console.log(`[BOOKING-DEBUG-${debugId}] Inserting minimal booking:`, JSON.stringify(minimalBooking, null, 2));
-
+    // To avoid issues with timestamp fields, we'll use raw SQL insertion
+    console.log(`[BOOKING-DEBUG-${debugId}] Using raw SQL insert to bypass schema validation issues`);
+    
     try {
-      // Attempt the insert
-      const result = await db
-        .insert(schema.bookings)
-        .values([minimalBooking as any]) // Cast to any to bypass type checking for debug purposes
-        .returning();
+      // Insert using raw SQL to bypass schema validation/conversion
+      const query = sql`
+        INSERT INTO bookings (
+          employee_id, booking_type, purpose, priority, 
+          pickup_location, dropoff_location, 
+          pickup_time, dropoff_time, reference_no, status
+        ) VALUES (
+          ${employeeId}, 'passenger', 'general', 'Normal',
+          ${JSON.stringify({
+            address: "Test Address 1",
+            coordinates: pickup
+          })}::json, 
+          ${JSON.stringify({
+            address: "Test Address 2",
+            coordinates: dropoff
+          })}::json,
+          '2025-04-12T12:00:00Z', '2025-04-12T13:00:00Z',
+          ${`DEBUG-${debugId}`}, 'new'
+        ) RETURNING *
+      `;
       
-      const booking = result[0];
-      console.log(`[BOOKING-DEBUG-${debugId}] SUCCESS - Created booking:`, booking.id);
+      console.log(`[BOOKING-DEBUG-${debugId}] Executing raw SQL insert`);
+      const result = await db.execute(query);
       
-      return res.status(201).json({
-        success: true,
-        message: "Successfully created debug booking",
-        booking
-      });
+      console.log(`[BOOKING-DEBUG-${debugId}] Raw SQL result:`, JSON.stringify(result));
+      
+      // For drizzle neon, the result might be in a different format
+      // Try different possible formats for the result
+      let booking = null;
+      
+      if (result && Array.isArray(result) && result.length > 0) {
+        // Format 1: Array of objects
+        booking = result[0];
+      } else if (result && typeof result === 'object' && result.rows && Array.isArray(result.rows) && result.rows.length > 0) {
+        // Format 2: { rows: [...] }
+        booking = result.rows[0];
+      } else if (result && typeof result === 'object' && Object.keys(result).length > 0) {
+        // Format 3: Direct object with booking data
+        booking = result;
+      }
+      
+      if (booking) {
+        console.log(`[BOOKING-DEBUG-${debugId}] SUCCESS - Created booking:`, booking.id || 'ID unknown');
+        
+        // Create a simple query to fetch the last created booking
+        const lastBooking = await db.select()
+          .from(schema.bookings)
+          .orderBy(sql`${schema.bookings.created_at} DESC`)
+          .limit(1);
+          
+        if (lastBooking && lastBooking.length > 0) {
+          return res.status(201).json({
+            success: true,
+            message: "Successfully created debug booking",
+            booking: lastBooking[0]
+          });
+        } else {
+          return res.status(201).json({
+            success: true,
+            message: "Booking was created but could not be retrieved",
+            booking
+          });
+        }
+      } else {
+        throw new Error("No booking was returned after insert");
+      }
     } catch (insertError: any) { // Explicitly type as any for error handling
       console.error(`[BOOKING-DEBUG-${debugId}] INSERT ERROR:`, insertError);
       
