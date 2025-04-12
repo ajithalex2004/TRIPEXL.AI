@@ -958,6 +958,12 @@ export function BookingForm() {
           
           console.log("Auth token available:", authToken ? "Yes" : "No");
           
+          // Add enhanced debugging to track the issue
+          console.log("ENHANCED DEBUG: Sending payload:", JSON.stringify(bookingData));
+          
+          // Display alert to show the request is being made
+          alert("Sending booking request to API...");
+          
           const testResponse = await fetch('/api/bookings', {
             method: 'POST',
             headers: {
@@ -968,11 +974,13 @@ export function BookingForm() {
           });
           
           console.log("STEP 2: Direct fetch API response status:", testResponse.status);
+          alert(`API Response status: ${testResponse.status}`);
           
           if (!testResponse.ok) {
             console.error("API request failed with status:", testResponse.status);
             const errorText = await testResponse.text();
             console.error("Error response:", errorText);
+            alert(`API Error: ${errorText}`);
             
             try {
               const errorJson = JSON.parse(errorText);
