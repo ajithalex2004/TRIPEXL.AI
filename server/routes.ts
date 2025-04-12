@@ -14,6 +14,7 @@ import multer from "multer";
 import { approvalWorkflowsRouter } from './routes/approval-workflows';
 import { insertBookingSchema, insertUserSchema, employees, bookings, insertEmployeeSchema, insertApprovalWorkflowSchema } from "@shared/schema";
 import bcrypt from "bcryptjs";
+import authTestRouter from "./routes/auth-test";
 import jwt from "jsonwebtoken";
 import XLSX from "xlsx";
 import nodemailer from "nodemailer";
@@ -128,6 +129,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
     // Approval workflows routes are registered later with the /api prefix
 
     app.use(mastersRouter); // Added mastersRouter
+    
+    // Add auth test routes
+    app.use("/api", authTestRouter);
+    log("Auth test routes registered");
     
     // Register user-employee mapping router
     log("Registering user-employee mapping routes...");

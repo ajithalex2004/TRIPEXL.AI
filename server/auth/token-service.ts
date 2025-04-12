@@ -1,7 +1,9 @@
 import jwt from 'jsonwebtoken';
 
 // Consistent secret key using const
+// Include direct debug output of what the secret actually is
 const JWT_SECRET = process.env.JWT_SECRET || 'dev-secret-key';
+console.log('JWT_SECRET is set:', !!JWT_SECRET, 'Type:', typeof JWT_SECRET, 'Length:', JWT_SECRET.length);
 
 // Interface for our token payloads
 export interface TokenPayload {
