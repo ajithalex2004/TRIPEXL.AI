@@ -231,7 +231,7 @@ function BookingHistoryPage() {
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      <AnimatePresence mode="wait">
+                      <AnimatePresence mode="sync">
                         {isLoading ? (
                           <TableRow>
                             <TableCell colSpan={8} className="text-center py-8">
@@ -254,12 +254,8 @@ function BookingHistoryPage() {
                           </TableRow>
                         ) : (
                           filteredBookings?.map((booking) => (
-                            <motion.tr
+                            <TableRow
                               key={booking.id}
-                              initial={{ opacity: 0, x: -20 }}
-                              animate={{ opacity: 1, x: 0 }}
-                              exit={{ opacity: 0, x: 20 }}
-                              transition={{ duration: 0.2 }}
                               className="border-white/10 backdrop-blur-sm transition-all duration-200 hover:bg-background/40"
                             >
                               <TableCell className="font-medium">{booking.reference_no}</TableCell>
@@ -324,7 +320,7 @@ function BookingHistoryPage() {
                                   ? format(new Date(booking.created_at), "MMM d, yyyy HH:mm") 
                                   : "No date available"}
                               </TableCell>
-                            </motion.tr>
+                            </TableRow>
                           ))
                         )}
                       </AnimatePresence>
