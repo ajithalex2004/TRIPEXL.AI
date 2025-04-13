@@ -400,22 +400,24 @@ function BookingHistoryPage() {
                   animate={{ opacity: 1 }}
                   transition={{ delay: 0.4, duration: 0.5 }}
                 >
-                  <Table>
-                    <TableHeader>
-                      <TableRow className="border-white/10 hover:bg-background/40">
-                        <TableHead className="text-primary/80">Reference No.</TableHead>
-                        <TableHead className="text-primary/80">Type</TableHead>
-                        <TableHead className="text-primary/80">Purpose</TableHead>
-                        <TableHead className="text-primary/80">Pickup</TableHead>
-                        <TableHead className="text-primary/80">Dropoff</TableHead>
-                        <TableHead className="text-primary/80">Priority</TableHead>
-                        <TableHead className="text-primary/80">Status</TableHead>
-                        <TableHead className="text-primary/80">Created At</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      <AnimatePresence mode="sync">
-                        {manualLoading ? (
+                  {/* Table wrapper with scrolling */}
+                  <div className="overflow-auto max-h-[500px] border border-white/10 rounded-md">
+                    <Table className="min-w-[900px]">
+                      <TableHeader className="sticky top-0 bg-background/80 backdrop-blur-md z-10">
+                        <TableRow className="border-white/10 hover:bg-background/40">
+                          <TableHead className="text-primary/80">Reference No.</TableHead>
+                          <TableHead className="text-primary/80">Type</TableHead>
+                          <TableHead className="text-primary/80">Purpose</TableHead>
+                          <TableHead className="text-primary/80 min-w-[200px]">Pickup</TableHead>
+                          <TableHead className="text-primary/80 min-w-[200px]">Dropoff</TableHead>
+                          <TableHead className="text-primary/80">Priority</TableHead>
+                          <TableHead className="text-primary/80">Status</TableHead>
+                          <TableHead className="text-primary/80">Created At</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        <AnimatePresence mode="sync">
+                          {manualLoading ? (
                           <TableRow>
                             <TableCell colSpan={8} className="text-center py-8">
                               <motion.div
@@ -522,6 +524,7 @@ function BookingHistoryPage() {
                       </AnimatePresence>
                     </TableBody>
                   </Table>
+                  </div>
                 </motion.div>
               </CardContent>
             </Card>
