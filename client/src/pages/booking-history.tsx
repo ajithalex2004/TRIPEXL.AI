@@ -23,7 +23,7 @@ import { BookingType, BookingPurpose, Priority } from "@shared/schema";
 import React, { useState, useEffect, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { VehicleLoadingIndicator } from "@/components/ui/vehicle-loading-indicator";
-import { Filter, Search } from "lucide-react";
+import { Filter, Search, Clock as ClockIcon } from "lucide-react";
 import { BookingForm } from "@/components/booking-form";
 
 function BookingHistoryPage() {
@@ -170,7 +170,8 @@ function BookingHistoryPage() {
     
     console.log(`Filtering ${manualBookings.length} manual bookings...`);
     
-    return manualBookings.filter((booking: Booking) => {
+    // First filter bookings based on search criteria
+    const filtered = manualBookings.filter((booking: Booking) => {
       try {
         // Debug each booking
         console.log(`Checking manual booking: ${booking.id} - ${booking.reference_no}`);
@@ -193,6 +194,17 @@ function BookingHistoryPage() {
         return false;
       }
     });
+    
+    // Then sort by created_at date in descending order (newest first)
+    return filtered.sort((a, b) => {
+      // Handle case where created_at might be null or undefined
+      if (!a.created_at) return 1; // null dates go to the end
+      if (!b.created_at) return -1;
+      
+      // Compare dates in descending order (newest first)
+      return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+    });
+    
   }, [manualBookings, searchQuery, typeFilter, purposeFilter, priorityFilter]);
   
   // Debug filtered bookings count
@@ -302,8 +314,12 @@ function BookingHistoryPage() {
             </Card>
             
             <Card className="backdrop-blur-xl bg-background/60 border border-white/10 shadow-2xl">
-              <CardHeader>
+              <CardHeader className="flex flex-row justify-between items-center">
                 <h3 className="text-lg font-medium text-primary/90">Booking History</h3>
+                <div className="text-xs text-muted-foreground flex items-center gap-1">
+                  <ClockIcon className="h-3 w-3" />
+                  <span>Sorted by newest first</span>
+                </div>
               </CardHeader>
               <CardContent>
                 {/* Search and Filters */}
