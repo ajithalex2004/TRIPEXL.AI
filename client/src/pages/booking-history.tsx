@@ -37,46 +37,47 @@ function BookingHistoryPage() {
     enabled: false // Temporarily disable this query
   });
   
+  // Define the loadBookings function outside useEffect so we can call it from buttons
+  const loadBookings = async () => {
+    try {
+      setManualLoading(true);
+      
+      const authToken = localStorage.getItem('auth_token');
+      if (!authToken) {
+        console.error("No auth token found! Please login first.");
+        return;
+      }
+      
+      console.log("Manually fetching bookings...");
+      
+      const response = await fetch('/api/bookings', {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${authToken}`
+        }
+      });
+      
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error("API Error:", errorText);
+        return;
+      }
+      
+      const data = await response.json();
+      console.log(`Manually loaded ${data.length} bookings`);
+      
+      // Set data to state
+      setManualBookings(data);
+    } catch (err) {
+      console.error("Manual fetch error:", err);
+    } finally {
+      setManualLoading(false);
+    }
+  };
+  
   // Manual fetch on component mount
   useEffect(() => {
-    async function loadBookings() {
-      try {
-        setManualLoading(true);
-        
-        const authToken = localStorage.getItem('auth_token');
-        if (!authToken) {
-          console.error("No auth token found! Please login first.");
-          return;
-        }
-        
-        console.log("Manually fetching bookings...");
-        
-        const response = await fetch('/api/bookings', {
-          method: 'GET',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${authToken}`
-          }
-        });
-        
-        if (!response.ok) {
-          const errorText = await response.text();
-          console.error("API Error:", errorText);
-          return;
-        }
-        
-        const data = await response.json();
-        console.log(`Manually loaded ${data.length} bookings`);
-        
-        // Set data to state
-        setManualBookings(data);
-      } catch (err) {
-        console.error("Manual fetch error:", err);
-      } finally {
-        setManualLoading(false);
-      }
-    }
-    
     loadBookings();
   }, []);
   
@@ -221,6 +222,85 @@ function BookingHistoryPage() {
           </TabsContent>
 
           <TabsContent value="history">
+            {/* Debugging Information Card */}
+            <Card className="backdrop-blur-xl bg-background/60 border border-white/10 shadow-2xl mb-4">
+              <CardHeader className="py-3 flex flex-row justify-between items-center">
+                <h3 className="text-sm font-medium text-primary/90 flex items-center gap-2">
+                  <div className="size-2 bg-yellow-500 rounded-full animate-pulse"></div>
+                  Debugging Information
+                </h3>
+                <div className="flex items-center gap-2">
+                  <button 
+                    onClick={testFetchBookings}
+                    className="px-3 py-1 bg-primary/10 hover:bg-primary/20 rounded-md text-xs font-medium transition-colors"
+                  >
+                    Test API
+                  </button>
+                  <button 
+                    onClick={() => loadBookings()}
+                    className="px-3 py-1 bg-primary/10 hover:bg-primary/20 rounded-md text-xs font-medium transition-colors"
+                    disabled={manualLoading}
+                  >
+                    Refresh Data
+                  </button>
+                </div>
+              </CardHeader>
+              <CardContent className="py-2 text-xs">
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <div className="space-y-1">
+                      <div className="flex justify-between">
+                        <span className="font-semibold">API Status:</span>
+                        <span className="text-green-500">Connected</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="font-semibold">Manual Bookings:</span>
+                        <span>{manualBookings?.length || 0} records</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="font-semibold">Filtered Bookings:</span>
+                        <span>{filteredBookings?.length || 0} records</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="font-semibold">Loading Status:</span>
+                        <span className={manualLoading ? "text-yellow-500" : "text-green-500"}>
+                          {manualLoading ? "Loading..." : "Ready"}
+                        </span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="font-semibold">Filter Active:</span>
+                        <span>
+                          {searchQuery || typeFilter !== "all" || purposeFilter !== "all" || priorityFilter !== "all" 
+                            ? "Yes" 
+                            : "No"}
+                        </span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="font-semibold">Last Updated:</span>
+                        <span>{new Date().toLocaleTimeString()}</span>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  {/* Sample booking data */}
+                  <div className="space-y-1">
+                    <div className="font-semibold mb-1">First Booking Sample:</div>
+                    {manualBookings && manualBookings.length > 0 ? (
+                      <div className="bg-gray-900/30 rounded-md p-2 overflow-auto h-24 text-[10px]">
+                        <pre>
+                          {JSON.stringify(manualBookings[0], null, 2)}
+                        </pre>
+                      </div>
+                    ) : (
+                      <div className="bg-gray-900/30 rounded-md p-2 text-center">
+                        No booking data available
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+            
             <Card className="backdrop-blur-xl bg-background/60 border border-white/10 shadow-2xl">
               <CardHeader>
                 <h3 className="text-lg font-medium text-primary/90">Booking History</h3>
@@ -353,7 +433,7 @@ function BookingHistoryPage() {
                             </TableCell>
                           </TableRow>
                         ) : (
-                          filteredBookings?.map((booking) => (
+                          filteredBookings?.map((booking: Booking) => (
                             <TableRow
                               key={booking.id}
                               className="border-white/10 backdrop-blur-sm transition-all duration-200 hover:bg-background/40"
