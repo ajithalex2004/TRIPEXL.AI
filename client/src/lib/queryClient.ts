@@ -132,23 +132,58 @@ export const getQueryFn: <T>(options: {
 }) => QueryFunction<T> =
   ({ on401: unauthorizedBehavior }) =>
   async ({ queryKey }) => {
+    const url = queryKey[0] as string;
+    
+    // Enhanced debugging for specific endpoints
+    const isBookingsEndpoint = url.includes('/bookings');
+    if (isBookingsEndpoint) {
+      console.log(`📊 Fetching data from bookings endpoint: ${url}`);
+    }
+    
     // Get token from localStorage
     const token = localStorage.getItem('auth_token');
+    if (!token) {
+      console.warn(`⚠️ No auth token found for request to: ${url}`);
+    }
+    
     const headers: Record<string, string> = {
+      "Content-Type": "application/json",
       ...(token ? { "Authorization": `Bearer ${token}` } : {})
     };
 
-    const res = await fetch(queryKey[0] as string, {
-      credentials: "include",
-      headers
-    });
+    try {
+      const res = await fetch(url, {
+        credentials: "include",
+        headers
+      });
 
-    if (unauthorizedBehavior === "returnNull" && res.status === 401) {
-      return null;
+      if (isBookingsEndpoint) {
+        console.log(`📊 Bookings API response status: ${res.status} ${res.statusText}`);
+      }
+
+      if (unauthorizedBehavior === "returnNull" && res.status === 401) {
+        console.warn(`🔒 Unauthorized access to ${url} - returning null as configured`);
+        return null;
+      }
+
+      await throwIfResNotOk(res);
+      
+      const data = await res.json();
+      
+      // Enhanced debugging for bookings
+      if (isBookingsEndpoint) {
+        const hasData = Array.isArray(data) && data.length > 0;
+        console.log(`📊 Bookings API returned ${hasData ? data.length : 0} records`);
+        if (hasData) {
+          console.log(`📊 First booking sample:`, data[0]);
+        }
+      }
+      
+      return data;
+    } catch (error) {
+      console.error(`🔥 Error fetching data from ${url}:`, error);
+      throw error;
     }
-
-    await throwIfResNotOk(res);
-    return await res.json();
   };
 
 export const queryClient = new QueryClient({

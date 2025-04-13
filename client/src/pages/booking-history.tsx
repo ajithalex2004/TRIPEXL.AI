@@ -27,23 +27,26 @@ import { Filter, Search } from "lucide-react";
 import { BookingForm } from "@/components/booking-form";
 
 function BookingHistoryPage() {
-  const { data: bookings, isLoading } = useQuery<Booking[]>({
+  const { data: bookings, isLoading, error } = useQuery<Booking[]>({
     queryKey: ["/api/bookings"],
   });
   
-  // Debug bookings data
+  // Enhanced Debug for bookings data
   console.log("BOOKINGS DATA:", bookings);
+  if (error) {
+    console.error("BOOKINGS QUERY ERROR:", error);
+  }
   
   // Add direct fetch test to check API response
   const testFetchBookings = async () => {
     try {
       const authToken = localStorage.getItem('auth_token');
       if (!authToken) {
-        alert("No auth token found! Please login first.");
+        console.error("No auth token found! Please login first.");
         return;
       }
       
-      alert("Testing direct fetch from /api/bookings...");
+      console.log("Testing direct fetch from /api/bookings...");
       
       const response = await fetch('/api/bookings', {
         method: 'GET',
@@ -55,21 +58,38 @@ function BookingHistoryPage() {
       
       const statusText = `API Response Status: ${response.status} ${response.statusText}`;
       console.log(statusText);
-      alert(statusText);
       
       if (!response.ok) {
         const errorText = await response.text();
         console.error("API Error:", errorText);
-        alert(`API Error: ${errorText}`);
         return;
       }
       
       const data = await response.json();
       console.log("DIRECT FETCH DATA:", data);
-      alert(`Found ${data.length} bookings in database. Check console for details.`);
+      console.log(`Found ${data.length} bookings in database`);
+      
+      // Verify the structure of pickup/dropoff locations 
+      if (data.length > 0) {
+        const firstBooking = data[0];
+        console.log("Sample booking:", firstBooking);
+        console.log("Pickup location type:", typeof firstBooking.pickup_location);
+        console.log("Dropoff location type:", typeof firstBooking.dropoff_location);
+        
+        // Check if the locations are formatted correctly
+        if (firstBooking.pickup_location && firstBooking.dropoff_location) {
+          console.log("Pickup location address:", firstBooking.pickup_location.address);
+          console.log("Dropoff location address:", firstBooking.dropoff_location.address);
+        } else {
+          console.error("Location data is missing or malformatted");
+        }
+        
+        // Check time fields
+        console.log("Pickup time:", firstBooking.pickup_time);
+        console.log("Dropoff time:", firstBooking.dropoff_time);
+      }
     } catch (error) {
       console.error("Test fetch error:", error);
-      alert(`Error testing API: ${error instanceof Error ? error.message : String(error)}`);
     }
   };
   
@@ -247,7 +267,11 @@ function BookingHistoryPage() {
                               <TableCell>{booking.purpose}</TableCell>
                               <TableCell>
                                 <div className="flex flex-col">
-                                  <span className="font-medium">{booking.pickup_location.address}</span>
+                                  <span className="font-medium">
+                                    {booking.pickup_location && booking.pickup_location.address 
+                                      ? booking.pickup_location.address 
+                                      : "Location not specified"}
+                                  </span>
                                   <span className="text-sm text-muted-foreground">
                                     {booking.pickup_time ? format(new Date(booking.pickup_time), "MMM d, yyyy HH:mm") : "N/A"}
                                   </span>
@@ -255,7 +279,11 @@ function BookingHistoryPage() {
                               </TableCell>
                               <TableCell>
                                 <div className="flex flex-col">
-                                  <span className="font-medium">{booking.dropoff_location.address}</span>
+                                  <span className="font-medium">
+                                    {booking.dropoff_location && booking.dropoff_location.address 
+                                      ? booking.dropoff_location.address 
+                                      : "Location not specified"}
+                                  </span>
                                   <span className="text-sm text-muted-foreground">
                                     {booking.dropoff_time ? format(new Date(booking.dropoff_time), "MMM d, yyyy HH:mm") : "N/A"}
                                   </span>
@@ -292,7 +320,9 @@ function BookingHistoryPage() {
                                 </span>
                               </TableCell>
                               <TableCell className="text-muted-foreground">
-                                {format(new Date(booking.created_at), "MMM d, yyyy HH:mm")}
+                                {booking.created_at 
+                                  ? format(new Date(booking.created_at), "MMM d, yyyy HH:mm") 
+                                  : "No date available"}
                               </TableCell>
                             </motion.tr>
                           ))
