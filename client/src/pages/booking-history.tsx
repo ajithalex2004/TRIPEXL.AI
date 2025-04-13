@@ -20,16 +20,73 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { format } from "date-fns";
 import type { Booking } from "@shared/schema";
 import { BookingType, BookingPurpose, Priority } from "@shared/schema";
-import { useState } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { VehicleLoadingIndicator } from "@/components/ui/vehicle-loading-indicator";
 import { Filter, Search } from "lucide-react";
 import { BookingForm } from "@/components/booking-form";
 
 function BookingHistoryPage() {
+  // Add a state for direct loading
+  const [manualBookings, setManualBookings] = useState<Booking[]>([]);
+  const [manualLoading, setManualLoading] = useState(false);
+  
+  // Disable React Query for debugging purposes
   const { data: bookings, isLoading, error } = useQuery<Booking[]>({
     queryKey: ["/api/bookings"],
+    enabled: false // Temporarily disable this query
   });
+  
+  // Manual fetch on component mount
+  useEffect(() => {
+    async function loadBookings() {
+      try {
+        setManualLoading(true);
+        
+        const authToken = localStorage.getItem('auth_token');
+        if (!authToken) {
+          console.error("No auth token found! Please login first.");
+          return;
+        }
+        
+        console.log("Manually fetching bookings...");
+        
+        const response = await fetch('/api/bookings', {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${authToken}`
+          }
+        });
+        
+        if (!response.ok) {
+          const errorText = await response.text();
+          console.error("API Error:", errorText);
+          return;
+        }
+        
+        const data = await response.json();
+        console.log(`Manually loaded ${data.length} bookings`);
+        
+        // Set data to state
+        setManualBookings(data);
+      } catch (err) {
+        console.error("Manual fetch error:", err);
+      } finally {
+        setManualLoading(false);
+      }
+    }
+    
+    loadBookings();
+  }, []);
+  
+  // Add manual success/error handling 
+  if (bookings) {
+    console.log("BOOKINGS QUERY SUCCESS - data count:", bookings.length || 0);
+    if (bookings.length > 0) {
+      console.log("FIRST 3 BOOKINGS:", bookings.slice(0, Math.min(3, bookings.length)));
+    }
+  }
   
   // Enhanced Debug for bookings data
   console.log("BOOKINGS DATA:", bookings);
@@ -103,15 +160,45 @@ function BookingHistoryPage() {
   const [priorityFilter, setPriorityFilter] = useState<string>("all");
   const [activeTab, setActiveTab] = useState("history");
 
-  // Filter logic
-  const filteredBookings = bookings?.filter((booking) => {
-    const matchesSearch = booking.reference_no?.toLowerCase().includes(searchQuery.toLowerCase()) || !searchQuery;
-    const matchesType = typeFilter === "all" || booking.booking_type === typeFilter;
-    const matchesPurpose = purposeFilter === "all" || booking.purpose === purposeFilter;
-    const matchesPriority = priorityFilter === "all" || booking.priority === priorityFilter;
-
-    return matchesSearch && matchesType && matchesPurpose && matchesPriority;
-  });
+  // Calculate filteredBookings from our manual bookings
+  const filteredBookings = useMemo(() => {
+    if (!manualBookings || !Array.isArray(manualBookings) || manualBookings.length === 0) {
+      console.log("No manual bookings data available or not an array");
+      return [];
+    }
+    
+    console.log(`Filtering ${manualBookings.length} manual bookings...`);
+    
+    return manualBookings.filter((booking: Booking) => {
+      try {
+        // Debug each booking
+        console.log(`Checking manual booking: ${booking.id} - ${booking.reference_no}`);
+        
+        // Check if all required fields exist
+        if (!booking.reference_no || !booking.booking_type || !booking.purpose || !booking.priority) {
+          console.warn("Booking missing required fields:", booking.id);
+          return false;
+        }
+        
+        // Apply filters
+        const matchesSearch = booking.reference_no?.toLowerCase().includes(searchQuery.toLowerCase()) || !searchQuery;
+        const matchesType = typeFilter === "all" || booking.booking_type === typeFilter;
+        const matchesPurpose = purposeFilter === "all" || booking.purpose === purposeFilter;
+        const matchesPriority = priorityFilter === "all" || booking.priority === priorityFilter;
+        
+        return matchesSearch && matchesType && matchesPurpose && matchesPriority;
+      } catch (err) {
+        console.error(`Error filtering booking ${booking.id}:`, err);
+        return false;
+      }
+    });
+  }, [manualBookings, searchQuery, typeFilter, purposeFilter, priorityFilter]);
+  
+  // Debug filtered bookings count
+  console.log("FILTERED BOOKINGS COUNT:", filteredBookings.length);
+  if (filteredBookings.length > 0) {
+    console.log("FIRST FILTERED BOOKING:", filteredBookings[0]);
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-background/50 via-background to-background/90 p-6">
@@ -232,7 +319,7 @@ function BookingHistoryPage() {
                     </TableHeader>
                     <TableBody>
                       <AnimatePresence mode="sync">
-                        {isLoading ? (
+                        {manualLoading ? (
                           <TableRow>
                             <TableCell colSpan={8} className="text-center py-8">
                               <motion.div
@@ -240,16 +327,29 @@ function BookingHistoryPage() {
                                 animate={{ opacity: 1, scale: 1 }}
                                 exit={{ opacity: 0, scale: 0.8 }}
                                 transition={{ duration: 0.5 }}
-                                className="flex justify-center"
+                                className="flex flex-col items-center gap-4"
                               >
                                 <VehicleLoadingIndicator size="lg" />
+                                <div className="text-sm text-muted-foreground">Loading bookings from database...</div>
                               </motion.div>
+                            </TableCell>
+                          </TableRow>
+                        ) : !manualBookings?.length ? (
+                          <TableRow>
+                            <TableCell colSpan={8} className="text-center py-8 text-muted-foreground">
+                              <div className="space-y-2">
+                                <div>No bookings found in database</div>
+                                <div className="text-xs opacity-70">Server returned empty bookings list</div>
+                              </div>
                             </TableCell>
                           </TableRow>
                         ) : !filteredBookings?.length ? (
                           <TableRow>
                             <TableCell colSpan={8} className="text-center py-8 text-muted-foreground">
-                              No bookings found
+                              <div className="space-y-2">
+                                <div>No bookings match your filters</div>
+                                <div className="text-xs opacity-70">{manualBookings.length} booking(s) available in database</div>
+                              </div>
                             </TableCell>
                           </TableRow>
                         ) : (
