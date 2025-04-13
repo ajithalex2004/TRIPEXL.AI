@@ -7,6 +7,7 @@ import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { LocationInput } from "@/components/location-input";
 import { UAELocationAutocomplete } from "@/components/uae-location-autocomplete";
+import { refreshBookings, switchToTab } from "@/lib/booking-refresh";
 import {
   Form,
   FormControl,
@@ -754,12 +755,25 @@ export function BookingForm() {
     }
   };
 
-  const handleSuccessDialogClose = () => {
+  const handleSuccessDialogClose = async () => {
     setShowSuccessDialog(false);
     setCurrentStep(1);
     form.reset();
-    setActiveTab("history");
-    setLocation("/booking-history");
+
+    // Refresh the bookings data in booking-history component
+    console.log("Refreshing bookings after successful creation...");
+    try {
+      // First refresh bookings data
+      await refreshBookings();
+      // Then switch to history tab
+      switchToTab("history");
+      // Navigate to the booking history page
+      setLocation("/booking-history");
+    } catch (error) {
+      console.error("Error refreshing bookings:", error);
+      // Still navigate even if refresh fails
+      setLocation("/booking-history");
+    }
   };
   
   // Handle booking preview confirmation
@@ -1021,6 +1035,14 @@ export function BookingForm() {
             title: "Booking created successfully",
             description: `Reference No: ${response.reference_no || "Generated"}`,
           });
+          
+          // Try to refresh the bookings data in the booking history component
+          try {
+            console.log("Attempting to refresh bookings data after creation...");
+            refreshBookings().catch(e => console.warn("Refresh warning:", e));
+          } catch (refreshError) {
+            console.warn("Non-critical error refreshing bookings:", refreshError);
+          }
           
           // Reset form and show success dialog
           setCreatedReferenceNo(response.reference_no || "Unknown");

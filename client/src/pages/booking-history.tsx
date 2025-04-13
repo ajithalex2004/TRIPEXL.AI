@@ -20,34 +20,18 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { format } from "date-fns";
 import type { Booking } from "@shared/schema";
 import { BookingType, BookingPurpose, Priority } from "@shared/schema";
-import React, { useState, useEffect, useMemo, useRef } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { VehicleLoadingIndicator } from "@/components/ui/vehicle-loading-indicator";
 import { Filter, Search, Clock as ClockIcon, RefreshCw } from "lucide-react";
 import { BookingForm } from "@/components/booking-form";
 import { Button } from "@/components/ui/button";
-
-// Create a global refresh function that can be called from other components
-let globalRefreshBookings: (() => Promise<void>) | null = null;
-
-/**
- * Manually refresh bookings from any component
- * This can be called after a new booking is created to update the history page
- */
-export const refreshBookingHistory = async (): Promise<void> => {
-  console.log("Global refresh bookings function called");
-  if (globalRefreshBookings) {
-    await globalRefreshBookings();
-    return;
-  }
-  console.warn("Global refresh function not available yet");
-};
+import { registerRefreshFunction, registerSetTabFunction } from "@/lib/booking-refresh";
 
 function BookingHistoryPage() {
   // Add a state for direct loading
   const [manualBookings, setManualBookings] = useState<Booking[]>([]);
   const [manualLoading, setManualLoading] = useState(false);
-  // Keep track of active tab and allow external components to set it
   const [activeTab, setActiveTab] = useState("history");
   
   // Disable React Query for debugging purposes
@@ -98,6 +82,17 @@ function BookingHistoryPage() {
   // Manual fetch on component mount
   useEffect(() => {
     loadBookings();
+
+    // Register the refresh and tab functions for global access
+    registerRefreshFunction(loadBookings);
+    registerSetTabFunction(setActiveTab);
+
+    // Cleanup when component unmounts
+    return () => {
+      // Clear the registrations to avoid memory leaks
+      registerRefreshFunction(() => Promise.resolve());
+      registerSetTabFunction(() => {});
+    };
   }, []);
   
   // Add manual success/error handling 
