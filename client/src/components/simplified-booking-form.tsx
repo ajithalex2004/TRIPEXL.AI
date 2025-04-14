@@ -1,6 +1,7 @@
 import * as React from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
+import * as z from "zod";
 import { insertBookingSchema, BookingType, Priority, BoxSize, TripType, BookingPurpose, CargoType } from "@shared/schema";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
@@ -94,11 +95,20 @@ export function SimplifiedBookingForm() {
   const bookingFormSchema = insertBookingSchema.extend({
     // For employee ID validation - ensure it's a valid number
     employee_id: z.union([
-      z.number().int().positive(),
-      z.string().refine(val => !isNaN(Number(val)) && Number(val) > 0, { 
-        message: "A valid employee ID is required" 
-      })
-    ]),
+      z.number().int().positive().transform(val => Number(val)), // Ensure it's always a number type
+      z.string()
+        .refine(val => !isNaN(Number(val)) && Number(val) > 0, { 
+          message: "A valid employee ID is required" 
+        })
+        .transform(val => Number(val)) // Convert string to number
+    ]).transform(val => {
+      console.log("🛠️ Schema transform - employee_id:", val, "Type:", typeof val);
+      const numVal = Number(val);
+      if (isNaN(numVal)) {
+        throw new Error("Invalid employee ID - must be a valid number");
+      }
+      return numVal;
+    }),
     // Add validation for UI fields that are not in the base schema
     employeeId: z.string().min(1, { message: "Employee ID is required" }),
     employeeName: z.string().min(1, { message: "Employee name is required" }),
@@ -287,9 +297,24 @@ export function SimplifiedBookingForm() {
         return;
       }
 
-      // Format the data for API submission
+      // Ensure employee ID is a proper number (not a string or other type)
+      const finalEmployeeId = Number(employeeId);
+      if (isNaN(finalEmployeeId) || !isFinite(finalEmployeeId)) {
+        console.error("🚀 BOOKING FORM - Final employee ID is not a valid number:", employeeId);
+        toast({
+          title: "Invalid employee ID",
+          description: "Please select a valid employee from the search box",
+          variant: "destructive"
+        });
+        setIsSubmitting(false);
+        return;
+      }
+      
+      console.log("🚀 BOOKING FORM - Final numeric employee ID:", finalEmployeeId, "Type:", typeof finalEmployeeId);
+            
+      // Format the data for API submission with special attention to the employee ID
       const bookingData = {
-        employee_id: employeeId, // Use the validated employee ID
+        employee_id: finalEmployeeId, // Use the validated numeric employee ID
         booking_type: data.bookingType,
         purpose: data.purpose,
         priority: data.priority,
@@ -478,39 +503,62 @@ export function SimplifiedBookingForm() {
                   <div className="mb-4">
                     <EmployeeEmailSearch 
                       onEmployeeFound={(employeeData) => {
-                        console.log("🚀 Employee found:", employeeData);
+                        console.log("🚀 Employee found:", JSON.stringify(employeeData, null, 2));
                         
                         // First identify which field contains the employee ID
                         let empId = null;
                         
+                        // Dump all fields for debugging
+                        console.log("EMPLOYEE DATA FIELDS:", Object.keys(employeeData));
+                        
                         // Try to get the internal database ID which is needed for the foreign key
                         if (employeeData?.id && typeof employeeData.id === 'number') {
                           empId = employeeData.id;
-                          console.log("🚀 Using internal database ID:", empId);
+                          console.log("🚀 Using internal database ID:", empId, "Type:", typeof empId);
                         } 
                         // Fallback to employee_id if available
                         else if (employeeData?.employee_id) {
-                          const idValue = Number(employeeData.employee_id);
-                          if (!isNaN(idValue)) {
-                            empId = idValue;
-                            console.log("🚀 Using employee_id field:", empId);
+                          // Try to convert to number if it's a string
+                          if (typeof employeeData.employee_id === 'string') {
+                            const idValue = parseInt(employeeData.employee_id, 10);
+                            if (!isNaN(idValue)) {
+                              empId = idValue;
+                              console.log("🚀 Converted string employee_id to number:", empId);
+                            } else {
+                              console.error("🚀 Failed to convert employee_id to number:", employeeData.employee_id);
+                            }
+                          } else if (typeof employeeData.employee_id === 'number') {
+                            empId = employeeData.employee_id;
+                            console.log("🚀 Using numeric employee_id field:", empId);
                           }
                         }
                         
                         // Make sure we have a valid employee ID
-                        if (empId !== null) {
-                          // Set both properties to ensure the form has the employee ID in all expected formats
-                          console.log("🚀 Setting employee_id to:", empId);
-                          console.log("🚀 Type of employee_id:", typeof empId);
+                        if (empId !== null && !isNaN(empId)) {
+                          // Log details for debugging
+                          console.log("🚀 Valid employee ID found:", {
+                            value: empId,
+                            type: typeof empId,
+                            isNumber: typeof empId === 'number',
+                            isInteger: Number.isInteger(empId),
+                            isFinite: isFinite(empId)
+                          });
                           
-                          // Set in snake_case format
-                          form.setValue("employee_id", empId, {
+                          // Ensure it's a proper number
+                          const numericId = Number(empId);
+                          
+                          // Set both properties to ensure the form has the employee ID in all expected formats
+                          console.log("🚀 Setting employee_id to:", numericId);
+                          console.log("🚀 Type of employee_id:", typeof numericId);
+                          
+                          // Set in snake_case format - ensure it's a number
+                          form.setValue("employee_id", numericId, {
                             shouldValidate: true,
                             shouldDirty: true
                           });
                           
-                          // Also set in camelCase format for compatibility
-                          form.setValue("employeeId", String(empId), {
+                          // Also set in camelCase format for compatibility - as string
+                          form.setValue("employeeId", String(numericId), {
                             shouldValidate: true,
                             shouldDirty: true
                           });
@@ -525,14 +573,29 @@ export function SimplifiedBookingForm() {
                           }
                           
                           console.log("🚀 Employee data successfully set:", {
-                            id: empId,
+                            id: numericId,
                             name: employeeName
                           });
                           
+                          // Log current form values
+                          console.log("🚀 Current form values:", form.getValues());
+                          
                           // Save complete employee data for reference
-                          setSelectedEmployee(employeeData);
+                          setSelectedEmployee({
+                            ...employeeData,
+                            id: numericId, // Ensure ID is a number in the stored object
+                          });
                         } else {
                           console.error("🚀 ERROR: Could not find valid employee ID in:", employeeData);
+                          // Try to look in all nested properties
+                          if (employeeData) {
+                            Object.entries(employeeData).forEach(([key, value]) => {
+                              console.log(`Property ${key}:`, value, "Type:", typeof value);
+                              if (key === 'id' || key === 'employee_id' || key.includes('id')) {
+                                console.log(`Potential ID field found: ${key} =`, value);
+                              }
+                            });
+                          }
                         }
                       }}
                     />
