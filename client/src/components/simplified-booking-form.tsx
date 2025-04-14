@@ -513,13 +513,9 @@ export function SimplifiedBookingForm() {
                         // Dump all fields for debugging
                         console.log("EMPLOYEE DATA FIELDS:", Object.keys(employeeData));
                         
-                        // Try to get the internal database ID which is needed for the foreign key
-                        if (employeeData?.id && typeof employeeData.id === 'number') {
-                          empId = employeeData.id;
-                          console.log("🚀 Using internal database ID:", empId, "Type:", typeof empId);
-                        } 
-                        // Fallback to employee_id if available
-                        else if (employeeData?.employee_id) {
+                        // IMPORTANT: Always prioritize using employee_id field, which is the actual employee ID
+                        // The 'id' field is the internal database record ID and should not be used for bookings
+                        if (employeeData?.employee_id) {
                           // Try to convert to number if it's a string
                           if (typeof employeeData.employee_id === 'string') {
                             const idValue = parseInt(employeeData.employee_id, 10);
@@ -533,6 +529,11 @@ export function SimplifiedBookingForm() {
                             empId = employeeData.employee_id;
                             console.log("🚀 Using numeric employee_id field:", empId);
                           }
+                        }
+                        // Only as a last resort fallback to internal id if employee_id is not available
+                        else if (employeeData?.id && typeof employeeData.id === 'number') {
+                          empId = employeeData.id;
+                          console.log("🚀 Using internal database ID as fallback:", empId, "Type:", typeof empId);
                         }
                         
                         // Make sure we have a valid employee ID
