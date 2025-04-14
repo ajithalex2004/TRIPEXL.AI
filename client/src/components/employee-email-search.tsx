@@ -120,16 +120,38 @@ export function EmployeeEmailSearch({
       refetchByEmail().then((result) => {
         setIsSearching(false);
         if (result.data) {
-          // Call the parent component's callback with the employee data
-          onEmployeeFound(result.data);
+          // Log the employee data for debugging
+          console.log("Employee data from email search:", result.data);
+          console.log("Employee ID (internal database ID):", result.data.id);
+          console.log("Employee ID (display ID):", result.data.employee_id);
+          
+          // Create a properly formatted employee data object
+          // IMPORTANT: Make sure we use the internal database ID (id) as the primary ID
+          // for database relations, not the display ID (employee_id)
+          const formattedData = {
+            // Internal database ID - crucial for database relations
+            id: result.data.id,
+            // Display ID - used for UI display purposes
+            employee_id: result.data.employee_id,
+            // Other employee fields
+            employee_name: result.data.employee_name,
+            email_id: result.data.email_id,
+            department: result.data.department,
+            designation: result.data.designation,
+            // Include any user mapping data
+            user: result.data.user
+          };
+          
+          // Call the parent component's callback with the properly formatted employee data
+          onEmployeeFound(formattedData);
           
           // Show success indicator briefly
           setEmployeeFound(true);
           
-          // Hide the success indicator after 3 seconds
+          // Hide the success indicator after 2 seconds (reduced from 3)
           setTimeout(() => {
             setEmployeeFound(false);
-          }, 3000);
+          }, 2000);
         }
       }).catch((error) => {
         setIsSearching(false);
@@ -191,15 +213,36 @@ export function EmployeeEmailSearch({
     refetchByEmail().then((result) => {
       setIsSearching(false);
       if (result.data) {
-        onEmployeeFound(result.data);
+        // Log the employee data for debugging
+        console.log("Email form submit - Employee data:", result.data);
+        console.log("Email form submit - Internal database ID:", result.data.id);
+        console.log("Email form submit - Display ID:", result.data.employee_id);
+        
+        // Create a properly formatted employee data object
+        const formattedData = {
+          // Internal database ID - crucial for database relations
+          id: result.data.id,
+          // Display ID - used for UI display purposes
+          employee_id: result.data.employee_id,
+          // Other employee fields
+          employee_name: result.data.employee_name,
+          email_id: result.data.email_id,
+          department: result.data.department,
+          designation: result.data.designation,
+          // Include any user mapping data
+          user: result.data.user
+        };
+        
+        // Call the parent component's callback with the formatted employee data
+        onEmployeeFound(formattedData);
         
         // Show success indicator briefly
         setEmployeeFound(true);
         
-        // Hide the success indicator after 3 seconds
+        // Hide the success indicator after 2 seconds (reduced from 3)
         setTimeout(() => {
           setEmployeeFound(false);
-        }, 3000);
+        }, 2000);
       }
     }).catch((error) => {
       setIsSearching(false);
@@ -218,14 +261,23 @@ export function EmployeeEmailSearch({
     refetchById().then((result) => {
       setIsSearching(false);
       if (result.data && result.data.employee) {
+        // Log the employee data for debugging
+        console.log("ID form submit - Employee data:", result.data.employee);
+        console.log("ID form submit - Internal database ID:", result.data.employee.id);
+        console.log("ID form submit - Display ID:", result.data.employee.employee_id);
+        
         // Format the employee data to match the expected structure
         const formattedData = {
+          // Internal database ID - crucial for database relations
           id: result.data.employee.id,
+          // Display ID - used for UI display purposes
           employee_id: result.data.employee.employee_id,
+          // Other employee fields
           employee_name: result.data.employee.employee_name,
           email_id: result.data.employee.email_id,
           department: result.data.employee.department,
           designation: result.data.employee.designation,
+          // Include any user mapping data
           user: result.data.user
         };
         
@@ -235,10 +287,10 @@ export function EmployeeEmailSearch({
         // Show success indicator briefly
         setEmployeeFound(true);
         
-        // Hide the success indicator after 3 seconds
+        // Hide the success indicator after 2 seconds (reduced from 3)
         setTimeout(() => {
           setEmployeeFound(false);
-        }, 3000);
+        }, 2000);
       }
     }).catch((error) => {
       setIsSearching(false);
