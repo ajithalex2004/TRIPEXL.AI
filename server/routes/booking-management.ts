@@ -27,9 +27,11 @@ bookingManagementRouter.post('/create', async (req: Request, res: Response) => {
     }
     
     // Validate request body
+    console.log('[BOOKING-CREATE] Validating request body against schema...');
     const validationResult = insertBookingSchema.safeParse(req.body);
     if (!validationResult.success) {
       console.log('[BOOKING-CREATE] Validation failed:', validationResult.error);
+      console.log('[BOOKING-CREATE] Validation errors:', JSON.stringify(validationResult.error.errors, null, 2));
       return res.status(400).json({
         success: false,
         message: 'Invalid booking data',
@@ -37,7 +39,9 @@ bookingManagementRouter.post('/create', async (req: Request, res: Response) => {
       });
     }
     
+    console.log('[BOOKING-CREATE] Validation successful');
     const bookingData = validationResult.data;
+    console.log('[BOOKING-CREATE] Parsed booking data:', JSON.stringify(bookingData, null, 2));
     
     // Generate a reference number if not provided
     if (!bookingData.reference_no) {
