@@ -97,8 +97,8 @@ export function SimplifiedBookingForm() {
       employee_id: "",
       employeeId: "",
       employeeName: "",
-      bookingType: BookingType.REGULAR,
-      purpose: BookingPurpose.CLIENT_MEETING,
+      bookingType: BookingType.PASSENGER,
+      purpose: BookingPurpose.HOSPITAL_VISIT,
       priority: Priority.NORMAL,
       pickupLocation: null,
       dropoffLocation: null,
@@ -126,13 +126,13 @@ export function SimplifiedBookingForm() {
   // Update form when location is selected
   React.useEffect(() => {
     if (pickupLocation) {
-      form.setValue("pickupLocation", pickupLocation, { shouldValidate: true });
+      form.setValue("pickupLocation", pickupLocation as any, { shouldValidate: true });
     }
   }, [pickupLocation, form]);
 
   React.useEffect(() => {
     if (dropoffLocation) {
-      form.setValue("dropoffLocation", dropoffLocation, { shouldValidate: true });
+      form.setValue("dropoffLocation", dropoffLocation as any, { shouldValidate: true });
     }
   }, [dropoffLocation, form]);
 
@@ -145,7 +145,7 @@ export function SimplifiedBookingForm() {
       4: ["pickupTime", "dropoffTime"]
     }[step] || [];
 
-    return await form.trigger(fields);
+    return await form.trigger(fields as any);
   };
 
   // Navigate between steps
@@ -356,12 +356,12 @@ export function SimplifiedBookingForm() {
                           const employeeIdValue = Number(employeeData.employee_id);
                           
                           if (!isNaN(employeeIdValue)) {
-                            form.setValue("employee_id", employeeIdValue, {
+                            form.setValue("employee_id", String(employeeIdValue) as any, {
                               shouldValidate: true,
                               shouldDirty: true
                             });
                             
-                            form.setValue("employeeId", employeeIdValue, {
+                            form.setValue("employeeId", String(employeeIdValue) as any, {
                               shouldValidate: true,
                               shouldDirty: true
                             });
@@ -509,7 +509,7 @@ export function SimplifiedBookingForm() {
                     )}
                   />
 
-                  {bookingType === BookingType.PASSENGER && (
+                  {bookingType === "passenger" && (
                     <>
                       <FormField
                         control={form.control}
@@ -552,7 +552,7 @@ export function SimplifiedBookingForm() {
                     </>
                   )}
 
-                  {bookingType === BookingType.FREIGHT && (
+                  {bookingType === "freight" && (
                     <>
                       <FormField
                         control={form.control}
@@ -652,10 +652,11 @@ export function SimplifiedBookingForm() {
                         <FormLabel>Pickup Location</FormLabel>
                         <FormControl>
                           <UAELocationAutocomplete
-                            onLocationSelected={(location) => {
+                            value={pickupLocation?.address || ""}
+                            placeholder="Enter pickup location"
+                            onLocationSelect={(location) => {
                               setPickupLocation(location);
                             }}
-                            defaultLocation={pickupLocation}
                           />
                         </FormControl>
                         <FormMessage />
@@ -671,10 +672,11 @@ export function SimplifiedBookingForm() {
                         <FormLabel>Dropoff Location</FormLabel>
                         <FormControl>
                           <UAELocationAutocomplete
-                            onLocationSelected={(location) => {
+                            value={dropoffLocation?.address || ""}
+                            placeholder="Enter dropoff location"
+                            onLocationSelect={(location) => {
                               setDropoffLocation(location);
                             }}
-                            defaultLocation={dropoffLocation}
                           />
                         </FormControl>
                         <FormMessage />
