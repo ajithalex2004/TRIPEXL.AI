@@ -195,7 +195,7 @@ export function SimplifiedBookingForm() {
         } : {}),
 
         // Freight-specific fields
-        ...(data.bookingType === BookingType.FREIGHT ? {
+        ...(data.bookingType === "freight" ? {
           cargo_type: data.cargoType,
           num_boxes: Number(data.numBoxes),
           weight: Number(data.weight),
