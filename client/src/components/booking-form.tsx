@@ -586,9 +586,23 @@ export function BookingForm() {
         return;
       }
       
-      // Check for employee data
-      if (!employee?.id) {
-        console.error("No employee ID available - this will cause booking creation to fail");
+      // Check for employee data - we can use either the selectedEmployee object or the employee prop
+      // First check in form data
+      let employeeIdForBooking = data.employee_id || data.employeeId;
+      
+      // Then check selectedEmployee (preferred source from email search)
+      if (!employeeIdForBooking && selectedEmployee?.id) {
+        employeeIdForBooking = Number(selectedEmployee.id);
+      }
+      
+      // Lastly check employee prop (might be from props)
+      if (!employeeIdForBooking && employee?.id) {
+        employeeIdForBooking = Number(employee.id);
+      }
+      
+      // Ensure we have a valid employee ID
+      if (!employeeIdForBooking || isNaN(Number(employeeIdForBooking))) {
+        console.error("No valid employee ID available - this will cause booking creation to fail");
         toast({
           title: "Missing Employee Information",
           description: "Please select an employee by searching with their email ID first.",
@@ -596,6 +610,10 @@ export function BookingForm() {
         });
         return;
       }
+      
+      // Convert to number for API submission
+      const finalEmployeeId = Number(employeeIdForBooking);
+      console.log("Using employee ID for booking:", finalEmployeeId, "Type:", typeof finalEmployeeId);
       
       // Prepare data for the confirmation preview
       const previewData = {
