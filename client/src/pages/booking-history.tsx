@@ -405,15 +405,10 @@ function BookingHistoryPage() {
         <Tabs defaultValue="history" value={activeTab} onValueChange={setActiveTab}>
           <div className="flex items-center justify-between mb-6">
             <h2 className="text-lg font-medium text-primary">Transport Management</h2>
-            <TabsList className="grid w-[400px] grid-cols-2">
-              <TabsTrigger value="new">New Booking</TabsTrigger>
+            <TabsList className="grid w-[200px] grid-cols-1">
               <TabsTrigger value="history">Booking History</TabsTrigger>
             </TabsList>
           </div>
-
-          <TabsContent value="new">
-            <SimplifiedBookingForm />
-          </TabsContent>
 
           <TabsContent value="history">
             {/* Debugging Information Card */}
