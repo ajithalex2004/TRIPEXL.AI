@@ -1422,9 +1422,9 @@ export function BookingForm() {
                           setSelectedEmployee(employeeData);
                           
                           // Extract all needed employee fields
-                          const databaseId = employeeData?.id;
-                          const displayEmployeeId = employeeData?.employee_id;
-                          const employeeName = employeeData?.employee_name;
+                          const databaseId = employeeData?.id; // Internal database ID (used for DB relationships)
+                          const displayEmployeeId = employeeData?.employee_id || employeeData?.employeeId; // Display employee ID (what users see)
+                          const employeeName = employeeData?.employee_name || employeeData?.employeeName;
                           
                           console.log("Employee field values:", {
                             databaseId,
@@ -1432,22 +1432,31 @@ export function BookingForm() {
                             employeeName
                           });
                           
+                          // Important distinction:
+                          // - 'employee_id' in DB schema is the internal DB relationship field (number)
+                          // - What users see as "Employee ID" is actually the displayEmployeeId
+
+                          // For the database relationship (employee_id in the DB schema)
                           if (databaseId) {
-                            // Always convert internal DB ID to number
-                            const employeeIdValue = Number(databaseId);
-                            if (!isNaN(employeeIdValue)) {
-                              // Set both formats of employee ID
-                              form.setValue("employee_id", employeeIdValue, {
-                                shouldValidate: true,
-                                shouldDirty: true,
-                                shouldTouch: true
-                              });
-                              form.setValue("employeeId", employeeIdValue, {
+                            const dbIdValue = Number(databaseId);
+                            if (!isNaN(dbIdValue)) {
+                              console.log("Setting internal DB ID for relationship:", dbIdValue);
+                              form.setValue("employee_id", dbIdValue, {
                                 shouldValidate: true,
                                 shouldDirty: true,
                                 shouldTouch: true
                               });
                             }
+                          }
+                          
+                          // For the display Employee ID (what users see)
+                          if (displayEmployeeId) {
+                            console.log("Setting display Employee ID:", displayEmployeeId);
+                            form.setValue("employeeId", displayEmployeeId, {
+                              shouldValidate: true,
+                              shouldDirty: true,
+                              shouldTouch: true
+                            });
                           }
                           
                           // Set employee name field
