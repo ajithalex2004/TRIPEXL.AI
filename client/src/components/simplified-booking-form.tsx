@@ -170,7 +170,24 @@ export function SimplifiedBookingForm() {
   const onSubmit = async (data: any) => {
     try {
       setIsSubmitting(true);
-      console.log("Submitting booking data:", data);
+      console.log("🚀 BOOKING FORM - Submitting booking data:", data);
+      console.log("🚀 BOOKING FORM - Employee ID:", data.employee_id || data.employeeId);
+      console.log("🚀 BOOKING FORM - Pickup Location:", data.pickupLocation);
+      console.log("🚀 BOOKING FORM - Dropoff Location:", data.dropoffLocation);
+
+      // Check authentication token first
+      const authToken = localStorage.getItem('auth_token');
+      console.log("🚀 BOOKING FORM - Auth token exists:", !!authToken);
+      
+      if (!authToken) {
+        console.error("🚀 BOOKING FORM - No auth token found!");
+        toast({
+          title: "Authentication error",
+          description: "Please log in again.",
+          variant: "destructive"
+        });
+        return;
+      }
 
       // Format the data for API submission
       const bookingData = {
@@ -203,18 +220,11 @@ export function SimplifiedBookingForm() {
         } : {})
       };
 
-      // Get the auth token
-      const authToken = localStorage.getItem('auth_token');
-      if (!authToken) {
-        toast({
-          title: "Authentication error",
-          description: "Please log in again.",
-          variant: "destructive"
-        });
-        return;
-      }
+      console.log("🚀 BOOKING FORM - Formatted booking data for API:", JSON.stringify(bookingData, null, 2));
+      console.log("🚀 BOOKING FORM - Sending to endpoint: /api/bookings");
 
       // Make the API request
+      console.log("🚀 BOOKING FORM - Starting API request...");
       const response = await fetch('/api/bookings', {
         method: 'POST',
         headers: {
@@ -224,16 +234,31 @@ export function SimplifiedBookingForm() {
         body: JSON.stringify(bookingData),
       });
 
-      console.log("API Response status:", response.status);
+      console.log("🚀 BOOKING FORM - API Response status:", response.status);
+      console.log("🚀 BOOKING FORM - API Response status text:", response.statusText);
 
+      // Handle error responses
       if (!response.ok) {
-        const errorText = await response.text();
-        console.error("API Error:", errorText);
-        throw new Error(errorText || "Failed to create booking");
+        const errorContentType = response.headers.get('content-type');
+        let errorDetails = '';
+        
+        if (errorContentType && errorContentType.includes('application/json')) {
+          const errorJson = await response.json();
+          errorDetails = JSON.stringify(errorJson);
+          console.error("🚀 BOOKING FORM - API Error (JSON):", errorJson);
+        } else {
+          errorDetails = await response.text();
+          console.error("🚀 BOOKING FORM - API Error (Text):", errorDetails);
+        }
+        
+        throw new Error(`API Error (${response.status}): ${errorDetails}`);
       }
 
+      // Handle successful response
       const responseData = await response.json();
-      console.log("Booking created successfully:", responseData);
+      console.log("🚀 BOOKING FORM - Booking created successfully:", responseData);
+      console.log("🚀 BOOKING FORM - Booking ID:", responseData.id);
+      console.log("🚀 BOOKING FORM - Reference No:", responseData.reference_no);
 
       // Show success message
       toast({
@@ -247,13 +272,18 @@ export function SimplifiedBookingForm() {
 
       // Refresh bookings data
       try {
+        console.log("🚀 BOOKING FORM - Refreshing bookings data...");
         await refreshBookings();
+        console.log("🚀 BOOKING FORM - Bookings data refreshed");
       } catch (refreshError) {
-        console.warn("Failed to refresh bookings:", refreshError);
+        console.warn("🚀 BOOKING FORM - Failed to refresh bookings:", refreshError);
       }
 
     } catch (error: any) {
-      console.error("Form submission error:", error);
+      console.error("🚀 BOOKING FORM - Form submission error:", error);
+      console.error("🚀 BOOKING FORM - Error details:", error.message);
+      console.error("🚀 BOOKING FORM - Error stack:", error.stack);
+      
       toast({
         title: "Error creating booking",
         description: error.message || "An unexpected error occurred",
