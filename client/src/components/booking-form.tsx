@@ -379,7 +379,7 @@ export function BookingForm() {
         });
         
         // CRITICAL DEBUGGING - Add auth token check
-        const token = localStorage.getItem('token');
+        const token = localStorage.getItem('auth_token');
         console.log("Auth token available:", token ? "Yes (length: " + token.length + ")" : "No");
         if (!token) {
           console.error("CRITICAL ERROR: No authentication token found in localStorage");
