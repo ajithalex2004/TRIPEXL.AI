@@ -96,6 +96,17 @@ export function Layout({ children }: { children: React.ReactNode }) {
                     </SidebarMenuButton>
                   </Link>
                 </SidebarMenuItem>
+                
+                <SidebarMenuItem>
+                  <Link href="/bookings-data">
+                    <SidebarMenuButton className="w-full text-white hover:bg-white/10 text-[15px] font-bold">
+                      <AnimatedIcon className="text-white">
+                        <Database className="w-4 h-4" />
+                      </AnimatedIcon>
+                      <span>Bookings Database</span>
+                    </SidebarMenuButton>
+                  </Link>
+                </SidebarMenuItem>
 
                 {/* Vehicle Management Section */}
                 <SidebarMenuItem>

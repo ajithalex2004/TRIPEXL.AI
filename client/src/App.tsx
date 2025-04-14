@@ -23,6 +23,7 @@ import FuelPricePage from "@/pages/fuel-price-page";
 import FuelManagementPage from "@/pages/fuel-management-page";
 import MapTestPage from "@/pages/map-test";
 import DebugPage from "@/pages/debug";
+import BookingsData from "@/pages/bookings-data";
 
 
 // Initialize QueryClient
@@ -83,6 +84,7 @@ function Router() {
       <Route path="/fuel-prices" component={() => <ProtectedRoute component={FuelPricePage} />} />
       <Route path="/fuel-management" component={() => <ProtectedRoute component={FuelManagementPage} />} />
       <Route path="/debug" component={() => <ProtectedRoute component={DebugPage} />} />
+      <Route path="/bookings-data" component={() => <ProtectedRoute component={BookingsData} />} />
 
       {/* 404 Route */}
       <Route component={NotFound} />
