@@ -27,7 +27,7 @@ import fuelTypesRouter from "./routes/fuel-types";
 import userEmployeeRouter from "./routes/user-employee-router";
 import bookingDebugRouter from "./routes/booking-debug";
 import bookingTestRouter from "./routes/booking-test";
-import { bookingDebugTraceRouter } from "./routes/booking-debug-trace";
+import bookingDebugTraceRouter from "./routes/booking-debug-trace";
 import bookingManagementRouter from "./routes/booking-management";
 
 // Configure multer for handling file uploads

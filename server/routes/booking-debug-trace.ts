@@ -1,229 +1,192 @@
-import { Router, Request, Response } from 'express';
-import { db } from '../db';
+import { Request, Response } from 'express';
+import { storage } from '../storage';
 import * as schema from '../../shared/schema';
-import { z } from 'zod';
-import jwt from 'jsonwebtoken';
-import { SQL, eq, sql } from 'drizzle-orm';
+import { verifyToken } from '../auth/token-service';
+import express from 'express';
 
-const bookingDebugTraceRouter = Router();
+// Create an Express router
+const router = express.Router();
 
-// This route will attempt to insert a bare-minimum booking record
-// to identify any issues with the database schema, constraints or validation
-bookingDebugTraceRouter.post('/insert-minimal-booking', async (req: Request, res: Response) => {
-  const debugId = Date.now().toString();
-  console.log(`[BOOKING-DEBUG-${debugId}] Attempting to insert minimal booking`);
-
-  // NOTE: Authentication check bypassed for debugging purposes
-  console.log(`[BOOKING-DEBUG-${debugId}] Authentication bypassed for debugging`);
+// Simple test endpoint to check authentication
+router.get('/auth-status', (req, res) => {
+  const token = req.headers.authorization?.split(' ')[1];
   
-  // Normally, we would verify the token, but for debugging we'll skip that
-  /*
-  const authHeader = req.headers.authorization;
-  if (!authHeader) {
-    return res.status(401).json({ error: "Authorization required" });
-  }
-
-  const token = authHeader.split(" ")[1];
   if (!token) {
-    return res.status(401).json({ error: "Invalid authorization header" });
+    return res.json({
+      authenticated: false,
+      tokenPresent: false,
+      message: 'No token provided'
+    });
   }
-
-  let user;
+  
   try {
-    user = jwt.verify(token, process.env.JWT_SECRET || 'dev-secret-key') as { userId: number, email: string };
-    console.log(`[BOOKING-DEBUG-${debugId}] Request from authenticated user: ${user.email}`);
-  } catch (error) {
-    return res.status(401).json({ error: "Invalid token" });
+    const decoded = verifyToken(token);
+    return res.json({
+      authenticated: true,
+      tokenPresent: true,
+      decodedToken: {
+        userId: decoded.userId,
+        email: decoded.email,
+        exp: decoded.exp,
+        iat: decoded.iat
+      },
+      tokenValidity: 'valid',
+      message: 'Token is valid'
+    });
+  } catch (err: any) {
+    return res.json({
+      authenticated: false,
+      tokenPresent: true,
+      tokenValidity: 'invalid',
+      error: err.message || 'Unknown token validation error',
+      message: 'Invalid token'
+    });
   }
-  */
+});
 
+// Test endpoint to check if booking payload is valid
+router.post('/validate-payload', (req, res) => {
+  console.log('Booking payload validation test');
+  console.log('Request body:', JSON.stringify(req.body, null, 2));
+  
+  // Check for required fields
+  const requiredFields = [
+    'employee_id', 'booking_type', 'purpose', 'priority',
+    'pickup_location', 'dropoff_location', 'pickup_time', 'dropoff_time'
+  ];
+  
+  const missingFields = requiredFields.filter(field => {
+    return req.body[field] === undefined || req.body[field] === null;
+  });
+  
+  // Check location structures
+  let locationErrors: string[] = [];
+  
+  if (req.body.pickup_location) {
+    if (!req.body.pickup_location.address) {
+      locationErrors.push('pickup_location.address is missing');
+    }
+    if (!req.body.pickup_location.coordinates) {
+      locationErrors.push('pickup_location.coordinates is missing');
+    } else {
+      if (typeof req.body.pickup_location.coordinates.lat !== 'number') {
+        locationErrors.push('pickup_location.coordinates.lat must be a number');
+      }
+      if (typeof req.body.pickup_location.coordinates.lng !== 'number') {
+        locationErrors.push('pickup_location.coordinates.lng must be a number');
+      }
+    }
+  }
+  
+  if (req.body.dropoff_location) {
+    if (!req.body.dropoff_location.address) {
+      locationErrors.push('dropoff_location.address is missing');
+    }
+    if (!req.body.dropoff_location.coordinates) {
+      locationErrors.push('dropoff_location.coordinates is missing');
+    } else {
+      if (typeof req.body.dropoff_location.coordinates.lat !== 'number') {
+        locationErrors.push('dropoff_location.coordinates.lat must be a number');
+      }
+      if (typeof req.body.dropoff_location.coordinates.lng !== 'number') {
+        locationErrors.push('dropoff_location.coordinates.lng must be a number');
+      }
+    }
+  }
+  
+  // Validate employee ID specifically
+  let employeeIdValue = req.body.employee_id !== undefined ? req.body.employee_id : req.body.employeeId;
+  let employeeIdError = null;
+  
+  if (employeeIdValue === undefined || employeeIdValue === null) {
+    employeeIdError = 'Employee ID is missing';
+  } else if (typeof employeeIdValue === 'string') {
+    const parsedId = parseInt(employeeIdValue.trim(), 10);
+    if (isNaN(parsedId)) {
+      employeeIdError = `Invalid employee ID format: "${employeeIdValue}" cannot be converted to a number`;
+    }
+  }
+  
+  return res.json({
+    payload: req.body,
+    isValid: missingFields.length === 0 && locationErrors.length === 0 && !employeeIdError,
+    missingFields,
+    locationErrors,
+    employeeIdError,
+    message: missingFields.length === 0 && locationErrors.length === 0 && !employeeIdError 
+      ? 'Payload is valid'
+      : 'Payload has validation errors'
+  });
+});
+
+// Test endpoint for employee ID validation
+router.get('/validate-employee/:id', async (req, res) => {
+  const employeeId = req.params.id;
+  
   try {
-    // Get a valid employee_id from the database
-    console.log(`[BOOKING-DEBUG-${debugId}] Fetching first available employee`);
-    const employees = await db.select().from(schema.employees).limit(1);
+    // Try to convert to number
+    const employeeIdNum = parseInt(employeeId, 10);
     
-    if (employees.length === 0) {
-      return res.status(500).json({ 
-        error: "No employees found in database",
-        message: "Cannot create test booking without employee records" 
+    if (isNaN(employeeIdNum)) {
+      return res.json({
+        isValid: false,
+        message: `Invalid employee ID format: "${employeeId}" is not a number`,
+        original: employeeId,
+        parsed: null
       });
     }
-
-    // Use the employee's internal ID for the foreign key
-    const employeeId = employees[0].id;
-    console.log(`[BOOKING-DEBUG-${debugId}] Using employee ID ${employeeId}`);
-
-    // Define the booking data directly - no separate lat/lng fields, only JSON objects
-    const pickup = { lat: 25.1234, lng: 55.1234 };
-    const dropoff = { lat: 25.5678, lng: 55.5678 };
     
-    const pickupLocation = JSON.stringify({
-      address: "Test Address 1",
-      coordinates: pickup
-    });
+    // Check if employee exists in database
+    // First try as internal ID
+    let employee = await storage.getEmployeeById(employeeIdNum);
     
-    const dropoffLocation = JSON.stringify({
-      address: "Test Address 2",
-      coordinates: dropoff
-    });
-    
-    console.log(`[BOOKING-DEBUG-${debugId}] Using correct JSON location format for database schema`);
-    
-    try {
-      // Insert using raw SQL to bypass schema validation/conversion
-      const query = sql`
-        INSERT INTO bookings (
-          employee_id, booking_type, purpose, priority, 
-          pickup_location, dropoff_location, 
-          pickup_time, dropoff_time, reference_no, status
-        ) VALUES (
-          ${employeeId}, 'passenger', 'general', 'Normal',
-          ${pickupLocation}::json, 
-          ${dropoffLocation}::json,
-          '2025-04-12T12:00:00Z', '2025-04-12T13:00:00Z',
-          ${`DEBUG-${debugId}`}, 'new'
-        ) RETURNING *
-      `;
-      
-      console.log(`[BOOKING-DEBUG-${debugId}] Executing raw SQL insert`);
-      const result = await db.execute(query);
-      
-      console.log(`[BOOKING-DEBUG-${debugId}] Raw SQL result:`, JSON.stringify(result));
-      
-      // For drizzle neon, the result might be in a different format
-      // Try different possible formats for the result
-      let booking = null;
-      
-      if (result && Array.isArray(result) && result.length > 0) {
-        // Format 1: Array of objects
-        booking = result[0];
-      } else if (result && typeof result === 'object' && result.rows && Array.isArray(result.rows) && result.rows.length > 0) {
-        // Format 2: { rows: [...] }
-        booking = result.rows[0];
-      } else if (result && typeof result === 'object' && Object.keys(result).length > 0) {
-        // Format 3: Direct object with booking data
-        booking = result;
-      }
-      
-      if (booking) {
-        console.log(`[BOOKING-DEBUG-${debugId}] SUCCESS - Created booking:`, booking.id || 'ID unknown');
-        
-        // Create a simple query to fetch the last created booking with reference_no matching our debug ID
-        const lastBooking = await db.select()
-          .from(schema.bookings)
-          .where(sql`${schema.bookings.reference_no} = ${`DEBUG-${debugId}`}`)
-          .limit(1);
-          
-        if (lastBooking && lastBooking.length > 0) {
-          return res.status(201).json({
-            success: true,
-            message: "Successfully created debug booking",
-            booking: lastBooking[0]
-          });
-        } else {
-          return res.status(201).json({
-            success: true,
-            message: "Booking was created but could not be retrieved",
-            booking
-          });
-        }
-      } else {
-        throw new Error("No booking was returned after insert");
-      }
-    } catch (insertError: any) { // Explicitly type as any for error handling
-      console.error(`[BOOKING-DEBUG-${debugId}] INSERT ERROR:`, insertError);
-      
-      // Enhanced error reporting for database errors
-      if (insertError.code) {
-        console.error(`[BOOKING-DEBUG-${debugId}] SQL Error Code:`, insertError.code);
-        console.error(`[BOOKING-DEBUG-${debugId}] SQL Error Detail:`, insertError.detail || "No details");
-        console.error(`[BOOKING-DEBUG-${debugId}] SQL Error Constraint:`, insertError.constraint || "No constraint info");
-      }
-      
-      return res.status(500).json({
-        error: "Database insert failed",
-        message: insertError.message,
-        code: insertError.code,
-        details: insertError.detail,
-        constraint: insertError.constraint
+    if (employee) {
+      return res.json({
+        isValid: true,
+        message: 'Employee found by internal ID',
+        employee: {
+          id: employee.id,
+          employee_id: employee.employee_id,
+          name: employee.employee_name,
+          email: employee.email_id
+        },
+        matchType: 'internal_id'
       });
     }
-  } catch (error: any) {
-    console.error(`[BOOKING-DEBUG-${debugId}] ERROR:`, error);
+    
+    // If not found by internal ID, try by display ID
+    const employeeByDisplayId = await storage.findEmployeeByEmployeeId(employeeId);
+    
+    if (employeeByDisplayId) {
+      return res.json({
+        isValid: true,
+        message: 'Employee found by display ID',
+        employee: {
+          id: employeeByDisplayId.id,
+          employee_id: employeeByDisplayId.employee_id,
+          name: employeeByDisplayId.employee_name,
+          email: employeeByDisplayId.email_id
+        },
+        matchType: 'display_id'
+      });
+    }
+    
+    return res.json({
+      isValid: false,
+      message: `No employee found with ID ${employeeId}`,
+      original: employeeId,
+      parsed: employeeIdNum
+    });
+  } catch (err: any) {
     return res.status(500).json({
-      error: "Error during debug process",
-      message: error.message || "Unknown error"
+      isValid: false,
+      message: 'Error validating employee ID',
+      error: err.message || 'Unknown employee validation error'
     });
   }
 });
 
-// This endpoint will help test database connectivity
-bookingDebugTraceRouter.get('/check-database', async (req: Request, res: Response) => {
-  try {
-    // Check if we can query the database
-    const result = await db.execute(sql`SELECT 1 as value`);
-    
-    // Check if we can access the employees table
-    const employeeCount = await db.select({ count: sql`count(*)` }).from(schema.employees);
-    
-    // Check if we can access the bookings table
-    const bookingCount = await db.select({ count: sql`count(*)` }).from(schema.bookings);
-    
-    // Safely convert and parse the counts
-    const empCount = employeeCount[0] && employeeCount[0].count ? 
-                    parseInt(employeeCount[0].count.toString()) : 0;
-                    
-    const bkCount = bookingCount[0] && bookingCount[0].count ? 
-                   parseInt(bookingCount[0].count.toString()) : 0;
-    
-    return res.status(200).json({
-      database_connected: true,
-      employee_count: empCount,
-      booking_count: bkCount
-    });
-  } catch (error: any) {
-    console.error("Database check error:", error);
-    return res.status(500).json({
-      database_connected: false,
-      error: error.message || "Unknown database error"
-    });
-  }
-});
+console.log("Booking debug trace router created");
 
-// Add database helper for examining bookings
-bookingDebugTraceRouter.get('/last-bookings', async (req: Request, res: Response) => {
-  try {
-    // Get the most recent bookings (avoid fetching columns that don't exist)
-    const bookings = await db
-      .select({
-        id: schema.bookings.id,
-        employee_id: schema.bookings.employee_id,
-        booking_type: schema.bookings.booking_type,
-        purpose: schema.bookings.purpose,
-        priority: schema.bookings.priority,
-        pickup_location: schema.bookings.pickup_location,
-        dropoff_location: schema.bookings.dropoff_location,
-        pickup_time: schema.bookings.pickup_time,
-        dropoff_time: schema.bookings.dropoff_time,
-        reference_no: schema.bookings.reference_no,
-        status: schema.bookings.status,
-        created_at: schema.bookings.created_at
-      })
-      .from(schema.bookings)
-      .orderBy(sql`${schema.bookings.created_at} DESC`)
-      .limit(5);
-    
-    return res.status(200).json({
-      bookings_found: bookings.length,
-      bookings
-    });
-  } catch (error: any) {
-    console.error("Error fetching recent bookings:", error);
-    return res.status(500).json({
-      error: "Failed to fetch bookings",
-      message: error.message || "Unknown error"
-    });
-  }
-});
-
-export { bookingDebugTraceRouter };
+// Export the router
+export default router;
