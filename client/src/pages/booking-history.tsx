@@ -23,11 +23,24 @@ import { BookingType, BookingPurpose, Priority } from "@shared/schema";
 import React, { useState, useEffect, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { VehicleLoadingIndicator } from "@/components/ui/vehicle-loading-indicator";
-import { Filter, Search, Clock as ClockIcon, RefreshCw } from "lucide-react";
+import { Filter, Search, Clock as ClockIcon, RefreshCw, Trash2, Check, AlertTriangle } from "lucide-react";
 import { BookingForm } from "@/components/booking-form";
 import { SimplifiedBookingForm } from "@/components/simplified-booking-form";
 import { Button } from "@/components/ui/button";
 import { registerRefreshFunction, registerSetTabFunction } from "@/lib/booking-refresh";
+import { Checkbox } from "@/components/ui/checkbox";
+import { useToast } from "@/hooks/use-toast";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 
 function BookingHistoryPage() {
   // Add a state for direct loading
@@ -174,6 +187,12 @@ function BookingHistoryPage() {
   const [typeFilter, setTypeFilter] = useState<string>("all");
   const [purposeFilter, setPurposeFilter] = useState<string>("all");
   const [priorityFilter, setPriorityFilter] = useState<string>("all");
+  
+  // Add states for selected bookings and deletion
+  const [selectedBookings, setSelectedBookings] = useState<number[]>([]);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const { toast } = useToast();
 
   // Calculate filteredBookings from our manual bookings
   const filteredBookings = useMemo(() => {
@@ -226,6 +245,97 @@ function BookingHistoryPage() {
   if (filteredBookings.length > 0) {
     console.log("FIRST FILTERED BOOKING:", filteredBookings[0]);
   }
+
+  // Handler to select/deselect all bookings
+  const handleSelectAll = () => {
+    if (selectedBookings.length === filteredBookings.length) {
+      // If all are selected, deselect all
+      setSelectedBookings([]);
+    } else {
+      // Otherwise, select all
+      const allBookingIds = filteredBookings.map(booking => booking.id);
+      setSelectedBookings(allBookingIds);
+    }
+  };
+
+  // Handler to select/deselect individual booking
+  const handleSelectBooking = (bookingId: number) => {
+    if (selectedBookings.includes(bookingId)) {
+      // If already selected, remove it
+      setSelectedBookings(selectedBookings.filter(id => id !== bookingId));
+    } else {
+      // Otherwise, add it
+      setSelectedBookings([...selectedBookings, bookingId]);
+    }
+  };
+
+  // Function to delete selected bookings
+  const deleteSelectedBookings = async () => {
+    try {
+      setIsDeleting(true);
+      const authToken = localStorage.getItem('auth_token');
+      if (!authToken) {
+        toast({
+          title: "Authentication Error",
+          description: "You must be logged in to delete bookings.",
+          variant: "destructive"
+        });
+        return;
+      }
+
+      // Make sure we have bookings to delete
+      if (selectedBookings.length === 0) {
+        toast({
+          title: "No bookings selected",
+          description: "Please select at least one booking to delete.",
+          variant: "destructive"
+        });
+        return;
+      }
+
+      const response = await fetch('/api/booking-management/delete-multiple', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${authToken}`
+        },
+        body: JSON.stringify({ bookingIds: selectedBookings })
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error("API Error:", errorText);
+        toast({
+          title: "Error deleting bookings",
+          description: "There was a problem deleting the selected bookings.",
+          variant: "destructive"
+        });
+        return;
+      }
+
+      // Show success message
+      toast({
+        title: "Bookings deleted",
+        description: `Successfully deleted ${selectedBookings.length} booking(s).`,
+        variant: "default"
+      });
+
+      // Clear selected bookings and reload the list
+      setSelectedBookings([]);
+      loadBookings();
+      
+    } catch (err) {
+      console.error("Error deleting bookings:", err);
+      toast({
+        title: "Error",
+        description: "An unexpected error occurred while deleting bookings.",
+        variant: "destructive"
+      });
+    } finally {
+      setIsDeleting(false);
+      setIsDialogOpen(false);
+    }
+  };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-background/50 via-background to-background/90 p-6">
@@ -419,6 +529,14 @@ function BookingHistoryPage() {
                     <Table className="min-w-[900px]">
                       <TableHeader className="sticky top-0 bg-background/80 backdrop-blur-md z-10">
                         <TableRow className="border-white/10 hover:bg-background/40">
+                          <TableHead className="w-[50px] text-primary/80">
+                            <Checkbox 
+                              checked={filteredBookings.length > 0 && selectedBookings.length === filteredBookings.length}
+                              onCheckedChange={handleSelectAll}
+                              aria-label="Select all bookings"
+                              className="data-[state=checked]:bg-primary"
+                            />
+                          </TableHead>
                           <TableHead className="text-primary/80">Reference No.</TableHead>
                           <TableHead className="text-primary/80">Type</TableHead>
                           <TableHead className="text-primary/80">Purpose</TableHead>
@@ -427,13 +545,14 @@ function BookingHistoryPage() {
                           <TableHead className="text-primary/80">Priority</TableHead>
                           <TableHead className="text-primary/80">Status</TableHead>
                           <TableHead className="text-primary/80">Created At</TableHead>
+                          <TableHead className="text-primary/80 w-[80px]">Actions</TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
                         <AnimatePresence mode="sync">
                           {manualLoading ? (
                           <TableRow>
-                            <TableCell colSpan={8} className="text-center py-8">
+                            <TableCell colSpan={10} className="text-center py-8">
                               <motion.div
                                 initial={{ opacity: 0, scale: 0.8 }}
                                 animate={{ opacity: 1, scale: 1 }}
@@ -448,7 +567,7 @@ function BookingHistoryPage() {
                           </TableRow>
                         ) : !manualBookings?.length ? (
                           <TableRow>
-                            <TableCell colSpan={8} className="text-center py-8 text-muted-foreground">
+                            <TableCell colSpan={10} className="text-center py-8 text-muted-foreground">
                               <div className="space-y-2">
                                 <div>No bookings found in database</div>
                                 <div className="text-xs opacity-70">Server returned empty bookings list</div>
@@ -457,7 +576,7 @@ function BookingHistoryPage() {
                           </TableRow>
                         ) : !filteredBookings?.length ? (
                           <TableRow>
-                            <TableCell colSpan={8} className="text-center py-8 text-muted-foreground">
+                            <TableCell colSpan={10} className="text-center py-8 text-muted-foreground">
                               <div className="space-y-2">
                                 <div>No bookings match your filters</div>
                                 <div className="text-xs opacity-70">{manualBookings.length} booking(s) available in database</div>
@@ -470,6 +589,14 @@ function BookingHistoryPage() {
                               key={booking.id}
                               className="border-white/10 backdrop-blur-sm transition-all duration-200 hover:bg-background/40"
                             >
+                              <TableCell>
+                                <Checkbox 
+                                  checked={selectedBookings.includes(booking.id)}
+                                  onCheckedChange={(checked) => handleSelectBooking(booking.id, !!checked)}
+                                  aria-label={`Select booking ${booking.reference_no}`}
+                                  className="data-[state=checked]:bg-primary"
+                                />
+                              </TableCell>
                               <TableCell className="font-medium">{booking.reference_no}</TableCell>
                               <TableCell className="capitalize">{booking.booking_type}</TableCell>
                               <TableCell>{booking.purpose}</TableCell>
@@ -531,6 +658,17 @@ function BookingHistoryPage() {
                                 {booking.created_at 
                                   ? format(new Date(booking.created_at), "MMM d, yyyy HH:mm") 
                                   : "No date available"}
+                              </TableCell>
+                              <TableCell>
+                                <Button 
+                                  variant="ghost" 
+                                  size="icon" 
+                                  className="text-destructive hover:text-destructive/80 hover:bg-destructive/20"
+                                  onClick={() => handleDeleteSingleBooking(booking.id)}
+                                  aria-label={`Delete booking ${booking.reference_no}`}
+                                >
+                                  <Trash className="h-4 w-4" />
+                                </Button>
                               </TableCell>
                             </TableRow>
                           ))
