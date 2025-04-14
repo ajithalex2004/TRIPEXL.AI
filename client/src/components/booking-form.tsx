@@ -378,7 +378,23 @@ export function BookingForm() {
           description: "Please wait while we process your booking request...",
         });
         
+        // CRITICAL DEBUGGING - Add auth token check
+        const token = localStorage.getItem('token');
+        console.log("Auth token available:", token ? "Yes (length: " + token.length + ")" : "No");
+        if (!token) {
+          console.error("CRITICAL ERROR: No authentication token found in localStorage");
+          throw new Error("Authentication token missing. Please log in again.");
+        }
+        
         console.log("Sending API request to /api/bookings with data:", JSON.stringify(data, null, 2));
+        
+        // Log complete headers being sent for debugging
+        console.log("API request headers:", {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token.substring(0, 10)}...`
+        });
+        
+        // Regular API request using our helper
         const response = await apiRequest("POST", "/api/bookings", data);
         console.log("%c Booking API response status:", "font-weight: bold;", response.status, response.statusText);
         
