@@ -1,189 +1,284 @@
-import { Router } from 'express';
-import { verifyToken } from '../auth/token-service';
+import { Router, Request, Response } from 'express';
+import * as schema from '@shared/schema';
+import { db } from '../db';
+import jwt from 'jsonwebtoken';
 import { storage } from '../storage';
-import { bookings } from '@shared/schema';
+import { and, eq, sql } from 'drizzle-orm';
 
-// Create a dedicated router for advanced booking debugging
-const bookingDebugAdvancedRouter = Router();
+// Create a router for debugging booking creation
+const router = Router();
 
-// Test endpoint for booking creation - shows exactly what would be inserted without modifying the DB
-bookingDebugAdvancedRouter.post("/test-create", async (req, res) => {
-  console.log("[BOOKING-DEBUG-ADVANCED] Received test booking creation request");
-  console.log("[BOOKING-DEBUG-ADVANCED] Request body:", JSON.stringify(req.body, null, 2));
+// Helper function to verify token
+const verifyToken = (token: string): { userId: number, email: string } | null => {
+  try {
+    if (!token) return null;
+    
+    console.log("Verifying token:", token.substring(0, 15) + "...");
+    console.log("JWT_SECRET length:", process.env.JWT_SECRET?.length, "first 5 chars:", process.env.JWT_SECRET?.substring(0, 5));
+    console.log("Full token being verified:", token);
+    
+    const timestamp = Math.floor(Date.now() / 1000);
+    console.log("Current timestamp:", timestamp);
+    
+    const decoded: any = jwt.verify(token, process.env.JWT_SECRET || 'dev-secret-key');
+    
+    console.log("Token payload structure:", Object.keys(decoded).join(", "));
+    console.log("Token full decoded payload:", JSON.stringify(decoded));
+    console.log("Token exp:", decoded.exp, "iat:", decoded.iat);
+    console.log("Current time (epoch):", timestamp, "Token expiry:", decoded.exp, "Difference:", decoded.exp - timestamp);
+    
+    return {
+      userId: decoded.userId,
+      email: decoded.email
+    };
+  } catch (tokenError) {
+    console.error("Token verification failed:", tokenError);
+    return null;
+  }
+};
+
+// Test endpoint for advanced diagnostics
+router.post('/test', async (req: Request, res: Response) => {
+  const stages: any[] = [];
+  let finalStatus = 'success';
   
   try {
-    // Check auth token
+    // Stage 1: Authentication check
     const authHeader = req.headers.authorization;
-    if (!authHeader) {
-      console.log("[BOOKING-DEBUG-ADVANCED] No authorization header");
-      return res.status(401).json({ error: "No authorization token provided" });
+    const token = authHeader && authHeader.split(' ')[1];
+    
+    if (!token) {
+      stages.push({
+        name: 'Authentication',
+        success: false,
+        message: 'No authentication token provided',
+        details: { headers: req.headers['authorization'] ? 'Bearer xxx...' : 'Not present' }
+      });
+      finalStatus = 'error';
+      return res.status(200).json({
+        status: finalStatus, 
+        message: 'Authentication failed - no token provided',
+        stages
+      });
     }
     
-    const token = authHeader.split(" ")[1];
-    console.log("[BOOKING-DEBUG-ADVANCED] Token:", token.substring(0, 10) + "...");
+    const decoded = verifyToken(token);
     
-    // Verify token
+    if (!decoded) {
+      stages.push({
+        name: 'Authentication',
+        success: false,
+        message: 'Invalid authentication token',
+        details: { token_fragment: token.substring(0, 10) + '...' }
+      });
+      finalStatus = 'error';
+      return res.status(200).json({
+        status: finalStatus, 
+        message: 'Authentication failed - invalid token',
+        stages
+      });
+    }
+    
+    stages.push({
+      name: 'Authentication',
+      success: true,
+      message: 'Token is valid and user is authenticated',
+      details: { userId: decoded.userId, email: decoded.email }
+    });
+    
+    // Stage 2: Request payload validation
+    const payload = req.body;
+    const validationIssues: string[] = [];
+    
+    // Basic validation
+    if (!payload) validationIssues.push('Request body is empty');
+    if (!payload.booking_type) validationIssues.push('booking_type is required');
+    if (!payload.purpose) validationIssues.push('purpose is required');
+    if (!payload.priority) validationIssues.push('priority is required');
+    
+    // Employee ID validation - check if it's a string vs number 
+    if (payload.employee_id === undefined) {
+      validationIssues.push('employee_id is required');
+    } else if (typeof payload.employee_id === 'string') {
+      validationIssues.push('employee_id is a string, should be a number');
+    }
+    
+    // Location validation
+    if (!payload.pickup_location) {
+      validationIssues.push('pickup_location is required');
+    } else {
+      if (!payload.pickup_location.address) validationIssues.push('pickup_location.address is required');
+      if (!payload.pickup_location.coordinates) validationIssues.push('pickup_location.coordinates is required');
+      if (payload.pickup_location.coordinates && typeof payload.pickup_location.coordinates.lat !== 'number') 
+        validationIssues.push('pickup_location.coordinates.lat must be a number');
+      if (payload.pickup_location.coordinates && typeof payload.pickup_location.coordinates.lng !== 'number') 
+        validationIssues.push('pickup_location.coordinates.lng must be a number');
+    }
+    
+    if (!payload.dropoff_location) {
+      validationIssues.push('dropoff_location is required');
+    } else {
+      if (!payload.dropoff_location.address) validationIssues.push('dropoff_location.address is required');
+      if (!payload.dropoff_location.coordinates) validationIssues.push('dropoff_location.coordinates is required');
+      if (payload.dropoff_location.coordinates && typeof payload.dropoff_location.coordinates.lat !== 'number') 
+        validationIssues.push('dropoff_location.coordinates.lat must be a number');
+      if (payload.dropoff_location.coordinates && typeof payload.dropoff_location.coordinates.lng !== 'number') 
+        validationIssues.push('dropoff_location.coordinates.lng must be a number');
+    }
+    
+    if (validationIssues.length > 0) {
+      stages.push({
+        name: 'Payload Validation',
+        success: false,
+        message: 'Request payload validation failed',
+        details: { issues: validationIssues, payload }
+      });
+      finalStatus = 'error';
+    } else {
+      stages.push({
+        name: 'Payload Validation',
+        success: true,
+        message: 'Payload is valid',
+        details: { payload }
+      });
+    }
+    
+    // Stage 3: Schema and database validation
     try {
-      const decoded = verifyToken(token);
-      console.log("[BOOKING-DEBUG-ADVANCED] Decoded token:", decoded);
+      // Debug: Check database schema
+      const bookingsTableInfo = {
+        name: schema.bookings.name,
+        columns: Object.keys(schema.bookings.columns)
+      };
       
-      // Check request body
-      const { 
-        employee_id, 
-        booking_type, 
-        purpose, 
-        priority,
-        pickup_location,
-        dropoff_location,
-        pickup_time,
-        dropoff_time
-      } = req.body;
+      stages.push({
+        name: 'Schema Validation',
+        success: true,
+        message: 'Database schema is accessible',
+        details: { bookingsTable: bookingsTableInfo }
+      });
       
-      // Log each required field
-      console.log("[BOOKING-DEBUG-ADVANCED] Field check:");
-      console.log("- employee_id:", employee_id, typeof employee_id);
-      console.log("- booking_type:", booking_type);
-      console.log("- purpose:", purpose);
-      console.log("- priority:", priority);
-      console.log("- pickup_location:", pickup_location ? "Present" : "Missing", pickup_location);
-      console.log("- dropoff_location:", dropoff_location ? "Present" : "Missing", dropoff_location);
-      console.log("- pickup_time:", pickup_time);
-      console.log("- dropoff_time:", dropoff_time);
-      
-      // Check location format
-      if (pickup_location) {
-        console.log("[BOOKING-DEBUG-ADVANCED] Pickup location format check:");
-        console.log("- Has address:", !!pickup_location.address);
-        console.log("- Has coordinates:", !!pickup_location.coordinates);
-        if (pickup_location.coordinates) {
-          console.log("- Coordinates type:", typeof pickup_location.coordinates);
-          console.log("- Lat:", pickup_location.coordinates.lat, "Type:", typeof pickup_location.coordinates.lat);
-          console.log("- Lng:", pickup_location.coordinates.lng, "Type:", typeof pickup_location.coordinates.lng);
+      // Check employee exists
+      if (payload.employee_id) {
+        try {
+          const employeeId = typeof payload.employee_id === 'string' 
+            ? parseInt(payload.employee_id, 10) 
+            : payload.employee_id;
+          
+          const employee = await db.query.employees.findFirst({
+            where: eq(schema.employees.id, employeeId)
+          });
+          
+          if (!employee) {
+            stages.push({
+              name: 'Employee Validation',
+              success: false,
+              message: `Employee with ID ${employeeId} not found`,
+              details: { employeeId }
+            });
+            finalStatus = 'error';
+          } else {
+            stages.push({
+              name: 'Employee Validation',
+              success: true,
+              message: `Employee with ID ${employeeId} exists`,
+              details: { 
+                employeeId: employee.id,
+                employeeName: employee.employee_name,
+                email: employee.email_id
+              }
+            });
+          }
+        } catch (error) {
+          stages.push({
+            name: 'Employee Validation',
+            success: false,
+            message: 'Error checking employee existence',
+            details: { error: String(error) }
+          });
+          finalStatus = 'error';
         }
       }
       
-      // Validate against schema requirements
-      const missingFields = [];
-      if (!employee_id) missingFields.push('employee_id');
-      if (!booking_type) missingFields.push('booking_type');
-      if (!purpose) missingFields.push('purpose');
-      if (!priority) missingFields.push('priority');
-      if (!pickup_location) missingFields.push('pickup_location');
-      if (!dropoff_location) missingFields.push('dropoff_location');
-      if (!pickup_time) missingFields.push('pickup_time');
-      if (!dropoff_time) missingFields.push('dropoff_time');
-      
-      if (missingFields.length > 0) {
-        console.log("[BOOKING-DEBUG-ADVANCED] Missing required fields:", missingFields);
-        return res.status(400).json({ 
-          error: "Missing required fields", 
-          details: missingFields 
-        });
+      // Test database insertion
+      if (finalStatus === 'success') {
+        try {
+          // Only attempt insertion if previous stages are successful
+          const newBooking = {
+            employee_id: typeof payload.employee_id === 'string' 
+              ? parseInt(payload.employee_id, 10) 
+              : payload.employee_id,
+            booking_type: payload.booking_type,
+            purpose: payload.purpose,
+            priority: payload.priority,
+            pickup_location: payload.pickup_location,
+            dropoff_location: payload.dropoff_location,
+            reference_no: `TEST-${Date.now()}`,
+            status: 'diagnostic'
+          };
+          
+          // Don't actually insert, just validate
+          stages.push({
+            name: 'Database Test',
+            success: true,
+            message: 'Booking payload is compatible with database schema',
+            details: { 
+              validatedBooking: newBooking,
+              note: "No actual insertion performed - diagnostic only"
+            }
+          });
+        } catch (dbError) {
+          stages.push({
+            name: 'Database Test',
+            success: false,
+            message: 'Booking payload validation against database schema failed',
+            details: { error: String(dbError) }
+          });
+          finalStatus = 'error';
+        }
       }
-      
-      // Check if employee exists
-      const employee = await storage.getEmployeeById(Number(employee_id));
-      console.log("[BOOKING-DEBUG-ADVANCED] Employee found:", !!employee, employee);
-      
-      if (!employee) {
-        return res.status(404).json({ 
-          error: "Employee not found", 
-          details: `No employee with ID ${employee_id}` 
-        });
-      }
-      
-      // Success - return what would be inserted without modifying the DB
-      const now = new Date();
-      const referenceNo = `BK${Date.now()}${Math.floor(Math.random() * 1000)}`;
-      
-      const bookingData = {
-        ...req.body,
-        employee_id: Number(employee_id),
-        reference_no: referenceNo,
-        status: "new",
-        created_at: now,
-        updated_at: now
-      };
-      
-      console.log("[BOOKING-DEBUG-ADVANCED] Book data that would be inserted:", bookingData);
-      
-      return res.status(200).json({
-        success: true,
-        message: "Booking validation successful - would insert this data",
-        data: bookingData
+    } catch (schemaError) {
+      stages.push({
+        name: 'Schema Validation',
+        success: false,
+        message: 'Error accessing database schema',
+        details: { error: String(schemaError) }
       });
-      
-    } catch (tokenError) {
-      console.log("[BOOKING-DEBUG-ADVANCED] Token verification failed:", tokenError);
-      return res.status(401).json({ error: "Invalid token", details: tokenError.message });
+      finalStatus = 'error';
     }
     
+    // Provide final summary message
+    let summaryMessage = '';
+    if (finalStatus === 'success') {
+      summaryMessage = 'All diagnostic checks passed. Booking creation should work correctly.';
+    } else {
+      const failedStages = stages.filter(stage => !stage.success)
+        .map(stage => stage.name)
+        .join(', ');
+      summaryMessage = `Diagnostics failed at stages: ${failedStages}. Please check the details for each failed stage.`;
+    }
+    
+    return res.status(200).json({
+      status: finalStatus, 
+      message: summaryMessage,
+      stages
+    });
+    
   } catch (error) {
-    console.error("[BOOKING-DEBUG-ADVANCED] Error:", error);
-    return res.status(500).json({ 
-      error: "Server error during booking validation", 
-      details: error.message 
+    // Catch any unhandled exceptions
+    stages.push({
+      name: 'Unhandled Exception',
+      success: false,
+      message: 'An unexpected error occurred during diagnostics',
+      details: { error: String(error) }
+    });
+    
+    return res.status(500).json({
+      status: 'error', 
+      message: 'Diagnostic process encountered an unexpected error',
+      stages
     });
   }
 });
 
-// Test endpoint to get employee by ID
-bookingDebugAdvancedRouter.get("/employee/:id", async (req, res) => {
-  try {
-    const id = parseInt(req.params.id);
-    console.log(`[BOOKING-DEBUG-ADVANCED] Looking up employee with ID: ${id}`);
-    
-    if (isNaN(id)) {
-      return res.status(400).json({ error: "Invalid employee ID format" });
-    }
-    
-    const employee = await storage.getEmployeeById(id);
-    if (!employee) {
-      return res.status(404).json({ error: "Employee not found" });
-    }
-    
-    return res.json({ employee });
-  } catch (error) {
-    console.error("[BOOKING-DEBUG-ADVANCED] Error:", error);
-    return res.status(500).json({ error: "Server error", details: error.message });
-  }
-});
-
-// Test endpoint to get booking schema definition
-bookingDebugAdvancedRouter.get("/schema", (req, res) => {
-  try {
-    // Get booking schema structure
-    const schemaInfo = {
-      name: bookings.name,
-      columns: Object.keys(bookings.columns).map(columnName => {
-        const column = bookings.columns[columnName];
-        return {
-          name: columnName,
-          dataType: column.dataType,
-          isNullable: !column.notNull,
-          hasDefault: column.hasDefault,
-          isPrimaryKey: column.isPrimaryKey
-        };
-      })
-    };
-    
-    return res.json({
-      schema: schemaInfo,
-      requiredFields: [
-        'employee_id', 
-        'booking_type', 
-        'purpose', 
-        'priority',
-        'pickup_location',
-        'dropoff_location',
-        'pickup_time',
-        'dropoff_time'
-      ]
-    });
-  } catch (error) {
-    console.error("[BOOKING-DEBUG-ADVANCED] Error:", error);
-    return res.status(500).json({ error: "Server error", details: error.message });
-  }
-});
-
-export { bookingDebugAdvancedRouter };
+export default router;

@@ -30,7 +30,7 @@ import bookingTestRouter from "./routes/booking-test";
 import bookingDebugTraceRouter from "./routes/booking-debug-trace";
 import bookingCreateTraceRouter from "./routes/booking-create-trace";
 import bookingManagementRouter from "./routes/booking-management";
-import { bookingDebugAdvancedRouter } from "./routes/booking-debug-advanced";
+import bookingDebugAdvancedRouter from "./routes/booking-debug-advanced";
 
 // Configure multer for handling file uploads
 const upload = multer({

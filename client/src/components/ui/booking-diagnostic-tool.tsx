@@ -1,255 +1,518 @@
 import React, { useState } from "react";
-import { Button } from "./button";
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "./card";
-import { Loader2 } from "lucide-react";
-import { toast } from "@/hooks/use-toast";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
+import {
+  CheckCircle,
+  XCircle,
+  AlertTriangle,
+  ChevronDown,
+  ChevronUp,
+  Play,
+  Loader2,
+} from "lucide-react";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+  CardFooter,
+} from "@/components/ui/card";
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordion";
+import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { BookingType, BookingPurpose, Priority } from '@shared/schema';
 
-// Helper function to get the auth token
-const getAuthToken = (): string | null => {
-  return localStorage.getItem('auth_token');
-};
+// Diagnostic test types
+type DiagnosticTestType = 'auth' | 'payload' | 'db' | 'advanced';
+
+// Test stage/step in the diagnostic process
+interface TestStage {
+  name: string;
+  success: boolean;
+  message: string;
+  details: any;
+}
+
+// Test result type
+interface DiagnosticResult {
+  status: 'success' | 'error' | 'warning';
+  message: string;
+  stages?: TestStage[];
+}
 
 export const BookingDiagnosticTool: React.FC = () => {
-  const [isLoading, setIsLoading] = useState(false);
-  const [result, setResult] = useState<any>(null);
-  const [error, setError] = useState<string | null>(null);
-
-  // Simple diagnostic test booking
-  const testBooking = {
-    employee_id: 1, // Using a simple ID for testing
-    booking_type: "passenger",
-    purpose: "Test Booking",
-    priority: "Normal",
-    pickup_location: {
-      address: "Test Pickup Location",
-      coordinates: {
-        lat: 25.197197,
-        lng: 55.274376
-      }
-    },
-    dropoff_location: {
-      address: "Test Dropoff Location",
-      coordinates: {
-        lat: 25.198994, 
-        lng: 55.279236
-      }
-    },
-    pickup_time: new Date().toISOString(),
-    dropoff_time: new Date(Date.now() + 3600000).toISOString(), // 1 hour later
-    remarks: "Diagnostic test booking"
+  // State for selected test type
+  const [testType, setTestType] = useState<DiagnosticTestType>('auth');
+  
+  // Test configuration state
+  const [configEmployeeId, setConfigEmployeeId] = useState<string>('');
+  const [configBookingType, setConfigBookingType] = useState<string>('');
+  const [configPurpose, setConfigPurpose] = useState<string>('');
+  const [configPriority, setConfigPriority] = useState<string>('');
+  const [configPickupAddress, setConfigPickupAddress] = useState<string>('');
+  const [configDropoffAddress, setConfigDropoffAddress] = useState<string>('');
+  const [configRemarks, setConfigRemarks] = useState<string>('');
+  
+  // Result state 
+  const [testResult, setTestResult] = useState<DiagnosticResult | null>(null);
+  const [isLoading, setIsLoading] = useState<boolean>(false);
+  const [expandedStages, setExpandedStages] = useState<string[]>([]);
+  
+  // Token handling
+  const getAuthToken = (): string | null => {
+    return localStorage.getItem('auth_token');
   };
-
-  // Test API response
+  
+  // Toggle stage expansion
+  const toggleStageExpansion = (stageName: string) => {
+    if (expandedStages.includes(stageName)) {
+      setExpandedStages(expandedStages.filter(name => name !== stageName));
+    } else {
+      setExpandedStages([...expandedStages, stageName]);
+    }
+  };
+  
+  // Format JSON for display
+  const formatJson = (json: any): string => {
+    try {
+      return JSON.stringify(json, null, 2);
+    } catch (e) {
+      return String(json);
+    }
+  };
+  
+  // Run the selected diagnostic test
   const runDiagnosticTest = async () => {
     setIsLoading(true);
-    setError(null);
-    setResult(null);
-
+    setTestResult(null);
+    
     try {
-      // Check authentication token
       const token = getAuthToken();
+      
       if (!token) {
-        throw new Error("No authentication token found. Please log in again.");
+        setTestResult({
+          status: 'error',
+          message: 'No authentication token found. Please log in first.',
+        });
+        setIsLoading(false);
+        return;
       }
-
-      // Execute the test using our advanced diagnostic endpoint
-      const response = await fetch("/api/booking-debug-advanced/test-create", {
-        method: "POST",
+      
+      let endpoint = '';
+      let method = 'GET';
+      let payload = null;
+      
+      // Configure the test based on type
+      switch (testType) {
+        case 'auth':
+          endpoint = '/api/booking-debug-trace/auth';
+          break;
+          
+        case 'payload':
+          endpoint = '/api/booking-debug-trace/payload';
+          method = 'POST';
+          payload = createTestPayload();
+          break;
+          
+        case 'db':
+          endpoint = '/api/booking-debug-trace/db';
+          method = 'POST';
+          payload = createTestPayload();
+          break;
+          
+        case 'advanced':
+          endpoint = '/api/booking-debug-advanced/test';
+          method = 'POST';
+          payload = createTestPayload();
+          break;
+          
+        default:
+          setTestResult({
+            status: 'error',
+            message: 'Invalid test type selected',
+          });
+          setIsLoading(false);
+          return;
+      }
+      
+      // Execute API request
+      const response = await fetch(endpoint, {
+        method,
         headers: {
-          "Content-Type": "application/json",
-          "Authorization": `Bearer ${token}`
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
         },
-        body: JSON.stringify(testBooking)
+        body: method === 'POST' ? JSON.stringify(payload) : undefined,
       });
-
-      // Get response data
+      
       const data = await response.json();
-
-      // Update state with results
-      setResult(data);
-      setIsLoading(false);
-
-      // Show success or error toast
-      if (response.ok) {
-        toast({
-          title: "Diagnostic test successful",
-          description: "The booking request passed validation checks."
-        });
-      } else {
-        toast({
-          title: "Diagnostic test failed",
-          description: data.error || "Something went wrong with the diagnostic test.",
-          variant: "destructive"
-        });
+      
+      setTestResult({
+        status: data.status === 'success' ? 'success' : 'error',
+        message: data.message,
+        stages: data.stages || [],
+      });
+      
+      // Auto-expand failed stages
+      if (data.stages) {
+        const failedStages = data.stages
+          .filter((stage: TestStage) => !stage.success)
+          .map((stage: TestStage) => stage.name);
+          
+        setExpandedStages(failedStages);
       }
-    } catch (err: any) {
-      setError(err.message || "An error occurred during the diagnostic test");
-      setIsLoading(false);
       
-      toast({
-        title: "Error running diagnostic",
-        description: err.message || "An unexpected error occurred",
-        variant: "destructive"
+    } catch (error) {
+      console.error('Diagnostic test error:', error);
+      setTestResult({
+        status: 'error',
+        message: `Failed to execute test: ${error instanceof Error ? error.message : String(error)}`,
       });
+    } finally {
+      setIsLoading(false);
     }
   };
-
-  // Run a simple API health check
-  const runApiHealthCheck = async () => {
-    setIsLoading(true);
-    setError(null);
-    setResult(null);
-
-    try {
-      const response = await fetch("/api/health");
-      const data = await response.json();
-
-      setResult({ 
-        healthCheck: data, 
-        message: "API health check successful"
-      });
-      setIsLoading(false);
-
-      toast({
-        title: "API Health Check",
-        description: "The API server is responsive."
-      });
-    } catch (err: any) {
-      setError(err.message || "API health check failed");
-      setIsLoading(false);
-      
-      toast({
-        title: "API Health Check Failed",
-        description: err.message || "The API server is not responding properly",
-        variant: "destructive"
-      });
-    }
+  
+  // Create a test payload based on configuration
+  const createTestPayload = () => {
+    const employeeId = configEmployeeId ? parseInt(configEmployeeId, 10) : 1; // Default to ID 1 if not specified
+    
+    return {
+      employee_id: employeeId,
+      booking_type: configBookingType || 'official',
+      purpose: configPurpose || 'Hospital Visit',
+      priority: configPriority || 'Normal',
+      pickup_location: {
+        address: configPickupAddress || 'Dubai Healthcare City',
+        coordinates: { lat: 25.2307, lng: 55.3270 } // Default Dubai coordinates
+      },
+      dropoff_location: {
+        address: configDropoffAddress || 'Dubai Mall',
+        coordinates: { lat: 25.1972, lng: 55.2744 } // Default Dubai Mall coordinates
+      },
+      remarks: configRemarks || 'Diagnostic test payload',
+    };
   };
-
-  // Check employee lookup functionality
-  const testEmployeeLookup = async () => {
-    setIsLoading(true);
-    setError(null);
-    setResult(null);
-
-    try {
-      const response = await fetch("/api/employee/search?employee_id=1");
-      const data = await response.json();
-
-      setResult({
-        employeeLookup: data,
-        message: "Employee lookup test complete"
-      });
-      setIsLoading(false);
-
-      if (response.ok) {
-        toast({
-          title: "Employee Lookup Test",
-          description: "Successfully looked up employee."
-        });
-      } else {
-        toast({
-          title: "Employee Lookup Failed",
-          description: data.error || "Could not find the test employee ID",
-          variant: "destructive"
-        });
-      }
-    } catch (err: any) {
-      setError(err.message || "Employee lookup test failed");
-      setIsLoading(false);
-      
-      toast({
-        title: "Employee Lookup Error",
-        description: err.message || "An error occurred during employee lookup",
-        variant: "destructive"
-      });
-    }
-  };
-
-  // Check database schema for bookings
-  const checkBookingSchema = async () => {
-    setIsLoading(true);
-    setError(null);
-    setResult(null);
-
-    try {
-      const response = await fetch("/api/booking-debug-advanced/schema");
-      const data = await response.json();
-
-      setResult({
-        schema: data,
-        message: "Schema check complete"
-      });
-      setIsLoading(false);
-
-      toast({
-        title: "Booking Schema Check",
-        description: "Retrieved booking schema information."
-      });
-    } catch (err: any) {
-      setError(err.message || "Schema check failed");
-      setIsLoading(false);
-      
-      toast({
-        title: "Schema Check Error",
-        description: err.message || "An error occurred while checking the booking schema",
-        variant: "destructive"
-      });
-    }
-  };
-
+  
   return (
-    <Card className="w-full">
-      <CardHeader>
-        <CardTitle>Booking System Diagnostic</CardTitle>
-        <CardDescription>
-          Run tests to diagnose booking creation issues
-        </CardDescription>
-      </CardHeader>
-
-      <CardContent>
-        <div className="grid grid-cols-2 gap-4 mb-4">
-          <Button onClick={runApiHealthCheck} disabled={isLoading} variant="outline">
-            {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
-            API Health Check
-          </Button>
-          
-          <Button onClick={testEmployeeLookup} disabled={isLoading} variant="outline">
-            {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
-            Test Employee Lookup
-          </Button>
-          
-          <Button onClick={checkBookingSchema} disabled={isLoading} variant="outline">
-            {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
-            Check Booking Schema
-          </Button>
-          
-          <Button onClick={runDiagnosticTest} disabled={isLoading} variant="outline">
-            {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
-            Test Booking Creation
-          </Button>
-        </div>
-
-        {error && (
-          <div className="bg-red-50 p-4 rounded-md border border-red-200 text-red-700 mb-4">
-            <p className="font-semibold">Error:</p>
-            <p>{error}</p>
-          </div>
-        )}
-
-        {result && (
-          <div className="bg-gray-50 p-4 rounded-md border border-gray-200 overflow-auto max-h-[400px]">
-            <p className="font-semibold mb-2">{result.message || "Result:"}</p>
-            <pre className="text-xs">{JSON.stringify(result, null, 2)}</pre>
-          </div>
-        )}
-      </CardContent>
-
-      <CardFooter className="flex justify-between">
-        <p className="text-xs text-gray-500">
-          Auth token available: {getAuthToken() ? "Yes" : "No"}
-        </p>
-      </CardFooter>
-    </Card>
+    <div className="space-y-6">
+      <Tabs defaultValue="test" className="w-full">
+        <TabsList className="grid w-full grid-cols-2">
+          <TabsTrigger value="test">Run Test</TabsTrigger>
+          <TabsTrigger value="configure">Configure Test</TabsTrigger>
+        </TabsList>
+        
+        <TabsContent value="test">
+          <Card>
+            <CardHeader>
+              <CardTitle>Booking System Diagnostic Test</CardTitle>
+              <CardDescription>
+                Run tests to troubleshoot booking creation issues
+              </CardDescription>
+            </CardHeader>
+            
+            <CardContent>
+              <div className="space-y-4">
+                <div>
+                  <Label htmlFor="test-type">Test Type</Label>
+                  <Select 
+                    value={testType} 
+                    onValueChange={(value: string) => setTestType(value as DiagnosticTestType)}
+                  >
+                    <SelectTrigger id="test-type">
+                      <SelectValue placeholder="Select test type" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="auth">Authentication Test</SelectItem>
+                      <SelectItem value="payload">Payload Validation Test</SelectItem>
+                      <SelectItem value="db">Database Operation Test</SelectItem>
+                      <SelectItem value="advanced">Advanced Diagnostic Test</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                
+                <div className="grid gap-2">
+                  {testType === 'auth' && (
+                    <Alert>
+                      <AlertTriangle className="h-4 w-4" />
+                      <AlertTitle>Authentication Test</AlertTitle>
+                      <AlertDescription>
+                        Tests the authentication token validity and user permissions.
+                      </AlertDescription>
+                    </Alert>
+                  )}
+                  
+                  {testType === 'payload' && (
+                    <Alert>
+                      <AlertTriangle className="h-4 w-4" />
+                      <AlertTitle>Payload Validation Test</AlertTitle>
+                      <AlertDescription>
+                        Tests if the booking payload meets all validation requirements.
+                      </AlertDescription>
+                    </Alert>
+                  )}
+                  
+                  {testType === 'db' && (
+                    <Alert>
+                      <AlertTriangle className="h-4 w-4" />
+                      <AlertTitle>Database Test</AlertTitle>
+                      <AlertDescription>
+                        Tests if the booking can be properly formatted for database storage.
+                      </AlertDescription>
+                    </Alert>
+                  )}
+                  
+                  {testType === 'advanced' && (
+                    <Alert>
+                      <AlertTriangle className="h-4 w-4" />
+                      <AlertTitle>Advanced Diagnostic Test</AlertTitle>
+                      <AlertDescription>
+                        Comprehensive test of authentication, payload validation, and database operations.
+                      </AlertDescription>
+                    </Alert>
+                  )}
+                </div>
+                
+                {testResult && (
+                  <div className="mt-4">
+                    <Alert variant={testResult.status === 'success' ? 'default' : 'destructive'}>
+                      {testResult.status === 'success' ? (
+                        <CheckCircle className="h-4 w-4" />
+                      ) : (
+                        <XCircle className="h-4 w-4" />
+                      )}
+                      <AlertTitle>
+                        {testResult.status === 'success' ? 'Test Passed' : 'Test Failed'}
+                      </AlertTitle>
+                      <AlertDescription>{testResult.message}</AlertDescription>
+                    </Alert>
+                    
+                    {testResult.stages && testResult.stages.length > 0 && (
+                      <div className="mt-4 space-y-2">
+                        <h3 className="text-lg font-medium">Test Stages</h3>
+                        {testResult.stages.map((stage, index) => (
+                          <div
+                            key={`${stage.name}-${index}`}
+                            className={cn(
+                              "border rounded-md overflow-hidden",
+                              stage.success ? "border-green-200" : "border-red-200"
+                            )}
+                          >
+                            <div
+                              className={cn(
+                                "flex items-center justify-between p-3 cursor-pointer",
+                                stage.success ? "bg-green-50" : "bg-red-50"
+                              )}
+                              onClick={() => toggleStageExpansion(stage.name)}
+                            >
+                              <div className="flex items-center gap-2">
+                                {stage.success ? (
+                                  <CheckCircle className="h-5 w-5 text-green-500" />
+                                ) : (
+                                  <XCircle className="h-5 w-5 text-red-500" />
+                                )}
+                                <span className="font-medium">{stage.name}</span>
+                              </div>
+                              <div className="flex items-center">
+                                <span className="text-sm mr-2">{stage.message}</span>
+                                {expandedStages.includes(stage.name) ? (
+                                  <ChevronUp className="h-4 w-4" />
+                                ) : (
+                                  <ChevronDown className="h-4 w-4" />
+                                )}
+                              </div>
+                            </div>
+                            
+                            {expandedStages.includes(stage.name) && (
+                              <div className="p-3 bg-background border-t">
+                                <pre className="text-xs overflow-auto p-2 bg-muted rounded-md">
+                                  {formatJson(stage.details)}
+                                </pre>
+                              </div>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            </CardContent>
+            
+            <CardFooter>
+              <Button
+                onClick={runDiagnosticTest}
+                disabled={isLoading}
+                className="w-full"
+              >
+                {isLoading ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Running Test...
+                  </>
+                ) : (
+                  <>
+                    <Play className="mr-2 h-4 w-4" /> Run {testType} Test
+                  </>
+                )}
+              </Button>
+            </CardFooter>
+          </Card>
+        </TabsContent>
+        
+        <TabsContent value="configure">
+          <Card>
+            <CardHeader>
+              <CardTitle>Test Configuration</CardTitle>
+              <CardDescription>
+                Configure test parameters for booking diagnostics
+              </CardDescription>
+            </CardHeader>
+            
+            <CardContent>
+              <div className="space-y-4">
+                <div className="grid gap-4">
+                  <div>
+                    <Label htmlFor="employee-id">Employee ID</Label>
+                    <Input
+                      id="employee-id"
+                      value={configEmployeeId}
+                      onChange={(e) => setConfigEmployeeId(e.target.value)}
+                      placeholder="Enter employee ID (default: 1)"
+                    />
+                  </div>
+                  
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <Label htmlFor="booking-type">Booking Type</Label>
+                      <Select 
+                        value={configBookingType} 
+                        onValueChange={setConfigBookingType}
+                      >
+                        <SelectTrigger id="booking-type">
+                          <SelectValue placeholder="Select booking type" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {Object.values(BookingType).map((type) => (
+                            <SelectItem key={type} value={type}>
+                              {type.charAt(0).toUpperCase() + type.slice(1)}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    
+                    <div>
+                      <Label htmlFor="purpose">Purpose</Label>
+                      <Select 
+                        value={configPurpose} 
+                        onValueChange={setConfigPurpose}
+                      >
+                        <SelectTrigger id="purpose">
+                          <SelectValue placeholder="Select purpose" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {Object.values(BookingPurpose).map((purpose) => (
+                            <SelectItem key={purpose} value={purpose}>
+                              {purpose}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+                  
+                  <div>
+                    <Label htmlFor="priority">Priority</Label>
+                    <Select 
+                      value={configPriority} 
+                      onValueChange={setConfigPriority}
+                    >
+                      <SelectTrigger id="priority">
+                        <SelectValue placeholder="Select priority" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {Object.values(Priority).map((priority) => (
+                          <SelectItem key={priority} value={priority}>
+                            {priority}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  
+                  <div>
+                    <Label htmlFor="pickup-address">Pickup Address</Label>
+                    <Input
+                      id="pickup-address"
+                      value={configPickupAddress}
+                      onChange={(e) => setConfigPickupAddress(e.target.value)}
+                      placeholder="Enter pickup address"
+                    />
+                  </div>
+                  
+                  <div>
+                    <Label htmlFor="dropoff-address">Dropoff Address</Label>
+                    <Input
+                      id="dropoff-address"
+                      value={configDropoffAddress}
+                      onChange={(e) => setConfigDropoffAddress(e.target.value)}
+                      placeholder="Enter dropoff address"
+                    />
+                  </div>
+                  
+                  <div>
+                    <Label htmlFor="remarks">Remarks</Label>
+                    <Textarea
+                      id="remarks"
+                      value={configRemarks}
+                      onChange={(e) => setConfigRemarks(e.target.value)}
+                      placeholder="Enter any additional remarks"
+                      rows={3}
+                    />
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+            
+            <CardFooter className="flex justify-between">
+              <Button
+                variant="outline"
+                onClick={() => {
+                  // Reset all configuration fields
+                  setConfigEmployeeId('');
+                  setConfigBookingType('');
+                  setConfigPurpose('');
+                  setConfigPriority('');
+                  setConfigPickupAddress('');
+                  setConfigDropoffAddress('');
+                  setConfigRemarks('');
+                }}
+              >
+                Reset
+              </Button>
+              <Button onClick={() => runDiagnosticTest()}>
+                Save & Run Test
+              </Button>
+            </CardFooter>
+          </Card>
+        </TabsContent>
+      </Tabs>
+    </div>
   );
 };
