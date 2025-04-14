@@ -13,6 +13,8 @@ bookingManagementRouter.use(validateToken);
 bookingManagementRouter.post('/create', async (req: Request, res: Response) => {
   try {
     console.log('[BOOKING-CREATE] Request received to create a booking');
+    console.log('[BOOKING-CREATE] Request headers:', JSON.stringify(req.headers, null, 2));
+    console.log('[BOOKING-CREATE] Request body:', JSON.stringify(req.body, null, 2));
     
     // Check authentication
     const userId = req.user?.userId;
