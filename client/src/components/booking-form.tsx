@@ -828,15 +828,27 @@ export function BookingForm() {
       
       // CRITICAL FIX: Get the employee internal database ID (not the employee_id field)
       // This needs to be the ID that matches the primary key in the employees table
-      let employeeId = selectedEmployee?.id;
-      console.log("Using employee ID from selectedEmployee:", employeeId);
+      let employeeId = null;
       
-      if (!employeeId) {
-        if (formData.employee_id) {
-          employeeId = Number(formData.employee_id);
-        } else if (employee?.id) {
-          employeeId = Number(employee.id);
-        }
+      // First try to get ID from selectedEmployee (from email search)
+      if (selectedEmployee?.id) {
+        employeeId = Number(selectedEmployee.id);
+        console.log("Using employee ID from selectedEmployee:", employeeId);
+      } 
+      // Then try form data
+      else if (formData.employee_id) {
+        employeeId = Number(formData.employee_id);
+        console.log("Using employee ID from form data (employee_id):", employeeId);
+      } 
+      // Then try camelCase variant
+      else if (formData.employeeId) {
+        employeeId = Number(formData.employeeId);
+        console.log("Using employee ID from form data (employeeId):", employeeId);
+      }
+      // Finally try employee prop
+      else if (employee?.id) {
+        employeeId = Number(employee.id);
+        console.log("Using employee ID from employee prop:", employeeId);
       }
       
       if (!employeeId || isNaN(employeeId) || employeeId <= 0) {
