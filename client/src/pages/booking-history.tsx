@@ -23,7 +23,7 @@ import { BookingType, BookingPurpose, Priority } from "@shared/schema";
 import React, { useState, useEffect, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { VehicleLoadingIndicator } from "@/components/ui/vehicle-loading-indicator";
-import { Filter, Search, Clock as ClockIcon, RefreshCw, Trash2, Check, AlertTriangle } from "lucide-react";
+import { Filter, Search, Clock as ClockIcon, RefreshCw, Trash2, Trash, Check, AlertTriangle } from "lucide-react";
 import { BookingForm } from "@/components/booking-form";
 import { SimplifiedBookingForm } from "@/components/simplified-booking-form";
 import { Button } from "@/components/ui/button";
@@ -259,13 +259,15 @@ function BookingHistoryPage() {
   };
 
   // Handler to select/deselect individual booking
-  const handleSelectBooking = (bookingId: number) => {
-    if (selectedBookings.includes(bookingId)) {
-      // If already selected, remove it
-      setSelectedBookings(selectedBookings.filter(id => id !== bookingId));
+  const handleSelectBooking = (bookingId: number, checked: boolean) => {
+    if (checked) {
+      // Add booking to the selection if not already there
+      if (!selectedBookings.includes(bookingId)) {
+        setSelectedBookings([...selectedBookings, bookingId]);
+      }
     } else {
-      // Otherwise, add it
-      setSelectedBookings([...selectedBookings, bookingId]);
+      // Remove booking from selection
+      setSelectedBookings(selectedBookings.filter(id => id !== bookingId));
     }
   };
 
@@ -334,6 +336,62 @@ function BookingHistoryPage() {
     } finally {
       setIsDeleting(false);
       setIsDialogOpen(false);
+    }
+  };
+
+  // Function to delete a single booking
+  const handleDeleteSingleBooking = async (bookingId: number) => {
+    try {
+      setIsDeleting(true);
+      const authToken = localStorage.getItem('auth_token');
+      if (!authToken) {
+        toast({
+          title: "Authentication Error",
+          description: "You must be logged in to delete bookings.",
+          variant: "destructive"
+        });
+        return;
+      }
+
+      const response = await fetch('/api/booking-management/delete-booking', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${authToken}`
+        },
+        body: JSON.stringify({ bookingId })
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error("API Error:", errorText);
+        toast({
+          title: "Error deleting booking",
+          description: "There was a problem deleting the booking.",
+          variant: "destructive"
+        });
+        return;
+      }
+
+      // Show success message
+      toast({
+        title: "Booking deleted",
+        description: "Successfully deleted the booking.",
+        variant: "default"
+      });
+
+      // Reload the list
+      loadBookings();
+      
+    } catch (err) {
+      console.error("Error deleting booking:", err);
+      toast({
+        title: "Error",
+        description: "An unexpected error occurred while deleting the booking.",
+        variant: "destructive"
+      });
+    } finally {
+      setIsDeleting(false);
     }
   };
 
@@ -667,7 +725,7 @@ function BookingHistoryPage() {
                                   onClick={() => handleDeleteSingleBooking(booking.id)}
                                   aria-label={`Delete booking ${booking.reference_no}`}
                                 >
-                                  <Trash className="h-4 w-4" />
+                                  <Trash2 className="h-4 w-4" />
                                 </Button>
                               </TableCell>
                             </TableRow>
