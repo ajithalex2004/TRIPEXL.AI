@@ -90,11 +90,25 @@ export function SimplifiedBookingForm() {
   const [selectedEmployee, setSelectedEmployee] = React.useState<any>(null);
 
   // Forms
+  // Create a customized schema that enforces employee_id is required
+  const bookingFormSchema = insertBookingSchema.extend({
+    // For employee ID validation - ensure it's a valid number
+    employee_id: z.union([
+      z.number().int().positive(),
+      z.string().refine(val => !isNaN(Number(val)) && Number(val) > 0, { 
+        message: "A valid employee ID is required" 
+      })
+    ]),
+    // Add validation for UI fields that are not in the base schema
+    employeeId: z.string().min(1, { message: "Employee ID is required" }),
+    employeeName: z.string().min(1, { message: "Employee name is required" }),
+  });
+
   const form = useForm({
-    resolver: zodResolver(insertBookingSchema),
+    resolver: zodResolver(bookingFormSchema),
     mode: "onChange",
     defaultValues: {
-      employee_id: "",
+      employee_id: undefined as any, // Using undefined to trigger validation
       employeeId: "",
       employeeName: "",
       bookingType: BookingType.PASSENGER,
@@ -171,11 +185,50 @@ export function SimplifiedBookingForm() {
     try {
       setIsSubmitting(true);
       console.log("🚀 BOOKING FORM - Submitting booking data:", data);
-      console.log("🚀 BOOKING FORM - Employee ID:", data.employee_id || data.employeeId);
+      console.log("🚀 BOOKING FORM - Employee ID (from form):", data.employee_id || data.employeeId);
+      console.log("🚀 BOOKING FORM - Selected Employee Object:", selectedEmployee);
       console.log("🚀 BOOKING FORM - Pickup Location:", data.pickupLocation);
       console.log("🚀 BOOKING FORM - Dropoff Location:", data.dropoffLocation);
 
-      // Check authentication token first
+      // Check if employee ID is available and valid
+      let employeeId = null;
+      
+      // Get employee ID from form data first
+      if (data.employee_id && !isNaN(Number(data.employee_id))) {
+        employeeId = Number(data.employee_id);
+        console.log("🚀 BOOKING FORM - Using employee_id from form data:", employeeId);
+      } 
+      // Fall back to employeeId field (camelCase variant)
+      else if (data.employeeId && !isNaN(Number(data.employeeId))) {
+        employeeId = Number(data.employeeId);
+        console.log("🚀 BOOKING FORM - Using employeeId from form data:", employeeId);
+      }
+      // Fall back to selectedEmployee object
+      else if (selectedEmployee) {
+        // Try to get ID from selectedEmployee
+        if (selectedEmployee.id && !isNaN(Number(selectedEmployee.id))) {
+          employeeId = Number(selectedEmployee.id);
+          console.log("🚀 BOOKING FORM - Using id from selectedEmployee:", employeeId);
+        } 
+        // Or try to get employee_id from selectedEmployee
+        else if (selectedEmployee.employee_id && !isNaN(Number(selectedEmployee.employee_id))) {
+          employeeId = Number(selectedEmployee.employee_id);
+          console.log("🚀 BOOKING FORM - Using employee_id from selectedEmployee:", employeeId);
+        }
+      }
+      
+      // Validate that we have an employee ID
+      if (!employeeId || isNaN(employeeId) || employeeId <= 0) {
+        console.error("🚀 BOOKING FORM - Invalid employee ID:", employeeId);
+        toast({
+          title: "Employee ID is required",
+          description: "Please search and select a valid employee from the search box",
+          variant: "destructive"
+        });
+        return;
+      }
+
+      // Check authentication token next
       const authToken = localStorage.getItem('auth_token');
       console.log("🚀 BOOKING FORM - Auth token exists:", !!authToken);
       
@@ -189,38 +242,83 @@ export function SimplifiedBookingForm() {
         return;
       }
 
+      // Validate pickup and dropoff locations
+      if (!pickupLocation || !pickupLocation.address || !pickupLocation.coordinates) {
+        console.error("🚀 BOOKING FORM - Invalid pickup location:", pickupLocation);
+        toast({
+          title: "Pickup location required",
+          description: "Please select a valid pickup location from the map",
+          variant: "destructive"
+        });
+        return;
+      }
+
+      if (!dropoffLocation || !dropoffLocation.address || !dropoffLocation.coordinates) {
+        console.error("🚀 BOOKING FORM - Invalid dropoff location:", dropoffLocation);
+        toast({
+          title: "Dropoff location required",
+          description: "Please select a valid dropoff location from the map",
+          variant: "destructive"
+        });
+        return;
+      }
+
+      // Validate dates
+      const pickupTime = new Date(data.pickupTime);
+      const dropoffTime = new Date(data.dropoffTime);
+
+      if (isNaN(pickupTime.getTime())) {
+        console.error("🚀 BOOKING FORM - Invalid pickup time:", data.pickupTime);
+        toast({
+          title: "Invalid pickup time",
+          description: "Please select a valid date and time for pickup",
+          variant: "destructive"
+        });
+        return;
+      }
+
+      if (isNaN(dropoffTime.getTime())) {
+        console.error("🚀 BOOKING FORM - Invalid dropoff time:", data.dropoffTime);
+        toast({
+          title: "Invalid dropoff time",
+          description: "Please select a valid date and time for dropoff",
+          variant: "destructive"
+        });
+        return;
+      }
+
       // Format the data for API submission
       const bookingData = {
-        employee_id: Number(data.employee_id || data.employeeId),
+        employee_id: employeeId, // Use the validated employee ID
         booking_type: data.bookingType,
         purpose: data.purpose,
         priority: data.priority,
-        pickup_location: data.pickupLocation,
-        dropoff_location: data.dropoffLocation,
-        pickup_time: new Date(data.pickupTime).toISOString(),
-        dropoff_time: new Date(data.dropoffTime).toISOString(),
+        pickup_location: pickupLocation, // Use the state variable for consistent structure
+        dropoff_location: dropoffLocation, // Use the state variable for consistent structure
+        pickup_time: pickupTime.toISOString(),
+        dropoff_time: dropoffTime.toISOString(),
         remarks: data.remarks || "",
         reference_no: data.referenceNo || undefined,
 
         // Passenger-specific fields
         ...(data.bookingType === "passenger" ? {
           trip_type: data.tripType,
-          num_passengers: Number(data.numPassengers),
-          with_driver: data.withDriver,
-          booking_for_self: data.bookingForSelf,
-          passenger_details: data.passengerDetails
+          num_passengers: Number(data.numPassengers) || 1,
+          with_driver: data.withDriver === true,
+          booking_for_self: data.bookingForSelf === true,
+          passenger_details: data.passengerDetails || []
         } : {}),
 
         // Freight-specific fields
         ...(data.bookingType === "freight" ? {
           cargo_type: data.cargoType,
-          num_boxes: Number(data.numBoxes),
-          weight: Number(data.weight),
-          box_size: data.boxSize
+          num_boxes: Number(data.numBoxes) || 1,
+          weight: Number(data.weight) || 0,
+          box_size: data.boxSize || []
         } : {})
       };
 
-      console.log("🚀 BOOKING FORM - Formatted booking data for API:", JSON.stringify(bookingData, null, 2));
+      console.log("🚀 BOOKING FORM - FINAL Formatted booking data for API:", JSON.stringify(bookingData, null, 2));
       console.log("🚀 BOOKING FORM - Sending to endpoint: /api/bookings");
 
       // Make the API request
@@ -380,32 +478,61 @@ export function SimplifiedBookingForm() {
                   <div className="mb-4">
                     <EmployeeEmailSearch 
                       onEmployeeFound={(employeeData) => {
-                        console.log("Employee found:", employeeData);
+                        console.log("🚀 Employee found:", employeeData);
                         
-                        if (employeeData?.employee_id) {
-                          const employeeIdValue = Number(employeeData.employee_id);
-                          
-                          if (!isNaN(employeeIdValue)) {
-                            form.setValue("employee_id", String(employeeIdValue) as any, {
-                              shouldValidate: true,
-                              shouldDirty: true
-                            });
-                            
-                            form.setValue("employeeId", String(employeeIdValue) as any, {
-                              shouldValidate: true,
-                              shouldDirty: true
-                            });
-                            
-                            const employeeName = employeeData?.employee_name || employeeData?.employeeName;
-                            if (employeeName) {
-                              form.setValue("employeeName", employeeName, {
-                                shouldValidate: true,
-                                shouldDirty: true
-                              });
-                            }
-                            
-                            setSelectedEmployee(employeeData);
+                        // First identify which field contains the employee ID
+                        let empId = null;
+                        
+                        // Try to get the internal database ID which is needed for the foreign key
+                        if (employeeData?.id && typeof employeeData.id === 'number') {
+                          empId = employeeData.id;
+                          console.log("🚀 Using internal database ID:", empId);
+                        } 
+                        // Fallback to employee_id if available
+                        else if (employeeData?.employee_id) {
+                          const idValue = Number(employeeData.employee_id);
+                          if (!isNaN(idValue)) {
+                            empId = idValue;
+                            console.log("🚀 Using employee_id field:", empId);
                           }
+                        }
+                        
+                        // Make sure we have a valid employee ID
+                        if (empId !== null) {
+                          // Set both properties to ensure the form has the employee ID in all expected formats
+                          console.log("🚀 Setting employee_id to:", empId);
+                          console.log("🚀 Type of employee_id:", typeof empId);
+                          
+                          // Set in snake_case format
+                          form.setValue("employee_id", empId, {
+                            shouldValidate: true,
+                            shouldDirty: true
+                          });
+                          
+                          // Also set in camelCase format for compatibility
+                          form.setValue("employeeId", String(empId), {
+                            shouldValidate: true,
+                            shouldDirty: true
+                          });
+                          
+                          // Set the employee name if available
+                          const employeeName = employeeData?.employee_name || employeeData?.employeeName;
+                          if (employeeName) {
+                            form.setValue("employeeName", employeeName, {
+                              shouldValidate: true,
+                              shouldDirty: true
+                            });
+                          }
+                          
+                          console.log("🚀 Employee data successfully set:", {
+                            id: empId,
+                            name: employeeName
+                          });
+                          
+                          // Save complete employee data for reference
+                          setSelectedEmployee(employeeData);
+                        } else {
+                          console.error("🚀 ERROR: Could not find valid employee ID in:", employeeData);
                         }
                       }}
                     />
