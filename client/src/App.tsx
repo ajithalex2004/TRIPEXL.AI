@@ -24,6 +24,7 @@ import FuelManagementPage from "@/pages/fuel-management-page";
 import MapTestPage from "@/pages/map-test";
 import DebugPage from "@/pages/debug";
 import BookingsData from "@/pages/bookings-data";
+import BookingDiagnosticsPage from "@/pages/booking-diagnostics";
 
 
 // Initialize QueryClient
@@ -85,6 +86,7 @@ function Router() {
       <Route path="/fuel-management" component={() => <ProtectedRoute component={FuelManagementPage} />} />
       <Route path="/debug" component={() => <ProtectedRoute component={DebugPage} />} />
       <Route path="/bookings-data" component={() => <ProtectedRoute component={BookingsData} />} />
+      <Route path="/booking-diagnostics" component={() => <ProtectedRoute component={BookingDiagnosticsPage} />} />
 
       {/* 404 Route */}
       <Route component={NotFound} />
