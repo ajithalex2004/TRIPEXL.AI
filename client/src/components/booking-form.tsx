@@ -788,9 +788,6 @@ export function BookingForm() {
         return;
       }
       
-      // Display alert for debugging
-      alert("Starting booking confirmation process...");
-      
       // Display a loading toast to indicate processing
       toast({
         title: "Processing booking",
@@ -800,7 +797,6 @@ export function BookingForm() {
       const formData = form.getValues();
       console.log("%c BOOKING CONFIRMATION - START", "background: #ff0000; color: white; padding: 2px 4px; border-radius: 2px;");
       console.log("Raw form data:", JSON.stringify(formData, null, 2));
-      alert("Form data is valid and about to be submitted to API");
       
       // Validate required fields
       if (!formData.pickupLocation || !formData.dropoffLocation || !formData.pickupTime || !formData.dropoffTime) {
@@ -812,8 +808,10 @@ export function BookingForm() {
         return;
       }
       
-      // Get the employee ID
+      // CRITICAL FIX: Get the employee internal database ID (not the employee_id field)
+      // This needs to be the ID that matches the primary key in the employees table
       let employeeId = selectedEmployee?.id;
+      console.log("Using employee ID from selectedEmployee:", employeeId);
       
       if (!employeeId) {
         if (formData.employee_id) {
@@ -988,8 +986,16 @@ export function BookingForm() {
           // Add enhanced debugging to track the issue
           console.log("ENHANCED DEBUG: Sending payload:", JSON.stringify(bookingData));
           
-          // Display alert to show the request is being made
-          alert("Sending booking request to API...");
+          // Log that we're about to make the request
+          console.log("Sending booking request to API...");
+          
+          // Make sure employee_id is a number before sending to API
+          if (typeof bookingData.employee_id !== 'number') {
+            bookingData.employee_id = Number(bookingData.employee_id);
+            console.log("Converted employee_id to number before API call:", bookingData.employee_id);
+          }
+          
+          console.log("FINAL API DATA:", JSON.stringify(bookingData, null, 2));
           
           const testResponse = await fetch('/api/bookings', {
             method: 'POST',
@@ -1001,7 +1007,6 @@ export function BookingForm() {
           });
           
           console.log("STEP 2: Direct fetch API response status:", testResponse.status);
-          alert(`API Response status: ${testResponse.status}`);
           
           if (!testResponse.ok) {
             console.error("API request failed with status:", testResponse.status);
@@ -1383,16 +1388,19 @@ export function BookingForm() {
                         onEmployeeFound={(employeeData) => {
                           console.log("Employee found via email search:", employeeData);
                           
-                          // Use the actual employee_id field, which is what the booking schema expects
-                          // NOT the internal database ID of the employee record
-                          const employeeId = employeeData?.employee_id;
+                          // IMPORTANT: Store the full employee object for use in form submission
+                          setSelectedEmployee(employeeData);
                           
-                          if (employeeId) {
+                          // Use the INTERNAL database ID, which is what the foreign key requires
+                          const databaseId = employeeData?.id;
+                          
+                          if (databaseId) {
                             // Always convert to number since database expects a numeric ID
-                            const employeeIdValue = Number(employeeId);
+                            const employeeIdValue = Number(databaseId);
                             
                             if (!isNaN(employeeIdValue)) {
                               console.log("Setting employee_id in form:", employeeIdValue, "(type:", typeof employeeIdValue, ")");
+                              console.log("This is the database ID (internal) NOT the employee_id field");
                               
                               // Set both snake_case and camelCase versions to ensure they're in the form data
                               form.setValue("employee_id", employeeIdValue, {
