@@ -538,18 +538,20 @@ export function BookingForm() {
       console.log("%c FORM SUBMISSION", "background: #ff0000; color: white; padding: 2px 4px; border-radius: 2px;");
       console.log("Full form data:", JSON.stringify(data, null, 2));
       
-      // Display an alert to confirm form submission
-      alert("Form submission initiated with data: " + JSON.stringify({
-        employee_id: data.employee_id,
-        booking_type: data.booking_type,
-        pickup_location: data.pickupLocation?.address,
-        dropoff_location: data.dropoffLocation?.address,
-      }));
+      // Log key field names from the form data for debugging 
+      console.log("Key fields check:");
+      console.log("- bookingType:", data.bookingType);
+      console.log("- booking_type:", data.booking_type);
+      console.log("- purpose:", data.purpose);
+      console.log("- priority:", data.priority);
+      console.log("- pickupLocation:", data.pickupLocation ? "✓" : "✗");
+      console.log("- dropoffLocation:", data.dropoffLocation ? "✓" : "✗");
+      console.log("- employee_id:", data.employee_id);
+      console.log("- employeeId:", data.employeeId);
       
       // Show form errors if any
       if (Object.keys(form.formState.errors).length > 0) {
         console.error("Form has validation errors:", form.formState.errors);
-        alert("Form has validation errors: " + JSON.stringify(form.formState.errors));
         toast({
           title: "Form validation failed",
           description: "Please check the form for errors",
@@ -879,11 +881,12 @@ export function BookingForm() {
       // Close the preview modal
       setShowBookingPreview(false);
       
-      // Prepare the simplified data object for API
+      // IMPORTANT FIX: Make sure we're using the expected field names
+      // Prepare the simplified data object for API - using snake_case for all property names
       const bookingData = {
-        // Basic required fields
+        // Basic required fields - ENSURE snake_case for API compatibility
         employee_id: employeeId,
-        booking_type: formData.bookingType || "passenger",
+        booking_type: formData.bookingType.toLowerCase() || "passenger", // Convert to lowercase
         purpose: formData.purpose || "general",
         priority: formData.priority || "Normal",
         
@@ -893,42 +896,16 @@ export function BookingForm() {
           coordinates: {
             lat: parseFloat(String(formData.pickupLocation.coordinates?.lat || 0)),
             lng: parseFloat(String(formData.pickupLocation.coordinates?.lng || 0))
-          },
-          // Include all optional fields that are present in the Location interface
-          ...(formData.pickupLocation.place_id && { place_id: String(formData.pickupLocation.place_id) }),
-          ...(formData.pickupLocation.name && { name: String(formData.pickupLocation.name) }),
-          ...(formData.pickupLocation.formatted_address && { formatted_address: String(formData.pickupLocation.formatted_address) }),
-          ...(formData.pickupLocation.district && { district: String(formData.pickupLocation.district) }),
-          ...(formData.pickupLocation.city && { city: String(formData.pickupLocation.city) }),
-          ...(formData.pickupLocation.area && { area: String(formData.pickupLocation.area) }),
-          ...(formData.pickupLocation.place_types && { place_types: formData.pickupLocation.place_types })
+          }
         },
-        
-        // CRITICAL FIX: Remove separate lat/lng fields - not in actual database schema
-        // These fields don't exist in the actual database structure, which uses JSON location objects
-        // pickup_latitude: parseFloat(String(formData.pickupLocation.coordinates?.lat || 0)),
-        // pickup_longitude: parseFloat(String(formData.pickupLocation.coordinates?.lng || 0)),
         
         dropoff_location: {
           address: String(formData.dropoffLocation.address || ''),
           coordinates: {
             lat: parseFloat(String(formData.dropoffLocation.coordinates?.lat || 0)),
             lng: parseFloat(String(formData.dropoffLocation.coordinates?.lng || 0))
-          },
-          // Include all optional fields that are present in the Location interface
-          ...(formData.dropoffLocation.place_id && { place_id: String(formData.dropoffLocation.place_id) }),
-          ...(formData.dropoffLocation.name && { name: String(formData.dropoffLocation.name) }),
-          ...(formData.dropoffLocation.formatted_address && { formatted_address: String(formData.dropoffLocation.formatted_address) }),
-          ...(formData.dropoffLocation.district && { district: String(formData.dropoffLocation.district) }),
-          ...(formData.dropoffLocation.city && { city: String(formData.dropoffLocation.city) }),
-          ...(formData.dropoffLocation.area && { area: String(formData.dropoffLocation.area) }),
-          ...(formData.dropoffLocation.place_types && { place_types: formData.dropoffLocation.place_types })
+          }
         },
-        
-        // CRITICAL FIX: Remove separate lat/lng fields - not in actual database schema
-        // These fields don't exist in the actual database structure, which uses JSON location objects
-        // dropoff_latitude: parseFloat(String(formData.dropoffLocation.coordinates?.lat || 0)),
-        // dropoff_longitude: parseFloat(String(formData.dropoffLocation.coordinates?.lng || 0)),
         
         // Format times explicitly as strings per database schema definition
         pickup_time: new Date(formData.pickupTime).toISOString(),
@@ -938,7 +915,7 @@ export function BookingForm() {
         remarks: formData.remarks || "",
         
         // Type-specific fields with proper conversions
-        ...(formData.bookingType === "freight" ? {
+        ...(formData.bookingType.toLowerCase() === "freight" ? {
           cargo_type: formData.cargoType || "general",
           num_boxes: parseInt(formData.numBoxes || "1", 10),
           weight: parseInt(formData.weight || "0", 10),
@@ -946,7 +923,7 @@ export function BookingForm() {
           box_size: Array.isArray(formData.boxSize) ? formData.boxSize : [formData.boxSize || "medium"]
         } : {}),
         
-        ...(formData.bookingType === "passenger" ? {
+        ...(formData.bookingType.toLowerCase() === "passenger" ? {
           trip_type: formData.tripType || "one_way",
           num_passengers: parseInt(formData.numPassengers || "1", 10),
           with_driver: formData.withDriver === true,
@@ -1043,13 +1020,21 @@ export function BookingForm() {
           
           console.log("FINAL API DATA:", JSON.stringify(bookingData, null, 2));
           
+          // IMPORTANT FIX: Make sure we force lowercase booking_type
+          const finalBookingData = {
+            ...bookingData,
+            booking_type: bookingData.booking_type.toLowerCase()
+          };
+          
+          console.log("SENDING ACTUAL API PAYLOAD:", JSON.stringify(finalBookingData, null, 2));
+          
           const testResponse = await fetch('/api/bookings', {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
               'Authorization': `Bearer ${authToken}`
             },
-            body: JSON.stringify(bookingData),
+            body: JSON.stringify(finalBookingData),
           });
           
           console.log("STEP 2: Direct fetch API response status:", testResponse.status);
