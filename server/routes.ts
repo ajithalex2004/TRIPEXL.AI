@@ -1119,6 +1119,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
     app.use("/api/bookings", bookingManagementRouter);
     log("Booking management router registered");
     
+    // Register booking creation test routes for diagnostic purposes
+    app.use("/api/debug", bookingCreateTestRouter);
+    log("Booking create test router registered");
+    
     // Add fuel types router
     log("Registering fuel types router...");
     app.use("/api/fuel-types", fuelTypesRouter);
