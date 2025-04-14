@@ -157,6 +157,7 @@ export const BookingType = {
   FREIGHT: "freight",
   PASSENGER: "passenger",
   AMBULANCE: "ambulance",
+  OFFICIAL: "official", // Added for backward compatibility
 } as const;
 
 export const BoxSize = {
@@ -733,7 +734,16 @@ export const bookingsRelations = relations(bookings, ({ one }) => ({
 
 export const insertBookingSchema = createInsertSchema(bookings)
   .extend({
-    booking_type: z.enum([BookingType.FREIGHT, BookingType.PASSENGER, BookingType.AMBULANCE]),
+    // Modified to accommodate case-insensitive booking types
+    booking_type: z.string().transform((val) => {
+      const lowerVal = val.toLowerCase();
+      if (lowerVal === 'freight' || lowerVal === 'passenger' || lowerVal === 'ambulance' || 
+          lowerVal === 'official') {
+        return lowerVal;
+      }
+      // Allow original values to pass through for backward compatibility
+      return val;
+    }),
     purpose: z.string(), // Changed from enum for more flexibility
     priority: z.string(), // Changed from enum for more flexibility
     trip_type: z.string().optional(), // Changed from enum for more flexibility
