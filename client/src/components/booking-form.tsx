@@ -1418,47 +1418,45 @@ export function BookingForm() {
                         onEmployeeFound={(employeeData) => {
                           console.log("Employee found via email search:", employeeData);
                           
-                          // IMPORTANT: Store the full employee object for use in form submission
+                          // Store the full employee object
                           setSelectedEmployee(employeeData);
                           
-                          // Use the INTERNAL database ID, which is what the foreign key requires
+                          // Extract all needed employee fields
                           const databaseId = employeeData?.id;
+                          const displayEmployeeId = employeeData?.employee_id;
+                          const employeeName = employeeData?.employee_name;
+                          
+                          console.log("Employee field values:", {
+                            databaseId,
+                            displayEmployeeId,
+                            employeeName
+                          });
                           
                           if (databaseId) {
-                            // Always convert to number since database expects a numeric ID
+                            // Always convert internal DB ID to number
                             const employeeIdValue = Number(databaseId);
-                            
                             if (!isNaN(employeeIdValue)) {
-                              console.log("Setting employee_id in form:", employeeIdValue, "(type:", typeof employeeIdValue, ")");
-                              console.log("This is the database ID (internal) NOT the employee_id field");
-                              
-                              // Set both snake_case and camelCase versions to ensure they're in the form data
+                              // Set both formats of employee ID
                               form.setValue("employee_id", employeeIdValue, {
                                 shouldValidate: true,
                                 shouldDirty: true,
                                 shouldTouch: true
                               });
-                              
-                              // Also set camelCase version for compatibility
                               form.setValue("employeeId", employeeIdValue, {
                                 shouldValidate: true,
                                 shouldDirty: true,
                                 shouldTouch: true
                               });
-                              
-                              // Also set employee name for display
-                              const employeeName = employeeData?.employee_name || employeeData?.employeeName;
-                              if (employeeName) {
-                                form.setValue("employeeName", employeeName, {
-                                  shouldValidate: true,
-                                  shouldDirty: true,
-                                  shouldTouch: true
-                                });
-                              }
-                              
-                              // The toast is now handled in the EmployeeEmailSearch component
-                              // with a more subtle green checkmark that appears briefly
                             }
+                          }
+                          
+                          // Set employee name field
+                          if (employeeName) {
+                            form.setValue("employeeName", employeeName, {
+                              shouldValidate: true,
+                              shouldDirty: true,
+                              shouldTouch: true
+                            });
                           }
                         }}
                         defaultEmail={employee?.emailId || ""}
