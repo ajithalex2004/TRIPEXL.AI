@@ -1020,14 +1020,43 @@ export function BookingForm() {
           
           console.log("FINAL API DATA:", JSON.stringify(bookingData, null, 2));
           
-          // IMPORTANT FIX: Make sure we force lowercase booking_type
+          // IMPORTANT FIX: Make sure we force lowercase booking_type 
+          // and ensure employee_id is properly formatted as a number
           const finalBookingData = {
             ...bookingData,
-            booking_type: bookingData.booking_type.toLowerCase()
+            booking_type: bookingData.booking_type.toLowerCase(),
+            employee_id: Number(bookingData.employee_id)
           };
           
           console.log("SENDING ACTUAL API PAYLOAD:", JSON.stringify(finalBookingData, null, 2));
           
+          // Try the direct booking-create-trace endpoint first as a diagnostic measure
+          // This endpoint bypasses most validations for testing purposes
+          try {
+            console.log("Making diagnostic API call first to /api/booking-create-trace...");
+            
+            const traceResponse = await fetch('/api/booking-create-trace', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${authToken}`
+              },
+              body: JSON.stringify(finalBookingData),
+            });
+            
+            const traceResult = await traceResponse.json();
+            console.log("Trace endpoint result:", traceResult);
+            
+            if (traceResult.success) {
+              console.log("Diagnostic booking creation succeeded, now trying actual endpoint");
+            } else {
+              console.warn("Diagnostic booking creation failed, but continuing with actual endpoint");
+            }
+          } catch (traceError) {
+            console.warn("Diagnostic trace failed, but continuing with actual endpoint:", traceError);
+          }
+          
+          // Now try the actual booking endpoint
           const testResponse = await fetch('/api/bookings', {
             method: 'POST',
             headers: {
@@ -1402,7 +1431,16 @@ export function BookingForm() {
         </CardHeader>
         <CardContent>
           <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+            <form 
+              onSubmit={(e) => {
+                console.log("FORM SUBMIT EVENT TRIGGERED");
+                // Call the original handler
+                form.handleSubmit((data) => {
+                  console.log("FORM VALIDATION PASSED:", data);
+                  onSubmit(data);
+                })(e);
+              }} 
+              className="space-y-6">
               <AnimatePresence mode="wait">
                 {currentStep === 1 && (
                   <motion.div
@@ -2228,12 +2266,68 @@ export function BookingForm() {
                         const formData = form.getValues();
                         console.log("Current form values:", formData);
                         
+                        // Critical check for the required employee ID
+                        if (!formData.employee_id && !selectedEmployee?.id) {
+                          console.error("Missing employee ID - cannot submit booking without it");
+                          toast({
+                            title: "Missing Employee Information",
+                            description: "Please search for and select an employee by email before proceeding.",
+                            variant: "destructive"
+                          });
+                          return;
+                        }
+                        
+                        // Ensure booking type is set
+                        if (!formData.bookingType) {
+                          console.error("Missing booking type");
+                          toast({
+                            title: "Missing Booking Type",
+                            description: "Please select a booking type (Passenger, Freight, etc.)",
+                            variant: "destructive"
+                          });
+                          return;
+                        }
+                        
+                        // Location validation
+                        if (currentStep === 3 && (!formData.pickupLocation || !formData.dropoffLocation)) {
+                          console.error("Missing location data");
+                          toast({
+                            title: "Missing Location Information",
+                            description: "Please select both pickup and dropoff locations",
+                            variant: "destructive"
+                          });
+                          return;
+                        }
+                        
                         // Manual validation
                         form.trigger().then(isValid => {
                           console.log("Form validation result:", isValid);
                           if (isValid) {
-                            console.log("Form is valid, submitting...");
-                            form.handleSubmit(onSubmit)();
+                            console.log("Form is valid, submitting directly...");
+                            
+                            // Force correct employee ID (use selectedEmployee if available)
+                            if (selectedEmployee?.id) {
+                              form.setValue("employee_id", Number(selectedEmployee.id), {
+                                shouldValidate: true,
+                                shouldDirty: true
+                              });
+                            }
+                            
+                            // Make sure booking type is lowercase
+                            const bookingType = formData.bookingType?.toLowerCase() || "passenger";
+                            form.setValue("bookingType", bookingType, {
+                              shouldValidate: true,
+                              shouldDirty: true
+                            });
+                            
+                            // Submit the form with our enhanced onSubmit function
+                            console.log("Calling onSubmit directly with form data...");
+                            try {
+                              onSubmit(form.getValues());
+                            } catch (error) {
+                              console.error("Error during direct form submission:", error);
+                              alert("Error during form submission: " + (error?.message || "Unknown error"));
+                            }
                           } else {
                             console.error("Form validation failed:", form.formState.errors);
                             toast({
