@@ -647,7 +647,15 @@ function BookingHistoryPage() {
                                   className="data-[state=checked]:bg-primary"
                                 />
                               </TableCell>
-                              <TableCell className="font-medium">{booking.reference_no}</TableCell>
+                              <TableCell className="font-medium">
+                                <button 
+                                  className="text-primary underline cursor-pointer hover:text-primary/80 transition-colors duration-200"
+                                  onClick={() => handleBookingDetails(booking)}
+                                  title="Click to view booking details"
+                                >
+                                  {booking.reference_no}
+                                </button>
+                              </TableCell>
                               <TableCell className="capitalize">{booking.booking_type}</TableCell>
                               <TableCell>{booking.purpose}</TableCell>
                               <TableCell>
