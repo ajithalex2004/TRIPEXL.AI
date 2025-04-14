@@ -131,11 +131,15 @@ export function EmployeeEmailSearch({
           const formattedData = {
             // Internal database ID - crucial for database relations
             id: result.data.id,
-            // Display ID - used for UI display purposes
+            // Display ID - used for UI display purposes - include both formats
             employee_id: result.data.employee_id,
-            // Other employee fields
+            employeeId: result.data.employee_id, // Add camelCase version
+            // Employee name - include both formats
             employee_name: result.data.employee_name,
+            employeeName: result.data.employee_name, // Add camelCase version
+            // Other employee fields
             email_id: result.data.email_id,
+            emailId: result.data.email_id, // Add camelCase version
             department: result.data.department,
             designation: result.data.designation,
             // Include any user mapping data
@@ -181,11 +185,15 @@ export function EmployeeEmailSearch({
           const formattedData = {
             // Internal database ID - crucial for database relations
             id: result.data.employee.id,
-            // Display ID - used for UI display purposes
+            // Display ID - used for UI display purposes - include both formats
             employee_id: result.data.employee.employee_id,
-            // Other employee fields
+            employeeId: result.data.employee.employee_id, // Add camelCase version
+            // Employee name - include both formats
             employee_name: result.data.employee.employee_name,
+            employeeName: result.data.employee.employee_name, // Add camelCase version
+            // Other employee fields
             email_id: result.data.employee.email_id,
+            emailId: result.data.employee.email_id, // Add camelCase version
             department: result.data.employee.department,
             designation: result.data.employee.designation,
             // Include any user mapping data
@@ -231,11 +239,15 @@ export function EmployeeEmailSearch({
         const formattedData = {
           // Internal database ID - crucial for database relations
           id: result.data.id,
-          // Display ID - used for UI display purposes
+          // Display ID - used for UI display purposes - include both formats
           employee_id: result.data.employee_id,
-          // Other employee fields
+          employeeId: result.data.employee_id, // Add camelCase version
+          // Employee name - include both formats
           employee_name: result.data.employee_name,
+          employeeName: result.data.employee_name, // Add camelCase version
+          // Other employee fields
           email_id: result.data.email_id,
+          emailId: result.data.email_id, // Add camelCase version
           department: result.data.department,
           designation: result.data.designation,
           // Include any user mapping data
@@ -279,11 +291,15 @@ export function EmployeeEmailSearch({
         const formattedData = {
           // Internal database ID - crucial for database relations
           id: result.data.employee.id,
-          // Display ID - used for UI display purposes
+          // Display ID - used for UI display purposes - include both formats
           employee_id: result.data.employee.employee_id,
-          // Other employee fields
+          employeeId: result.data.employee.employee_id, // Add camelCase version
+          // Employee name - include both formats
           employee_name: result.data.employee.employee_name,
+          employeeName: result.data.employee.employee_name, // Add camelCase version
+          // Other employee fields
           email_id: result.data.employee.email_id,
+          emailId: result.data.employee.email_id, // Add camelCase version
           department: result.data.employee.department,
           designation: result.data.employee.designation,
           // Include any user mapping data
