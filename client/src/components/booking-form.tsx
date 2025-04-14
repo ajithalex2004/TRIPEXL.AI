@@ -765,12 +765,14 @@ export function BookingForm() {
     try {
       // First refresh bookings data
       await refreshBookings();
-      // Navigate to the booking history page
-      setLocation("/booking-history");
+      // Navigate to the booking history page after creation
+      console.log("Redirecting to booking history page...");
+      setLocation("/bookings");
     } catch (error) {
       console.error("Error refreshing bookings:", error);
       // Still navigate even if refresh fails
-      setLocation("/booking-history");
+      console.log("Error in refreshing, still redirecting to booking history page...");
+      setLocation("/bookings");
     }
   };
   

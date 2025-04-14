@@ -427,11 +427,14 @@ export function SimplifiedBookingForm() {
     
     // Navigate to history page
     try {
+      console.log("Refreshing bookings and navigating to history page...");
       await refreshBookings();
-      setLocation("/booking-history");
+      // Use the correct route from the App.tsx
+      setLocation("/bookings");
     } catch (error) {
       console.error("Error navigating to history:", error);
-      setLocation("/booking-history");
+      // Still navigate even if there is an error
+      setLocation("/bookings");
     }
   };
 
