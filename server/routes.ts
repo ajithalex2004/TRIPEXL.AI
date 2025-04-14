@@ -1110,6 +1110,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
     app.use("/api/booking-create-trace", bookingCreateTraceRouter);
     log("Booking create trace router registered");
     
+    // Register advanced booking debug router
+    app.use("/api/booking-debug-advanced", bookingDebugAdvancedRouter);
+    log("Advanced booking debug router registered");
+    
     // Register booking management router
     app.use("/api/bookings", bookingManagementRouter);
     log("Booking management router registered");
