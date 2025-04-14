@@ -344,11 +344,11 @@ export function SimplifiedBookingForm() {
       };
 
       console.log("🚀 BOOKING FORM - FINAL Formatted booking data for API:", JSON.stringify(bookingData, null, 2));
-      console.log("🚀 BOOKING FORM - Sending to endpoint: /api/bookings");
+      console.log("🚀 BOOKING FORM - Sending to endpoint: /api/bookings/create");
 
-      // Make the API request
+      // Make the API request to our dedicated create endpoint
       console.log("🚀 BOOKING FORM - Starting API request...");
-      const response = await fetch('/api/bookings', {
+      const response = await fetch('/api/bookings/create', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
