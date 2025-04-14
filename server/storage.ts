@@ -29,6 +29,7 @@ export interface IStorage {
   createBooking(booking: InsertBooking): Promise<Booking>;
   assignBooking(bookingId: number, vehicleId: number, driverId: number): Promise<Booking>;
   updateBookingStatus(id: number, status: string): Promise<Booking>;
+  deleteAllBookings(): Promise<void>;
   updateBookingMetadata(
     bookingId: number,
     metadata: {
@@ -1157,6 +1158,20 @@ RETURNING *;`;
     } catch (error) {
       console.error(`Error updating booking status:`, error);
       throw new Error(error instanceof Error ? error.message : "Failed to update booking status");
+    }
+  }
+
+  async deleteAllBookings(): Promise<void> {
+    try {
+      console.log("[BOOKINGS-DELETE-ALL] Deleting all bookings from database");
+      
+      // Delete all records from the bookings table
+      await db.delete(schema.bookings);
+      
+      console.log("[BOOKINGS-DELETE-ALL] Successfully deleted all bookings");
+    } catch (error) {
+      console.error("[BOOKINGS-DELETE-ALL] Error deleting all bookings:", error);
+      throw error;
     }
   }
   async findEmployeeByIdAndEmail(employeeId: string, email: string): Promise<Employee | null> {

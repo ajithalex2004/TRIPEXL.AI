@@ -18,18 +18,9 @@ import {
 import { format } from "date-fns";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from "@/components/ui/alert-dialog";
+
 import { useToast } from "@/hooks/use-toast";
+import { BookingsDeleteManager } from "@/components/bookings-delete-manager";
 
 // Define Booking type
 interface Booking {
@@ -86,8 +77,6 @@ export function BookingsData() {
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [deleteLoading, setDeleteLoading] = useState(false);
-  const [alertOpen, setAlertOpen] = useState(false);
   const { toast } = useToast();
 
   const fetchBookings = async () => {
@@ -124,54 +113,10 @@ export function BookingsData() {
     }
   };
 
-  const deleteAllBookings = async () => {
-    try {
-      setDeleteLoading(true);
-      const authToken = localStorage.getItem('auth_token');
-      if (!authToken) {
-        toast({
-          title: "Authentication Error",
-          description: "Your session has expired. Please log in again.",
-          variant: "destructive"
-        });
-        return;
-      }
-
-      // Logging to debug
-      console.log("Attempting to delete all bookings...");
-      
-      const response = await fetch('/api/bookings/delete-all', {
-        method: 'DELETE',
-        headers: {
-          'Authorization': `Bearer ${authToken}`,
-          'Content-Type': 'application/json'
-        }
-      });
-
-      if (!response.ok) {
-        throw new Error(`Failed to delete bookings: ${response.status} ${response.statusText}`);
-      }
-
-      const result = await response.json();
-      toast({
-        title: "Success",
-        description: `${result.deletedCount} bookings have been deleted.`,
-        variant: "default"
-      });
-      
-      // Refresh the bookings list
-      setBookings([]);
-    } catch (err: any) {
-      console.error("Error deleting bookings:", err);
-      toast({
-        title: "Error",
-        description: err.message || "Failed to delete bookings",
-        variant: "destructive"
-      });
-    } finally {
-      setDeleteLoading(false);
-      setAlertOpen(false);
-    }
+  const handleDeleteSuccess = () => {
+    // Reset bookings list after successful deletion
+    setBookings([]);
+    fetchBookings();
   };
 
   useEffect(() => {
@@ -244,38 +189,10 @@ export function BookingsData() {
             <CardTitle>Database Bookings</CardTitle>
             <CardDescription>Showing all {bookings.length} bookings sorted by creation date (newest first)</CardDescription>
           </div>
-          <AlertDialog open={alertOpen} onOpenChange={setAlertOpen}>
-            <AlertDialogTrigger asChild>
-              <Button 
-                variant="destructive" 
-                disabled={bookings.length === 0 || deleteLoading}
-              >
-                {deleteLoading ? (
-                  <>
-                    <span className="mr-2 h-4 w-4 animate-spin rounded-full border-b-2 border-white"></span>
-                    Deleting...
-                  </>
-                ) : (
-                  "Delete All Bookings"
-                )}
-              </Button>
-            </AlertDialogTrigger>
-            <AlertDialogContent>
-              <AlertDialogHeader>
-                <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
-                <AlertDialogDescription>
-                  This action will permanently delete ALL {bookings.length} bookings from the database. 
-                  This action cannot be undone.
-                </AlertDialogDescription>
-              </AlertDialogHeader>
-              <AlertDialogFooter>
-                <AlertDialogCancel>Cancel</AlertDialogCancel>
-                <AlertDialogAction onClick={deleteAllBookings} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
-                  Yes, Delete All Bookings
-                </AlertDialogAction>
-              </AlertDialogFooter>
-            </AlertDialogContent>
-          </AlertDialog>
+          <BookingsDeleteManager 
+            bookingsCount={bookings.length} 
+            onDeleteSuccess={handleDeleteSuccess}
+          />
         </div>
       </CardHeader>
       <CardContent>
