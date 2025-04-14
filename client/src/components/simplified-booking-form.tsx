@@ -119,7 +119,7 @@ export function SimplifiedBookingForm() {
     }
   });
 
-  const bookingType = form.watch("bookingType");
+  const bookingType = form.watch("bookingType") as string;
   const purpose = form.watch("purpose");
   const priority = form.watch("priority");
 
@@ -195,7 +195,7 @@ export function SimplifiedBookingForm() {
         } : {}),
 
         // Freight-specific fields
-        ...(data.bookingType === "freight" ? {
+        ...(data.bookingType === BookingType.FREIGHT ? {
           cargo_type: data.cargoType,
           num_boxes: Number(data.numBoxes),
           weight: Number(data.weight),
