@@ -137,6 +137,9 @@ export function BookingsData() {
         return;
       }
 
+      // Logging to debug
+      console.log("Attempting to delete all bookings...");
+      
       const response = await fetch('/api/bookings/delete-all', {
         method: 'DELETE',
         headers: {
