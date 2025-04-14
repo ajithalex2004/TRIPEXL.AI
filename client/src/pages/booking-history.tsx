@@ -41,6 +41,14 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 
 function BookingHistoryPage() {
   // Add a state for direct loading
@@ -189,6 +197,10 @@ function BookingHistoryPage() {
   const [selectedBookings, setSelectedBookings] = useState<number[]>([]);
   const [isDeleting, setIsDeleting] = useState(false);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  
+  // Add state for booking details dialog
+  const [selectedBookingDetails, setSelectedBookingDetails] = useState<Booking | null>(null);
+  const [bookingDetailsOpen, setBookingDetailsOpen] = useState(false);
   const { toast } = useToast();
 
   // Calculate filteredBookings from our manual bookings
@@ -334,6 +346,13 @@ function BookingHistoryPage() {
       setIsDeleting(false);
       setIsDialogOpen(false);
     }
+  };
+
+  // Function to open the booking details dialog
+  const handleBookingDetails = (booking: Booking) => {
+    console.log("Opening booking details for:", booking.reference_no);
+    setSelectedBookingDetails(booking);
+    setBookingDetailsOpen(true);
   };
 
   // Function to delete a single booking
@@ -741,6 +760,143 @@ function BookingHistoryPage() {
           </TabsContent>
         </Tabs>
       </motion.div>
+      
+      {/* Booking Details Dialog */}
+      <Dialog open={bookingDetailsOpen} onOpenChange={setBookingDetailsOpen}>
+        <DialogContent className="sm:max-w-[600px] p-0 overflow-hidden bg-background/95 backdrop-blur-md">
+          <DialogHeader className="p-6 pb-2">
+            <DialogTitle className="text-xl flex items-center gap-2">
+              <span className="text-primary">Booking Details</span>
+              <span className="text-sm text-muted-foreground font-normal">
+                {selectedBookingDetails?.reference_no}
+              </span>
+            </DialogTitle>
+            <DialogDescription>
+              View detailed information about this booking
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="p-6 pt-2 space-y-6">
+            {selectedBookingDetails && (
+              <>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-1">
+                    <h4 className="text-sm font-medium text-muted-foreground">Booking Type</h4>
+                    <p className="capitalize">{selectedBookingDetails.booking_type}</p>
+                  </div>
+                  <div className="space-y-1">
+                    <h4 className="text-sm font-medium text-muted-foreground">Purpose</h4>
+                    <p>{selectedBookingDetails.purpose}</p>
+                  </div>
+                  <div className="space-y-1">
+                    <h4 className="text-sm font-medium text-muted-foreground">Priority</h4>
+                    <p className={`px-2 py-1 rounded-full text-xs inline-block ${
+                      selectedBookingDetails.priority === Priority.CRITICAL
+                        ? "bg-red-500/20 text-red-500"
+                        : selectedBookingDetails.priority === Priority.EMERGENCY
+                        ? "bg-orange-500/20 text-orange-500"
+                        : selectedBookingDetails.priority === Priority.HIGH
+                        ? "bg-yellow-500/20 text-yellow-500"
+                        : "bg-green-500/20 text-green-500"
+                    }`}>
+                      {selectedBookingDetails.priority}
+                    </p>
+                  </div>
+                  <div className="space-y-1">
+                    <h4 className="text-sm font-medium text-muted-foreground">Status</h4>
+                    <p className={`px-2 py-1 rounded-full text-xs inline-block ${
+                      selectedBookingDetails.status === "Pending for Approval"
+                        ? "bg-yellow-500/20 text-yellow-500"
+                        : selectedBookingDetails.status === "COMPLETED"
+                        ? "bg-green-500/20 text-green-500"
+                        : selectedBookingDetails.status === "CANCELLED"
+                        ? "bg-red-500/20 text-red-500"
+                        : "bg-blue-500/20 text-blue-500"
+                    }`}>
+                      {selectedBookingDetails.status}
+                    </p>
+                  </div>
+                </div>
+                
+                <div className="space-y-4">
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <h4 className="text-sm font-medium text-muted-foreground">Pickup Location</h4>
+                      <div className="bg-background/50 p-3 rounded-md border border-border">
+                        <p className="font-medium">
+                          {selectedBookingDetails.pickup_location?.address || "No address provided"}
+                        </p>
+                        {selectedBookingDetails.pickup_time && (
+                          <p className="text-sm text-muted-foreground">
+                            {format(new Date(selectedBookingDetails.pickup_time), "MMM d, yyyy HH:mm")}
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <h4 className="text-sm font-medium text-muted-foreground">Dropoff Location</h4>
+                      <div className="bg-background/50 p-3 rounded-md border border-border">
+                        <p className="font-medium">
+                          {selectedBookingDetails.dropoff_location?.address || "No address provided"}
+                        </p>
+                        {selectedBookingDetails.dropoff_time && (
+                          <p className="text-sm text-muted-foreground">
+                            {format(new Date(selectedBookingDetails.dropoff_time), "MMM d, yyyy HH:mm")}
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                
+                <div className="space-y-2">
+                  <h4 className="text-sm font-medium text-muted-foreground">Booking Details</h4>
+                  <div className="bg-background/50 p-3 rounded-md border border-border space-y-3">
+                    <div className="grid grid-cols-2 gap-x-4 gap-y-2">
+                      <div>
+                        <span className="text-xs text-muted-foreground">Employee ID</span>
+                        <p className="font-medium">{selectedBookingDetails.employee_id}</p>
+                      </div>
+                      <div>
+                        <span className="text-xs text-muted-foreground">Created At</span>
+                        <p className="font-medium">
+                          {selectedBookingDetails.created_at 
+                            ? format(new Date(selectedBookingDetails.created_at), "MMM d, yyyy HH:mm") 
+                            : "N/A"}
+                        </p>
+                      </div>
+                      <div>
+                        <span className="text-xs text-muted-foreground">Distance</span>
+                        <p className="font-medium">{selectedBookingDetails.total_distance || "N/A"} km</p>
+                      </div>
+                      <div>
+                        <span className="text-xs text-muted-foreground">Estimated Cost</span>
+                        <p className="font-medium">AED {selectedBookingDetails.estimated_cost || "N/A"}</p>
+                      </div>
+                      <div>
+                        <span className="text-xs text-muted-foreground">CO₂ Emissions</span>
+                        <p className="font-medium">{selectedBookingDetails.co2_emissions || "N/A"} kg</p>
+                      </div>
+                    </div>
+                    
+                    {selectedBookingDetails.remarks && (
+                      <div>
+                        <span className="text-xs text-muted-foreground">Remarks</span>
+                        <p className="bg-background/70 p-2 rounded mt-1 text-sm">{selectedBookingDetails.remarks}</p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </>
+            )}
+          </div>
+          
+          <DialogFooter className="p-6 pt-2">
+            <Button variant="outline" onClick={() => setBookingDetailsOpen(false)}>Close</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
