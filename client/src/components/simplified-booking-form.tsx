@@ -100,8 +100,8 @@ export function SimplifiedBookingForm() {
       bookingType: BookingType.PASSENGER,
       purpose: BookingPurpose.HOSPITAL_VISIT,
       priority: Priority.NORMAL,
-      pickupLocation: null,
-      dropoffLocation: null,
+      pickupLocation: undefined as any,
+      dropoffLocation: undefined as any,
       pickupTime: getMinimumPickupTime().toISOString(),
       dropoffTime: "",
       cargoType: "",
@@ -753,11 +753,11 @@ export function SimplifiedBookingForm() {
                       </div>
                       <div className="col-span-2">
                         <p className="text-sm font-medium mb-1">Pickup Location</p>
-                        <p className="text-sm">{form.getValues("pickupLocation")?.address || "Not set"}</p>
+                        <p className="text-sm">{(form.getValues("pickupLocation") as any)?.address || "Not set"}</p>
                       </div>
                       <div className="col-span-2">
                         <p className="text-sm font-medium mb-1">Dropoff Location</p>
-                        <p className="text-sm">{form.getValues("dropoffLocation")?.address || "Not set"}</p>
+                        <p className="text-sm">{(form.getValues("dropoffLocation") as any)?.address || "Not set"}</p>
                       </div>
                       {form.getValues("remarks") && (
                         <div className="col-span-2">
