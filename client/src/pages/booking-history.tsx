@@ -46,7 +46,6 @@ function BookingHistoryPage() {
   // Add a state for direct loading
   const [manualBookings, setManualBookings] = useState<Booking[]>([]);
   const [manualLoading, setManualLoading] = useState(false);
-  const [activeTab, setActiveTab] = useState("history");
   
   // Disable React Query for debugging purposes
   const { data: bookings, isLoading, error } = useQuery<Booking[]>({
@@ -97,15 +96,13 @@ function BookingHistoryPage() {
   useEffect(() => {
     loadBookings();
 
-    // Register the refresh and tab functions for global access
+    // Register the refresh function for global access
     registerRefreshFunction(loadBookings);
-    registerSetTabFunction(setActiveTab);
 
     // Cleanup when component unmounts
     return () => {
-      // Clear the registrations to avoid memory leaks
+      // Clear the registration to avoid memory leaks
       registerRefreshFunction(() => Promise.resolve());
-      registerSetTabFunction(() => {});
     };
   }, []);
   
@@ -402,7 +399,7 @@ function BookingHistoryPage() {
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5 }}
       >
-        <Tabs defaultValue="history" value={activeTab} onValueChange={setActiveTab}>
+        <Tabs value="history" defaultValue="history">
           <div className="flex items-center justify-between mb-6">
             <h2 className="text-lg font-medium text-primary">Transport Management</h2>
             <TabsList className="grid w-[200px] grid-cols-1">

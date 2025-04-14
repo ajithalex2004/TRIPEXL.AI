@@ -7,7 +7,7 @@ import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { LocationInput } from "@/components/location-input";
 import { UAELocationAutocomplete } from "@/components/uae-location-autocomplete";
-import { refreshBookings, switchToTab } from "@/lib/booking-refresh";
+import { refreshBookings } from "@/lib/booking-refresh";
 import {
   Form,
   FormControl,
@@ -765,8 +765,6 @@ export function BookingForm() {
     try {
       // First refresh bookings data
       await refreshBookings();
-      // Then switch to history tab
-      switchToTab("history");
       // Navigate to the booking history page
       setLocation("/booking-history");
     } catch (error) {
