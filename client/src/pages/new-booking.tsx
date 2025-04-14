@@ -1,4 +1,4 @@
-import { SimplifiedBookingForm } from "@/components/simplified-booking-form";
+import { BookingForm } from "@/components/booking-form";
 import { motion } from "framer-motion";
 import { Card } from "@/components/ui/card";
 
@@ -25,7 +25,7 @@ export default function NewBooking() {
         transition={{ duration: 0.6, delay: 0.2 }}
       >
         <Card className="backdrop-blur-sm bg-white/90 dark:bg-black/50 border border-white/20 p-6">
-          <SimplifiedBookingForm />
+          <BookingForm />
         </Card>
       </motion.div>
     </div>
