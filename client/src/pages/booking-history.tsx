@@ -27,7 +27,7 @@ import { Filter, Search, Clock as ClockIcon, RefreshCw, Trash2, Trash, Check, Al
 import { BookingForm } from "@/components/booking-form";
 import { SimplifiedBookingForm } from "@/components/simplified-booking-form";
 import { Button } from "@/components/ui/button";
-import { registerRefreshFunction, registerSetTabFunction } from "@/lib/booking-refresh";
+import { registerRefreshFunction } from "@/lib/booking-refresh";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/hooks/use-toast";
 import {
