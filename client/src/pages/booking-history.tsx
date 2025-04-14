@@ -25,6 +25,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { VehicleLoadingIndicator } from "@/components/ui/vehicle-loading-indicator";
 import { Filter, Search, Clock as ClockIcon, RefreshCw } from "lucide-react";
 import { BookingForm } from "@/components/booking-form";
+import { SimplifiedBookingForm } from "@/components/simplified-booking-form";
 import { Button } from "@/components/ui/button";
 import { registerRefreshFunction, registerSetTabFunction } from "@/lib/booking-refresh";
 
@@ -243,7 +244,7 @@ function BookingHistoryPage() {
           </div>
 
           <TabsContent value="new">
-            <BookingForm />
+            <SimplifiedBookingForm />
           </TabsContent>
 
           <TabsContent value="history">
