@@ -28,6 +28,7 @@ import userEmployeeRouter from "./routes/user-employee-router";
 import bookingDebugRouter from "./routes/booking-debug";
 import bookingTestRouter from "./routes/booking-test";
 import { bookingDebugTraceRouter } from "./routes/booking-debug-trace";
+import bookingManagementRouter from "./routes/booking-management";
 
 // Configure multer for handling file uploads
 const upload = multer({
@@ -1102,6 +1103,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
     // Register booking debug trace router for diagnosing issues
     app.use("/api/booking-debug-trace", bookingDebugTraceRouter);
     log("Booking debug trace router registered");
+    
+    // Register booking management router
+    app.use("/api/bookings", bookingManagementRouter);
+    log("Booking management router registered");
     
     // Add fuel types router
     log("Registering fuel types router...");
