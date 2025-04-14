@@ -4,7 +4,8 @@ import {
   CardContent, 
   CardDescription, 
   CardHeader, 
-  CardTitle 
+  CardTitle,
+  CardFooter 
 } from "@/components/ui/card";
 import {
   Table,
@@ -16,6 +17,19 @@ import {
 } from "@/components/ui/table";
 import { format } from "date-fns";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
+import { useToast } from "@/hooks/use-toast";
 
 // Define Booking type
 interface Booking {
@@ -72,42 +86,92 @@ export function BookingsData() {
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [deleteLoading, setDeleteLoading] = useState(false);
+  const [alertOpen, setAlertOpen] = useState(false);
+  const { toast } = useToast();
+
+  const fetchBookings = async () => {
+    try {
+      setLoading(true);
+      const authToken = localStorage.getItem('auth_token');
+      if (!authToken) {
+        setError("Authentication token not found. Please log in again.");
+        setLoading(false);
+        return;
+      }
+
+      const response = await fetch('/api/bookings', {
+        headers: {
+          'Authorization': `Bearer ${authToken}`
+        }
+      });
+
+      if (!response.ok) {
+        throw new Error(`Failed to fetch bookings: ${response.status} ${response.statusText}`);
+      }
+
+      const data = await response.json();
+      // Sort bookings by created_at date, newest first
+      const sortedBookings = data.sort((a: Booking, b: Booking) => 
+        new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+      );
+      setBookings(sortedBookings);
+    } catch (err: any) {
+      console.error("Error fetching bookings:", err);
+      setError(err.message || "Failed to fetch bookings");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const deleteAllBookings = async () => {
+    try {
+      setDeleteLoading(true);
+      const authToken = localStorage.getItem('auth_token');
+      if (!authToken) {
+        toast({
+          title: "Authentication Error",
+          description: "Your session has expired. Please log in again.",
+          variant: "destructive"
+        });
+        return;
+      }
+
+      const response = await fetch('/api/bookings/delete-all', {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${authToken}`,
+          'Content-Type': 'application/json'
+        }
+      });
+
+      if (!response.ok) {
+        throw new Error(`Failed to delete bookings: ${response.status} ${response.statusText}`);
+      }
+
+      const result = await response.json();
+      toast({
+        title: "Success",
+        description: `${result.deletedCount} bookings have been deleted.`,
+        variant: "default"
+      });
+      
+      // Refresh the bookings list
+      setBookings([]);
+    } catch (err: any) {
+      console.error("Error deleting bookings:", err);
+      toast({
+        title: "Error",
+        description: err.message || "Failed to delete bookings",
+        variant: "destructive"
+      });
+    } finally {
+      setDeleteLoading(false);
+      setAlertOpen(false);
+    }
+  };
 
   useEffect(() => {
-    const fetchBookings = async () => {
-      try {
-        setLoading(true);
-        const authToken = localStorage.getItem('auth_token');
-        if (!authToken) {
-          setError("Authentication token not found. Please log in again.");
-          setLoading(false);
-          return;
-        }
-
-        const response = await fetch('/api/bookings', {
-          headers: {
-            'Authorization': `Bearer ${authToken}`
-          }
-        });
-
-        if (!response.ok) {
-          throw new Error(`Failed to fetch bookings: ${response.status} ${response.statusText}`);
-        }
-
-        const data = await response.json();
-        // Sort bookings by created_at date, newest first
-        const sortedBookings = data.sort((a: Booking, b: Booking) => 
-          new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
-        );
-        setBookings(sortedBookings);
-      } catch (err: any) {
-        console.error("Error fetching bookings:", err);
-        setError(err.message || "Failed to fetch bookings");
-      } finally {
-        setLoading(false);
-      }
-    };
-
     fetchBookings();
   }, []);
 
@@ -172,41 +236,83 @@ export function BookingsData() {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Database Bookings</CardTitle>
-        <CardDescription>Showing all {bookings.length} bookings sorted by creation date (newest first)</CardDescription>
+        <div className="flex justify-between items-center">
+          <div>
+            <CardTitle>Database Bookings</CardTitle>
+            <CardDescription>Showing all {bookings.length} bookings sorted by creation date (newest first)</CardDescription>
+          </div>
+          <AlertDialog open={alertOpen} onOpenChange={setAlertOpen}>
+            <AlertDialogTrigger asChild>
+              <Button 
+                variant="destructive" 
+                disabled={bookings.length === 0 || deleteLoading}
+              >
+                {deleteLoading ? (
+                  <>
+                    <span className="mr-2 h-4 w-4 animate-spin rounded-full border-b-2 border-white"></span>
+                    Deleting...
+                  </>
+                ) : (
+                  "Delete All Bookings"
+                )}
+              </Button>
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+                <AlertDialogDescription>
+                  This action will permanently delete ALL {bookings.length} bookings from the database. 
+                  This action cannot be undone.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                <AlertDialogAction onClick={deleteAllBookings} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+                  Yes, Delete All Bookings
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
+        </div>
       </CardHeader>
       <CardContent>
         <div className="overflow-auto max-h-[70vh]">
-          <Table>
-            <TableHeader className="sticky top-0 bg-background">
-              <TableRow>
-                <TableHead>ID</TableHead>
-                <TableHead>Reference</TableHead>
-                <TableHead>Type</TableHead>
-                <TableHead>Purpose</TableHead>
-                <TableHead>Employee ID</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead>Pickup</TableHead>
-                <TableHead>Dropoff</TableHead>
-                <TableHead>Created</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {bookings.map((booking) => (
-                <TableRow key={booking.id}>
-                  <TableCell>{booking.id}</TableCell>
-                  <TableCell>{booking.reference_no}</TableCell>
-                  <TableCell className="capitalize">{booking.booking_type}</TableCell>
-                  <TableCell>{booking.purpose}</TableCell>
-                  <TableCell>{booking.employee_id || "N/A"}</TableCell>
-                  <TableCell>{getStatusBadge(booking.status)}</TableCell>
-                  <TableCell>{booking.pickup_location?.address || "N/A"}</TableCell>
-                  <TableCell>{booking.dropoff_location?.address || "N/A"}</TableCell>
-                  <TableCell>{formatDateTime(booking.created_at)}</TableCell>
+          {bookings.length === 0 ? (
+            <div className="text-center py-8 text-muted-foreground">
+              No bookings found in the database.
+            </div>
+          ) : (
+            <Table>
+              <TableHeader className="sticky top-0 bg-background">
+                <TableRow>
+                  <TableHead>ID</TableHead>
+                  <TableHead>Reference</TableHead>
+                  <TableHead>Type</TableHead>
+                  <TableHead>Purpose</TableHead>
+                  <TableHead>Employee ID</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead>Pickup</TableHead>
+                  <TableHead>Dropoff</TableHead>
+                  <TableHead>Created</TableHead>
                 </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+              </TableHeader>
+              <TableBody>
+                {bookings.map((booking) => (
+                  <TableRow key={booking.id}>
+                    <TableCell>{booking.id}</TableCell>
+                    <TableCell>{booking.reference_no}</TableCell>
+                    <TableCell className="capitalize">{booking.booking_type}</TableCell>
+                    <TableCell>{booking.purpose}</TableCell>
+                    <TableCell>{booking.employee_id || "N/A"}</TableCell>
+                    <TableCell>{getStatusBadge(booking.status)}</TableCell>
+                    <TableCell>{booking.pickup_location?.address || "N/A"}</TableCell>
+                    <TableCell>{booking.dropoff_location?.address || "N/A"}</TableCell>
+                    <TableCell>{formatDateTime(booking.created_at)}</TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          )}
         </div>
       </CardContent>
     </Card>
