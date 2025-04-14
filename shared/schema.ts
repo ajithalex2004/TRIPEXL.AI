@@ -676,8 +676,8 @@ export const bookings = pgTable("bookings", {
   pickup_location: json("pickup_location").$type<z.infer<typeof locations>>().notNull(),
   dropoff_location: json("dropoff_location").$type<z.infer<typeof locations>>().notNull(),
   waypoints: json("waypoints").$type<z.infer<typeof locations>[]>().default([]),
-  pickup_time: timestamp("pickup_time").notNull(), // Changed from text to timestamp
-  dropoff_time: timestamp("dropoff_time").notNull(), // Changed from text to timestamp
+  pickup_time: timestamp("pickup_time"), // Made optional to match existing data
+  dropoff_time: timestamp("dropoff_time"), // Made optional to match existing data
 
   // Reference and tracking
   reference_no: text("reference_no").unique(),
@@ -752,9 +752,9 @@ export const insertBookingSchema = createInsertSchema(bookings)
     box_size: z.array(z.string()).optional(), // Changed from enum for more flexibility
     employee_id: z.number().int().positive(), // Ensure employee_id is always an integer
     
-    // Time fields - ensuring they're parsed as proper dates
-    pickup_time: z.coerce.date(), // Convert string dates to Date objects
-    dropoff_time: z.coerce.date(), // Convert string dates to Date objects
+    // Time fields - ensuring they're parsed as proper dates if present
+    pickup_time: z.coerce.date().optional(), // Made optional to match database schema
+    dropoff_time: z.coerce.date().optional(), // Made optional to match database schema
 
     // Location objects must be provided for booking
     pickup_location: z.object({
