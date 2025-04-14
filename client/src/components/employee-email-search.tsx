@@ -128,23 +128,32 @@ export function EmployeeEmailSearch({
           // Create a properly formatted employee data object
           // IMPORTANT: Make sure we use the internal database ID (id) as the primary ID
           // for database relations, not the display ID (employee_id)
+          console.log("Processing employee data from API:", result.data);
+          
+          // Check for both camelCase and snake_case field names in the response
+          const employeeName = result.data.employeeName || result.data.employee_name;
+          const emailId = result.data.emailId || result.data.email_id;
+          
           const formattedData = {
             // Internal database ID - crucial for database relations
             id: result.data.id,
             // Display ID - used for UI display purposes - include both formats
-            employee_id: result.data.employee_id,
-            employeeId: result.data.employee_id, // Add camelCase version
-            // Employee name - include both formats
-            employee_name: result.data.employee_name,
-            employeeName: result.data.employee_name, // Add camelCase version
-            // Other employee fields
-            email_id: result.data.email_id,
-            emailId: result.data.email_id, // Add camelCase version
+            employee_id: result.data.employee_id || result.data.employeeId,
+            employeeId: result.data.employeeId || result.data.employee_id,
+            // Employee name - include both formats for compatibility
+            employee_name: employeeName,
+            employeeName: employeeName, 
+            // Other employee fields - include both formats for compatibility
+            email_id: emailId,
+            emailId: emailId,
+            // Department and designation
             department: result.data.department,
             designation: result.data.designation,
             // Include any user mapping data
             user: result.data.user
           };
+          
+          console.log("Formatted employee data:", formattedData);
           
           // Call the parent component's callback with the properly formatted employee data
           onEmployeeFound(formattedData);
@@ -182,23 +191,32 @@ export function EmployeeEmailSearch({
           console.log("ID search - Display ID:", result.data.employee.employee_id);
           
           // Format the employee data to match the expected structure
+          console.log("Processing employee data from ID search:", result.data.employee);
+          
+          // Check for both camelCase and snake_case field names in the response
+          const employeeName = result.data.employee.employeeName || result.data.employee.employee_name;
+          const emailId = result.data.employee.emailId || result.data.employee.email_id;
+          const employeeId = result.data.employee.employeeId || result.data.employee.employee_id;
+          
           const formattedData = {
             // Internal database ID - crucial for database relations
             id: result.data.employee.id,
             // Display ID - used for UI display purposes - include both formats
-            employee_id: result.data.employee.employee_id,
-            employeeId: result.data.employee.employee_id, // Add camelCase version
+            employee_id: employeeId,
+            employeeId: employeeId,
             // Employee name - include both formats
-            employee_name: result.data.employee.employee_name,
-            employeeName: result.data.employee.employee_name, // Add camelCase version
+            employee_name: employeeName,
+            employeeName: employeeName,
             // Other employee fields
-            email_id: result.data.employee.email_id,
-            emailId: result.data.employee.email_id, // Add camelCase version
+            email_id: emailId,
+            emailId: emailId,
             department: result.data.employee.department,
             designation: result.data.employee.designation,
             // Include any user mapping data
             user: result.data.user
           };
+          
+          console.log("Formatted employee data from ID search:", formattedData);
           
           // Call the parent component's callback with the employee data
           onEmployeeFound(formattedData);
@@ -236,23 +254,32 @@ export function EmployeeEmailSearch({
         console.log("Email form submit - Display ID:", result.data.employee_id);
         
         // Create a properly formatted employee data object
+        console.log("Processing employee data from email form submit:", result.data);
+        
+        // Check for both camelCase and snake_case field names in the response
+        const employeeName = result.data.employeeName || result.data.employee_name;
+        const emailId = result.data.emailId || result.data.email_id;
+        const employeeId = result.data.employeeId || result.data.employee_id;
+        
         const formattedData = {
           // Internal database ID - crucial for database relations
           id: result.data.id,
           // Display ID - used for UI display purposes - include both formats
-          employee_id: result.data.employee_id,
-          employeeId: result.data.employee_id, // Add camelCase version
+          employee_id: employeeId,
+          employeeId: employeeId,
           // Employee name - include both formats
-          employee_name: result.data.employee_name,
-          employeeName: result.data.employee_name, // Add camelCase version
+          employee_name: employeeName,
+          employeeName: employeeName,
           // Other employee fields
-          email_id: result.data.email_id,
-          emailId: result.data.email_id, // Add camelCase version
+          email_id: emailId,
+          emailId: emailId,
           department: result.data.department,
           designation: result.data.designation,
           // Include any user mapping data
           user: result.data.user
         };
+        
+        console.log("Formatted employee data from email form submit:", formattedData);
         
         // Call the parent component's callback with the formatted employee data
         onEmployeeFound(formattedData);
@@ -288,23 +315,32 @@ export function EmployeeEmailSearch({
         console.log("ID form submit - Display ID:", result.data.employee.employee_id);
         
         // Format the employee data to match the expected structure
+        console.log("Processing employee data from ID form submit:", result.data.employee);
+        
+        // Check for both camelCase and snake_case field names in the response
+        const employeeName = result.data.employee.employeeName || result.data.employee.employee_name;
+        const emailId = result.data.employee.emailId || result.data.employee.email_id;
+        const employeeId = result.data.employee.employeeId || result.data.employee.employee_id;
+        
         const formattedData = {
           // Internal database ID - crucial for database relations
           id: result.data.employee.id,
           // Display ID - used for UI display purposes - include both formats
-          employee_id: result.data.employee.employee_id,
-          employeeId: result.data.employee.employee_id, // Add camelCase version
+          employee_id: employeeId,
+          employeeId: employeeId,
           // Employee name - include both formats
-          employee_name: result.data.employee.employee_name,
-          employeeName: result.data.employee.employee_name, // Add camelCase version
+          employee_name: employeeName,
+          employeeName: employeeName,
           // Other employee fields
-          email_id: result.data.employee.email_id,
-          emailId: result.data.employee.email_id, // Add camelCase version
+          email_id: emailId,
+          emailId: emailId,
           department: result.data.employee.department,
           designation: result.data.employee.designation,
           // Include any user mapping data
           user: result.data.user
         };
+        
+        console.log("Formatted employee data from ID form submit:", formattedData);
         
         // Call the parent component's callback with the employee data
         onEmployeeFound(formattedData);
