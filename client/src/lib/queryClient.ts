@@ -53,12 +53,27 @@ export async function apiRequest(
   
   // Enhanced debugging
   console.log(`🔍 API REQUEST: ${method} ${url}`);
+  console.log(`🔒 Auth token present: ${token ? 'Yes (length: ' + token.length + ')' : 'No'}`);
+  console.log(`📋 Headers:`, headers);
+  
   if (data) {
-    console.log('Request Payload:', JSON.stringify(data, null, 2));
+    console.log('📦 Request Payload:', JSON.stringify(data, null, 2));
     
     // Special enhanced logging for booking API
     if (url.includes('/bookings') && method.toUpperCase() === 'POST') {
       console.log('⚠️ BOOKING REQUEST DETAILS ⚠️');
+      
+      // Log all required fields for booking creation
+      console.log('Required fields check:');
+      const requiredFields = [
+        'booking_type', 'purpose', 'priority',
+        'pickup_location', 'dropoff_location',
+        'pickup_time', 'dropoff_time', 'employee_id'
+      ];
+      
+      for (const field of requiredFields) {
+        console.log(`- ${field}: ${data[field] ? '✓' : '✗'} ${data[field] !== undefined ? JSON.stringify(data[field]) : 'missing'}`);
+      }
       
       // Ensure both ID fields are present in the request
       if (data.employee_id === undefined && data.employeeId !== undefined) {
@@ -84,13 +99,33 @@ export async function apiRequest(
         }
       }
       
-      console.log('Employee ID:', data.employee_id, 'Type:', typeof data.employee_id);
-      console.log('employeeId:', data.employeeId, 'Type:', typeof data.employeeId);
-      console.log('ID fields comparison:', { 
+      console.log('👤 Employee ID:', data.employee_id, 'Type:', typeof data.employee_id);
+      console.log('👤 employeeId:', data.employeeId, 'Type:', typeof data.employeeId);
+      console.log('🧪 ID fields comparison:', { 
         employee_id: data.employee_id, 
         employeeId: data.employeeId,
         equal: data.employee_id === data.employeeId
       });
+      
+      // Check location data format
+      if (data.pickup_location) {
+        console.log('📍 Pickup location format check:', {
+          hasAddress: !!data.pickup_location.address,
+          hasCoordinates: !!data.pickup_location.coordinates,
+          lat: data.pickup_location.coordinates?.lat,
+          lng: data.pickup_location.coordinates?.lng
+        });
+      }
+      
+      if (data.dropoff_location) {
+        console.log('📍 Dropoff location format check:', {
+          hasAddress: !!data.dropoff_location.address,
+          hasCoordinates: !!data.dropoff_location.coordinates,
+          lat: data.dropoff_location.coordinates?.lat,
+          lng: data.dropoff_location.coordinates?.lng
+        });
+      }
+      
       console.log('All keys in booking request:', Object.keys(data));
       console.log('⚠️ END BOOKING DETAILS ⚠️');
     }
