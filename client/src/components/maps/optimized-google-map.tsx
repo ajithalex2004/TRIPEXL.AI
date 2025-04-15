@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { GoogleMap, useJsApiLoader } from '@react-google-maps/api';
+import { GoogleMap } from '@react-google-maps/api';
 import { Loader2 } from 'lucide-react';
+import { useSafeGoogleMaps } from '@/hooks/use-safe-google-maps';
 
 // Default UAE center coordinates (Abu Dhabi)
 const DEFAULT_CENTER = {
@@ -35,9 +36,6 @@ const OPTIMIZED_MAP_OPTIONS = {
   ]
 };
 
-// Set libraries to load
-const LIBRARIES = ["places"];
-
 interface OptimizedGoogleMapProps {
   apiKey: string;
   children?: React.ReactNode;
@@ -61,30 +59,13 @@ export function OptimizedGoogleMap({
   zoom = 11,
   options = {}
 }: OptimizedGoogleMapProps) {
-  // We need to track our own loading state for error handling
-  const [mapLoadError, setMapLoadError] = useState<Error | null>(null);
+  // We need to track our own loading state
   const [isMapReady, setIsMapReady] = useState(false);
   const mapRef = useRef<google.maps.Map | null>(null);
   const mapDivRef = useRef<HTMLDivElement | null>(null);
   
-  // Use the @react-google-maps/api library's loader
-  const { isLoaded, loadError } = useJsApiLoader({
-    id: 'google-map-script',
-    googleMapsApiKey: apiKey,
-    libraries: LIBRARIES as any,
-    preventGoogleFontsLoading: true, // Font loading is a common cause of jank
-    // Set low timeout to prevent blocking UI
-    mapIds: [],
-  });
-
-  // Handle the load error if it occurs
-  useEffect(() => {
-    if (loadError) {
-      console.error("Error loading Google Maps:", loadError);
-      setMapLoadError(loadError);
-      if (onError) onError(loadError);
-    }
-  }, [loadError, onError]);
+  // Use our custom hook for safely loading Google Maps
+  const { isLoaded, isError, errorMessage } = useSafeGoogleMaps(apiKey, onError);
 
   // Handle map load
   const handleMapLoad = React.useCallback((map: google.maps.Map) => {
@@ -126,7 +107,7 @@ export function OptimizedGoogleMap({
   }, [onUnmount]);
 
   // If there's an error, show error state
-  if (loadError || mapLoadError) {
+  if (isError) {
     return (
       <div className="w-full h-[500px] flex items-center justify-center bg-gray-100 rounded-md">
         <div className="text-center p-6">
@@ -134,7 +115,7 @@ export function OptimizedGoogleMap({
             Failed to load Google Maps
           </div>
           <div className="text-sm text-gray-600">
-            {(loadError || mapLoadError)?.message || "Unknown error occurred"}
+            {errorMessage || "Unknown error occurred"}
           </div>
           <button 
             className="mt-4 px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
