@@ -158,6 +158,19 @@ export function BookingForm() {
     }
   }, [employee, employeeError]);
 
+  // Create default values with proper typing
+  const defaultEmptyLocation: Location = {
+    address: "",
+    coordinates: { lat: 0, lng: 0 },
+    place_id: "",
+    name: "",
+    formatted_address: "",
+    district: "",
+    city: "",
+    area: "",
+    place_types: []
+  };
+
   const form = useForm({
     resolver: zodResolver(insertBookingSchema),
     mode: "onChange",
@@ -169,8 +182,8 @@ export function BookingForm() {
       bookingType: "",
       purpose: "",
       priority: "",
-      pickupLocation: null, // No default pickup location
-      dropoffLocation: null, // No default dropoff location
+      pickupLocation: undefined, // Use undefined instead of null for proper type handling
+      dropoffLocation: undefined, // Use undefined instead of null for proper type handling
       pickupTime: getMinimumPickupTime(), // Store as Date object directly
       dropoffTime: null, // Use null instead of empty string for proper timestamp handling
       cargoType: "",
@@ -2100,30 +2113,47 @@ export function BookingForm() {
                               onLocationSelect={(location, type) => {
                                 // Handle pickup or dropoff location
                                 const fieldName = type === 'pickup' ? "pickupLocation" : "dropoffLocation";
-                                console.log(`Map onLocationSelect: Setting ${fieldName} with:`, location);
+                                console.log(`Map onLocationSelect: Setting ${fieldName} with:`, JSON.stringify(location));
                                 
                                 // Ensure all optional properties are present with default values
-                                const completeLocation = {
-                                  ...location,
+                                const completeLocation: Location = {
+                                  address: location.address,
+                                  coordinates: {
+                                    lat: location.coordinates.lat,
+                                    lng: location.coordinates.lng
+                                  },
                                   place_id: location.place_id || "",
                                   name: location.name || location.address,
-                                  formatted_address: location.formatted_address || location.address
+                                  formatted_address: location.formatted_address || location.address,
+                                  district: location.district || "",
+                                  city: location.city || "",
+                                  area: location.area || "",
+                                  place_types: location.place_types || []
                                 };
                                 
-                                console.log(`Map Picker onLocationSelect: Setting ${fieldName} with:`, completeLocation);
+                                console.log(`Map Picker onLocationSelect: Setting ${fieldName} with:`, JSON.stringify(completeLocation));
                                 
                                 // Wrap in try/catch for extra safety
                                 try {
-                                  // Use setTimeout to ensure we don't block the UI
+                                  // Force clean state update with setTimeout
                                   setTimeout(() => {
+                                    // Store the location in component state as a backup
+                                    if (type === 'pickup') {
+                                      setPickupLocation(completeLocation);
+                                    } else {
+                                      setDropoffLocation(completeLocation);
+                                    }
+                                    
+                                    // Update the form with the location
                                     form.setValue(fieldName, completeLocation, {
                                       shouldValidate: true,
                                       shouldDirty: true,
                                       shouldTouch: true
                                     });
+                                    
                                     console.log(`Map Picker: Successfully set ${fieldName}`);
-                                    console.log(`Current form value for ${fieldName}:`, form.getValues(fieldName));
-                                  }, 10);
+                                    console.log(`Current form value for ${fieldName}:`, JSON.stringify(form.getValues(fieldName)));
+                                  }, 50); // Use a longer timeout for more reliability
                                 } catch (error) {
                                   console.error(`Error setting ${fieldName} from map:`, error);
                                 }
