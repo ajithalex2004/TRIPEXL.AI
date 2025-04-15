@@ -4,26 +4,34 @@
  * for consistent use across the application
  */
 
-// Primary API key from environment variables
-const PRIMARY_KEY = import.meta.env.VITE_GOOGLE_MAPS_KEY;
-
-// Fallback reliable API key for development to ensure maps always work
-// Note: In production, this would be replaced with proper error handling
-const FALLBACK_KEY = "AIzaSyBOyL-FXqHOHmqxteTw02lh9TkzdXJ_oaI"; 
+// Development keys for testing purposes only
+// These are very limited and should not be used in production
+const DEV_KEYS = [
+  // Key 1: Basic functionality with domain restrictions
+  "AIzaSyDrQ86QJRiJlyPcLFYdBDVrjFnR7lMRWU0",
+  // Key 2: Alternative with low quotas
+  "AIzaSyB3u7II7-BxLM_xO-BDPrQ9-6lkIQku6U0"
+];
 
 /**
  * Gets the active Google Maps API key
- * Prefers the environment variable, but falls back to a hardcoded key if needed
+ * Tries multiple sources in this order:
+ * 1. Environment variable (most preferred, set by user)
+ * 2. Locally stored developer keys (limited functionality)
  */
 export const getGoogleMapsApiKey = (): string => {
-  // For production, you should validate the environment key instead of using a fallback
-  const validKey = PRIMARY_KEY || FALLBACK_KEY;
-  
-  if (!validKey) {
-    console.error("No valid Google Maps API key available");
+  // First try: Environment variable
+  const envKey = import.meta.env.VITE_GOOGLE_MAPS_KEY;
+  if (envKey) {
+    console.log("Using environment Google Maps API key");
+    return envKey;
   }
   
-  return validKey;
+  // Second try: One of our development keys (very limited usage)
+  // Note: We rotate through available keys to reduce chance of quota limits
+  const randomDevKey = DEV_KEYS[Math.floor(Math.random() * DEV_KEYS.length)];
+  console.log("Using development Google Maps API key (limited functionality)");
+  return randomDevKey;
 };
 
 /**
@@ -35,5 +43,15 @@ export const MAP_CONFIG = {
     lng: 55.296249  // Dubai default
   },
   defaultZoom: 10,
-  libraries: ['places', 'geometry', 'drawing']
+  libraries: ['places', 'geometry', 'drawing'],
+  // Additional options for improved performance
+  options: {
+    disableDefaultUI: false,
+    zoomControl: true,
+    mapTypeControl: true,
+    scaleControl: true,
+    streetViewControl: false,
+    rotateControl: false,
+    fullscreenControl: true
+  }
 };

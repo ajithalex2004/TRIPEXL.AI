@@ -2,25 +2,15 @@ import React, { useState, useEffect, useRef } from 'react';
 import { GoogleMap } from '@react-google-maps/api';
 import { Loader2 } from 'lucide-react';
 import { useSafeGoogleMaps } from '@/hooks/use-safe-google-maps';
-
-// Default UAE center coordinates (Abu Dhabi)
-const DEFAULT_CENTER = {
-  lat: 24.466667,
-  lng: 54.366667
-};
+import { MAP_CONFIG } from '@/lib/map-config';
 
 // Performance optimized Google Maps configuration
 const OPTIMIZED_MAP_OPTIONS = {
-  disableDefaultUI: false,
+  ...MAP_CONFIG.options,
   clickableIcons: false, // Disable POI clicks to improve performance
   gestureHandling: "cooperative", // Less processing-intensive than "greedy"
   maxZoom: 18, // Limit max zoom to reduce tile load 
   minZoom: 5, // Set minimum zoom to ensure context
-  zoomControl: true,
-  mapTypeControl: true,
-  streetViewControl: false, // Disable street view to save resources
-  rotateControl: false, // Disable rotation to save resources
-  fullscreenControl: true,
   // Disable all unnecessary visualization features
   styles: [
     {
@@ -55,8 +45,8 @@ export function OptimizedGoogleMap({
   onUnmount,
   onError,
   onClick,
-  center = DEFAULT_CENTER,
-  zoom = 11,
+  center = MAP_CONFIG.defaultCenter,
+  zoom = MAP_CONFIG.defaultZoom,
   options = {}
 }: OptimizedGoogleMapProps) {
   // We need to track our own loading state
@@ -65,7 +55,23 @@ export function OptimizedGoogleMap({
   const mapDivRef = useRef<HTMLDivElement | null>(null);
   
   // Use our custom hook for safely loading Google Maps
-  const { isLoaded, isError, errorMessage } = useSafeGoogleMaps(apiKey, onError);
+  const { isLoaded, isError, errorMessage, apiInstance } = useSafeGoogleMaps(apiKey, onError);
+  
+  // Additional error tracking
+  const [runtimeError, setRuntimeError] = useState<string | null>(null);
+  
+  // Add additional error logging
+  useEffect(() => {
+    if (isError) {
+      console.error("Google Maps loading error:", errorMessage);
+    }
+    
+    // Check if API key is available
+    if (!apiKey) {
+      console.error("No Google Maps API key provided");
+      setRuntimeError("Missing API key");
+    }
+  }, [isError, errorMessage, apiKey]);
 
   // Handle map load
   const handleMapLoad = React.useCallback((map: google.maps.Map) => {
@@ -107,7 +113,7 @@ export function OptimizedGoogleMap({
   }, [onUnmount]);
 
   // If there's an error, show error state
-  if (isError) {
+  if (isError || runtimeError) {
     return (
       <div className="w-full h-[500px] flex items-center justify-center bg-gray-100 rounded-md">
         <div className="text-center p-6">
@@ -115,7 +121,10 @@ export function OptimizedGoogleMap({
             Failed to load Google Maps
           </div>
           <div className="text-sm text-gray-600">
-            {errorMessage || "Unknown error occurred"}
+            {errorMessage || runtimeError || "Unknown error occurred"}
+          </div>
+          <div className="mt-2 text-xs text-gray-500">
+            Please ensure you have a valid Google Maps API key
           </div>
           <button 
             className="mt-4 px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
