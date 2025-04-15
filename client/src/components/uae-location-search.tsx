@@ -106,25 +106,29 @@ export function UaeLocationSearch({
     };
   }, [apiKey, isApiLoaded]);
   
-  // Create a reference for the Places service element
+  // Create a mutable reference that we can update safely
   const placesElementDivRef = useRef<HTMLDivElement | null>(null);
+  const placesElementRef = useRef<HTMLDivElement | null>(null);
   
   // Initialize services when API is loaded
   useEffect(() => {
     if (!isApiLoaded || !window.google?.maps?.places) return;
     
+    let placesDiv: HTMLDivElement | null = null;
+    
     try {
-      // Create a hidden div element for PlacesService if it doesn't exist
-      if (!placesElementDivRef.current) {
-        const div = document.createElement('div');
-        div.style.display = 'none';
-        document.body.appendChild(div);
-        placesElementDivRef.current = div;
-      }
+      // Create a hidden div element for PlacesService
+      placesDiv = document.createElement('div');
+      placesDiv.style.display = 'none';
+      document.body.appendChild(placesDiv);
+      
+      // Store the reference in both refs
+      placesElementRef.current = placesDiv;
+      placesElementDivRef.current = placesDiv;
       
       // Initialize services
       setAutocompleteService(new google.maps.places.AutocompleteService());
-      setPlacesService(new google.maps.places.PlacesService(placesElementDivRef.current));
+      setPlacesService(new google.maps.places.PlacesService(placesDiv));
     } catch (err) {
       console.error('Error initializing Places services:', err);
       setError('Failed to initialize location services.');
@@ -132,14 +136,17 @@ export function UaeLocationSearch({
     
     // Cleanup
     return () => {
-      if (placesElementDivRef.current) {
+      if (placesElementRef.current) {
         try {
-          document.body.removeChild(placesElementDivRef.current);
-          placesElementDivRef.current = null;
+          document.body.removeChild(placesElementRef.current);
         } catch (e) {
           // Element may have already been removed
         }
       }
+      
+      // Clear both refs in cleanup
+      placesElementRef.current = null;
+      placesElementDivRef.current = null;
     };
   }, [isApiLoaded]);
   

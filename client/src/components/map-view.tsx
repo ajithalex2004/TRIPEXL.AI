@@ -5,16 +5,21 @@ import { MapWorker } from '@/components/maps';
 import { AntiFreezeWrapper } from '@/components/anti-freeze-wrapper';
 import { MapPin, AlertTriangle } from 'lucide-react';
 
-// Define location type using the interface from uae-location-search.tsx
-interface Location {
+// Define the common Location interface used throughout the application
+export interface Location {
   address: string;
   coordinates: {
     lat: number;
     lng: number;
   };
+  // Optional additional location fields used in UAE-specific components
   place_id?: string;
   name?: string;
   formatted_address?: string;
+  district?: string;
+  city?: string;
+  area?: string;
+  place_types?: string[];
 }
 
 interface MapViewProps {

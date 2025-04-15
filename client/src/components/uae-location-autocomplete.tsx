@@ -459,12 +459,5 @@ export function UAELocationAutocomplete({
   );
 }
 
-// Add additional type definition for Location to include UAE-specific fields
-declare module "./map-view" {
-  interface Location {
-    district?: string;
-    city?: string;
-    area?: string;
-    place_types?: string[];
-  }
-}
+// Using the Location interface from map-view.tsx
+// which now includes all UAE-specific fields
