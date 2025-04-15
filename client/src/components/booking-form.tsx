@@ -2308,7 +2308,7 @@ export function BookingForm() {
                                   place_types: location.place_types || []
                                 };
                                 
-                                console.log(`%c MAP LOCATION SELECT: ${type.toUpperCase()}`, "background: #9c27b0; color: white; padding: 2px 4px; border-radius: 2px;");
+                                console.log("%c MAP LOCATION SELECT: " + type.toUpperCase(), "background: #9c27b0; color: white; padding: 2px 4px; border-radius: 2px;");
                                 console.log(`Setting ${fieldName} with:`, JSON.stringify(completeLocation, null, 2));
                                 
                                 // Wrap in try/catch for extra safety
@@ -2352,11 +2352,14 @@ export function BookingForm() {
                                   console.error(`Error setting ${fieldName} from map:`, error);
                                 }
                                 
-                                // Calculate route if both pickup and dropoff are set
-                                if (form.watch("pickupLocation") && form.watch("dropoffLocation")) {
-                                  // Calculate an estimate for route duration
-                                  const p1 = form.watch("pickupLocation").coordinates;
-                                  const p2 = form.watch("dropoffLocation").coordinates;
+                                // Calculate route if both pickup and dropoff are set with valid coordinates
+                                const pickupLoc = form.watch("pickupLocation");
+                                const dropoffLoc = form.watch("dropoffLocation");
+                                
+                                if (pickupLoc && pickupLoc.coordinates && dropoffLoc && dropoffLoc.coordinates) {
+                                  // Calculate an estimate for route duration with safe access
+                                  const p1 = pickupLoc.coordinates;
+                                  const p2 = dropoffLoc.coordinates;
                                   
                                   // Haversine formula for distance calculation
                                   const R = 6371; // Earth's radius in km
