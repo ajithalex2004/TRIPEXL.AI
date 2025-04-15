@@ -124,7 +124,7 @@ export function BookingForm() {
   const [selectedEmployee, setSelectedEmployee] = React.useState<any>(null);
   
   // Location state
-  // Use component state as backup storage for locations
+  // Use component state as backup storage for locations - use proper type definition
   const [pickupLocation, setPickupLocation] = React.useState<Location | undefined>(undefined);
   const [dropoffLocation, setDropoffLocation] = React.useState<Location | undefined>(undefined);
   
@@ -172,7 +172,33 @@ export function BookingForm() {
     place_types: []
   };
 
-  const form = useForm({
+  // Define form type with explicit Location types
+  type BookingFormValues = {
+    employee_id: string | number;
+    employeeId: string | number;
+    employeeName: string;
+    bookingType: string;
+    purpose: string;
+    priority: string;
+    pickupLocation: Location | undefined;
+    dropoffLocation: Location | undefined;
+    pickupTime: Date;
+    dropoffTime: Date | null;
+    cargoType: string;
+    numBoxes: number;
+    weight: number;
+    boxSize: any[];
+    tripType: string;
+    numPassengers: number;
+    passengerInfo: any[];
+    referenceNo: string;
+    remarks: string;
+    withDriver: boolean;
+    bookingForSelf: boolean;
+    passengerDetails: PassengerDetail[];
+  };
+  
+  const form = useForm<BookingFormValues>({
     resolver: zodResolver(insertBookingSchema),
     mode: "onChange",
     defaultValues: {
@@ -236,15 +262,15 @@ export function BookingForm() {
   // Monitor form location fields and sync with state
   React.useEffect(() => {
     const formPickup = form.getValues("pickupLocation");
-    if (formPickup && formPickup.address && !pickupLocation) {
+    if (formPickup && typeof formPickup === 'object' && 'address' in formPickup && !pickupLocation) {
       console.log("Syncing pickup from form to state");
-      setPickupLocation(formPickup);
+      setPickupLocation(formPickup as Location);
     }
     
     const formDropoff = form.getValues("dropoffLocation");
-    if (formDropoff && formDropoff.address && !dropoffLocation) {
+    if (formDropoff && typeof formDropoff === 'object' && 'address' in formDropoff && !dropoffLocation) {
       console.log("Syncing dropoff from form to state");
-      setDropoffLocation(formDropoff);
+      setDropoffLocation(formDropoff as Location);
     }
   }, [form, pickupLocation, dropoffLocation]);
 
@@ -312,26 +338,26 @@ export function BookingForm() {
         dropoffLocationState: dropoffLocation 
       });
       
-      // Use either form values or component state values
+      // Use either form values or component state values with proper type checking
       const hasPickup = Boolean(
-        (pickupLocationFromForm && pickupLocationFromForm.address) || 
-        (pickupLocation && pickupLocation.address)
+        (pickupLocationFromForm && typeof pickupLocationFromForm === 'object' && 'address' in pickupLocationFromForm) || 
+        (pickupLocation && typeof pickupLocation === 'object' && 'address' in pickupLocation)
       );
       
       const hasDropoff = Boolean(
-        (dropoffLocationFromForm && dropoffLocationFromForm.address) || 
-        (dropoffLocation && dropoffLocation.address)
+        (dropoffLocationFromForm && typeof dropoffLocationFromForm === 'object' && 'address' in dropoffLocationFromForm) || 
+        (dropoffLocation && typeof dropoffLocation === 'object' && 'address' in dropoffLocation)
       );
       
       // If we have locations in component state but not in form, update the form
       if (!pickupLocationFromForm && pickupLocation) {
         console.log("Updating form with pickup location from state");
-        form.setValue("pickupLocation", pickupLocation);
+        form.setValue("pickupLocation", pickupLocation as any);
       }
       
       if (!dropoffLocationFromForm && dropoffLocation) {
         console.log("Updating form with dropoff location from state");
-        form.setValue("dropoffLocation", dropoffLocation);
+        form.setValue("dropoffLocation", dropoffLocation as any);
       }
       
       // Validate we have both locations
