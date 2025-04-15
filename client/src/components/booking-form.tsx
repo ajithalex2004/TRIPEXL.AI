@@ -2185,9 +2185,9 @@ export function BookingForm() {
                         // Log for debugging
                         React.useEffect(() => {
                           if (purposesData) {
-                            console.log("Fetched purpose options:", purposesData.purposes);
+                            console.log(`[TripXL-DEBUG] Fetched ${purposeOptions.length} purpose options for booking type: ${currentBookingType}`, purposesData.purposes);
                           }
-                        }, [purposesData]);
+                        }, [purposesData, purposeOptions, currentBookingType]);
                         
                         return (
                           <FormItem>
