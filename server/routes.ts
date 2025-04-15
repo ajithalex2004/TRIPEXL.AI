@@ -804,7 +804,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
             
           console.log(`[BOOKING-${debugId}] Using employeeId (number):`, employeeId, typeof employeeId);
           
+          // Log the first few employees to help debug ID issues
+          const allEmployees = await db.select().from(schema.employees).limit(5);
+          console.log(`[BOOKING-${debugId}] EMPLOYEE DB SAMPLE (first 5 employees):`);
+          for (const emp of allEmployees) {
+            console.log(`- Employee ID: ${emp.id}, Employee_ID: "${emp.employee_id}", Name: ${emp.employee_name}`);
+          }
+          
           // First try lookup by internal database ID (the primary key)
+          console.log(`[BOOKING-${debugId}] Trying to find employee with internal ID (primary key):`, employeeId);
           const employeeByInternalId = await db
             .select()
             .from(schema.employees)

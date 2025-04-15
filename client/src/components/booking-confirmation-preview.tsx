@@ -443,29 +443,42 @@ export function BookingConfirmationPreview({
                 console.log("DIRECT API CALL - Payload:", JSON.stringify(apiData, null, 2));
                 
                 // Make direct API call
-                const response = await fetch('/api/bookings', {
-                  method: 'POST',
-                  headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${authToken}`
-                  },
-                  body: JSON.stringify(apiData)
-                });
-                
-                if (!response.ok) {
-                  const errorText = await response.text();
-                  throw new Error(`API Error (${response.status}): ${errorText}`);
+                console.log("🔍 Making direct API request to /api/bookings with auth token:", authToken.substring(0, 10) + "...");
+                try {
+                  const response = await fetch('/api/bookings', {
+                    method: 'POST',
+                    headers: {
+                      'Content-Type': 'application/json',
+                      'Authorization': `Bearer ${authToken}`
+                    },
+                    body: JSON.stringify(apiData)
+                  });
+                  
+                  console.log("🔍 API response status:", response.status);
+                  const responseText = await response.text();
+                  console.log("🔍 API response body:", responseText);
+                  
+                  if (!response.ok) {
+                    throw new Error(`API Error (${response.status}): ${responseText}`);
+                  }
+                  
+                  // Parse the response text back to JSON for processing
+                  const result = responseText ? JSON.parse(responseText) : {};
+                  console.log("DIRECT API SUCCESS:", result);
+                  alert(`Booking created successfully! Reference: ${result.reference_no || "Unknown"}`);
+                  
+                  // Close the modal
+                  onClose();
+                  
+                  // Refresh the page to show the new booking
+                  window.location.href = "/bookings";
+                  
+                  return; // End processing here
+                } catch (fetchError) {
+                  console.error("🔍 Fetch operation failed:", fetchError);
+                  throw fetchError;
                 }
-                
-                const result = await response.json();
-                console.log("DIRECT API SUCCESS:", result);
-                alert(`Booking created successfully! Reference: ${result.reference_no || "Unknown"}`);
-                
-                // Close the modal
-                onClose();
-                
-                // Refresh the page to show the new booking
-                window.location.href = "/bookings";
+                // This code is now handled inside the try block
                 
               } catch (error) {
                 console.error("DIRECT API ERROR:", error);
