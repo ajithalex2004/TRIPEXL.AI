@@ -1,9 +1,10 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { GoogleMap, useJsApiLoader } from '@react-google-maps/api';
+import { GoogleMap } from '@react-google-maps/api';
 import { Card, CardContent } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { AlertCircle } from 'lucide-react';
+import { useSafeGoogleMaps } from '@/hooks/use-safe-google-maps';
 
 // API key is hardcoded for immediate testing purposes
 const API_KEY = "AIzaSyBOyL-FXqHOHmqxteTw02lh9TkzdXJ_oaI";
@@ -20,9 +21,6 @@ const mapContainerStyle = {
   height: '400px'
 };
 
-// Define libraries to load
-const libraries = ["places", "geometry"] as any;
-
 interface SimpleGoogleMapProps {
   center?: { lat: number; lng: number };
   zoom?: number;
@@ -35,27 +33,24 @@ export const SimpleGoogleMap: React.FC<SimpleGoogleMapProps> = ({
   const mapRef = useRef<GoogleMap>(null);
   const [map, setMap] = useState<google.maps.Map | null>(null);
 
-  // Load the Google Maps JavaScript API
-  const { isLoaded, loadError } = useJsApiLoader({
-    googleMapsApiKey: API_KEY,
-    libraries
-  });
+  // Use our custom hook for safely loading Google Maps
+  const { isLoaded, isError, errorMessage } = useSafeGoogleMaps(API_KEY);
 
   // Handle when the map loads
   const onMapLoad = (map: google.maps.Map) => {
-    console.log("Map loaded successfully!");
+    console.log("SimpleGoogleMap: Map loaded successfully!");
     setMap(map);
   };
 
   // If there's a loading error, show an error message
-  if (loadError) {
+  if (isError) {
     return (
       <Card>
         <CardContent className="p-6">
           <Alert variant="destructive">
             <AlertCircle className="h-4 w-4" />
             <AlertDescription>
-              Error loading Google Maps: {loadError.message}
+              Error loading Google Maps: {errorMessage || "Unknown error occurred"}
             </AlertDescription>
           </Alert>
         </CardContent>
