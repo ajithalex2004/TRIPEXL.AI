@@ -375,7 +375,10 @@ export function BookingConfirmationPreview({
             Edit Booking
           </Button>
           <Button 
-            onClick={onConfirm} 
+            onClick={() => {
+              console.log("%c CONFIRM BUTTON CLICKED", "background: #ff9800; color: white; padding: 4px; border-radius: 4px;");
+              onConfirm();
+            }} 
             disabled={isSubmitting}
           >
             {isSubmitting ? 'Submitting...' : 'Confirm Booking'}

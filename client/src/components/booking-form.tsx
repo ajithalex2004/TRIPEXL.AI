@@ -815,7 +815,10 @@ export function BookingForm() {
   // Handle booking preview confirmation
   const handleBookingConfirmation = async () => {
     try {
+      console.log("%c BOOKING CONFIRMATION TRIGGERED", "background: #ff0000; color: white; padding: 2px 8px; font-size: 14px; border-radius: 4px;");
+      
       if (!bookingDataForPreview) {
+        console.error("Error: bookingDataForPreview is null or undefined");
         toast({
           title: "Error",
           description: "Booking data is missing. Please try again.",
@@ -825,6 +828,7 @@ export function BookingForm() {
       }
       
       // Display a loading toast to indicate processing
+      console.log("Showing processing toast");
       toast({
         title: "Processing booking",
         description: "Please wait while we process your request...",
