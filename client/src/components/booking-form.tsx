@@ -755,6 +755,9 @@ export function BookingForm() {
         })),
         pickup_time: data.pickupTime ? new Date(data.pickupTime).toISOString() : null,
         dropoff_time: data.dropoffTime ? new Date(data.dropoffTime).toISOString() : null,
+        // Add debug information to help track date conversion
+        _debug_pickup_date: data.pickupTime ? new Date(data.pickupTime).toString() : "no pickup date",
+        _debug_dropoff_date: data.dropoffTime ? new Date(data.dropoffTime).toString() : "no dropoff date",
         remarks: data.remarks || "",
         ...(data.bookingType === "freight" ? {
           cargo_type: data.cargoType,
