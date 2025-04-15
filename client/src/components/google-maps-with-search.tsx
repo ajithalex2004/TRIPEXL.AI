@@ -48,18 +48,18 @@ const GoogleMapsWithSearch: React.FC<GoogleMapsWithSearchProps> = ({
   
   // Load the Google Maps API using the optimized loader
   useEffect(() => {
-    // Use the environment variable for the API key
-    const GOOGLE_MAPS_API_KEY = import.meta.env.VITE_GOOGLE_MAPS_KEY;
+    // Use our centralized API key management
+    const apiKey = getGoogleMapsApiKey();
     
-    if (!GOOGLE_MAPS_API_KEY) {
-      console.error("Google Maps API key is missing from environment variables");
+    if (!apiKey) {
+      console.error("Google Maps API key is missing");
       setError("Maps configuration error. Please contact support.");
       setIsLoading(false);
       return;
     }
     
-    console.log("Google Maps API Key available:", GOOGLE_MAPS_API_KEY ? "Yes (key length: " + GOOGLE_MAPS_API_KEY.length + ")" : "No");
-    console.log("Using environment variable:", GOOGLE_MAPS_API_KEY ? "Yes" : "No");
+    console.log("Google Maps API Key available:", apiKey ? "Yes (key length: " + apiKey.length + ")" : "No");
+    console.log("Using centralized API key management");
     
     let isMounted = true;
     
@@ -72,7 +72,7 @@ const GoogleMapsWithSearch: React.FC<GoogleMapsWithSearchProps> = ({
     }
     
     // Use the optimized loader
-    loadGoogleMaps(GOOGLE_MAPS_API_KEY)
+    loadGoogleMaps(apiKey)
       .then(() => {
         if (isMounted) {
           console.log("Google Maps API loaded successfully");
@@ -514,9 +514,10 @@ const GoogleMapsWithSearch: React.FC<GoogleMapsWithSearchProps> = ({
   // Geocode an address using the Geocoding API
   const geocodeAddress = async (address: string, autoSelect: boolean = false) => {
     try {
-      // Use the GOOGLE_MAPS_API_KEY already defined at the component level
+      // Use our centralized API key management
+      const apiKey = getGoogleMapsApiKey();
       const response = await fetch(
-        `https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(address)}&key=${GOOGLE_MAPS_API_KEY}&region=ae`
+        `https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(address)}&key=${apiKey}&region=ae`
       );
       
       const data = await response.json();
