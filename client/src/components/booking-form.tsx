@@ -2162,32 +2162,49 @@ export function BookingForm() {
                       control={form.control}
                       name="purpose"
                       render={({ field }) => {
-                        // Get the current booking type for fetching purposes
+                        // Determine which purposes to show based on booking type
                         const currentBookingType = form.watch("bookingType");
+                        let purposeOptions = [];
                         
-                        // Fetch booking purposes from API based on booking type
-                        const { data: purposesData, isLoading: isPurposesLoading } = useQuery({
-                          queryKey: ['/api/booking/purposes', currentBookingType],
-                          queryFn: async () => {
-                            if (!currentBookingType) {
-                              return { purposes: [] };
-                            }
-                            const response = await apiRequest(`/api/booking/purposes/${currentBookingType}`);
-                            return response;
-                          },
-                          enabled: !!currentBookingType,
-                          staleTime: 1000 * 60 * 5 // Cache for 5 minutes
-                        });
+                        // Filter purposes based on booking type - using hardcoded values
+                        if (currentBookingType === "freight") {
+                          purposeOptions = [
+                            { key: BookingPurpose.FREIGHT_TRANSPORT, value: BookingPurpose.FREIGHT_TRANSPORT }
+                          ];
+                        } 
+                        else if (currentBookingType === "passenger") {
+                          purposeOptions = [
+                            { key: BookingPurpose.STAFF_TRANSPORTATION, value: BookingPurpose.STAFF_TRANSPORTATION },
+                            { key: BookingPurpose.VIP_TRANSFER, value: BookingPurpose.VIP_TRANSFER },
+                            { key: BookingPurpose.GUEST, value: BookingPurpose.GUEST },
+                            { key: BookingPurpose.MEETING, value: BookingPurpose.MEETING },
+                            { key: BookingPurpose.EVENTS_SEMINAR, value: BookingPurpose.EVENTS_SEMINAR },
+                            { key: BookingPurpose.TRAINING, value: BookingPurpose.TRAINING },
+                            { key: BookingPurpose.MARKETING, value: BookingPurpose.MARKETING }
+                          ];
+                        }
+                        else if (currentBookingType === "medical") {
+                          purposeOptions = [
+                            { key: BookingPurpose.HOSPITAL_VISIT, value: BookingPurpose.HOSPITAL_VISIT },
+                            { key: BookingPurpose.PATIENT, value: BookingPurpose.PATIENT },
+                            { key: BookingPurpose.BLOOD_BANK, value: BookingPurpose.BLOOD_BANK },
+                            { key: BookingPurpose.BLOOD_SAMPLES, value: BookingPurpose.BLOOD_SAMPLES },
+                            { key: BookingPurpose.MEDICINE, value: BookingPurpose.MEDICINE },
+                            { key: BookingPurpose.VISA_MEDICAL, value: BookingPurpose.VISA_MEDICAL },
+                            { key: BookingPurpose.ONCOLOGY, value: BookingPurpose.ONCOLOGY }
+                          ];
+                        }
+                        else if (currentBookingType === "emergency") {
+                          purposeOptions = [
+                            { key: BookingPurpose.AMBULANCE, value: BookingPurpose.AMBULANCE },
+                            { key: BookingPurpose.MORTUARY, value: BookingPurpose.MORTUARY }
+                          ];
+                        }
                         
-                        // Use the data from the API or an empty array if not available
-                        const purposeOptions = purposesData?.purposes || [];
-                        
-                        // Log for debugging
+                        // Log the options for debugging
                         React.useEffect(() => {
-                          if (purposesData) {
-                            console.log(`[TripXL-DEBUG] Fetched ${purposeOptions.length} purpose options for booking type: ${currentBookingType}`, purposesData.purposes);
-                          }
-                        }, [purposesData, purposeOptions, currentBookingType]);
+                          console.log(`[TripXL-DEBUG] Using ${purposeOptions.length} hardcoded purpose options for booking type: ${currentBookingType}`);
+                        }, [purposeOptions.length, currentBookingType]);
                         
                         return (
                           <FormItem>
@@ -2195,26 +2212,15 @@ export function BookingForm() {
                             <Select
                               onValueChange={field.onChange}
                               value={field.value}
-                              disabled={form.watch("bookingType") === "freight" || isPurposesLoading}
+                              disabled={form.watch("bookingType") === "freight"}
                             >
                               <FormControl>
                                 <SelectTrigger>
-                                  {isPurposesLoading ? (
-                                    <div className="flex items-center">
-                                      <span className="mr-2">Loading purposes...</span>
-                                      <div className="animate-spin h-4 w-4 border-2 border-primary border-t-transparent rounded-full"></div>
-                                    </div>
-                                  ) : (
-                                    <SelectValue placeholder="Select booking purpose" />
-                                  )}
+                                  <SelectValue placeholder="Select booking purpose" />
                                 </SelectTrigger>
                               </FormControl>
                               <SelectContent>
-                                {isPurposesLoading ? (
-                                  <div className="flex justify-center py-2">
-                                    <div className="animate-spin h-5 w-5 border-2 border-primary border-t-transparent rounded-full"></div>
-                                  </div>
-                                ) : purposeOptions.length === 0 ? (
+                                {purposeOptions.length === 0 ? (
                                   <div className="p-2 text-sm text-muted-foreground">
                                     No purposes available for this booking type
                                   </div>
