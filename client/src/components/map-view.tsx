@@ -3,10 +3,12 @@ import { Card, CardContent } from '@/components/ui/card';
 import { OptimizedGoogleMap } from '@/components/maps';
 import { MapWorker } from '@/components/maps';
 import { AntiFreezeWrapper } from '@/components/anti-freeze-wrapper';
-import { MapPin, AlertTriangle, MapIcon, Navigation } from 'lucide-react';
+import { MapPin, AlertTriangle, MapIcon, Navigation, Map } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { getGoogleMapsApiKey } from '@/lib/map-config';
 import { StaticMapFallback } from '@/components/static-map-fallback';
+import { SimpleIframeMap } from '@/components/simple-iframe-map';
+import { Button } from '@/components/ui/button';
 
 // Define the common Location interface used throughout the application
 export interface Location {
@@ -56,6 +58,7 @@ export function MapView({
   const [routeError, setRouteError] = useState<string | null>(null);
   const [mapError, setMapError] = useState<boolean>(false);
   const [useStaticFallback, setUseStaticFallback] = useState<boolean>(false);
+  const [useIframeMap, setUseIframeMap] = useState<boolean>(true);
   
   // Log available key
   useEffect(() => {
@@ -364,8 +367,16 @@ export function MapView({
   return (
     <Card className={`overflow-hidden border shadow-sm ${className}`}>
       <CardContent className="p-0">
-        {useStaticFallback ? (
-          // Static fallback map
+        {useIframeMap ? (
+          // Simple iframe Google Map (most compatible)
+          <SimpleIframeMap
+            pickupCoordinates={pickupLocation?.coordinates}
+            dropoffCoordinates={dropoffLocation?.coordinates}
+            className={className}
+            height={500}
+          />
+        ) : useStaticFallback ? (
+          // Static fallback map (image-based)
           <StaticMapFallback
             pickupCoordinates={pickupLocation?.coordinates}
             dropoffCoordinates={dropoffLocation?.coordinates}
@@ -375,7 +386,7 @@ export function MapView({
             className={className}
           />
         ) : (
-          // Interactive Google Map
+          // Interactive JavaScript Google Map (advanced features)
           <AntiFreezeWrapper componentName="Map">
             <MapWorker>
               <OptimizedGoogleMap
@@ -413,6 +424,45 @@ export function MapView({
           </div>
         )}
         
+        {/* Map type controls */}
+        <div className="absolute top-2 right-2 bg-white/95 backdrop-blur-sm p-2 rounded-lg shadow-md text-xs z-10">
+          <div className="flex gap-1">
+            <Button 
+              size="sm" 
+              variant={useIframeMap ? "default" : "outline"}
+              onClick={() => setUseIframeMap(true)}
+              className="flex items-center gap-1 h-8 px-2 py-1 text-xs"
+            >
+              <Map className="h-3.5 w-3.5" />
+              Iframe Map
+            </Button>
+            <Button 
+              size="sm" 
+              variant={!useIframeMap && !useStaticFallback ? "default" : "outline"}
+              onClick={() => {
+                setUseIframeMap(false);
+                setUseStaticFallback(false);
+              }}
+              className="flex items-center gap-1 h-8 px-2 py-1 text-xs"
+            >
+              <MapIcon className="h-3.5 w-3.5" />
+              JS Map
+            </Button>
+            <Button 
+              size="sm" 
+              variant={!useIframeMap && useStaticFallback ? "default" : "outline"}
+              onClick={() => {
+                setUseIframeMap(false);
+                setUseStaticFallback(true);
+              }}
+              className="flex items-center gap-1 h-8 px-2 py-1 text-xs"
+            >
+              <Navigation className="h-3.5 w-3.5" />
+              Static
+            </Button>
+          </div>
+        </div>
+
         {editable && (
           <div className="absolute bottom-2 right-2 bg-white/80 backdrop-blur-sm p-2 rounded-lg shadow text-xs">
             <div className="flex items-center gap-1">
