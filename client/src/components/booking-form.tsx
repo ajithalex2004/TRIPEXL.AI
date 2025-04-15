@@ -1540,53 +1540,69 @@ export function BookingForm() {
       return Priority.NORMAL;
     }
 
-    // Critical Priority Purposes
-    if ([
-      BookingPurpose.BLOOD_BANK,
-      BookingPurpose.AMBULANCE,
-      BookingPurpose.MORTUARY,
-      BookingPurpose.ONCOLOGY
-    ].includes(purpose as any)) {
+    // Log purpose value before comparison
+    console.log("Checking priority for purpose:", purpose);
+
+    // Critical Priority Purposes (using direct string comparison)
+    const criticalPurposes = [
+      "Blood Bank", 
+      "Ambulance", 
+      "Mortuary", 
+      "Oncology Patient Pick Up/ Drop off"
+    ];
+    
+    if (criticalPurposes.includes(purpose)) {
+      console.log("Priority set to CRITICAL for:", purpose);
       return Priority.CRITICAL;
     }
 
     // Emergency Priority Purposes
-    if ([
-      BookingPurpose.BLOOD_SAMPLES,
-      BookingPurpose.DRUG_COLLECTION,
-      BookingPurpose.MEDICINE,
-      BookingPurpose.VACCINE,
-      BookingPurpose.EQUIPMENT
-    ].includes(purpose as any)) {
+    const emergencyPurposes = [
+      "Blood Samples Collection/Delivery",
+      "Drug Collection",
+      "Medicine Collection/Delivery",
+      "Vaccine Collection/Delivery",
+      "Instrument & Equipment Collection/Delivery"
+    ];
+    
+    if (emergencyPurposes.includes(purpose)) {
+      console.log("Priority set to EMERGENCY for:", purpose);
       return Priority.EMERGENCY;
     }
 
     // High Priority Purposes
-    if ([
-      BookingPurpose.HOSPITAL_VISIT,
-      BookingPurpose.ON_CALL,
-      BookingPurpose.PATIENT,
-      BookingPurpose.MAINTENANCE,
-      BookingPurpose.VIP_TRANSFER
-    ].includes(purpose as any)) {
+    const highPriorityPurposes = [
+      "Hospital Visit",
+      "On Call",
+      "Patient Pick Up/Drop Off",
+      "Maintenance",
+      "VIP Transfer"
+    ];
+    
+    if (highPriorityPurposes.includes(purpose)) {
+      console.log("Priority set to HIGH for:", purpose);
       return Priority.HIGH;
     }
 
     // All other purposes are Normal priority
+    console.log("Priority set to NORMAL for:", purpose);
     return Priority.NORMAL;
   };
 
   // Watch for purpose changes to update priority
   React.useEffect(() => {
     const currentPurpose = form.watch("purpose");
+    console.log("Purpose changed to:", currentPurpose);
     if (currentPurpose) {
       const calculatedPriority = getPriorityForPurpose(currentPurpose);
+      console.log("Setting priority based on purpose:", currentPurpose, "->", calculatedPriority);
       form.setValue("priority", calculatedPriority, {
         shouldValidate: true,
-        shouldDirty: true
+        shouldDirty: true,
+        shouldTouch: true
       });
     }
-  }, [form]);
+  }, [form.watch("purpose"), bookingType, form]);
 
   // Update useEffect for handling priority changes to set immediate time for Critical
   React.useEffect(() => {
