@@ -113,7 +113,7 @@ export function BookingForm() {
   const queryClient = useQueryClient();
   const [currentStep, setCurrentStep] = React.useState(1);
   const [activeLocation, setActiveLocation] = React.useState<"pickup" | "dropoff" | null>(null);
-  const [waypoints, setWaypoints] = React.useState<any[]>([]);
+  const [waypoints, setWaypoints] = React.useState<Location[]>([]);
   const [routeDuration, setRouteDuration] = React.useState<number>(0);
   const [showSuccessDialog, setShowSuccessDialog] = React.useState(false);
   const [createdReferenceNo, setCreatedReferenceNo] = React.useState<string>("");
@@ -124,8 +124,9 @@ export function BookingForm() {
   const [selectedEmployee, setSelectedEmployee] = React.useState<any>(null);
   
   // Location state
-  const [pickupLocation, setPickupLocation] = React.useState<Location | null>(null);
-  const [dropoffLocation, setDropoffLocation] = React.useState<Location | null>(null);
+  // Use component state as backup storage for locations
+  const [pickupLocation, setPickupLocation] = React.useState<Location | undefined>(undefined);
+  const [dropoffLocation, setDropoffLocation] = React.useState<Location | undefined>(undefined);
   
   // Booking confirmation preview state
   const [showBookingPreview, setShowBookingPreview] = React.useState(false);
@@ -231,6 +232,21 @@ export function BookingForm() {
       form.setValue("priority", Priority.NORMAL);
     }
   }, [bookingType, form]);
+  
+  // Monitor form location fields and sync with state
+  React.useEffect(() => {
+    const formPickup = form.getValues("pickupLocation");
+    if (formPickup && formPickup.address && !pickupLocation) {
+      console.log("Syncing pickup from form to state");
+      setPickupLocation(formPickup);
+    }
+    
+    const formDropoff = form.getValues("dropoffLocation");
+    if (formDropoff && formDropoff.address && !dropoffLocation) {
+      console.log("Syncing dropoff from form to state");
+      setDropoffLocation(formDropoff);
+    }
+  }, [form, pickupLocation, dropoffLocation]);
 
   const isStepValid = async (step: number) => {
     const fields = {
@@ -241,7 +257,7 @@ export function BookingForm() {
           ? ["tripType", "numPassengers", "withDriver", "bookingForSelf", "passengerDetails"] as const
           : [],
       3: ["purpose", "priority"] as const,
-      4: ["pickupLocation", "dropoffLocation"] as const,
+      4: [] as const, // Special handling for location fields below
       5: ["pickupTime", "dropoffTime"] as const,
       6: [] as const
     }[step] || [];
@@ -281,6 +297,54 @@ export function BookingForm() {
         });
         return false;
       }
+    }
+
+    // Special handling for locations in step 4
+    if (step === 4) {
+      // Get locations from both form and component state (as backup)
+      const pickupLocationFromForm = form.getValues("pickupLocation");
+      const dropoffLocationFromForm = form.getValues("dropoffLocation");
+      
+      console.log("Validating locations:", { 
+        pickupLocationFromForm, 
+        dropoffLocationFromForm,
+        pickupLocationState: pickupLocation,
+        dropoffLocationState: dropoffLocation 
+      });
+      
+      // Use either form values or component state values
+      const hasPickup = Boolean(
+        (pickupLocationFromForm && pickupLocationFromForm.address) || 
+        (pickupLocation && pickupLocation.address)
+      );
+      
+      const hasDropoff = Boolean(
+        (dropoffLocationFromForm && dropoffLocationFromForm.address) || 
+        (dropoffLocation && dropoffLocation.address)
+      );
+      
+      // If we have locations in component state but not in form, update the form
+      if (!pickupLocationFromForm && pickupLocation) {
+        console.log("Updating form with pickup location from state");
+        form.setValue("pickupLocation", pickupLocation);
+      }
+      
+      if (!dropoffLocationFromForm && dropoffLocation) {
+        console.log("Updating form with dropoff location from state");
+        form.setValue("dropoffLocation", dropoffLocation);
+      }
+      
+      // Validate we have both locations
+      if (!hasPickup || !hasDropoff) {
+        toast({
+          title: "Location information required",
+          description: "Please select both pickup and dropoff locations",
+          variant: "destructive"
+        });
+        return false;
+      }
+      
+      return true; // Skip the form.trigger for this step
     }
 
     return await form.trigger(fields);
@@ -510,8 +574,8 @@ export function BookingForm() {
       setShowSuccessDialog(true);
       
       // Reset location fields
-      setPickupLocation(null);
-      setDropoffLocation(null);
+      setPickupLocation(undefined);
+      setDropoffLocation(undefined);
       setWaypoints([]);
       
       // Log user action for analytics
