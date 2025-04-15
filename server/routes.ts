@@ -67,7 +67,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     app.get("/api/booking/purposes/:type", (req, res) => {
       try {
         const { type } = req.params;
-        const { BookingPurpose } = require("../shared/schema");
+        // Import BookingPurpose directly from the schema
+        const { BookingPurpose } = schema;
         
         let purposes = [];
         if (type === "freight") {
@@ -107,7 +108,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
         
         return res.json({ purposes });
-      } catch (error) {
+      } catch (error: any) {
         console.error("Error fetching booking purposes:", error);
         return res.status(500).json({ 
           error: "Failed to fetch booking purposes",

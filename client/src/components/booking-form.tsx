@@ -2162,35 +2162,32 @@ export function BookingForm() {
                       control={form.control}
                       name="purpose"
                       render={({ field }) => {
-                        // Determine which purposes to show based on booking type
+                        // Get the current booking type for fetching purposes
                         const currentBookingType = form.watch("bookingType");
-                        let purposeOptions = [];
                         
-                        // Filter purposes based on booking type
-                        if (currentBookingType === "freight") {
-                          purposeOptions = [
-                            { key: BookingPurpose.FREIGHT_TRANSPORT, value: BookingPurpose.FREIGHT_TRANSPORT }
-                          ];
-                        } 
-                        else if (currentBookingType === "passenger") {
-                          purposeOptions = [
-                            { key: BookingPurpose.STAFF_TRANSPORTATION, value: BookingPurpose.STAFF_TRANSPORTATION },
-                            { key: BookingPurpose.VIP_TRANSFER, value: BookingPurpose.VIP_TRANSFER },
-                            { key: BookingPurpose.GUEST, value: BookingPurpose.GUEST }
-                          ];
-                        }
-                        else if (currentBookingType === "medical") {
-                          purposeOptions = [
-                            { key: BookingPurpose.HOSPITAL_VISIT, value: BookingPurpose.HOSPITAL_VISIT },
-                            { key: BookingPurpose.PATIENT, value: BookingPurpose.PATIENT }
-                          ];
-                        }
-                        else if (currentBookingType === "emergency") {
-                          purposeOptions = [
-                            { key: BookingPurpose.AMBULANCE, value: BookingPurpose.AMBULANCE },
-                            { key: BookingPurpose.MORTUARY, value: BookingPurpose.MORTUARY }
-                          ];
-                        }
+                        // Fetch booking purposes from API based on booking type
+                        const { data: purposesData, isLoading: isPurposesLoading } = useQuery({
+                          queryKey: ['/api/booking/purposes', currentBookingType],
+                          queryFn: async () => {
+                            if (!currentBookingType) {
+                              return { purposes: [] };
+                            }
+                            const response = await apiRequest(`/api/booking/purposes/${currentBookingType}`);
+                            return response;
+                          },
+                          enabled: !!currentBookingType,
+                          staleTime: 1000 * 60 * 5 // Cache for 5 minutes
+                        });
+                        
+                        // Use the data from the API or an empty array if not available
+                        const purposeOptions = purposesData?.purposes || [];
+                        
+                        // Log for debugging
+                        React.useEffect(() => {
+                          if (purposesData) {
+                            console.log("Fetched purpose options:", purposesData.purposes);
+                          }
+                        }, [purposesData]);
                         
                         return (
                           <FormItem>
@@ -2198,19 +2195,36 @@ export function BookingForm() {
                             <Select
                               onValueChange={field.onChange}
                               value={field.value}
-                              disabled={form.watch("bookingType") === "freight"}
+                              disabled={form.watch("bookingType") === "freight" || isPurposesLoading}
                             >
                               <FormControl>
                                 <SelectTrigger>
-                                  <SelectValue placeholder="Select booking purpose" />
+                                  {isPurposesLoading ? (
+                                    <div className="flex items-center">
+                                      <span className="mr-2">Loading purposes...</span>
+                                      <div className="animate-spin h-4 w-4 border-2 border-primary border-t-transparent rounded-full"></div>
+                                    </div>
+                                  ) : (
+                                    <SelectValue placeholder="Select booking purpose" />
+                                  )}
                                 </SelectTrigger>
                               </FormControl>
                               <SelectContent>
-                                {purposeOptions.map((option) => (
-                                  <SelectItem key={option.key} value={option.value}>
-                                    {option.value}
-                                  </SelectItem>
-                                ))}
+                                {isPurposesLoading ? (
+                                  <div className="flex justify-center py-2">
+                                    <div className="animate-spin h-5 w-5 border-2 border-primary border-t-transparent rounded-full"></div>
+                                  </div>
+                                ) : purposeOptions.length === 0 ? (
+                                  <div className="p-2 text-sm text-muted-foreground">
+                                    No purposes available for this booking type
+                                  </div>
+                                ) : (
+                                  purposeOptions.map((option) => (
+                                    <SelectItem key={option.key} value={option.value}>
+                                      {option.value}
+                                    </SelectItem>
+                                  ))
+                                )}
                               </SelectContent>
                             </Select>
                             <FormMessage />
