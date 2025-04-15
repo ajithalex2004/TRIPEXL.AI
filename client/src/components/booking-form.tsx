@@ -1257,6 +1257,7 @@ export function BookingForm() {
   }, [form.watch("pickupTime"), routeDuration, form]);
 
   // Update DateTimePicker implementation for dropoff time
+  // Updated for timestamp data type
   const renderDropoffDateTimePicker = (field: any) => {
     const pickupTime = form.watch("pickupTime");
     const minDropoffTime = pickupTime && routeDuration
@@ -1270,7 +1271,8 @@ export function BookingForm() {
         value={field.value ? new Date(field.value) : null}
         onChange={(date) => {
           if (date) {
-            field.onChange(date.toISOString());
+            // Send Date object directly for timestamp field
+            field.onChange(date);
           }
         }}
         onBlur={() => {
@@ -1308,7 +1310,7 @@ export function BookingForm() {
     );
   };
 
-  // Update DateTimePicker implementation
+  // Updated DateTimePicker implementation for timestamp data type
   const renderDateTimePicker = (field: any) => (
     <DateTimePicker
       value={field.value ? new Date(field.value) : new Date()}
@@ -1328,9 +1330,11 @@ export function BookingForm() {
             }
           }
 
-          field.onChange(selectedDate.toISOString());
+          // Send the Date object directly instead of ISO string
+          // This will work better with timestamp fields in the database
+          field.onChange(selectedDate);
         } else {
-          field.onChange(new Date().toISOString());
+          field.onChange(new Date());
         }
       }}
       onBlur={field.onBlur}

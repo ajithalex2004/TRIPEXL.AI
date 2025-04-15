@@ -685,8 +685,8 @@ export const bookings = pgTable("bookings", {
   remarks: text("remarks"),
   status: text("status").notNull().default("new"),
 
-  // Vehicle assignment
-  assigned_vehicle_id: integer("assigned_vehicle_id").references(() => vehicles.id),
+  // Vehicle assignment - vehicle_id is alphanumeric and references vehicle_number
+  assigned_vehicle_id: text("assigned_vehicle_id").references(() => vehicles.vehicle_number),
   assigned_driver_id: integer("assigned_driver_id").references(() => drivers.id),
 
   // Timestamps
@@ -720,7 +720,7 @@ export const otpVerifications = pgTable("otp_verifications", {
 export const bookingsRelations = relations(bookings, ({ one }) => ({
   vehicle: one(vehicles, {
     fields: [bookings.assigned_vehicle_id],
-    references: [vehicles.id],
+    references: [vehicles.vehicle_number],
   }),
   driver: one(drivers, {
     fields: [bookings.assigned_driver_id],
@@ -817,7 +817,7 @@ export const insertBookingSchema = createInsertSchema(bookings)
     ).optional(),
     reference_no: z.string().optional(),
     remarks: z.string().optional(),
-    assigned_vehicle_id: z.number().optional(),
+    assigned_vehicle_id: z.string().optional(),
     assigned_driver_id: z.number().optional(),
     rating: z.number().min(1).max(5).optional(),
     feedback: z.string().optional(),
