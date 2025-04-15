@@ -32,6 +32,7 @@ import bookingCreateTraceRouter from "./routes/booking-create-trace";
 import bookingManagementRouter from "./routes/booking-management";
 import bookingDebugAdvancedRouter from "./routes/booking-debug-advanced";
 import bookingCreateTestRouter from "./routes/booking-create-test";
+import { testBookingDirectRouter } from "./routes/test-booking-direct";
 
 // Configure multer for handling file uploads
 const upload = multer({
@@ -1135,6 +1136,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
     // Register booking creation test routes for diagnostic purposes
     app.use("/api/debug", bookingCreateTestRouter);
     log("Booking create test router registered");
+    
+    // Register direct test booking route (TEMPORARY DEBUG HELPER)
+    app.use("/api/debug", testBookingDirectRouter);
+    log("Direct test booking router registered");
     
     // Add fuel types router
     log("Registering fuel types router...");
