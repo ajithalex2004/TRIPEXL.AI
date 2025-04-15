@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { getGoogleMapsApiKey, MAP_CONFIG } from '@/lib/map-config';
 
 // Configuration constants
@@ -255,7 +255,7 @@ export function useSafeGoogleMaps(
       // Clean up global callback
       delete window[CALLBACK_NAME];
     };
-  }, [apiKey, onError, state.isLoaded]);
+  }, [apiKey, onError, state.isLoaded, loadMapsScript]);
   
   return state;
 }
