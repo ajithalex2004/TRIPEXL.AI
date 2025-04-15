@@ -331,6 +331,7 @@ export function BookingForm() {
       const pickupLocationFromForm = form.getValues("pickupLocation");
       const dropoffLocationFromForm = form.getValues("dropoffLocation");
       
+      console.log("%c LOCATION VALIDATION - START", "background: #e91e63; color: white; padding: 2px 4px; border-radius: 2px;");
       console.log("Validating locations:", { 
         pickupLocationFromForm, 
         dropoffLocationFromForm,
@@ -338,30 +339,68 @@ export function BookingForm() {
         dropoffLocationState: dropoffLocation 
       });
       
-      // Use either form values or component state values with proper type checking
-      const hasPickup = Boolean(
-        (pickupLocationFromForm && typeof pickupLocationFromForm === 'object' && 'address' in pickupLocationFromForm) || 
-        (pickupLocation && typeof pickupLocation === 'object' && 'address' in pickupLocation)
+      // WORKAROUND: Fix for possible undefined references
+      const hasValidPickupInForm = Boolean(
+        pickupLocationFromForm && 
+        typeof pickupLocationFromForm === 'object' && 
+        'address' in pickupLocationFromForm && 
+        pickupLocationFromForm.address && 
+        'coordinates' in pickupLocationFromForm && 
+        pickupLocationFromForm.coordinates
       );
       
-      const hasDropoff = Boolean(
-        (dropoffLocationFromForm && typeof dropoffLocationFromForm === 'object' && 'address' in dropoffLocationFromForm) || 
-        (dropoffLocation && typeof dropoffLocation === 'object' && 'address' in dropoffLocation)
+      const hasValidDropoffInForm = Boolean(
+        dropoffLocationFromForm && 
+        typeof dropoffLocationFromForm === 'object' && 
+        'address' in dropoffLocationFromForm && 
+        dropoffLocationFromForm.address && 
+        'coordinates' in dropoffLocationFromForm && 
+        dropoffLocationFromForm.coordinates
       );
+      
+      const hasValidPickupInState = Boolean(
+        pickupLocation && 
+        typeof pickupLocation === 'object' && 
+        'address' in pickupLocation && 
+        pickupLocation.address && 
+        'coordinates' in pickupLocation && 
+        pickupLocation.coordinates
+      );
+      
+      const hasValidDropoffInState = Boolean(
+        dropoffLocation && 
+        typeof dropoffLocation === 'object' && 
+        'address' in dropoffLocation && 
+        dropoffLocation.address && 
+        'coordinates' in dropoffLocation && 
+        dropoffLocation.coordinates
+      );
+      
+      console.log("Location validation results:", {
+        hasValidPickupInForm,
+        hasValidDropoffInForm,
+        hasValidPickupInState,
+        hasValidDropoffInState
+      });
       
       // If we have locations in component state but not in form, update the form
-      if (!pickupLocationFromForm && pickupLocation) {
+      if (hasValidPickupInState && !hasValidPickupInForm) {
         console.log("Updating form with pickup location from state");
         form.setValue("pickupLocation", pickupLocation as any);
       }
       
-      if (!dropoffLocationFromForm && dropoffLocation) {
+      if (hasValidDropoffInState && !hasValidDropoffInForm) {
         console.log("Updating form with dropoff location from state");
         form.setValue("dropoffLocation", dropoffLocation as any);
       }
       
+      // Final check - we need either valid locations in form or in state
+      const hasValidPickup = hasValidPickupInForm || hasValidPickupInState;
+      const hasValidDropoff = hasValidDropoffInForm || hasValidDropoffInState;
+      
       // Validate we have both locations
-      if (!hasPickup || !hasDropoff) {
+      if (!hasValidPickup || !hasValidDropoff) {
+        console.log("Location validation failed:", { hasValidPickup, hasValidDropoff });
         toast({
           title: "Location information required",
           description: "Please select both pickup and dropoff locations",
@@ -370,6 +409,7 @@ export function BookingForm() {
         return false;
       }
       
+      console.log("Location validation passed");
       return true; // Skip the form.trigger for this step
     }
 
@@ -377,7 +417,39 @@ export function BookingForm() {
   };
 
   const handleNextStep = async () => {
+    console.log("Next button clicked on step:", currentStep);
+    
+    // Extra debugging for location step
+    if (currentStep === 4) {
+      const pickupLocationFromForm = form.getValues("pickupLocation");
+      const dropoffLocationFromForm = form.getValues("dropoffLocation");
+      
+      console.log("DEBUG LOCATION INFO:", { 
+        formPickupLocation: pickupLocationFromForm,
+        formDropoffLocation: dropoffLocationFromForm,
+        statePickupLocation: pickupLocation, 
+        stateDropoffLocation: dropoffLocation,
+        hasPickupForm: Boolean(pickupLocationFromForm?.address),
+        hasDropoffForm: Boolean(dropoffLocationFromForm?.address),
+        hasPickupState: Boolean(pickupLocation?.address),
+        hasDropoffState: Boolean(dropoffLocation?.address)
+      });
+      
+      // Force sync the form with state if needed
+      if (pickupLocation && !pickupLocationFromForm) {
+        console.log("FORCE UPDATE: Setting pickup location in form");
+        form.setValue("pickupLocation", pickupLocation as any);
+      }
+      
+      if (dropoffLocation && !dropoffLocationFromForm) {
+        console.log("FORCE UPDATE: Setting dropoff location in form");
+        form.setValue("dropoffLocation", dropoffLocation as any);
+      }
+    }
+    
     const isValid = await isStepValid(currentStep);
+    console.log("Step validation result:", isValid);
+    
     if (isValid) {
       setCurrentStep(prev => Math.min(prev + 1, 6));
     } else {
@@ -2205,45 +2277,77 @@ export function BookingForm() {
                                 const fieldName = type === 'pickup' ? "pickupLocation" : "dropoffLocation";
                                 console.log(`Map onLocationSelect: Setting ${fieldName} with:`, JSON.stringify(location));
                                 
-                                // Ensure all optional properties are present with default values
+                                // Verify coordinates are valid numbers
+                                if (!location.coordinates || 
+                                    typeof location.coordinates.lat !== 'number' || 
+                                    typeof location.coordinates.lng !== 'number' ||
+                                    isNaN(location.coordinates.lat) ||
+                                    isNaN(location.coordinates.lng)) {
+                                  console.error("Invalid coordinates in location:", location);
+                                  toast({
+                                    title: "Invalid location coordinates",
+                                    description: "Please try selecting this location again",
+                                    variant: "destructive"
+                                  });
+                                  return;
+                                }
+                                
+                                // Create a fixed & complete location object with enforced type safety
                                 const completeLocation: Location = {
-                                  address: location.address,
+                                  address: location.address || "",
                                   coordinates: {
-                                    lat: location.coordinates.lat,
-                                    lng: location.coordinates.lng
+                                    lat: Number(location.coordinates.lat),
+                                    lng: Number(location.coordinates.lng)
                                   },
                                   place_id: location.place_id || "",
-                                  name: location.name || location.address,
-                                  formatted_address: location.formatted_address || location.address,
+                                  name: location.name || location.address || "",
+                                  formatted_address: location.formatted_address || location.address || "",
                                   district: location.district || "",
                                   city: location.city || "",
                                   area: location.area || "",
                                   place_types: location.place_types || []
                                 };
                                 
-                                console.log(`Map Picker onLocationSelect: Setting ${fieldName} with:`, JSON.stringify(completeLocation));
+                                console.log(`%c MAP LOCATION SELECT: ${type.toUpperCase()}`, "background: #9c27b0; color: white; padding: 2px 4px; border-radius: 2px;");
+                                console.log(`Setting ${fieldName} with:`, JSON.stringify(completeLocation, null, 2));
                                 
                                 // Wrap in try/catch for extra safety
                                 try {
-                                  // Force clean state update with setTimeout
+                                  // First update the component state immediately
+                                  if (type === 'pickup') {
+                                    setPickupLocation(completeLocation);
+                                    console.log("Updated pickupLocation in state", completeLocation);
+                                  } else {
+                                    setDropoffLocation(completeLocation);
+                                    console.log("Updated dropoffLocation in state", completeLocation);
+                                  }
+                                  
+                                  // Then update the form with a slight delay to ensure state is updated first
                                   setTimeout(() => {
-                                    // Store the location in component state as a backup
-                                    if (type === 'pickup') {
-                                      setPickupLocation(completeLocation);
-                                    } else {
-                                      setDropoffLocation(completeLocation);
-                                    }
+                                    // Update the form with the location - first clone to avoid reference issues
+                                    const locationForForm = { ...completeLocation };
                                     
-                                    // Update the form with the location
-                                    form.setValue(fieldName, completeLocation, {
+                                    form.setValue(fieldName, locationForForm, {
                                       shouldValidate: true,
                                       shouldDirty: true,
                                       shouldTouch: true
                                     });
                                     
-                                    console.log(`Map Picker: Successfully set ${fieldName}`);
-                                    console.log(`Current form value for ${fieldName}:`, JSON.stringify(form.getValues(fieldName)));
-                                  }, 50); // Use a longer timeout for more reliability
+                                    const formValueAfter = form.getValues(fieldName);
+                                    console.log(`Form value for ${fieldName} after update:`, formValueAfter);
+                                    
+                                    // Verify the update was successful
+                                    if (!formValueAfter || !formValueAfter.address) {
+                                      console.error(`Form update for ${fieldName} may have failed`);
+                                      toast({
+                                        title: "Warning",
+                                        description: "Location was selected but the form may not have updated correctly. Please try again.",
+                                        variant: "destructive"
+                                      });
+                                    } else {
+                                      console.log(`Map Picker: Successfully set ${fieldName}`);
+                                    }
+                                  }, 100); // Slightly longer timeout for reliability
                                 } catch (error) {
                                   console.error(`Error setting ${fieldName} from map:`, error);
                                 }
