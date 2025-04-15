@@ -22,8 +22,12 @@ testBookingDirectRouter.get('/create-test-booking', async (req: Request, res: Re
         address: 'Test Direct Dropoff',
         coordinates: { lat: 25.5678, lng: 55.5678 }
       },
-      pickup_time: new Date(), // Use Date object directly, not string
+      pickup_time: new Date(), // Use Date object directly
       dropoff_time: new Date(Date.now() + 3600000), // 1 hour later, use Date object
+      pickup_latitude: 25.1234, // Add latitude/longitude fields explicitly
+      pickup_longitude: 55.1234,
+      dropoff_latitude: 25.5678,
+      dropoff_longitude: 55.5678,
       reference_no: `DIRECT-${Date.now()}`
     };
     

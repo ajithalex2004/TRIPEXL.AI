@@ -753,8 +753,8 @@ export function BookingForm() {
             lng: Number(wp.coordinates.lng)
           }
         })),
-        pickup_time: new Date(data.pickupTime).toISOString(),
-        dropoff_time: new Date(data.dropoffTime).toISOString(),
+        pickup_time: data.pickupTime ? new Date(data.pickupTime).toISOString() : null,
+        dropoff_time: data.dropoffTime ? new Date(data.dropoffTime).toISOString() : null,
         remarks: data.remarks || "",
         ...(data.bookingType === "freight" ? {
           cargo_type: data.cargoType,
