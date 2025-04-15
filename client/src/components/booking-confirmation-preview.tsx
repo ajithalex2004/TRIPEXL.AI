@@ -395,6 +395,84 @@ export function BookingConfirmationPreview({
           >
             {isSubmitting ? 'Submitting...' : 'Confirm Booking'}
           </Button>
+          
+          {/* Bypass button - Direct API submission */}
+          <Button 
+            variant="outline"
+            onClick={async () => {
+              console.log("%c DIRECT API SUBMISSION - BYPASSING HANDLER", "background: #ff0000; color: white; padding: 4px; border-radius: 4px;");
+              
+              try {
+                // Get auth token
+                const authToken = localStorage.getItem('auth_token');
+                if (!authToken) {
+                  alert("Authentication token missing. Please log in again.");
+                  return;
+                }
+                
+                // Prepare API data directly from bookingData
+                const apiData = {
+                  employee_id: Number(bookingData.employeeId),
+                  booking_type: bookingData.bookingType.toLowerCase(),
+                  purpose: bookingData.purpose,
+                  priority: bookingData.priority,
+                  pickup_location: bookingData.pickupLocation,
+                  dropoff_location: bookingData.dropoffLocation,
+                  pickup_time: new Date(bookingData.pickupTime).toISOString(),
+                  dropoff_time: new Date(bookingData.dropoffTime).toISOString(),
+                  remarks: bookingData.remarks || "",
+                  
+                  // Type-specific fields
+                  ...(bookingData.bookingType.toLowerCase() === "freight" && {
+                    cargo_type: bookingData.cargoType,
+                    num_boxes: Number(bookingData.numBoxes),
+                    weight: Number(bookingData.weight),
+                    box_size: Array.isArray(bookingData.boxSize) ? bookingData.boxSize : [bookingData.boxSize || "medium"]
+                  }),
+                  
+                  ...(bookingData.bookingType.toLowerCase() === "passenger" && {
+                    trip_type: bookingData.tripType,
+                    num_passengers: Number(bookingData.numPassengers),
+                    with_driver: bookingData.withDriver === true,
+                    passenger_details: bookingData.passengerDetails || []
+                  })
+                };
+                
+                console.log("DIRECT API CALL - Payload:", JSON.stringify(apiData, null, 2));
+                
+                // Make direct API call
+                const response = await fetch('/api/bookings', {
+                  method: 'POST',
+                  headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${authToken}`
+                  },
+                  body: JSON.stringify(apiData)
+                });
+                
+                if (!response.ok) {
+                  const errorText = await response.text();
+                  throw new Error(`API Error (${response.status}): ${errorText}`);
+                }
+                
+                const result = await response.json();
+                console.log("DIRECT API SUCCESS:", result);
+                alert(`Booking created successfully! Reference: ${result.reference_no || "Unknown"}`);
+                
+                // Close the modal
+                onClose();
+                
+                // Refresh the page to show the new booking
+                window.location.href = "/bookings";
+                
+              } catch (error) {
+                console.error("DIRECT API ERROR:", error);
+                alert(`Failed to create booking: ${error.message}`);
+              }
+            }}
+          >
+            Direct API Submit
+          </Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
