@@ -252,11 +252,55 @@ export function BookingForm() {
   const bookingType = form.watch("bookingType");
   const numBoxes = form.watch("numBoxes");
 
+  // Enhanced useEffect to set purpose based on booking type
   React.useEffect(() => {
-    if (bookingType === "freight") {
-      form.setValue("purpose", BookingPurpose.FREIGHT_TRANSPORT);
-      form.setValue("priority", Priority.NORMAL);
-    }
+    console.log("Booking type changed to:", bookingType);
+    
+    // Clear timeout if it exists
+    const timeoutId = setTimeout(() => {
+      if (bookingType) {
+        // Map booking types to their default purposes
+        if (bookingType === "freight") {
+          console.log("Setting purpose for freight booking");
+          form.setValue("purpose", BookingPurpose.FREIGHT_TRANSPORT, {
+            shouldValidate: true,
+            shouldDirty: true,
+            shouldTouch: true
+          });
+          form.setValue("priority", Priority.NORMAL);
+        } 
+        else if (bookingType === "passenger") {
+          console.log("Setting purpose for passenger booking");
+          form.setValue("purpose", BookingPurpose.STAFF_TRANSPORTATION, {
+            shouldValidate: true,
+            shouldDirty: true,
+            shouldTouch: true
+          });
+        }
+        else if (bookingType === "medical") {
+          console.log("Setting purpose for medical booking");
+          form.setValue("purpose", BookingPurpose.HOSPITAL_VISIT, {
+            shouldValidate: true,
+            shouldDirty: true,
+            shouldTouch: true
+          });
+        }
+        else if (bookingType === "emergency") {
+          console.log("Setting purpose for emergency booking");
+          form.setValue("purpose", BookingPurpose.AMBULANCE, {
+            shouldValidate: true,
+            shouldDirty: true,
+            shouldTouch: true
+          });
+          form.setValue("priority", Priority.EMERGENCY);
+        }
+        
+        // Force re-render
+        form.trigger("purpose");
+      }
+    }, 50); // Small delay to ensure form is ready
+    
+    return () => clearTimeout(timeoutId);
   }, [bookingType, form]);
   
   // Monitor form location fields and sync with state
@@ -2117,30 +2161,62 @@ export function BookingForm() {
                     <FormField
                       control={form.control}
                       name="purpose"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Purpose *</FormLabel>
-                          <Select
-                            onValueChange={field.onChange}
-                            value={field.value}
-                            disabled={form.watch("bookingType") === "freight"}
-                          >
-                            <FormControl>
-                              <SelectTrigger>
-                                <SelectValue placeholder="Select booking purpose" />
-                              </SelectTrigger>
-                            </FormControl>
-                            <SelectContent>
-                              {Object.values(BookingPurpose).map((purpose) => (
-                                <SelectItem key={purpose} value={purpose}>
-                                  {purpose}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                          <FormMessage />
-                        </FormItem>
-                      )}
+                      render={({ field }) => {
+                        // Determine which purposes to show based on booking type
+                        const currentBookingType = form.watch("bookingType");
+                        let purposeOptions = [];
+                        
+                        // Filter purposes based on booking type
+                        if (currentBookingType === "freight") {
+                          purposeOptions = [
+                            { key: BookingPurpose.FREIGHT_TRANSPORT, value: BookingPurpose.FREIGHT_TRANSPORT }
+                          ];
+                        } 
+                        else if (currentBookingType === "passenger") {
+                          purposeOptions = [
+                            { key: BookingPurpose.STAFF_TRANSPORTATION, value: BookingPurpose.STAFF_TRANSPORTATION },
+                            { key: BookingPurpose.VIP_TRANSFER, value: BookingPurpose.VIP_TRANSFER },
+                            { key: BookingPurpose.GUEST, value: BookingPurpose.GUEST }
+                          ];
+                        }
+                        else if (currentBookingType === "medical") {
+                          purposeOptions = [
+                            { key: BookingPurpose.HOSPITAL_VISIT, value: BookingPurpose.HOSPITAL_VISIT },
+                            { key: BookingPurpose.PATIENT, value: BookingPurpose.PATIENT }
+                          ];
+                        }
+                        else if (currentBookingType === "emergency") {
+                          purposeOptions = [
+                            { key: BookingPurpose.AMBULANCE, value: BookingPurpose.AMBULANCE },
+                            { key: BookingPurpose.MORTUARY, value: BookingPurpose.MORTUARY }
+                          ];
+                        }
+                        
+                        return (
+                          <FormItem>
+                            <FormLabel>Purpose *</FormLabel>
+                            <Select
+                              onValueChange={field.onChange}
+                              value={field.value}
+                              disabled={form.watch("bookingType") === "freight"}
+                            >
+                              <FormControl>
+                                <SelectTrigger>
+                                  <SelectValue placeholder="Select booking purpose" />
+                                </SelectTrigger>
+                              </FormControl>
+                              <SelectContent>
+                                {purposeOptions.map((option) => (
+                                  <SelectItem key={option.key} value={option.value}>
+                                    {option.value}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                            <FormMessage />
+                          </FormItem>
+                        );
+                      }}
                     />
                     <FormField
                       control={form.control}
