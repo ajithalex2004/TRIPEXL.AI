@@ -2174,13 +2174,30 @@ export function BookingForm() {
                         } 
                         else if (currentBookingType === "passenger") {
                           purposeOptions = [
+                            { key: BookingPurpose.HOSPITAL_VISIT, value: BookingPurpose.HOSPITAL_VISIT },
+                            { key: BookingPurpose.BLOOD_BANK, value: BookingPurpose.BLOOD_BANK },
+                            { key: BookingPurpose.BLOOD_SAMPLES, value: BookingPurpose.BLOOD_SAMPLES },
+                            { key: "AIRPORT_PICKUP_DROPOFF", value: "Airport Pickup & Dropoff" },
+                            { key: BookingPurpose.BANK_VISIT, value: BookingPurpose.BANK_VISIT },
+                            { key: "DRUGS_MEDICINE_DELIVERY", value: "Drugs/Medicine Delivery or Collection" },
+                            { key: "MEETING_TRAINING", value: "Meeting /Training" },
+                            { key: "SEMINAR_EVENTS", value: "Seminar & Events" },
+                            { key: BookingPurpose.ON_CALL, value: BookingPurpose.ON_CALL },
                             { key: BookingPurpose.STAFF_TRANSPORTATION, value: BookingPurpose.STAFF_TRANSPORTATION },
-                            { key: BookingPurpose.VIP_TRANSFER, value: BookingPurpose.VIP_TRANSFER },
-                            { key: BookingPurpose.GUEST, value: BookingPurpose.GUEST },
-                            { key: BookingPurpose.MEETING, value: BookingPurpose.MEETING },
-                            { key: BookingPurpose.EVENTS_SEMINAR, value: BookingPurpose.EVENTS_SEMINAR },
-                            { key: BookingPurpose.TRAINING, value: BookingPurpose.TRAINING },
-                            { key: BookingPurpose.MARKETING, value: BookingPurpose.MARKETING }
+                            { key: BookingPurpose.MARKETING, value: BookingPurpose.MARKETING },
+                            { key: BookingPurpose.STORE_ITEMS, value: BookingPurpose.STORE_ITEMS },
+                            { key: BookingPurpose.EQUIPMENT, value: BookingPurpose.EQUIPMENT },
+                            { key: BookingPurpose.DOCUMENT, value: BookingPurpose.DOCUMENT },
+                            { key: BookingPurpose.PATIENT, value: BookingPurpose.PATIENT },
+                            { key: "HOME_VISIT", value: "Home Visit" },
+                            { key: "AMBULANCE_SERVICE", value: "Ambulance Service" },
+                            { key: BookingPurpose.VISA_MEDICAL, value: BookingPurpose.VISA_MEDICAL },
+                            { key: BookingPurpose.MAINTENANCE, value: BookingPurpose.MAINTENANCE },
+                            { key: BookingPurpose.VACCINE, value: BookingPurpose.VACCINE },
+                            { key: BookingPurpose.ONCOLOGY, value: BookingPurpose.ONCOLOGY },
+                            { key: BookingPurpose.MORTUARY, value: BookingPurpose.MORTUARY },
+                            { key: "GUEST_TRANSFER", value: "Guest Transfer" },
+                            { key: BookingPurpose.VIP_TRANSFER, value: BookingPurpose.VIP_TRANSFER }
                           ];
                         }
                         else if (currentBookingType === "medical") {
@@ -2238,6 +2255,30 @@ export function BookingForm() {
                         );
                       }}
                     />
+                    {/* Purpose-based Priority Setting */}
+                    {React.useEffect(() => {
+                      const purpose = form.watch("purpose");
+                      if (purpose) {
+                        console.log("Setting priority based on purpose:", purpose);
+                        // Set priorities according to the provided table
+                        if (purpose === "Blood Bank" || 
+                            purpose === "On Call" || 
+                            purpose === "Instrument & Equipment Collection/Delivery") {
+                          form.setValue("priority", Priority.CRITICAL);
+                        } 
+                        else if (purpose === "Blood Samples Collection/Delivery" || 
+                                purpose === "Ambulance Service") {
+                          form.setValue("priority", Priority.EMERGENCY);
+                        }
+                        else if (purpose === "Drugs/Medicine Delivery or Collection") {
+                          form.setValue("priority", Priority.HIGH);
+                        }
+                        else {
+                          form.setValue("priority", Priority.NORMAL);
+                        }
+                      }
+                    }, [form.watch("purpose")])}
+
                     <FormField
                       control={form.control}
                       name="priority"
