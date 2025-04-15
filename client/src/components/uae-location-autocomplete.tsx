@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { Input } from "@/components/ui/input";
 import { Location } from "./map-view";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Search, MapPin, Building, Home, Store, Landmark } from "lucide-react";
+import { Search, MapPin, Building, Home, Store, Landmark, X } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import {
   Command,
@@ -50,9 +50,11 @@ interface UAELocationAutocompleteProps {
   onLocationSelect: (location: Location) => void;
   onSearchChange?: (query: string) => void;
   onFocus?: () => void;
+  onClear?: () => void; // Add a callback for clearing the location
   inputId?: string;
   className?: string;
   isPickup?: boolean; // To customize display for pickup or dropoff
+  allowClear?: boolean; // Whether to show the clear button
 }
 
 export function UAELocationAutocomplete({
@@ -61,9 +63,11 @@ export function UAELocationAutocomplete({
   onLocationSelect,
   onSearchChange,
   onFocus,
+  onClear,
   inputId,
   className,
   isPickup = true,
+  allowClear = true, // Default to showing clear button
 }: UAELocationAutocompleteProps) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [error, setError] = useState<string | null>(null);
@@ -344,10 +348,23 @@ export function UAELocationAutocomplete({
               }}
               className={cn(error ? "border-destructive" : "", "pr-10")}
             />
-            <Search 
-              className="absolute right-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" 
-              onClick={() => setOpen(true)}
-            />
+            {value && allowClear ? (
+              <X
+                className="absolute right-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4 cursor-pointer hover:text-foreground"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  if (onClear) {
+                    onClear();
+                  }
+                }}
+                aria-label="Clear location"
+              />
+            ) : (
+              <Search 
+                className="absolute right-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" 
+                onClick={() => setOpen(true)}
+              />
+            )}
           </div>
         </PopoverTrigger>
         <PopoverContent className="p-0 w-[350px]" align="start">
