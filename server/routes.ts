@@ -583,6 +583,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
     // Update the booking creation route
     app.post("/api/bookings", async (req, res) => {
       const debugId = Date.now().toString();
+      console.log(`[BOOKING-${debugId}] ==========================================`);
+      console.log(`[BOOKING-${debugId}] BOOKING CREATION REQUEST RECEIVED`);
+      console.log(`[BOOKING-${debugId}] ==========================================`);
+      console.log(`[BOOKING-${debugId}] Request Body:`, JSON.stringify(req.body, null, 2));
       
       // Check for authentication token
       const authHeader = req.headers.authorization;

@@ -60,6 +60,12 @@ export function BookingConfirmationPreview({
   bookingData,
   isSubmitting
 }: BookingConfirmationPreviewProps) {
+  console.log("[DEBUG] BookingConfirmationPreview rendered with:", {
+    open,
+    isSubmitting,
+    hasOnConfirmFn: typeof onConfirm === 'function',
+    bookingDataKeys: bookingData ? Object.keys(bookingData) : 'no data'
+  });
   // Calculate estimated distance if both pickup and dropoff locations are present
   const estimatedDistance = React.useMemo(() => {
     if (bookingData.pickupLocation?.coordinates && bookingData.dropoffLocation?.coordinates) {

@@ -815,7 +815,11 @@ export function BookingForm() {
   // Handle booking preview confirmation
   const handleBookingConfirmation = async () => {
     try {
-      console.log("%c BOOKING CONFIRMATION TRIGGERED", "background: #ff0000; color: white; padding: 2px 8px; font-size: 14px; border-radius: 4px;");
+      console.log("%c 🔍 BOOKING CONFIRMATION FUNCTION ENTERED", "background: #ff0000; color: white; padding: 4px 8px; font-size: 16px; font-weight: bold; border-radius: 4px;");
+      console.log("🔍 Stack trace:", new Error().stack);
+      
+      // Check if this function is actually being called by the confirmation modal
+      console.log("🔍 Function call timestamp:", new Date().toISOString());
       
       if (!bookingDataForPreview) {
         console.error("Error: bookingDataForPreview is null or undefined");

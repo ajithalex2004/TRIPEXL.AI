@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Booking API Direct Test</title>
+    <style>
+        body { 
+            font-family: Arial, sans-serif; 
+            line-height: 1.6;
+            max-width: 800px; 
+            margin: 0 auto; 
+            padding: 20px;
+        }
+        h1 { color: #333; }
+        .form-group { margin-bottom: 15px; }
+        label { display: block; margin-bottom: 5px; }
+        input, textarea, select { 
+            width: 100%; 
+            padding: 8px; 
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+        button {
+            background: #4CAF50;
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        button:hover { background: #45a049; }
+        pre { 
+            background: #f4f4f4; 
+            padding: 15px; 
+            border-radius: 4px;
+            overflow: auto;
+        }
+        #responseContainer {
+            margin-top: 20px;
+            padding: 15px;
+            background: #f9f9f9;
+            border-radius: 4px;
+            border: 1px solid #ddd;
+        }
+    </style>
+</head>
+<body>
+    <h1>Booking API Direct Test</h1>
+    <p>This form bypasses React and directly tests the server booking API.</p>
+
+    <form id="directBookingForm">
+        <div class="form-group">
+            <label for="authToken">Auth Token:</label>
+            <input type="text" id="authToken" name="authToken" value="" placeholder="Enter your JWT token">
+            <button type="button" onclick="getAuthTokenFromLocalStorage()">Get Token from localStorage</button>
+        </div>
+
+        <div class="form-group">
+            <label for="employee_id">Employee ID (Number):</label>
+            <input type="number" id="employee_id" name="employee_id" value="1">
+        </div>
+
+        <div class="form-group">
+            <label for="booking_type">Booking Type:</label>
+            <select id="booking_type" name="booking_type">
+                <option value="passenger">Passenger</option>
+                <option value="freight">Freight</option>
+            </select>
+        </div>
+
+        <div class="form-group">
+            <label for="purpose">Purpose:</label>
+            <input type="text" id="purpose" name="purpose" value="Test Purpose">
+        </div>
+
+        <div class="form-group">
+            <label for="priority">Priority:</label>
+            <select id="priority" name="priority">
+                <option value="Normal">Normal</option>
+                <option value="High">High</option>
+                <option value="Emergency">Emergency</option>
+                <option value="Critical">Critical</option>
+            </select>
+        </div>
+
+        <div class="form-group">
+            <label for="pickup_location">Pickup Location:</label>
+            <textarea id="pickup_location" name="pickup_location" rows="4">{
+  "address": "Dubai Mall",
+  "coordinates": {
+    "lat": 25.1972,
+    "lng": 55.2744
+  }
+}</textarea>
+        </div>
+
+        <div class="form-group">
+            <label for="dropoff_location">Dropoff Location:</label>
+            <textarea id="dropoff_location" name="dropoff_location" rows="4">{
+  "address": "Dubai Airport",
+  "coordinates": {
+    "lat": 25.2532,
+    "lng": 55.3657
+  }
+}</textarea>
+        </div>
+
+        <div class="form-group">
+            <label for="pickup_time">Pickup Time:</label>
+            <input type="datetime-local" id="pickup_time" name="pickup_time">
+        </div>
+
+        <div class="form-group">
+            <label for="dropoff_time">Dropoff Time:</label>
+            <input type="datetime-local" id="dropoff_time" name="dropoff_time">
+        </div>
+
+        <div class="form-group">
+            <label for="remarks">Remarks:</label>
+            <textarea id="remarks" name="remarks" rows="2">Test booking submission via direct API</textarea>
+        </div>
+
+        <button type="button" onclick="submitDirectBooking()">Submit Direct Booking</button>
+    </form>
+
+    <div id="responseContainer">
+        <h3>API Response:</h3>
+        <pre id="responseOutput">No response yet...</pre>
+    </div>
+
+    <script>
+        // Set default dates to today+1h and today+2h
+        document.addEventListener('DOMContentLoaded', function() {
+            const now = new Date();
+            const hourFromNow = new Date(now.getTime() + 60 * 60 * 1000);
+            const twoHoursFromNow = new Date(now.getTime() + 2 * 60 * 60 * 1000);
+            
+            document.getElementById('pickup_time').value = formatDateTime(hourFromNow);
+            document.getElementById('dropoff_time').value = formatDateTime(twoHoursFromNow);
+        });
+
+        function formatDateTime(date) {
+            return `${date.getFullYear()}-${padZero(date.getMonth() + 1)}-${padZero(date.getDate())}T${padZero(date.getHours())}:${padZero(date.getMinutes())}`;
+        }
+
+        function padZero(num) {
+            return num.toString().padStart(2, '0');
+        }
+
+        function getAuthTokenFromLocalStorage() {
+            const token = localStorage.getItem('auth_token');
+            if (token) {
+                document.getElementById('authToken').value = token;
+                console.log("Token retrieved from localStorage");
+            } else {
+                alert("No auth_token found in localStorage. Please log in first.");
+            }
+        }
+
+        function submitDirectBooking() {
+            console.log("Submitting direct booking...");
+            const authToken = document.getElementById('authToken').value.trim();
+            
+            if (!authToken) {
+                alert("Please enter an authentication token");
+                return;
+            }
+
+            // Gather form data
+            const formData = {
+                employee_id: parseInt(document.getElementById('employee_id').value),
+                booking_type: document.getElementById('booking_type').value,
+                purpose: document.getElementById('purpose').value,
+                priority: document.getElementById('priority').value,
+                pickup_location: JSON.parse(document.getElementById('pickup_location').value),
+                dropoff_location: JSON.parse(document.getElementById('dropoff_location').value),
+                pickup_time: new Date(document.getElementById('pickup_time').value).toISOString(),
+                dropoff_time: new Date(document.getElementById('dropoff_time').value).toISOString(),
+                remarks: document.getElementById('remarks').value
+            };
+
+            console.log("Sending booking data:", formData);
+            
+            // Submit directly to API
+            fetch('/api/bookings', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${authToken}`
+                },
+                body: JSON.stringify(formData)
+            })
+            .then(response => {
+                const responseStatus = `Response status: ${response.status} ${response.statusText}`;
+                console.log(responseStatus);
+                
+                return response.text().then(text => {
+                    try {
+                        return {
+                            status: response.status,
+                            statusText: response.statusText,
+                            json: text ? JSON.parse(text) : {}
+                        };
+                    } catch (e) {
+                        return {
+                            status: response.status,
+                            statusText: response.statusText,
+                            text: text,
+                            parseError: e.message
+                        };
+                    }
+                });
+            })
+            .then(data => {
+                console.log("API response:", data);
+                const outputElement = document.getElementById('responseOutput');
+                
+                if (data.status >= 200 && data.status < 300) {
+                    outputElement.innerHTML = `Success (${data.status}):\n${JSON.stringify(data.json, null, 2)}`;
+                } else {
+                    let errorOutput = `Error (${data.status} ${data.statusText}):\n`;
+                    
+                    if (data.parseError) {
+                        errorOutput += `Could not parse response as JSON: ${data.parseError}\n\nRaw response:\n${data.text}`;
+                    } else {
+                        errorOutput += JSON.stringify(data.json, null, 2);
+                    }
+                    
+                    outputElement.innerHTML = errorOutput;
+                }
+            })
+            .catch(error => {
+                console.error("Error submitting booking:", error);
+                document.getElementById('responseOutput').innerHTML = `Fetch Error: ${error.message}`;
+            });
+        }
+    </script>
+</body>
+</html>

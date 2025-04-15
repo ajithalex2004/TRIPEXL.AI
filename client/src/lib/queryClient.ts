@@ -132,6 +132,14 @@ export async function apiRequest(
   }
   
   try {
+    console.log(`⬆️ SENDING API REQUEST: ${method} ${url}`);
+    console.log(`⬆️ REQUEST HEADERS:`, JSON.stringify(headers, null, 2));
+    console.log(`⬆️ REQUEST BODY:`, data ? JSON.stringify(data, null, 2) : 'no body');
+    
+    // Add timestamp for debugging
+    const startTime = new Date().getTime();
+    console.log(`⬆️ REQUEST START TIME: ${new Date().toISOString()}`);
+    
     const res = await fetch(url, {
       method,
       headers,
@@ -139,8 +147,9 @@ export async function apiRequest(
       credentials: "include",
     });
     
-    // Log response details
-    console.log(`📡 API RESPONSE: ${res.status} ${res.statusText}`);
+    const endTime = new Date().getTime();
+    console.log(`⬇️ API RESPONSE TIME: ${endTime - startTime}ms`);
+    console.log(`⬇️ API RESPONSE: ${res.status} ${res.statusText}`);
     
     // Clone the response so we can log its content without consuming it
     const clonedRes = res.clone();
