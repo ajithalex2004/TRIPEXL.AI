@@ -2111,11 +2111,22 @@ export function BookingForm() {
                                 };
                                 
                                 console.log(`Map Picker onLocationSelect: Setting ${fieldName} with:`, completeLocation);
-                                form.setValue(fieldName, completeLocation, {
-                                  shouldValidate: true,
-                                  shouldDirty: true,
-                                  shouldTouch: true
-                                });
+                                
+                                // Wrap in try/catch for extra safety
+                                try {
+                                  // Use setTimeout to ensure we don't block the UI
+                                  setTimeout(() => {
+                                    form.setValue(fieldName, completeLocation, {
+                                      shouldValidate: true,
+                                      shouldDirty: true,
+                                      shouldTouch: true
+                                    });
+                                    console.log(`Map Picker: Successfully set ${fieldName}`);
+                                    console.log(`Current form value for ${fieldName}:`, form.getValues(fieldName));
+                                  }, 10);
+                                } catch (error) {
+                                  console.error(`Error setting ${fieldName} from map:`, error);
+                                }
                                 
                                 // Calculate route if both pickup and dropoff are set
                                 if (form.watch("pickupLocation") && form.watch("dropoffLocation")) {

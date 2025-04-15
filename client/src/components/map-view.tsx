@@ -1885,6 +1885,8 @@ export const MapView: React.FC<MapViewProps> = ({
                           place_id: popupLocation.place_id || ""
                         };
                         
+                        console.log("Map view: Creating dropoff location:", location);
+                        
                         // Provide voice feedback if accessibility is enabled - using ref to prevent re-renders
                         if (accessibilityEnabledRef.current) {
                           VoiceGuidance.announceLocationSelection(
@@ -1893,8 +1895,12 @@ export const MapView: React.FC<MapViewProps> = ({
                           );
                         }
                         
-                        onLocationSelect(location, 'dropoff');
-                        setPopupLocation(null); // Close popup after selection
+                        // Set a small timeout to ensure the UI isn't blocked
+                        setTimeout(() => {
+                          console.log("Map view: Calling onLocationSelect with dropoff location");
+                          onLocationSelect(location, 'dropoff');
+                          setPopupLocation(null); // Close popup after selection
+                        }, 10);
                       }
                     }}
                     aria-label={`Set ${popupLocation?.formatted_address || 'selected location'} as dropoff location`}
