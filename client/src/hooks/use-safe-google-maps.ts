@@ -1,9 +1,10 @@
 import { useState, useEffect, useRef } from 'react';
+import { getGoogleMapsApiKey, MAP_CONFIG } from '@/lib/map-config';
 
 const SCRIPT_ID = 'google-maps-script';
 const CALLBACK_NAME = 'initGoogleMapsAPI';
 const LOADING_TIMEOUT = 8000; // 8 seconds timeout
-const LIBRARIES = ['places'];
+const LIBRARIES = MAP_CONFIG.libraries;
 
 interface GoogleMapsState {
   isLoaded: boolean;
@@ -21,9 +22,11 @@ interface GoogleMapsState {
  * @returns State object with loading status and error information
  */
 export function useSafeGoogleMaps(
-  apiKey: string,
+  providedApiKey?: string,
   onError?: (error: Error) => void
 ): GoogleMapsState {
+  // Use the provided API key or get the default one from our config
+  const apiKey = providedApiKey || getGoogleMapsApiKey();
   const [state, setState] = useState<GoogleMapsState>({
     isLoaded: false,
     isError: false,

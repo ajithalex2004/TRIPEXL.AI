@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { MapPin, Navigation, Search } from 'lucide-react';
 import { loadGoogleMaps } from '@/lib/google-maps-loader';
+import { getGoogleMapsApiKey } from '@/lib/map-config';
 
 // Location interface
 export interface Location {

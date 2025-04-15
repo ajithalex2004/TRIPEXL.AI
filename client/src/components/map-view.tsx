@@ -5,6 +5,7 @@ import { MapWorker } from '@/components/maps';
 import { AntiFreezeWrapper } from '@/components/anti-freeze-wrapper';
 import { MapPin, AlertTriangle, MapIcon, Navigation } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { getGoogleMapsApiKey } from '@/lib/map-config';
 
 // Define the common Location interface used throughout the application
 export interface Location {
@@ -35,7 +36,7 @@ interface MapViewProps {
 }
 
 export function MapView({
-  apiKey,
+  apiKey: providedApiKey,
   pickupLocation,
   dropoffLocation,
   waypoints = [],
@@ -44,6 +45,8 @@ export function MapView({
   onLocationSelect,
   onRouteCalculated
 }: MapViewProps) {
+  // Use provided API key or fall back to centralized key
+  const apiKey = providedApiKey || getGoogleMapsApiKey();
   const { toast } = useToast();
   const [map, setMap] = useState<google.maps.Map | null>(null);
   const [directionsService, setDirectionsService] = useState<google.maps.DirectionsService | null>(null);
