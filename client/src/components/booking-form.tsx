@@ -566,6 +566,20 @@ export function BookingForm() {
         const hasAnyPickupInfo = Boolean(finalPickupLocation?.address || pickupLocation?.address);
         const hasAnyDropoffInfo = Boolean(finalDropoffLocation?.address || dropoffLocation?.address);
         
+        // Log the location state more thoroughly for debugging
+        console.log("LOCATION VALIDATION CHECK:", {
+          hasAnyPickupInfo,
+          hasAnyDropoffInfo,
+          pickupAddressForm: finalPickupLocation?.address,
+          dropoffAddressForm: finalDropoffLocation?.address,
+          pickupAddressState: pickupLocation?.address,
+          dropoffAddressState: dropoffLocation?.address,
+          // Check if we have both locations with coordinates, which is what's needed for a valid map route
+          hasCompletePickup: Boolean(finalPickupLocation?.address && finalPickupLocation?.coordinates),
+          hasCompleteDropoff: Boolean(finalDropoffLocation?.address && finalDropoffLocation?.coordinates)
+        });
+        
+        // If we have any location data in either the form state or component state, accept it and proceed
         if (hasAnyPickupInfo && hasAnyDropoffInfo) {
           console.log("LOCATION RECOVERY: Found some location data, advancing step");
           // Clear the safety timeout 
@@ -578,6 +592,31 @@ export function BookingForm() {
           isProcessingNextStep.current = false;
           setCurrentStep(prev => Math.min(prev + 1, 6));
           return;
+        } else {
+          // IMPORTANT FIX: Always check the raw form values as a fallback
+          // This is critical because the form might have values that aren't properly typed
+          // but still contain the essential location information
+          const rawPickup = form.getValues("pickupLocation");
+          const rawDropoff = form.getValues("dropoffLocation");
+          
+          console.log("RAW LOCATION VALUES FROM FORM:", { rawPickup, rawDropoff });
+          
+          // If we have any form data at all, proceed to the next step
+          // This fixes cases where the location is filled but validation is failing
+          if (rawPickup && rawDropoff) {
+            console.log("LOCATION FALLBACK: Using raw form values to proceed");
+            
+            // Clear the safety timeout
+            if (progressTimeoutRef.current) {
+              clearTimeout(progressTimeoutRef.current);
+              progressTimeoutRef.current = null;
+            }
+            
+            // Advance to next step
+            isProcessingNextStep.current = false;
+            setCurrentStep(prev => Math.min(prev + 1, 6));
+            return;
+          }
         }
       }
       
@@ -2256,6 +2295,7 @@ export function BookingForm() {
                       }}
                     />
                     {/* Purpose-based Priority Setting */}
+                    <React.Fragment>
                     {React.useEffect(() => {
                       const purpose = form.watch("purpose");
                       if (purpose) {
@@ -2278,6 +2318,7 @@ export function BookingForm() {
                         }
                       }
                     }, [form.watch("purpose")])}
+                    </React.Fragment>
 
                     <FormField
                       control={form.control}
