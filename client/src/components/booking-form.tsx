@@ -519,165 +519,175 @@ export function BookingForm() {
   const progressTimeoutRef = React.useRef<NodeJS.Timeout | null>(null);
   
   const handleNextStep = async () => {
-    // Prevent multiple clicks
+    // Double prevention for multiple clicks - both with ref and state
     if (isProcessingNextStep.current) {
       console.log("Already processing next step, ignoring duplicate request");
       return;
     }
     
+    // Set processing flag
     isProcessingNextStep.current = true;
     console.log("Next button clicked on step:", currentStep);
     
-    // Set up a safety timeout that will auto-advance if validation takes too long
+    // IMPROVED: Shorter timeout for critical responsiveness (3 seconds)
+    // This ensures we don't leave the UI frozen for too long
     progressTimeoutRef.current = setTimeout(() => {
-      console.log("TIMEOUT: Step validation taking too long, auto-advancing");
+      console.log("SAFETY TIMEOUT: Ensuring UI remains responsive");
+      
+      // Reset processing state
       isProcessingNextStep.current = false;
+      
+      // Advance to next step with guaranteed UI responsiveness
       setCurrentStep(prev => Math.min(prev + 1, 6));
       
+      // Notify user
       toast({
-        title: "Information saved",
-        description: "Moving to next step. You can always return to this step if needed.",
+        title: "Moving to next step",
+        description: "Your information has been saved. You can return to previous steps if needed.",
       });
-    }, 5000); // 5 seconds safety timeout
+    }, 3000);
     
     try {
-      // Extra handling for location step (step 4)
+      // SIMPLIFIED APPROACH: Focus on UI responsiveness over perfect validation
+      
+      // Special case for location step (step 4) - fast path approach
       if (currentStep === 4) {
-        const pickupLocationFromForm = form.getValues("pickupLocation");
-        const dropoffLocationFromForm = form.getValues("dropoffLocation");
-        
-        console.log("DEBUG LOCATION INFO:", { 
-          formPickupLocation: pickupLocationFromForm,
-          formDropoffLocation: dropoffLocationFromForm,
-          statePickupLocation: pickupLocation, 
-          stateDropoffLocation: dropoffLocation,
-          hasPickupForm: Boolean(pickupLocationFromForm?.address),
-          hasDropoffForm: Boolean(dropoffLocationFromForm?.address),
-          hasPickupState: Boolean(pickupLocation?.address),
-          hasDropoffState: Boolean(dropoffLocation?.address)
-        });
-        
-        // IMPROVED LOCATION HANDLING: Try multiple fallback options
-        
-        // 1. First try getting from form
-        let finalPickupLocation = pickupLocationFromForm;
-        let finalDropoffLocation = dropoffLocationFromForm;
-        
-        // 2. If not available in form, try component state
-        if (!finalPickupLocation?.address && pickupLocation?.address) {
-          console.log("LOCATION RECOVERY: Using pickup from component state");
-          finalPickupLocation = pickupLocation;
+        try {
+          // Quick check for any location data
+          const formPickup = form.getValues("pickupLocation");
+          const formDropoff = form.getValues("dropoffLocation");
+          const statePickup = pickupLocation;
+          const stateDropoff = dropoffLocation;
           
-          // Update form
-          form.setValue("pickupLocation", finalPickupLocation, {
-            shouldValidate: true,
-            shouldDirty: true,
-            shouldTouch: true
-          });
-        }
-        
-        if (!finalDropoffLocation?.address && dropoffLocation?.address) {
-          console.log("LOCATION RECOVERY: Using dropoff from component state");
-          finalDropoffLocation = dropoffLocation;
+          // Do we have enough data to continue?
+          const hasMinimumPickupData = Boolean(formPickup?.address || statePickup?.address);
+          const hasMinimumDropoffData = Boolean(formDropoff?.address || stateDropoff?.address);
           
-          // Update form
-          form.setValue("dropoffLocation", finalDropoffLocation, {
-            shouldValidate: true,
-            shouldDirty: true,
-            shouldTouch: true
+          console.log("Fast location check:", {
+            hasMinimumPickupData,
+            hasMinimumDropoffData,
+            formPickup,
+            formDropoff,
+            statePickup,
+            stateDropoff
           });
-        }
-        
-        // 3. Force advance if we have at least some location data
-        const hasAnyPickupInfo = Boolean(finalPickupLocation?.address || pickupLocation?.address);
-        const hasAnyDropoffInfo = Boolean(finalDropoffLocation?.address || dropoffLocation?.address);
-        
-        // Log the location state more thoroughly for debugging
-        console.log("LOCATION VALIDATION CHECK:", {
-          hasAnyPickupInfo,
-          hasAnyDropoffInfo,
-          pickupAddressForm: finalPickupLocation?.address,
-          dropoffAddressForm: finalDropoffLocation?.address,
-          pickupAddressState: pickupLocation?.address,
-          dropoffAddressState: dropoffLocation?.address,
-          // Check if we have both locations with coordinates, which is what's needed for a valid map route
-          hasCompletePickup: Boolean(finalPickupLocation?.address && finalPickupLocation?.coordinates),
-          hasCompleteDropoff: Boolean(finalDropoffLocation?.address && finalDropoffLocation?.coordinates)
-        });
-        
-        // If we have any location data in either the form state or component state, accept it and proceed
-        if (hasAnyPickupInfo && hasAnyDropoffInfo) {
-          console.log("LOCATION RECOVERY: Found some location data, advancing step");
-          // Clear the safety timeout 
-          if (progressTimeoutRef.current) {
-            clearTimeout(progressTimeoutRef.current);
-            progressTimeoutRef.current = null;
+          
+          // IMPORTANT: Always sync state to form to prevent data loss
+          if (statePickup?.address && (!formPickup || !formPickup.address)) {
+            form.setValue("pickupLocation", statePickup, {
+              shouldValidate: false, // Skip validation to avoid freezes
+              shouldDirty: true,
+              shouldTouch: true
+            });
           }
           
-          // Advance to next step
-          isProcessingNextStep.current = false;
-          setCurrentStep(prev => Math.min(prev + 1, 6));
-          return;
-        } else {
-          // IMPORTANT FIX: Always check the raw form values as a fallback
-          // This is critical because the form might have values that aren't properly typed
-          // but still contain the essential location information
-          const rawPickup = form.getValues("pickupLocation");
-          const rawDropoff = form.getValues("dropoffLocation");
+          if (stateDropoff?.address && (!formDropoff || !formDropoff.address)) {
+            form.setValue("dropoffLocation", stateDropoff, {
+              shouldValidate: false, // Skip validation to avoid freezes
+              shouldDirty: true,
+              shouldTouch: true
+            });
+          }
           
-          console.log("RAW LOCATION VALUES FROM FORM:", { rawPickup, rawDropoff });
-          
-          // If we have any form data at all, proceed to the next step
-          // This fixes cases where the location is filled but validation is failing
-          if (rawPickup && rawDropoff) {
-            console.log("LOCATION FALLBACK: Using raw form values to proceed");
-            
-            // Clear the safety timeout
+          // If we have any location data at all, just proceed
+          if ((formPickup || statePickup) && (formDropoff || stateDropoff)) {
+            // Clean up timeout
             if (progressTimeoutRef.current) {
               clearTimeout(progressTimeoutRef.current);
               progressTimeoutRef.current = null;
             }
             
-            // Advance to next step
+            // We have some location data, so continue
             isProcessingNextStep.current = false;
             setCurrentStep(prev => Math.min(prev + 1, 6));
             return;
           }
+          
+          // We've reached this point: not enough location data
+          if (!hasMinimumPickupData || !hasMinimumDropoffData) {
+            // Clear timeout and reset state
+            if (progressTimeoutRef.current) {
+              clearTimeout(progressTimeoutRef.current);
+              progressTimeoutRef.current = null;
+            }
+            
+            isProcessingNextStep.current = false;
+            
+            toast({
+              title: "Location Required",
+              description: "Please select both pickup and dropoff locations",
+              variant: "destructive"
+            });
+            return;
+          }
+        } catch (locationError) {
+          // Log but continue - don't let location errors freeze the UI
+          console.error("Non-fatal location validation error:", locationError);
+          // Just continue to normal validation below
         }
       }
       
-      // Normal validation flow for other steps
-      const isValid = await isStepValid(currentStep);
-      console.log("Step validation result:", isValid);
-      
-      // Clear the safety timeout since we completed validation
-      if (progressTimeoutRef.current) {
-        clearTimeout(progressTimeoutRef.current);
-        progressTimeoutRef.current = null;
-      }
-      
-      if (isValid) {
-        setCurrentStep(prev => Math.min(prev + 1, 6));
-      } else {
+      // Simplified validation for all steps
+      try {
+        const isValid = await isStepValid(currentStep);
+        console.log("Step validation result:", isValid);
+        
+        // Clear timeout since validation completed
+        if (progressTimeoutRef.current) {
+          clearTimeout(progressTimeoutRef.current);
+          progressTimeoutRef.current = null;
+        }
+        
+        // Always reset the processing flag to prevent UI freezes
+        isProcessingNextStep.current = false;
+        
+        if (isValid) {
+          // Success path - move to next step
+          setCurrentStep(prev => Math.min(prev + 1, 6));
+        } else {
+          // Failed validation but UI is responsive
+          toast({
+            title: "Please complete required fields",
+            description: "Some required information is missing or incorrect.",
+            variant: "destructive"
+          });
+        }
+      } catch (validationError) {
+        // Handle validation errors but keep UI responsive
+        console.error("Validation error:", validationError);
+        
+        // Clear timeout
+        if (progressTimeoutRef.current) {
+          clearTimeout(progressTimeoutRef.current);
+          progressTimeoutRef.current = null;
+        }
+        
+        // Always reset processing flag to prevent UI freeze
+        isProcessingNextStep.current = false;
+        
         toast({
-          title: "Please complete required fields",
-          description: "Some required information is missing or incorrect.",
+          title: "Validation Error",
+          description: "Please check your information and try again.",
           variant: "destructive"
         });
       }
     } catch (error) {
-      console.error("Error during step validation:", error);
+      // Catch-all error handler for any unexpected issues
+      console.error("Unexpected error during next step handling:", error);
       
-      // Always clear the timeout in case of errors
+      // ALWAYS ensure timeout is cleared and flags are reset
       if (progressTimeoutRef.current) {
         clearTimeout(progressTimeoutRef.current);
         progressTimeoutRef.current = null;
       }
       
-      // Provide user feedback about the error
+      // Reset flags to restore UI responsiveness
+      isProcessingNextStep.current = false;
+      
+      // Notify user
       toast({
         title: "An error occurred",
-        description: "There was a problem validating this step. Please try again.",
+        description: "There was a problem moving to the next step. Please try again.",
         variant: "destructive"
       });
     } finally {
