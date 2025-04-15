@@ -676,9 +676,9 @@ export const bookings = pgTable("bookings", {
   pickup_location: json("pickup_location").$type<z.infer<typeof locations>>().notNull(),
   dropoff_location: json("dropoff_location").$type<z.infer<typeof locations>>().notNull(),
   waypoints: json("waypoints").$type<z.infer<typeof locations>[]>().default([]),
-  // Use text instead of timestamp since the database schema is using text
-  pickup_time: text("pickup_time"),
-  dropoff_time: text("dropoff_time"),
+  // Changed from text to timestamp for better date handling
+  pickup_time: timestamp("pickup_time"),
+  dropoff_time: timestamp("dropoff_time"),
 
   // Reference and tracking
   reference_no: text("reference_no").unique(),
