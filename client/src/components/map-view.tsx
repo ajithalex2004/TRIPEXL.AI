@@ -6,6 +6,7 @@ import { AntiFreezeWrapper } from '@/components/anti-freeze-wrapper';
 import { MapPin, AlertTriangle, MapIcon, Navigation } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { getGoogleMapsApiKey } from '@/lib/map-config';
+import { StaticMapFallback } from '@/components/static-map-fallback';
 
 // Define the common Location interface used throughout the application
 export interface Location {
@@ -53,6 +54,8 @@ export function MapView({
   const [directionsRenderer, setDirectionsRenderer] = useState<google.maps.DirectionsRenderer | null>(null);
   const [markers, setMarkers] = useState<google.maps.Marker[]>([]);
   const [routeError, setRouteError] = useState<string | null>(null);
+  const [mapError, setMapError] = useState<boolean>(false);
+  const [useStaticFallback, setUseStaticFallback] = useState<boolean>(false);
   
   // Log available key
   useEffect(() => {
@@ -340,25 +343,57 @@ export function MapView({
     }
   }, [map, directionsService, directionsRenderer, pickupLocation, dropoffLocation, waypoints, markers]);
   
+  // Handle map errors
+  const handleMapError = useCallback((error: Error) => {
+    console.error('Google Maps error:', error);
+    setMapError(true);
+    setUseStaticFallback(true);
+    toast({
+      title: "Map error",
+      description: "Interactive map couldn't be loaded. Using static map instead.",
+      variant: "destructive"
+    });
+  }, [toast]);
+
+  // Function to retry loading the interactive map
+  const handleRetryInteractiveMap = useCallback(() => {
+    setUseStaticFallback(false);
+    setMapError(false);
+  }, []);
+
   return (
     <Card className={`overflow-hidden border shadow-sm ${className}`}>
       <CardContent className="p-0">
-        <AntiFreezeWrapper componentName="Map">
-          <MapWorker>
-            <OptimizedGoogleMap
-              apiKey={apiKey}
-              onLoad={handleMapLoad}
-              onUnmount={handleMapUnmount}
-              options={{
-                zoomControl: true,
-                mapTypeControl: true,
-                streetViewControl: false,
-                fullscreenControl: true
-              }}
-              onClick={editable && onLocationSelect ? (e) => handleMapClick(e) : undefined}
-            />
-          </MapWorker>
-        </AntiFreezeWrapper>
+        {useStaticFallback ? (
+          // Static fallback map
+          <StaticMapFallback
+            pickupCoordinates={pickupLocation?.coordinates}
+            dropoffCoordinates={dropoffLocation?.coordinates}
+            width={800}
+            height={500}
+            onRetry={handleRetryInteractiveMap}
+            className={className}
+          />
+        ) : (
+          // Interactive Google Map
+          <AntiFreezeWrapper componentName="Map">
+            <MapWorker>
+              <OptimizedGoogleMap
+                apiKey={apiKey}
+                onLoad={handleMapLoad}
+                onUnmount={handleMapUnmount}
+                onError={handleMapError}
+                options={{
+                  zoomControl: true,
+                  mapTypeControl: true,
+                  streetViewControl: false,
+                  fullscreenControl: true
+                }}
+                onClick={editable && onLocationSelect ? (e) => handleMapClick(e) : undefined}
+              />
+            </MapWorker>
+          </AntiFreezeWrapper>
+        )}
         
         {routeError && (
           <div className="bg-amber-50 p-2 text-sm text-amber-800 flex items-center gap-2">
