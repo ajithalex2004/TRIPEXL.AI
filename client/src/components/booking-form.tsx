@@ -663,7 +663,7 @@ export function BookingForm() {
       setBookingDataForPreview(previewData);
       setShowBookingPreview(true);
       
-      // The actual form submission will happen when the user confirms in the preview modal
+      // The actual form submission will happen when the user confirms in the preview modal via handleConfirmBooking
 
       // Check for required fields
       if (!data.bookingType || !data.purpose || !data.priority) {

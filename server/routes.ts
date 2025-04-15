@@ -1116,7 +1116,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     log("Advanced booking debug router registered");
     
     // Register booking management router
-    app.use("/api/bookings", bookingManagementRouter);
+    // Register booking management routes at /api/bookings/management to avoid conflicts
+    app.use("/api/bookings/management", bookingManagementRouter);
     log("Booking management router registered");
     
     // Register booking creation test routes for diagnostic purposes
