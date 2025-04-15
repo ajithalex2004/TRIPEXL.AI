@@ -171,8 +171,8 @@ export function BookingForm() {
       priority: "",
       pickupLocation: null, // No default pickup location
       dropoffLocation: null, // No default dropoff location
-      pickupTime: getMinimumPickupTime().toISOString(),
-      dropoffTime: "",
+      pickupTime: getMinimumPickupTime(), // Store as Date object directly
+      dropoffTime: null, // Use null instead of empty string for proper timestamp handling
       cargoType: "",
       numBoxes: 0,
       weight: 0,
@@ -753,11 +753,27 @@ export function BookingForm() {
             lng: Number(wp.coordinates.lng)
           }
         })),
-        pickup_time: data.pickupTime ? new Date(data.pickupTime).toISOString() : null,
-        dropoff_time: data.dropoffTime ? new Date(data.dropoffTime).toISOString() : null,
+        pickup_time: data.pickupTime 
+          ? (data.pickupTime instanceof Date 
+             ? data.pickupTime.toISOString() 
+             : new Date(data.pickupTime).toISOString()) 
+          : null,
+        dropoff_time: data.dropoffTime 
+          ? (data.dropoffTime instanceof Date 
+             ? data.dropoffTime.toISOString() 
+             : new Date(data.dropoffTime).toISOString()) 
+          : null,
         // Add debug information to help track date conversion
-        _debug_pickup_date: data.pickupTime ? new Date(data.pickupTime).toString() : "no pickup date",
-        _debug_dropoff_date: data.dropoffTime ? new Date(data.dropoffTime).toString() : "no dropoff date",
+        _debug_pickup_date: data.pickupTime 
+          ? (data.pickupTime instanceof Date 
+             ? data.pickupTime.toString() 
+             : new Date(data.pickupTime).toString()) 
+          : "no pickup date",
+        _debug_dropoff_date: data.dropoffTime 
+          ? (data.dropoffTime instanceof Date 
+             ? data.dropoffTime.toString() 
+             : new Date(data.dropoffTime).toString()) 
+          : "no dropoff date",
         remarks: data.remarks || "",
         ...(data.bookingType === "freight" ? {
           cargo_type: data.cargoType,
@@ -1257,21 +1273,24 @@ export function BookingForm() {
   }, [form.watch("pickupTime"), routeDuration, form]);
 
   // Update DateTimePicker implementation for dropoff time
-  // Updated for timestamp data type
+  // Updated for proper timestamp data type handling
   const renderDropoffDateTimePicker = (field: any) => {
     const pickupTime = form.watch("pickupTime");
     const minDropoffTime = pickupTime && routeDuration
-      ? new Date(new Date(pickupTime).getTime() + (routeDuration * 1000))
+      ? (pickupTime instanceof Date 
+         ? new Date(pickupTime.getTime() + (routeDuration * 1000))
+         : new Date(new Date(pickupTime).getTime() + (routeDuration * 1000)))
       : pickupTime
-        ? new Date(pickupTime)
+        ? (pickupTime instanceof Date ? pickupTime : new Date(pickupTime))
         : new Date();
 
     return (
       <DateTimePicker
-        value={field.value ? new Date(field.value) : null}
+        value={field.value instanceof Date ? field.value : field.value ? new Date(field.value) : null}
         onChange={(date) => {
           if (date) {
-            // Send Date object directly for timestamp field
+            // The date is already a Date object from the DateTimePicker
+            // Store it directly for timestamp field
             field.onChange(date);
           }
         }}
@@ -1310,13 +1329,14 @@ export function BookingForm() {
     );
   };
 
-  // Updated DateTimePicker implementation for timestamp data type
+  // Updated DateTimePicker implementation for proper timestamp data type
   const renderDateTimePicker = (field: any) => (
     <DateTimePicker
-      value={field.value ? new Date(field.value) : new Date()}
+      value={field.value instanceof Date ? field.value : field.value ? new Date(field.value) : new Date()}
       onChange={(date) => {
         if (date) {
-          const selectedDate = new Date(date);
+          // The date is already a Date object from the DateTimePicker
+          const selectedDate = date; // Use Date object directly
           const now = getMinimumPickupTime();
           const minOffset = getMinimumOffset(form.watch("priority"));
 
