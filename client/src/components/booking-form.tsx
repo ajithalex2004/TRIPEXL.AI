@@ -936,8 +936,8 @@ export function BookingForm() {
         },
         
         // Format times explicitly as strings per database schema definition
-        pickup_time: new Date(formData.pickupTime).toISOString(),
-        dropoff_time: new Date(formData.dropoffTime).toISOString(),
+        pickup_time: formData.pickupTime ? new Date(formData.pickupTime).toISOString() : null,
+        dropoff_time: formData.dropoffTime ? new Date(formData.dropoffTime).toISOString() : null,
         
         // Common fields
         remarks: formData.remarks || "",
