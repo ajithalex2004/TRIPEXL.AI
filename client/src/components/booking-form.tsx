@@ -128,32 +128,7 @@ export function BookingForm() {
   const [pickupLocation, setPickupLocation] = React.useState<Location | undefined>(undefined);
   const [dropoffLocation, setDropoffLocation] = React.useState<Location | undefined>(undefined);
 
-  // Purpose-based Priority Setting Effect
-  React.useEffect(() => {
-    // Skip if form is not available
-    if (!form) return;
-    
-    const purpose = form.watch("purpose");
-    if (purpose) {
-      console.log("Setting priority based on purpose:", purpose);
-      // Set priorities according to the provided table
-      if (purpose === "Blood Bank" || 
-          purpose === "On Call" || 
-          purpose === "Instrument & Equipment Collection/Delivery") {
-        form.setValue("priority", Priority.CRITICAL);
-      } 
-      else if (purpose === "Blood Samples Collection/Delivery" || 
-               purpose === "Ambulance Service") {
-        form.setValue("priority", Priority.EMERGENCY);
-      }
-      else if (purpose === "Drugs/Medicine Delivery or Collection") {
-        form.setValue("priority", Priority.HIGH);
-      }
-      else {
-        form.setValue("priority", Priority.NORMAL);
-      }
-    }
-  }, [form?.watch("purpose")]);
+  // We'll add the purpose-based priority effect after the form is defined
   
   // Booking confirmation preview state
   const [showBookingPreview, setShowBookingPreview] = React.useState(false);
@@ -278,6 +253,30 @@ export function BookingForm() {
 
   const bookingType = form.watch("bookingType");
   const numBoxes = form.watch("numBoxes");
+  
+  // Purpose-based Priority Setting Effect - This must be placed after form is defined
+  React.useEffect(() => {
+    const currentPurpose = form.watch("purpose");
+    if (!currentPurpose) return;
+    
+    console.log("Setting priority based on purpose:", currentPurpose);
+    // Set priorities according to the provided table
+    if (currentPurpose === "Blood Bank" || 
+        currentPurpose === "On Call" || 
+        currentPurpose === "Instrument & Equipment Collection/Delivery") {
+      form.setValue("priority", Priority.CRITICAL);
+    } 
+    else if (currentPurpose === "Blood Samples Collection/Delivery" || 
+              currentPurpose === "Ambulance Service") {
+      form.setValue("priority", Priority.EMERGENCY);
+    }
+    else if (currentPurpose === "Drugs/Medicine Delivery or Collection") {
+      form.setValue("priority", Priority.HIGH);
+    }
+    else {
+      form.setValue("priority", Priority.NORMAL);
+    }
+  }, [form]);
 
   // Enhanced useEffect to set purpose based on booking type
   React.useEffect(() => {
@@ -1577,9 +1576,9 @@ export function BookingForm() {
     return Priority.NORMAL;
   };
 
-  const purpose = form.watch("purpose");
+  // Watch for purpose changes to update priority
   React.useEffect(() => {
-    const purpose = form.watch("purpose");
+    const currentPurpose = form.watch("purpose");
     if (purpose) {
       const calculatedPriority = getPriorityForPurpose(purpose);
       form.setValue("priority", calculatedPriority, {
