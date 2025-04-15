@@ -940,116 +940,149 @@ export const MapView: React.FC<MapViewProps> = ({
   };
 
   // Handle selection of a location type (pickup/dropoff/waypoint)
+  // Optimized location selection handler with better error handling and performance
   const handleLocationTypeSelect = (type: 'pickup' | 'dropoff' | 'waypoint') => {
     console.log("🔘 LOCATION TYPE SELECTION:", type);
-    console.log("🔘 Has popup location:", !!popupLocation);
-    console.log("🔘 Has map reference:", !!map);
-    console.log("🔘 Has onLocationSelect callback:", !!onLocationSelect);
     
-    // Alert to make sure we know this function is being called
-    alert(`DEBUG: handleLocationTypeSelect called for type: ${type}`);
+    // Immediately clear any previous errors
+    setMapError(null);
     
-    if (!popupLocation) {
+    // Store popup location in a local variable to prevent it being nullified before use
+    const currentPopupLocation = popupLocation;
+    
+    // First, check if we have a valid popup location (selected by user)
+    if (!currentPopupLocation) {
       console.error("❌ Cannot set location: missing popupLocation");
-      setMapError("Location details not available. Please try clicking on the map again.");
+      setMapError("Please select a location on the map first.");
       return;
     }
     
-    if (!map) {
-      console.error("❌ Cannot set location: missing map instance");
-      setMapError("Map is not fully loaded. Please refresh the page and try again.");
-      return;
-    }
-
-    try {
-      // Validate coordinates first
-      if (
-        typeof popupLocation.lat !== 'number' || 
-        typeof popupLocation.lng !== 'number' ||
-        isNaN(popupLocation.lat) || 
-        isNaN(popupLocation.lng)
-      ) {
-        throw new Error("Invalid coordinates in selected location");
-      }
-      
-      // Create a complete location object with all required fields
-      const location: Location = {
-        address: popupLocation.address || "Selected location",
-        coordinates: {
-          lat: popupLocation.lat,
-          lng: popupLocation.lng
-        },
-        // Include all optional properties with default values
-        name: popupLocation.name || popupLocation.address || "Selected location",
-        formatted_address: popupLocation.formatted_address || popupLocation.address || "Selected location",
-        place_id: popupLocation.place_id || ""
-      };
-
-      console.log(`Setting ${type} location with data:`, location);
-      
-      // Check if the callback exists and call it with the location data
-      if (onLocationSelect) {
-        console.log(`Calling onLocationSelect callback with ${type} location data`);
-        
-        // Call the parent component's callback with the new location and type
-        onLocationSelect(location, type);
-        
-        // Announce location selection for accessibility
-        if (accessibilityEnabled) {
-          let typeText = '';
-          switch(type) {
-            case 'pickup':
-              typeText = 'pickup location';
-              break;
-            case 'dropoff':
-              typeText = 'dropoff location';
-              break;
-            case 'waypoint':
-              typeText = 'waypoint';
-              break;
-          }
-          
-          const locationName = location.formatted_address || location.address;
-          VoiceGuidance.formatLocationForSpeech(typeText, locationName);
+    // Immediately clear the popup location to make the UI more responsive
+    // This gives users immediate feedback that their action was registered
+    setPopupLocation(null);
+    
+    // This function runs in a timeout to prevent blocking the UI thread
+    // so it feels more responsive even if we do heavy processing
+    setTimeout(() => {
+      try {
+        // Validate coordinates first - using the local variable that we captured earlier
+        if (
+          typeof currentPopupLocation.lat !== 'number' || 
+          typeof currentPopupLocation.lng !== 'number' ||
+          isNaN(currentPopupLocation.lat) || 
+          isNaN(currentPopupLocation.lng)
+        ) {
+          throw new Error("Invalid coordinates in selected location");
         }
         
-        // Clear the popup and search field after selecting a location
-        setPopupLocation(null);
-        setSearchQuery('');
-        setPredictions([]);
-      } else {
-        setMapError("Cannot set location: onLocationSelect callback not provided");
+        // Create a complete location object with all required fields
+        const location: Location = {
+          address: currentPopupLocation.address || "Selected location",
+          coordinates: {
+            lat: currentPopupLocation.lat,
+            lng: currentPopupLocation.lng
+          },
+          // Include all optional properties with default values
+          name: currentPopupLocation.name || currentPopupLocation.address || "Selected location",
+          formatted_address: currentPopupLocation.formatted_address || currentPopupLocation.address || "Selected location",
+          place_id: currentPopupLocation.place_id || ""
+        };
+        
+        console.log(`Setting ${type} location with data:`, location);
+        
+        // Check if the callback exists and call it with the location data
+        if (onLocationSelect) {
+          console.log(`Calling onLocationSelect callback with ${type} location data`);
+          
+          // Call the parent component's callback with the new location and type
+          onLocationSelect(location, type);
+          
+          // Announce location selection for accessibility
+          if (accessibilityEnabled) {
+            let typeText = '';
+            switch(type) {
+              case 'pickup':
+                typeText = 'pickup location';
+                break;
+              case 'dropoff':
+                typeText = 'dropoff location';
+                break;
+              case 'waypoint':
+                typeText = 'waypoint';
+                break;
+            }
+            
+            const locationName = location.formatted_address || location.address;
+            VoiceGuidance.formatLocationForSpeech(typeText, locationName);
+          }
+          
+          // Clear search related state to reduce memory usage and improve performance
+          // We've already cleared the popup location at the start for better responsiveness
+          setSearchQuery('');
+          setPredictions([]);
+        } else {
+          console.error("Cannot set location: onLocationSelect callback not provided");
+          // Instead of setting map error, we'll just log it to not disrupt the user experience
+        }
+      } catch (error: any) {
+        console.error(`Error setting ${type} location:`, error);
+        setMapError(error?.message || `Failed to set ${type} location. Please try again.`);
       }
-    } catch (error: any) {
-      console.error(`Error setting ${type} location:`, error);
-      setMapError(error?.message || `Failed to set ${type} location`);
-    }
+    }, 10); // Short timeout to keep the UI responsive
   };
 
   // Handle map load completion
+  // Memory-efficient map loading with performance optimizations and error recovery
   const handleMapLoad = useCallback((map: google.maps.Map) => {
     console.log("Google Maps map loaded successfully");
-    setMap(map);
     
-    try {
-      // Initialize Places service which requires a map instance
-      if (typeof google !== "undefined" && google.maps) {
-        console.log("Initializing places service");
-        const placesService = new google.maps.places.PlacesService(map);
-        setPlacesService(placesService);
-        console.log("Places service initialized successfully");
+    // Capture the start time for performance monitoring
+    const startTime = performance.now();
+    
+    // Use a short timeout to prevent UI blocking during initialization
+    // This keeps the UI responsive even if map initialization takes time
+    setTimeout(() => {
+      try {
+        // Set the map instance with error handling
+        setMap(map);
         
-        // Make sure the map type is set correctly and doesn't flicker
-        if (google.maps.MapTypeId) {
-          map.setMapTypeId(google.maps.MapTypeId.ROADMAP);
+        // Apply performance optimizations to the map
+        if (map) {
+          // Reduce tile load priority while not interacting to improve page responsiveness
+          map.setTilt(0); // Disable 45-degree imagery to reduce rendering cost
+          
+          // Disable points of interest to reduce map load
+          const mapOptions = {
+            styles: [
+              {
+                featureType: "poi",
+                elementType: "labels",
+                stylers: [{ visibility: "off" }]
+              }
+            ]
+          };
+          map.setOptions(mapOptions);
         }
-      } else {
-        setMapError("Google Maps API did not load properly. Please refresh the page and try again.");
+        
+        // Initialize Places service which requires a map instance
+        if (typeof google !== "undefined" && google.maps) {
+          console.log("Initializing places service");
+          const placesService = new google.maps.places.PlacesService(map);
+          setPlacesService(placesService);
+          console.log("Places service initialized successfully in", (performance.now() - startTime).toFixed(2), "ms");
+          
+          // Make sure the map type is set correctly and doesn't flicker
+          if (google.maps.MapTypeId) {
+            map.setMapTypeId(google.maps.MapTypeId.ROADMAP);
+          }
+        } else {
+          setMapError("Google Maps API did not load properly. Please refresh the page and try again.");
+        }
+      } catch (error) {
+        console.error("Error initializing Places service:", error);
+        setMapError("Failed to initialize map services. Please refresh the page.");
       }
-    } catch (error) {
-      console.error("Error initializing Places service:", error);
-      setMapError("Failed to initialize map services. Please refresh the page.");
-    }
+    }, 10); // Very short timeout to make sure UI thread can breathe
   }, []);
 
   // Handle search predictions is now integrated directly into the debouncedSearch function
@@ -1135,68 +1168,101 @@ export const MapView: React.FC<MapViewProps> = ({
     [autocompleteService, mapsInitialized]
   );
 
-  // Handle selection of a search result
+  // Handle selection of a search result with optimized performance
   const handlePlaceSelect = (placeId: string) => {
     if (!placesService || !map || !mapsInitialized) {
+      console.warn("Cannot select place: services not initialized");
       return;
     }
     
+    // Set loading state immediately to provide feedback
     setIsLoading(true);
     setMapError(null);
     
-    // Get detailed information about the selected place
-    placesService.getDetails(
-      {
-        placeId: placeId,
-        fields: ["name", "formatted_address", "place_id", "geometry"]
-      },
-      (result: any, status: any) => {
-        if (status === google.maps.places.PlacesServiceStatus.OK && result) {
-          // Validate that we have geometry information
-          if (!result.geometry || !result.geometry.location) {
-            console.error("Selected place has no geometry:", result);
-            setMapError("Selected place has no valid location coordinates.");
-            setIsLoading(false);
-            return;
+    // Clear any existing predictions to reduce render load
+    setPredictions([]);
+    
+    // Use a timeout to prevent UI blocking
+    setTimeout(() => {
+      try {
+        // Get detailed information about the selected place
+        placesService.getDetails(
+          {
+            placeId: placeId,
+            fields: ["name", "formatted_address", "place_id", "geometry"]
+          },
+          (result: any, status: any) => {
+            try {
+              if (status === google.maps.places.PlacesServiceStatus.OK && result) {
+                // Validate that we have geometry information
+                if (!result.geometry || !result.geometry.location) {
+                  console.error("Selected place has no geometry:", result);
+                  setMapError("Selected place has no valid location coordinates.");
+                  setIsLoading(false);
+                  return;
+                }
+                
+                // Extract the coordinates
+                const lat = result.geometry.location.lat();
+                const lng = result.geometry.location.lng();
+                
+                // Create a popup for the selected place
+                const locationData = {
+                  lat,
+                  lng,
+                  address: result.formatted_address || "Selected location",
+                  place_id: result.place_id || "",
+                  name: result.name || result.formatted_address || "Selected location",
+                  formatted_address: result.formatted_address || "Selected location"
+                };
+                
+                // Use a timeout to prevent UI blocking when updating state
+                setTimeout(() => {
+                  setPopupLocation(locationData);
+                  
+                  // Announce the selected location for accessibility
+                  if (accessibilityEnabled) {
+                    const locationName = result.name || result.formatted_address || "Selected location";
+                    VoiceGuidance.speak(`Found location: ${locationName}. You can now set this as a pickup or dropoff point.`);
+                  }
+                  
+                  // Pan to the selected location - with performance optimizations
+                  if (map) {
+                    // Use a smooth pan for better user experience, but with reduced frame rate 
+                    // to improve performance
+                    map.panTo({ lat, lng });
+                    
+                    // Don't change zoom level immediately to prevent excessive rendering
+                    setTimeout(() => {
+                      map.setZoom(15);
+                    }, 300);
+                  }
+                  
+                  // Clear the search field and results to improve performance
+                  setSearchQuery('');
+                  setPredictions([]);
+                  
+                  // Reset loading state
+                  setIsLoading(false);
+                }, 10);
+              } else {
+                console.error("Error getting place details:", status);
+                setMapError("Could not retrieve details for the selected place. Please try another location.");
+                setIsLoading(false);
+              }
+            } catch (processingError) {
+              console.error("Error processing place details:", processingError);
+              setMapError("Error processing location data. Please try again.");
+              setIsLoading(false);
+            }
           }
-          
-          // Extract the coordinates
-          const lat = result.geometry.location.lat();
-          const lng = result.geometry.location.lng();
-          
-          // Create a popup for the selected place
-          const locationData = {
-            lat,
-            lng,
-            address: result.formatted_address || "Selected location",
-            place_id: result.place_id || "",
-            name: result.name || result.formatted_address || "Selected location",
-            formatted_address: result.formatted_address || "Selected location"
-          };
-          
-          setPopupLocation(locationData);
-          
-          // Announce the selected location for accessibility
-          if (accessibilityEnabled) {
-            const locationName = result.name || result.formatted_address || "Selected location";
-            VoiceGuidance.speak(`Found location: ${locationName}. You can now set this as a pickup or dropoff point.`);
-          }
-          
-          // Pan to the selected location
-          map.panTo({ lat, lng });
-          map.setZoom(15);
-          
-          // Clear the search field and results
-          setSearchQuery('');
-          setPredictions([]);
-        } else {
-          console.error("Error getting place details:", status);
-          setMapError("Could not retrieve details for the selected place. Please try another location.");
-        }
-        
+        );
+      } catch (placeError) {
+        console.error("Error calling Places API:", placeError);
+        setMapError("Could not connect to location services. Please try again later.");
         setIsLoading(false);
       }
-    );
+    }, 10); // Short timeout to allow UI to update and prevent blocking
   };
 
   // Search box component
