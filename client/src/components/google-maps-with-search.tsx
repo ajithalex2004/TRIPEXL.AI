@@ -513,9 +513,9 @@ const GoogleMapsWithSearch: React.FC<GoogleMapsWithSearchProps> = ({
   // Geocode an address using the Geocoding API
   const geocodeAddress = async (address: string, autoSelect: boolean = false) => {
     try {
-      const apiKey = "AIzaSyBOyL-FXqHOHmqxteTw02lh9TkzdXJ_oaI";
+      const GOOGLE_MAPS_API_KEY = import.meta.env.VITE_GOOGLE_MAPS_KEY || "";
       const response = await fetch(
-        `https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(address)}&key=${apiKey}&region=ae`
+        `https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(address)}&key=${GOOGLE_MAPS_API_KEY}&region=ae`
       );
       
       const data = await response.json();
