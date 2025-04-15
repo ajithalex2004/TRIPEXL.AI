@@ -894,9 +894,26 @@ export function BookingForm() {
       
       // IMPORTANT FIX: Make sure we're using the expected field names
       // Prepare the simplified data object for API - using snake_case for all property names
+      
+      // Parse employeeId as integer since DB schema expects an integer
+      const employeeIdNumber = typeof employeeId === 'string' 
+        ? parseInt(employeeId, 10) 
+        : (employeeId || 0);
+      
+      console.log("🔍 Employee ID conversion:", {
+        original: employeeId,
+        converted: employeeIdNumber,
+        originalType: typeof employeeId,
+        convertedType: typeof employeeIdNumber
+      });
+      
+      if (isNaN(employeeIdNumber)) {
+        console.error("🔍 Employee ID conversion failed - invalid ID:", employeeId);
+      }
+      
       const bookingData = {
         // Basic required fields - ENSURE snake_case for API compatibility
-        employee_id: employeeId,
+        employee_id: employeeIdNumber, // Use the parsed integer value
         booking_type: formData.bookingType.toLowerCase() || "passenger", // Convert to lowercase
         purpose: formData.purpose || "general",
         priority: formData.priority || "Normal",

@@ -781,8 +781,11 @@ export class DatabaseStorage implements IStorage {
           
           if (!employee) {
             // If not found by internal id, try with employee_id field
+            // IMPORTANT: employee_id is an integer in the schema, so we must compare with a number
+            console.log(`[BOOKING-DB-${debugId}] Looking up employee by employee_id=${employeeIdValue} (${typeof employeeIdValue})`);
+            
             const employeeByCode = await db.query.employees.findFirst({
-              where: eq(schema.employees.employee_id, String(employeeIdValue)),
+              where: eq(schema.employees.employee_id, Number(employeeIdValue)),
               columns: {
                 id: true,
                 employee_id: true,

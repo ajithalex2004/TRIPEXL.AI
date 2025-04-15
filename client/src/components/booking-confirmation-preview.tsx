@@ -412,9 +412,26 @@ export function BookingConfirmationPreview({
                   return;
                 }
                 
+                // Get employeeId from both possible formats and ensure it's correctly converted to a number
+                const rawEmployeeId = bookingData.employee_id || bookingData.employeeId;
+                const employeeIdNumber = typeof rawEmployeeId === 'string' 
+                  ? parseInt(rawEmployeeId, 10) 
+                  : (Number(rawEmployeeId) || 0);
+                
+                console.log("🔍 [CONFIRM-PREVIEW] Employee ID processing:", {
+                  rawEmployeeId,
+                  employeeIdNumber,
+                  rawType: typeof rawEmployeeId,
+                  convertedType: typeof employeeIdNumber
+                });
+                
+                if (isNaN(employeeIdNumber) || employeeIdNumber <= 0) {
+                  throw new Error(`Invalid employee ID: ${rawEmployeeId}. Please select a valid employee.`);
+                }
+                
                 // Prepare API data directly from bookingData
                 const apiData = {
-                  employee_id: Number(bookingData.employee_id || bookingData.employeeId),
+                  employee_id: employeeIdNumber, // Explicitly use the converted number
                   booking_type: bookingData.bookingType.toLowerCase(),
                   purpose: bookingData.purpose,
                   priority: bookingData.priority,
