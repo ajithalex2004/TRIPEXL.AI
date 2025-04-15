@@ -1008,28 +1008,45 @@ RETURNING *;`;
         // Ensure dates are valid Date objects before storing
         if (dbData.pickup_time) {
           try {
-            // If it's a string, parse it to ensure it's a valid date
+            // For string dates, convert them to Date objects
             if (typeof dbData.pickup_time === 'string') {
               const pickupDate = new Date(dbData.pickup_time);
               if (!isNaN(pickupDate.getTime())) {
-                dbData.pickup_time = pickupDate;
-                console.log("Converted pickup_time string to Date object:", dbData.pickup_time);
+                // Store as ISO string with Z marker to ensure timezone consistency
+                dbData.pickup_time = pickupDate.toISOString();
+                console.log("Converted pickup_time to ISO string:", dbData.pickup_time);
               } else {
                 console.error(`Invalid pickup_time string: "${dbData.pickup_time}"`);
                 dbData.pickup_time = null;
               }
             } 
-            // If it's already a Date object, verify it's valid
+            // For Date objects, ensure they're valid and convert to ISO strings
             else if (dbData.pickup_time instanceof Date) {
-              if (isNaN(dbData.pickup_time.getTime())) {
+              if (!isNaN(dbData.pickup_time.getTime())) {
+                // Store as ISO string with Z marker to ensure timezone consistency
+                dbData.pickup_time = dbData.pickup_time.toISOString();
+                console.log("Converted pickup_time Date object to ISO string:", dbData.pickup_time);
+              } else {
                 console.error("pickup_time is an invalid Date object");
                 dbData.pickup_time = null;
               }
             }
-            // If it's neither string nor Date, set to null
+            // If it's neither string nor Date, try to handle it
             else {
-              console.error(`Unexpected pickup_time type: ${typeof dbData.pickup_time}`);
-              dbData.pickup_time = null;
+              console.error(`Unexpected pickup_time type: ${typeof dbData.pickup_time}, value:`, dbData.pickup_time);
+              // Try to convert to Date and then ISO string as a last resort
+              try {
+                const pickupDate = new Date(dbData.pickup_time);
+                if (!isNaN(pickupDate.getTime())) {
+                  dbData.pickup_time = pickupDate.toISOString();
+                  console.log("Successfully converted unusual pickup_time to ISO string:", dbData.pickup_time);
+                } else {
+                  dbData.pickup_time = null;
+                }
+              } catch (e) {
+                console.error("Failed to convert unusual pickup_time format:", e);
+                dbData.pickup_time = null;
+              }
             }
           } catch (error) {
             console.error("Error processing pickup_time:", error);
@@ -1039,28 +1056,45 @@ RETURNING *;`;
         
         if (dbData.dropoff_time) {
           try {
-            // If it's a string, parse it to ensure it's a valid date
+            // For string dates, convert them to Date objects
             if (typeof dbData.dropoff_time === 'string') {
               const dropoffDate = new Date(dbData.dropoff_time);
               if (!isNaN(dropoffDate.getTime())) {
-                dbData.dropoff_time = dropoffDate;
-                console.log("Converted dropoff_time string to Date object:", dbData.dropoff_time);
+                // Store as ISO string with Z marker to ensure timezone consistency
+                dbData.dropoff_time = dropoffDate.toISOString();
+                console.log("Converted dropoff_time to ISO string:", dbData.dropoff_time);
               } else {
                 console.error(`Invalid dropoff_time string: "${dbData.dropoff_time}"`);
                 dbData.dropoff_time = null;
               }
             } 
-            // If it's already a Date object, verify it's valid
+            // For Date objects, ensure they're valid and convert to ISO strings
             else if (dbData.dropoff_time instanceof Date) {
-              if (isNaN(dbData.dropoff_time.getTime())) {
+              if (!isNaN(dbData.dropoff_time.getTime())) {
+                // Store as ISO string with Z marker to ensure timezone consistency
+                dbData.dropoff_time = dbData.dropoff_time.toISOString();
+                console.log("Converted dropoff_time Date object to ISO string:", dbData.dropoff_time);
+              } else {
                 console.error("dropoff_time is an invalid Date object");
                 dbData.dropoff_time = null;
               }
             }
-            // If it's neither string nor Date, set to null
+            // If it's neither string nor Date, try to handle it
             else {
-              console.error(`Unexpected dropoff_time type: ${typeof dbData.dropoff_time}`);
-              dbData.dropoff_time = null;
+              console.error(`Unexpected dropoff_time type: ${typeof dbData.dropoff_time}, value:`, dbData.dropoff_time);
+              // Try to convert to Date and then ISO string as a last resort
+              try {
+                const dropoffDate = new Date(dbData.dropoff_time);
+                if (!isNaN(dropoffDate.getTime())) {
+                  dbData.dropoff_time = dropoffDate.toISOString();
+                  console.log("Successfully converted unusual dropoff_time to ISO string:", dbData.dropoff_time);
+                } else {
+                  dbData.dropoff_time = null;
+                }
+              } catch (e) {
+                console.error("Failed to convert unusual dropoff_time format:", e);
+                dbData.dropoff_time = null;
+              }
             }
           } catch (error) {
             console.error("Error processing dropoff_time:", error);
