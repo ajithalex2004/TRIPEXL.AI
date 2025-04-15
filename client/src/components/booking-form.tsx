@@ -1579,14 +1579,14 @@ export function BookingForm() {
   // Watch for purpose changes to update priority
   React.useEffect(() => {
     const currentPurpose = form.watch("purpose");
-    if (purpose) {
-      const calculatedPriority = getPriorityForPurpose(purpose);
+    if (currentPurpose) {
+      const calculatedPriority = getPriorityForPurpose(currentPurpose);
       form.setValue("priority", calculatedPriority, {
         shouldValidate: true,
         shouldDirty: true
       });
     }
-  }, [form.watch("purpose"), bookingType, form]);
+  }, [form]);
 
   // Update useEffect for handling priority changes to set immediate time for Critical
   React.useEffect(() => {
