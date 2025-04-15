@@ -1949,8 +1949,17 @@ export function BookingForm() {
                                         address: query
                                       });
                                     }}
+                                    onClear={() => {
+                                      console.log("Clearing pickup location");
+                                      form.setValue("pickupLocation", undefined, {
+                                        shouldValidate: true,
+                                        shouldDirty: true,
+                                        shouldTouch: true
+                                      });
+                                    }}
                                     inputId="pickup-location"
                                     isPickup={true}
+                                    allowClear={true}
                                     className="w-full"
                                   />
                                 </FormControl>
@@ -1990,8 +1999,17 @@ export function BookingForm() {
                                         address: query
                                       });
                                     }}
+                                    onClear={() => {
+                                      console.log("Clearing dropoff location");
+                                      form.setValue("dropoffLocation", undefined, {
+                                        shouldValidate: true,
+                                        shouldDirty: true,
+                                        shouldTouch: true
+                                      });
+                                    }}
                                     inputId="dropoff-location"
                                     isPickup={false}
+                                    allowClear={true}
                                     className="w-full"
                                   />
                                 </FormControl>
