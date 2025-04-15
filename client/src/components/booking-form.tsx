@@ -643,7 +643,7 @@ export function BookingForm() {
         pickupTime: data.pickupTime,
         dropoffTime: data.dropoffTime,
         employeeName: data.employeeName,
-        employeeId: data.employeeId || data.employee_id,
+        employee_id: data.employee_id || data.employeeId,
         // Freight specific fields
         cargoType: data.cargoType,
         numBoxes: data.numBoxes,
