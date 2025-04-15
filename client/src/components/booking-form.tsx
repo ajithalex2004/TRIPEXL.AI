@@ -821,6 +821,9 @@ export function BookingForm() {
       // Check if this function is actually being called by the confirmation modal
       console.log("🔍 Function call timestamp:", new Date().toISOString());
       
+      // IMPORTANT: Adding global window alert to verify this function is actually called
+      window.alert("Booking confirmation handler triggered - creating booking now");
+      
       if (!bookingDataForPreview) {
         console.error("Error: bookingDataForPreview is null or undefined");
         toast({
@@ -995,15 +998,12 @@ export function BookingForm() {
       console.log("- dropoff_time:", bookingData.dropoff_time);
       
       try {
-        console.log("STEP 1: About to call createBookingMutation.mutateAsync with data:", JSON.stringify(bookingData, null, 2));
+        console.log("%c SIMPLIFIED BOOKING SUBMISSION 🚀", "background: #ff0000; color: white; padding: 4px 8px; font-size: 16px; font-weight: bold; border-radius: 4px;");
         
         // Submit the booking to the API with enhanced debugging
         console.time('Booking API Call');
         
         try {
-          // First, make a direct fetch with proper authorization to see if we have API connectivity
-          console.log("Making direct API call to /api/bookings...");
-          
           // Get the auth token from localStorage
           const authToken = localStorage.getItem('auth_token');
           
@@ -1012,60 +1012,17 @@ export function BookingForm() {
             throw new Error("Authentication token missing. Please log in again.");
           }
           
-          console.log("Auth token available:", authToken ? "Yes" : "No");
-          
-          // Add enhanced debugging to track the issue
-          console.log("ENHANCED DEBUG: Sending payload:", JSON.stringify(bookingData));
-          
-          // Log that we're about to make the request
-          console.log("Sending booking request to API...");
-          
-          // Make sure employee_id is a number before sending to API
-          if (typeof bookingData.employee_id !== 'number') {
-            bookingData.employee_id = Number(bookingData.employee_id);
-            console.log("Converted employee_id to number before API call:", bookingData.employee_id);
-          }
-          
-          console.log("FINAL API DATA:", JSON.stringify(bookingData, null, 2));
-          
-          // IMPORTANT FIX: Make sure we force lowercase booking_type 
-          // and ensure employee_id is properly formatted as a number
+          // Prepare the final booking data with proper types
           const finalBookingData = {
             ...bookingData,
             booking_type: bookingData.booking_type.toLowerCase(),
             employee_id: Number(bookingData.employee_id)
           };
           
-          console.log("SENDING ACTUAL API PAYLOAD:", JSON.stringify(finalBookingData, null, 2));
+          console.log("SENDING DIRECT API REQUEST:", JSON.stringify(finalBookingData, null, 2));
           
-          // Try the direct booking-create-trace endpoint first as a diagnostic measure
-          // This endpoint bypasses most validations for testing purposes
-          try {
-            console.log("Making diagnostic API call first to /api/booking-create-trace...");
-            
-            const traceResponse = await fetch('/api/booking-create-trace', {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${authToken}`
-              },
-              body: JSON.stringify(finalBookingData),
-            });
-            
-            const traceResult = await traceResponse.json();
-            console.log("Trace endpoint result:", traceResult);
-            
-            if (traceResult.success) {
-              console.log("Diagnostic booking creation succeeded, now trying actual endpoint");
-            } else {
-              console.warn("Diagnostic booking creation failed, but continuing with actual endpoint");
-            }
-          } catch (traceError) {
-            console.warn("Diagnostic trace failed, but continuing with actual endpoint:", traceError);
-          }
-          
-          // Now try the actual booking endpoint
-          const testResponse = await fetch('/api/bookings', {
+          // Make a simple, direct API call
+          const response = await fetch('/api/bookings', {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
@@ -1074,51 +1031,34 @@ export function BookingForm() {
             body: JSON.stringify(finalBookingData),
           });
           
-          console.log("STEP 2: Direct fetch API response status:", testResponse.status);
+          console.log(`API Response Status: ${response.status}`);
           
-          if (!testResponse.ok) {
-            console.error("API request failed with status:", testResponse.status);
-            const errorText = await testResponse.text();
-            console.error("Error response:", errorText);
-            alert(`API Error: ${errorText}`);
-            
-            try {
-              const errorJson = JSON.parse(errorText);
-              console.error("Parsed error details:", errorJson);
-              throw new Error(errorJson.error || errorJson.message || "API request failed");
-            } catch (parseError) {
-              console.error("Could not parse error response as JSON:", parseError);
-              throw new Error(`API request failed with status ${testResponse.status}: ${errorText.substring(0, 100)}...`);
-            }
+          // Handle error response
+          if (!response.ok) {
+            const errorText = await response.text();
+            console.error("API Error Response:", errorText);
+            throw new Error(`API request failed with status ${response.status}: ${errorText}`);
           }
           
-          const testData = await testResponse.json();
-          console.log("STEP 3: Direct fetch API response data:", testData);
-          
-          if (testData.error) {
-            throw new Error(testData.error + (testData.details ? `: ${JSON.stringify(testData.details)}` : ''));
-          }
-          
-          // Successfully created booking via direct fetch, so we don't need to call the mutation
-          const response = testData;
-          console.log("STEP 4: Booking created successfully:", response);
+          // Parse the successful response
+          const bookingResponse = await response.json();
+          console.log("BOOKING CREATED SUCCESSFULLY:", bookingResponse);
           
           // Show success message
           toast({
             title: "Booking created successfully",
-            description: `Reference No: ${response.reference_no || "Generated"}`,
+            description: `Reference No: ${bookingResponse.reference_no || "Generated"}`,
           });
           
-          // Try to refresh the bookings data in the booking history component
+          // Refresh bookings data and show success dialog
           try {
-            console.log("Attempting to refresh bookings data after creation...");
             refreshBookings().catch(e => console.warn("Refresh warning:", e));
           } catch (refreshError) {
             console.warn("Non-critical error refreshing bookings:", refreshError);
           }
           
           // Reset form and show success dialog
-          setCreatedReferenceNo(response.reference_no || "Unknown");
+          setCreatedReferenceNo(bookingResponse.reference_no || "Unknown");
           setShowSuccessDialog(true);
         } finally {
           console.timeEnd('Booking API Call');

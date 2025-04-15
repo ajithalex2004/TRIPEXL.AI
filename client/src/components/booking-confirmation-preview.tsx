@@ -383,7 +383,13 @@ export function BookingConfirmationPreview({
           <Button 
             onClick={() => {
               console.log("%c CONFIRM BUTTON CLICKED", "background: #ff9800; color: white; padding: 4px; border-radius: 4px;");
-              onConfirm();
+              try {
+                console.log("Calling onConfirm handler directly from button - bypassing event propagation");
+                onConfirm();
+              } catch (error) {
+                console.error("Error in confirmation button handler:", error);
+                alert("Error processing booking confirmation. See console for details.");
+              }
             }} 
             disabled={isSubmitting}
           >
