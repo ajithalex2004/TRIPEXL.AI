@@ -80,6 +80,13 @@ export function UAELocationAutocomplete({
   // Load Google Maps API
   useEffect(() => {
     const loadGoogleMapsScript = () => {
+      // Check if Google Maps API is already loaded
+      if (window.google && window.google.maps) {
+        console.log("Google Maps API already loaded");
+        initAutocomplete();
+        return;
+      }
+      
       const MAPS_API_KEY = import.meta.env.VITE_GOOGLE_MAPS_KEY;
       
       console.log("Google Maps API Key available:", MAPS_API_KEY ? "Yes (key length: " + MAPS_API_KEY.length + ")" : "No");
@@ -95,8 +102,23 @@ export function UAELocationAutocomplete({
         return;
       }
       
+      // Check if script is already in the DOM
+      const existingScript = document.getElementById('google-maps-script');
+      if (existingScript) {
+        console.log("Google Maps script tag already exists");
+        // If script exists but Google isn't loaded, wait for it
+        if (!window.google || !window.google.maps) {
+          existingScript.addEventListener('load', initAutocomplete);
+        } else {
+          initAutocomplete();
+        }
+        return;
+      }
+      
+      // Create and add the script
       const script = document.createElement("script");
-      script.src = `https://maps.googleapis.com/maps/api/js?key=${MAPS_API_KEY}&libraries=places`;
+      script.id = 'google-maps-script';
+      script.src = `https://maps.googleapis.com/maps/api/js?key=${MAPS_API_KEY}&libraries=places&callback=Function.prototype`;
       script.async = true;
       script.defer = true;
       document.head.appendChild(script);

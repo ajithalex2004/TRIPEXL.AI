@@ -2589,6 +2589,7 @@ export function BookingForm() {
                             {/* Key attribute forces re-render when step changes */}
                             <MapView
                               key={`map-view-step-${currentStep}`}
+                              apiKey={import.meta.env.VITE_GOOGLE_MAPS_KEY}
                               pickupLocation={form.watch("pickupLocation")}
                               dropoffLocation={form.watch("dropoffLocation")}
                               waypoints={waypoints}
