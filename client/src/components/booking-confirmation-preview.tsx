@@ -22,7 +22,9 @@ interface BookingConfirmationPreviewProps {
     pickupTime: string;
     dropoffTime: string;
     employeeName: string;
-    employeeId: string | number;
+    // Support both camelCase and snake_case to handle both formats
+    employeeId?: string | number;
+    employee_id?: string | number;
     cargoType?: string;
     numBoxes?: number;
     weight?: number;
@@ -166,7 +168,7 @@ export function BookingConfirmationPreview({
                   <User className="h-5 w-5 text-primary" />
                   <div>
                     <p className="text-sm font-medium">Employee</p>
-                    <p className="text-sm">{bookingData.employeeName} (ID: {bookingData.employeeId})</p>
+                    <p className="text-sm">{bookingData.employeeName} (ID: {bookingData.employee_id || bookingData.employeeId})</p>
                   </div>
                 </div>
                 
@@ -412,7 +414,7 @@ export function BookingConfirmationPreview({
                 
                 // Prepare API data directly from bookingData
                 const apiData = {
-                  employee_id: Number(bookingData.employeeId),
+                  employee_id: Number(bookingData.employee_id || bookingData.employeeId),
                   booking_type: bookingData.bookingType.toLowerCase(),
                   purpose: bookingData.purpose,
                   priority: bookingData.priority,
