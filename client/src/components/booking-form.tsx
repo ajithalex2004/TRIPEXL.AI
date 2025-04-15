@@ -127,6 +127,33 @@ export function BookingForm() {
   // Use component state as backup storage for locations - use proper type definition
   const [pickupLocation, setPickupLocation] = React.useState<Location | undefined>(undefined);
   const [dropoffLocation, setDropoffLocation] = React.useState<Location | undefined>(undefined);
+
+  // Purpose-based Priority Setting Effect
+  React.useEffect(() => {
+    // Skip if form is not available
+    if (!form) return;
+    
+    const purpose = form.watch("purpose");
+    if (purpose) {
+      console.log("Setting priority based on purpose:", purpose);
+      // Set priorities according to the provided table
+      if (purpose === "Blood Bank" || 
+          purpose === "On Call" || 
+          purpose === "Instrument & Equipment Collection/Delivery") {
+        form.setValue("priority", Priority.CRITICAL);
+      } 
+      else if (purpose === "Blood Samples Collection/Delivery" || 
+               purpose === "Ambulance Service") {
+        form.setValue("priority", Priority.EMERGENCY);
+      }
+      else if (purpose === "Drugs/Medicine Delivery or Collection") {
+        form.setValue("priority", Priority.HIGH);
+      }
+      else {
+        form.setValue("priority", Priority.NORMAL);
+      }
+    }
+  }, [form?.watch("purpose")]);
   
   // Booking confirmation preview state
   const [showBookingPreview, setShowBookingPreview] = React.useState(false);
@@ -2294,31 +2321,7 @@ export function BookingForm() {
                         );
                       }}
                     />
-                    {/* Purpose-based Priority Setting */}
-                    <React.Fragment>
-                    {React.useEffect(() => {
-                      const purpose = form.watch("purpose");
-                      if (purpose) {
-                        console.log("Setting priority based on purpose:", purpose);
-                        // Set priorities according to the provided table
-                        if (purpose === "Blood Bank" || 
-                            purpose === "On Call" || 
-                            purpose === "Instrument & Equipment Collection/Delivery") {
-                          form.setValue("priority", Priority.CRITICAL);
-                        } 
-                        else if (purpose === "Blood Samples Collection/Delivery" || 
-                                purpose === "Ambulance Service") {
-                          form.setValue("priority", Priority.EMERGENCY);
-                        }
-                        else if (purpose === "Drugs/Medicine Delivery or Collection") {
-                          form.setValue("priority", Priority.HIGH);
-                        }
-                        else {
-                          form.setValue("priority", Priority.NORMAL);
-                        }
-                      }
-                    }, [form.watch("purpose")])}
-                    </React.Fragment>
+                    {/* Priority Field - Auto-set by the useEffect near the top of the component */}
 
                     <FormField
                       control={form.control}
