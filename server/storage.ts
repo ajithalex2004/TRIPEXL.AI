@@ -1001,8 +1001,75 @@ RETURNING *;`;
         console.log("booking_type value:", dbData.booking_type, "type:", typeof dbData.booking_type);
         console.log("pickup_location type:", typeof dbData.pickup_location);
         console.log("dropoff_location type:", typeof dbData.dropoff_location);
-        console.log("pickup_time value:", dbData.pickup_time);
-        console.log("dropoff_time value:", dbData.dropoff_time);
+        // Enhanced date debugging and validation
+        console.log("BEFORE CONVERSION - pickup_time:", dbData.pickup_time, "type:", typeof dbData.pickup_time);
+        console.log("BEFORE CONVERSION - dropoff_time:", dbData.dropoff_time, "type:", typeof dbData.dropoff_time);
+        
+        // Ensure dates are valid Date objects before storing
+        if (dbData.pickup_time) {
+          try {
+            // If it's a string, parse it to ensure it's a valid date
+            if (typeof dbData.pickup_time === 'string') {
+              const pickupDate = new Date(dbData.pickup_time);
+              if (!isNaN(pickupDate.getTime())) {
+                dbData.pickup_time = pickupDate;
+                console.log("Converted pickup_time string to Date object:", dbData.pickup_time);
+              } else {
+                console.error(`Invalid pickup_time string: "${dbData.pickup_time}"`);
+                dbData.pickup_time = null;
+              }
+            } 
+            // If it's already a Date object, verify it's valid
+            else if (dbData.pickup_time instanceof Date) {
+              if (isNaN(dbData.pickup_time.getTime())) {
+                console.error("pickup_time is an invalid Date object");
+                dbData.pickup_time = null;
+              }
+            }
+            // If it's neither string nor Date, set to null
+            else {
+              console.error(`Unexpected pickup_time type: ${typeof dbData.pickup_time}`);
+              dbData.pickup_time = null;
+            }
+          } catch (error) {
+            console.error("Error processing pickup_time:", error);
+            dbData.pickup_time = null;
+          }
+        }
+        
+        if (dbData.dropoff_time) {
+          try {
+            // If it's a string, parse it to ensure it's a valid date
+            if (typeof dbData.dropoff_time === 'string') {
+              const dropoffDate = new Date(dbData.dropoff_time);
+              if (!isNaN(dropoffDate.getTime())) {
+                dbData.dropoff_time = dropoffDate;
+                console.log("Converted dropoff_time string to Date object:", dbData.dropoff_time);
+              } else {
+                console.error(`Invalid dropoff_time string: "${dbData.dropoff_time}"`);
+                dbData.dropoff_time = null;
+              }
+            } 
+            // If it's already a Date object, verify it's valid
+            else if (dbData.dropoff_time instanceof Date) {
+              if (isNaN(dbData.dropoff_time.getTime())) {
+                console.error("dropoff_time is an invalid Date object");
+                dbData.dropoff_time = null;
+              }
+            }
+            // If it's neither string nor Date, set to null
+            else {
+              console.error(`Unexpected dropoff_time type: ${typeof dbData.dropoff_time}`);
+              dbData.dropoff_time = null;
+            }
+          } catch (error) {
+            console.error("Error processing dropoff_time:", error);
+            dbData.dropoff_time = null;
+          }
+        }
+        
+        console.log("AFTER CONVERSION - pickup_time:", dbData.pickup_time, "type:", typeof dbData.pickup_time);
+        console.log("AFTER CONVERSION - dropoff_time:", dbData.dropoff_time, "type:", typeof dbData.dropoff_time);
         console.log("======================================");
         
         // Perform the actual insert with enhanced logging and validation

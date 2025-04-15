@@ -9,6 +9,13 @@ testBookingDirectRouter.get('/create-test-booking', async (req: Request, res: Re
     console.log('ℹ️ Attempting to create test booking with direct storage call');
     
     // Using a known employee ID that exists in the database
+    // Create date objects with explicit date and time values
+    const now = new Date();
+    const later = new Date(now.getTime() + 3600000); // 1 hour later
+    
+    console.log('Current time (for pickup):', now.toISOString());
+    console.log('Later time (for dropoff):', later.toISOString());
+    
     const testBooking = {
       employee_id: 1004, // Using Ajith Alex's employee ID
       booking_type: 'passenger',
@@ -22,14 +29,19 @@ testBookingDirectRouter.get('/create-test-booking', async (req: Request, res: Re
         address: 'Test Direct Dropoff',
         coordinates: { lat: 25.5678, lng: 55.5678 }
       },
-      pickup_time: new Date(), // Use Date object directly
-      dropoff_time: new Date(Date.now() + 3600000), // 1 hour later, use Date object
-      pickup_latitude: 25.1234, // Add latitude/longitude fields explicitly
-      pickup_longitude: 55.1234,
-      dropoff_latitude: 25.5678,
-      dropoff_longitude: 55.5678,
+      // Using various date formats for testing
+      pickup_time: now, // Use Date object directly
+      dropoff_time: later, // Use Date object
       reference_no: `DIRECT-${Date.now()}`
     };
+    
+    // Add additional debugging for date formats
+    console.log('[DATE DEBUG] pickup_time as object:', testBooking.pickup_time);
+    console.log('[DATE DEBUG] pickup_time as ISO string:', testBooking.pickup_time.toISOString());
+    console.log('[DATE DEBUG] pickup_time constructor name:', testBooking.pickup_time.constructor.name);
+    console.log('[DATE DEBUG] dropoff_time as object:', testBooking.dropoff_time);
+    console.log('[DATE DEBUG] dropoff_time as ISO string:', testBooking.dropoff_time.toISOString());
+    console.log('[DATE DEBUG] dropoff_time constructor name:', testBooking.dropoff_time.constructor.name);
     
     console.log('📝 Test booking data:', JSON.stringify(testBooking, null, 2));
     
