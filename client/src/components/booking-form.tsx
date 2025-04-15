@@ -1546,7 +1546,7 @@ export function BookingForm() {
       BookingPurpose.AMBULANCE,
       BookingPurpose.MORTUARY,
       BookingPurpose.ONCOLOGY
-    ].includes(purpose)) {
+    ].includes(purpose as any)) {
       return Priority.CRITICAL;
     }
 
@@ -1557,7 +1557,7 @@ export function BookingForm() {
       BookingPurpose.MEDICINE,
       BookingPurpose.VACCINE,
       BookingPurpose.EQUIPMENT
-    ].includes(purpose)) {
+    ].includes(purpose as any)) {
       return Priority.EMERGENCY;
     }
 
@@ -1568,7 +1568,7 @@ export function BookingForm() {
       BookingPurpose.PATIENT,
       BookingPurpose.MAINTENANCE,
       BookingPurpose.VIP_TRANSFER
-    ].includes(purpose)) {
+    ].includes(purpose as any)) {
       return Priority.HIGH;
     }
 
