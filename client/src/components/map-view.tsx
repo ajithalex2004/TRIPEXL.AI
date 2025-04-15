@@ -1840,27 +1840,45 @@ export const MapView: React.FC<MapViewProps> = ({
                     onClick={() => {
                       console.log("Set as Pickup clicked");
                       if (popupLocation && onLocationSelect) {
-                        const location = {
-                          address: popupLocation.formatted_address || "Selected location",
-                          coordinates: {
-                            lat: popupLocation.lat,
-                            lng: popupLocation.lng
-                          },
-                          name: popupLocation.name || "Selected location",
-                          formatted_address: popupLocation.formatted_address || "Selected location",
-                          place_id: popupLocation.place_id || ""
-                        };
-                        
-                        // Provide voice feedback if accessibility is enabled - using ref to prevent re-renders
-                        if (accessibilityEnabledRef.current) {
-                          VoiceGuidance.announceLocationSelection(
-                            location,
-                            'pickup'
-                          );
+                        try {
+                          // Create a complete Location object for the pickup
+                          const location: Location = {
+                            address: popupLocation.formatted_address || "Selected location",
+                            coordinates: {
+                              lat: popupLocation.lat,
+                              lng: popupLocation.lng
+                            },
+                            name: popupLocation.name || "Selected location",
+                            formatted_address: popupLocation.formatted_address || "Selected location",
+                            place_id: popupLocation.place_id || "",
+                            // Include any UAE-specific fields with defaults
+                            district: "",
+                            city: "",
+                            area: ""
+                          };
+                          
+                          console.log("Map view: Creating pickup location:", JSON.stringify(location));
+                          
+                          // Provide voice feedback if accessibility is enabled - using ref to prevent re-renders
+                          if (accessibilityEnabledRef.current) {
+                            VoiceGuidance.announceLocationSelection(
+                              location,
+                              'pickup'
+                            );
+                          }
+                          
+                          // Use a more robust approach with a longer timeout to ensure UI updates
+                          setPopupLocation(null); // Close popup immediately for better UX
+                          
+                          // Delay the callback to ensure the component has time to complete other operations
+                          setTimeout(() => {
+                            console.log("Map view: Calling onLocationSelect with pickup location");
+                            onLocationSelect(location, 'pickup');
+                            console.log("Map view: onLocationSelect callback completed for pickup");
+                          }, 50);
+                        } catch (error) {
+                          console.error("Error setting pickup location:", error);
                         }
-                        
-                        onLocationSelect(location, 'pickup');
-                        setPopupLocation(null); // Close popup after selection
                       }
                     }}
                     aria-label={`Set ${popupLocation?.formatted_address || 'selected location'} as pickup location`}
