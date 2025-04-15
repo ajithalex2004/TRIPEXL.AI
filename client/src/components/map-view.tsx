@@ -374,6 +374,8 @@ export function MapView({
             dropoffCoordinates={dropoffLocation?.coordinates}
             className={className}
             height={500}
+            editable={editable}
+            onLocationSelect={onLocationSelect}
           />
         ) : useStaticFallback ? (
           // Static fallback map (image-based)
