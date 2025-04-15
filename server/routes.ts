@@ -63,6 +63,60 @@ export async function registerRoutes(app: Express): Promise<Server> {
     });
     log("Health check endpoint registered");
     
+    // API endpoint to get booking purposes by booking type
+    app.get("/api/booking/purposes/:type", (req, res) => {
+      try {
+        const { type } = req.params;
+        const { BookingPurpose } = require("../shared/schema");
+        
+        let purposes = [];
+        if (type === "freight") {
+          purposes = [
+            { key: "FREIGHT_TRANSPORT", value: BookingPurpose.FREIGHT_TRANSPORT }
+          ];
+        } else if (type === "passenger") {
+          purposes = [
+            { key: "STAFF_TRANSPORTATION", value: BookingPurpose.STAFF_TRANSPORTATION },
+            { key: "VIP_TRANSFER", value: BookingPurpose.VIP_TRANSFER },
+            { key: "GUEST", value: BookingPurpose.GUEST },
+            { key: "MEETING", value: BookingPurpose.MEETING },
+            { key: "EVENTS_SEMINAR", value: BookingPurpose.EVENTS_SEMINAR },
+            { key: "TRAINING", value: BookingPurpose.TRAINING },
+            { key: "MARKETING", value: BookingPurpose.MARKETING }
+          ];
+        } else if (type === "medical") {
+          purposes = [
+            { key: "HOSPITAL_VISIT", value: BookingPurpose.HOSPITAL_VISIT },
+            { key: "PATIENT", value: BookingPurpose.PATIENT },
+            { key: "BLOOD_BANK", value: BookingPurpose.BLOOD_BANK },
+            { key: "BLOOD_SAMPLES", value: BookingPurpose.BLOOD_SAMPLES },
+            { key: "MEDICINE", value: BookingPurpose.MEDICINE },
+            { key: "VISA_MEDICAL", value: BookingPurpose.VISA_MEDICAL },
+            { key: "ONCOLOGY", value: BookingPurpose.ONCOLOGY }
+          ];
+        } else if (type === "emergency") {
+          purposes = [
+            { key: "AMBULANCE", value: BookingPurpose.AMBULANCE },
+            { key: "MORTUARY", value: BookingPurpose.MORTUARY }
+          ];
+        } else {
+          // Return all purposes if type is not recognized
+          purposes = Object.entries(BookingPurpose).map(([key, value]) => {
+            return { key, value };
+          });
+        }
+        
+        return res.json({ purposes });
+      } catch (error) {
+        console.error("Error fetching booking purposes:", error);
+        return res.status(500).json({ 
+          error: "Failed to fetch booking purposes",
+          details: error.message 
+        });
+      }
+    });
+    log("Booking purposes endpoint registered");
+    
     // Debug API for booking analysis
     app.get("/api/debug/booking", (req, res) => {
       try {
