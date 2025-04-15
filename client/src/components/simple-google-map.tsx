@@ -6,8 +6,8 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { AlertCircle } from 'lucide-react';
 import { useSafeGoogleMaps } from '@/hooks/use-safe-google-maps';
 
-// API key is hardcoded for immediate testing purposes
-const API_KEY = "AIzaSyBOyL-FXqHOHmqxteTw02lh9TkzdXJ_oaI";
+// Use the Google Maps API key from environment variables
+const API_KEY = import.meta.env.VITE_GOOGLE_MAPS_KEY || "";
 
 // Define the center for UAE (Dubai)
 const defaultCenter = {
