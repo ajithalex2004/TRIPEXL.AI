@@ -5,7 +5,7 @@ import { useToast } from '@/hooks/use-toast';
 import { getGoogleMapsApiKey } from '@/lib/map-config';
 import { WeatherEventOverlay } from '@/components/weather-event-overlay';
 import { Button } from '@/components/ui/button';
-import { GoogleMap, useJsApiLoader, LoadScript } from '@react-google-maps/api';
+import { BasicGoogleMap } from '@/components/basic-google-map';
 import { FallbackLocationSelector } from '@/components/fallback-location-selector';
 
 // Define the common Location interface used throughout the application
@@ -384,30 +384,26 @@ export function MapView({
             className={className}
           />
         ) : (
-          // Simple, direct Google Maps component with LoadScript
-          <div style={{ height: '600px', width: '100%' }}>
-            {apiKey && (
-              <LoadScript
-                googleMapsApiKey={apiKey}
-                libraries={['places', 'geometry', 'drawing']}
-              >
-                <GoogleMap
-                  mapContainerStyle={{ height: '600px', width: '100%' }}
-                  center={{ lat: 25.276987, lng: 55.296249 }} // Dubai default
-                  zoom={10}
-                  onLoad={handleMapLoad}
-                  onUnmount={handleMapUnmount}
-                  onClick={editable && onLocationSelect ? (e: google.maps.MapMouseEvent) => handleMapClick(e) : undefined}
-                  options={{
-                    zoomControl: true,
-                    mapTypeControl: true,
-                    streetViewControl: false,
-                    fullscreenControl: true
-                  }}
-                />
-              </LoadScript>
-            )}
-          </div>
+          // Using our most basic implementation with no abstraction layers
+          <BasicGoogleMap 
+            apiKey={apiKey}
+            height="600px"
+            center={{ lat: 25.276987, lng: 55.296249 }} // Dubai default
+            zoom={10}
+            onClick={(lat, lng) => {
+              if (editable && onLocationSelect) {
+                // Simulate a MapMouseEvent for compatibility with handleMapClick
+                const mockEvent = { 
+                  latLng: { 
+                    lat: () => lat, 
+                    lng: () => lng 
+                  } 
+                } as google.maps.MapMouseEvent;
+                
+                handleMapClick(mockEvent);
+              }
+            }}
+          />
         )}
         
         {routeError && (
