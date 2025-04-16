@@ -234,28 +234,37 @@ export function UAELocationSearch({
   return (
     <div className={cn("w-full", className)}>
       <Popover open={open} onOpenChange={setOpen}>
+        <div className="relative w-full">
+          <Input
+            placeholder={placeholder}
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            className="w-full pr-8"
+            onFocus={() => setOpen(true)}
+            onClick={() => setOpen(true)}
+          />
+          <div className="absolute inset-y-0 right-0 flex items-center pr-2">
+            {query ? (
+              <X
+                className="h-4 w-4 text-muted-foreground cursor-pointer hover:text-foreground"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setQuery('');
+                }}
+              />
+            ) : (
+              <Search 
+                className="h-4 w-4 text-muted-foreground"
+                onClick={() => setOpen(true)}
+              />
+            )}
+          </div>
+        </div>
+        
         <PopoverTrigger asChild>
-          <div className="relative w-full">
-            <Input
-              placeholder={placeholder}
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              className="w-full pr-8"
-              onFocus={() => setOpen(true)}
-            />
-            <div className="absolute inset-y-0 right-0 flex items-center pr-2">
-              {query ? (
-                <X
-                  className="h-4 w-4 text-muted-foreground cursor-pointer hover:text-foreground"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setQuery('');
-                  }}
-                />
-              ) : (
-                <Search className="h-4 w-4 text-muted-foreground" />
-              )}
-            </div>
+          <div className="hidden">
+            {/* Hidden trigger element */}
+            <button />
           </div>
         </PopoverTrigger>
         

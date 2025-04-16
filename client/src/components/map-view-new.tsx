@@ -333,11 +333,9 @@ export function MapViewNew({
                     <div className="flex-1">
                       <UAELocationSearch 
                         onLocationSelect={(location) => {
-                          if (onLocationSelect) {
-                            // Show selection buttons to determine if this is pickup or dropoff
-                            setClickedLocation(location);
-                            setShowLocationButtons(true);
-                          }
+                          // Show selection buttons to determine if this is pickup or dropoff
+                          setClickedLocation(location);
+                          setShowLocationButtons(true);
                         }}
                       />
                     </div>
