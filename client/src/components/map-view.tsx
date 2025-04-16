@@ -416,16 +416,7 @@ export function MapView({
           </div>
         )}
         
-        {!pickupLocation && !dropoffLocation && (
-          <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-white/70 backdrop-blur-sm p-4 rounded-lg shadow text-center">
-            <MapPin className="h-10 w-10 text-blue-500 mx-auto mb-2" />
-            <p className="text-sm text-gray-600">
-              {editable 
-                ? "Click on the map to set pickup and dropoff locations"
-                : "Select pickup and dropoff locations to see the route on the map."}
-            </p>
-          </div>
-        )}
+        {/* Removed the instruction message box */}
         
         {/* Weather and events overlay */}
         {(pickupLocation || dropoffLocation) && (
