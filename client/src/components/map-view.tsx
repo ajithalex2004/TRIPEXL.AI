@@ -368,6 +368,12 @@ export function MapView({
     setMapError(false);
   }, []);
 
+  // Force using only JSWeb map by setting these states
+  useEffect(() => {
+    setUseIframeMap(false);
+    setUseStaticFallback(false);
+  }, []);
+
   return (
     <Card className={`overflow-hidden border shadow-sm ${className}`}>
       <CardContent className="p-0">
@@ -381,28 +387,8 @@ export function MapView({
             })}
             className={className}
           />
-        ) : useIframeMap ? (
-          // Simple iframe Google Map (most compatible)
-          <SimpleIframeMap
-            pickupCoordinates={pickupLocation?.coordinates}
-            dropoffCoordinates={dropoffLocation?.coordinates}
-            className={className}
-            height={500}
-            editable={editable}
-            onLocationSelect={onLocationSelect}
-          />
-        ) : useStaticFallback ? (
-          // Static fallback map (image-based)
-          <StaticMapFallback
-            pickupCoordinates={pickupLocation?.coordinates}
-            dropoffCoordinates={dropoffLocation?.coordinates}
-            width={800}
-            height={500}
-            onRetry={handleRetryInteractiveMap}
-            className={className}
-          />
         ) : (
-          // Interactive JavaScript Google Map (advanced features)
+          // Interactive JavaScript Google Map (advanced features) - ONLY USING JSWEB MAP
           <AntiFreezeWrapper componentName="Map">
             <MapWorker>
               <OptimizedGoogleMap
@@ -441,44 +427,7 @@ export function MapView({
           </div>
         )}
         
-        {/* Map type controls */}
-        <div className="absolute top-2 right-2 bg-white/95 backdrop-blur-sm p-2 rounded-lg shadow-md text-xs z-10">
-          <div className="flex gap-1">
-            <Button 
-              size="sm" 
-              variant={useIframeMap ? "default" : "outline"}
-              onClick={() => setUseIframeMap(true)}
-              className="flex items-center gap-1 h-8 px-2 py-1 text-xs"
-            >
-              <Map className="h-3.5 w-3.5" />
-              Iframe Map
-            </Button>
-            <Button 
-              size="sm" 
-              variant={!useIframeMap && !useStaticFallback ? "default" : "outline"}
-              onClick={() => {
-                setUseIframeMap(false);
-                setUseStaticFallback(false);
-              }}
-              className="flex items-center gap-1 h-8 px-2 py-1 text-xs"
-            >
-              <MapIcon className="h-3.5 w-3.5" />
-              JS Map
-            </Button>
-            <Button 
-              size="sm" 
-              variant={!useIframeMap && useStaticFallback ? "default" : "outline"}
-              onClick={() => {
-                setUseIframeMap(false);
-                setUseStaticFallback(true);
-              }}
-              className="flex items-center gap-1 h-8 px-2 py-1 text-xs"
-            >
-              <Navigation className="h-3.5 w-3.5" />
-              Static
-            </Button>
-          </div>
-        </div>
+        {/* Removed map tabs - keeping only JS Web map */}
 
         {editable && (
           <div className="absolute bottom-2 right-2 bg-white/80 backdrop-blur-sm p-2 rounded-lg shadow text-xs">
