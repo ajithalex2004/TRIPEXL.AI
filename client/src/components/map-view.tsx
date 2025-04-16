@@ -10,6 +10,7 @@ import { StaticMapFallback } from '@/components/static-map-fallback';
 import { SimpleIframeMap } from '@/components/simple-iframe-map';
 import { WeatherEventOverlay } from '@/components/weather-event-overlay';
 import { Button } from '@/components/ui/button';
+import { FallbackLocationSelector } from '@/components/fallback-location-selector';
 
 // Define the common Location interface used throughout the application
 export interface Location {
@@ -353,10 +354,10 @@ export function MapView({
   const handleMapError = useCallback((error: Error) => {
     console.error('Google Maps error:', error);
     setMapError(true);
-    setUseStaticFallback(true);
+    setUseStaticFallback(false); // Don't use static map fallback, use our location selector instead
     toast({
       title: "Map error",
-      description: "Interactive map couldn't be loaded. Using static map instead.",
+      description: "Interactive map couldn't be loaded. Using location selector instead.",
       variant: "destructive"
     });
   }, [toast]);
@@ -370,7 +371,17 @@ export function MapView({
   return (
     <Card className={`overflow-hidden border shadow-sm ${className}`}>
       <CardContent className="p-0">
-        {useIframeMap ? (
+        {mapError ? (
+          // When there's a Google Maps API error, use our new fallback component
+          <FallbackLocationSelector
+            pickupLocation={pickupLocation}
+            dropoffLocation={dropoffLocation}
+            onLocationSelect={onLocationSelect || ((location, type) => {
+              console.log('No location select handler provided');
+            })}
+            className={className}
+          />
+        ) : useIframeMap ? (
           // Simple iframe Google Map (most compatible)
           <SimpleIframeMap
             pickupCoordinates={pickupLocation?.coordinates}
