@@ -73,6 +73,12 @@ export function SimpleIframeMap({
     setLoading(true);
     setMapError(false);
   }, [mapUrl]);
+  
+  // Initialize with all locations shown
+  useEffect(() => {
+    // Show all locations by default when component mounts
+    setSearchResults(UAE_LOCATIONS);
+  }, []);
 
   const handleMapLoad = () => {
     setLoading(false);
@@ -89,20 +95,39 @@ export function SimpleIframeMap({
     const value = e.target.value;
     setSearchValue(value);
     
+    // Always show all POIs while typing, just sort them by relevance
     if (!value.trim()) {
-      setSearchResults([]);
-      setShowResults(false);
-      return;
+      // When no search term, show all locations
+      setSearchResults(UAE_LOCATIONS);
+    } else {
+      // When typing, sort locations by relevance
+      const query = value.toLowerCase();
+      const results = [...UAE_LOCATIONS].sort((a, b) => {
+        const aNameMatch = a.name.toLowerCase().includes(query);
+        const bNameMatch = b.name.toLowerCase().includes(query);
+        const aAddressMatch = a.address.toLowerCase().includes(query);
+        const bAddressMatch = b.address.toLowerCase().includes(query);
+        
+        // First prioritize exact name matches
+        if (a.name.toLowerCase() === query && b.name.toLowerCase() !== query) return -1;
+        if (b.name.toLowerCase() === query && a.name.toLowerCase() !== query) return 1;
+        
+        // Then prioritize any name matches
+        if (aNameMatch && !bNameMatch) return -1;
+        if (bNameMatch && !aNameMatch) return 1;
+        
+        // Then prioritize address matches
+        if (aAddressMatch && !bAddressMatch) return -1;
+        if (bAddressMatch && !aAddressMatch) return 1;
+        
+        // Default sorting by name
+        return a.name.localeCompare(b.name);
+      });
+      
+      setSearchResults(results);
     }
     
-    // Filter locations based on search value
-    const query = value.toLowerCase();
-    const results = UAE_LOCATIONS.filter(location => 
-      location.name.toLowerCase().includes(query) || 
-      location.address.toLowerCase().includes(query)
-    );
-    
-    setSearchResults(results);
+    // Always show results when input is focused
     setShowResults(true);
   };
 
@@ -174,6 +199,7 @@ export function SimpleIframeMap({
                 value={searchValue}
                 placeholder="Search for a location in UAE..."
                 onChange={handleSearchChange}
+                onFocus={() => setShowResults(true)}
                 className="pr-10"
               />
               {searchValue ? (
