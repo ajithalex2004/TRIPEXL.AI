@@ -15,7 +15,7 @@ import {
   Clock
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { getGoogleMapsApiKey } from '@/lib/map-config';
+import { getGoogleMapsApiKey, MAP_CONFIG } from '@/lib/map-config';
 import { WeatherEventOverlay } from '@/components/weather-event-overlay';
 import { Button } from '@/components/ui/button';
 import { FallbackLocationSelector } from '@/components/fallback-location-selector';
@@ -26,6 +26,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { GoogleMap, useJsApiLoader, Marker, DirectionsRenderer } from '@react-google-maps/api';
 
 // Define the common Location interface
 export interface Location {
@@ -67,13 +68,14 @@ export function MapViewNew({
   // Use provided API key or fall back to centralized key
   const apiKey = providedApiKey || getGoogleMapsApiKey();
   const { toast } = useToast();
-  const mapRef = useRef<HTMLDivElement>(null);
-  const [map, setMap] = useState<google.maps.Map | null>(null);
+  const mapContainerRef = useRef<HTMLDivElement>(null);
+  const [mapInstance, setMapInstance] = useState<google.maps.Map | null>(null);
   const [mapError, setMapError] = useState<boolean>(false);
   const [clickedLocation, setClickedLocation] = useState<Location | null>(null);
   const [showLocationButtons, setShowLocationButtons] = useState<boolean>(false);
   const [routeError, setRouteError] = useState<string | null>(null);
   const [showTraffic, setShowTraffic] = useState<boolean>(false);
+  const [directions, setDirections] = useState<google.maps.DirectionsResult | null>(null);
   const [estimatedTrafficTime, setEstimatedTrafficTime] = useState<number | null>(null);
   const [estimatedBaseTime, setEstimatedBaseTime] = useState<number | null>(null);
   
@@ -82,256 +84,151 @@ export function MapViewNew({
     console.log("Google Maps API Key available:", apiKey ? "Yes (key length: " + apiKey.length + ")" : "No");
   }, [apiKey]);
 
-  // Initialize the map
+  // Use the React Google Maps loader
+  const { isLoaded, loadError } = useJsApiLoader({
+    googleMapsApiKey: apiKey,
+    libraries: MAP_CONFIG.libraries as any[],
+  });
+
+  // Set map error if load fails
   useEffect(() => {
-    if (!apiKey || !mapRef.current || map) return;
-
-    const initializeMap = () => {
-      try {
-        // Create a new map instance
-        const newMap = new window.google.maps.Map(mapRef.current!, {
-          center: { lat: 25.276987, lng: 55.296249 }, // Dubai
-          zoom: 10,
-          mapTypeControl: true,
-          streetViewControl: false,
-          fullscreenControl: true
-        });
-        
-        setMap(newMap);
-        
-        // Add click handler if editable
-        if (editable && onLocationSelect) {
-          newMap.addListener('click', (e: google.maps.MapMouseEvent) => {
-            if (e.latLng) {
-              const clickedPosition = {
-                lat: e.latLng.lat(),
-                lng: e.latLng.lng()
-              };
-              
-              // Reverse geocode to get the address
-              const geocoder = new google.maps.Geocoder();
-              geocoder.geocode({ location: clickedPosition }, (results, status) => {
-                if (status === 'OK' && results && results[0]) {
-                  // Extract district, city, and area
-                  let district = '';
-                  let city = '';
-                  let area = '';
-                  
-                  if (results[0].address_components) {
-                    for (const component of results[0].address_components) {
-                      if (component.types.includes('sublocality') || component.types.includes('neighborhood')) {
-                        area = component.long_name;
-                      } else if (component.types.includes('locality')) {
-                        city = component.long_name;
-                      } else if (component.types.includes('administrative_area_level_1')) {
-                        district = component.long_name;
-                      }
-                    }
-                  }
-                  
-                  // Create location object
-                  const location: Location = {
-                    address: results[0].formatted_address || '',
-                    coordinates: clickedPosition,
-                    place_id: results[0].place_id || '',
-                    name: area || city || district || 'Selected Location',
-                    formatted_address: results[0].formatted_address || '',
-                    district: district || undefined,
-                    city: city || undefined,
-                    area: area || undefined,
-                    place_types: results[0].types || []
-                  };
-                  
-                  setClickedLocation(location);
-                  setShowLocationButtons(true);
-                } else {
-                  // Fallback location
-                  const fallbackLocation: Location = {
-                    address: `Location at ${clickedPosition.lat.toFixed(6)}, ${clickedPosition.lng.toFixed(6)}`,
-                    coordinates: clickedPosition,
-                    name: 'Selected Location',
-                    formatted_address: `Coordinates: ${clickedPosition.lat.toFixed(6)}, ${clickedPosition.lng.toFixed(6)}`
-                  };
-                  
-                  setClickedLocation(fallbackLocation);
-                  setShowLocationButtons(true);
-                }
-              });
-            }
-          });
-        }
-        
-        console.log("Map initialized successfully!");
-      } catch (error) {
-        console.error("Failed to initialize map:", error);
-        setMapError(true);
-      }
-    };
-
-    // Define the callback function for when the API loads
-    window.initMap = initializeMap;
-
-    // Check if the API is already loaded
-    if (window.google?.maps) {
-      initializeMap();
-      return;
-    }
-
-    // Load the API
-    const script = document.createElement('script');
-    script.src = `https://maps.googleapis.com/maps/api/js?key=${apiKey}&callback=initMap&libraries=places,geometry&v=weekly`;
-    script.async = true;
-    script.defer = true;
-    script.onerror = () => {
-      console.error("Failed to load Google Maps API");
+    if (loadError) {
+      console.error("Error loading Google Maps API:", loadError);
       setMapError(true);
-    };
-    
-    document.head.appendChild(script);
+    }
+  }, [loadError]);
 
-    return () => {
-      // Clean up
-      if (window.initMap) {
-        // @ts-ignore - Clean up global function
-        window.initMap = undefined;
-      }
-      
-      // Remove script if it exists
-      const scriptElement = document.querySelector(`script[src^="https://maps.googleapis.com/maps/api/js"]`);
-      if (scriptElement) {
-        document.head.removeChild(scriptElement);
-      }
-    };
-  }, [apiKey, editable, onLocationSelect, map]);
-
-  // Add markers for pickup and dropoff
-  useEffect(() => {
-    if (!map) return;
+  // Handle map instance ref
+  const onMapLoad = useCallback((map: google.maps.Map) => {
+    console.log("Map loaded successfully!");
+    setMapInstance(map);
     
-    // Clear existing markers
-    map.data.forEach(feature => {
-      map.data.remove(feature);
-    });
-    
-    // Add pickup marker
-    if (pickupLocation?.coordinates) {
-      const pickupFeature = new google.maps.Data.Feature({
-        geometry: new google.maps.Data.Point(
-          new google.maps.LatLng(pickupLocation.coordinates.lat, pickupLocation.coordinates.lng)
-        ),
-        properties: { type: 'pickup' }
-      });
-      map.data.add(pickupFeature);
-    }
-    
-    // Add dropoff marker
-    if (dropoffLocation?.coordinates) {
-      const dropoffFeature = new google.maps.Data.Feature({
-        geometry: new google.maps.Data.Point(
-          new google.maps.LatLng(dropoffLocation.coordinates.lat, dropoffLocation.coordinates.lng)
-        ),
-        properties: { type: 'dropoff' }
-      });
-      map.data.add(dropoffFeature);
-    }
-    
-    // Style the markers
-    map.data.setStyle(feature => {
-      const type = feature.getProperty('type');
-      return {
-        icon: {
-          path: google.maps.SymbolPath.CIRCLE,
-          scale: 7,
-          fillColor: type === 'pickup' ? '#10b981' : '#ef4444', // Green for pickup, Red for dropoff
-          fillOpacity: 1,
-          strokeColor: '#ffffff',
-          strokeWeight: 2
-        }
-      };
-    });
-    
-    // Set appropriate bounds
-    if (pickupLocation?.coordinates || dropoffLocation?.coordinates) {
-      const bounds = new google.maps.LatLngBounds();
-      
-      if (pickupLocation?.coordinates) {
-        bounds.extend(new google.maps.LatLng(pickupLocation.coordinates.lat, pickupLocation.coordinates.lng));
-      }
-      
-      if (dropoffLocation?.coordinates) {
-        bounds.extend(new google.maps.LatLng(dropoffLocation.coordinates.lat, dropoffLocation.coordinates.lng));
-      }
-      
-      if (!bounds.isEmpty()) {
-        map.fitBounds(bounds);
-        
-        // Don't zoom in too far
-        const currentZoom = map.getZoom();
-        if (currentZoom !== undefined && currentZoom > 16) {
-          map.setZoom(16);
-        }
-      }
-    }
-    
-    // Calculate route if we have both pickup and dropoff
-    if (pickupLocation?.coordinates && dropoffLocation?.coordinates) {
-      const directionsService = new google.maps.DirectionsService();
-      const directionsRenderer = new google.maps.DirectionsRenderer({
-        map,
-        suppressMarkers: true, // We'll use custom markers
-        polylineOptions: {
-          strokeColor: '#3b82f6', // Blue color
-          strokeWeight: 5,
-          strokeOpacity: 0.7
-        }
-      });
-      
-      const directionsWaypoints = waypoints.map(waypoint => ({
-        location: waypoint.coordinates,
-        stopover: true
-      }));
-      
-      directionsService.route(
-        {
-          origin: pickupLocation.coordinates,
-          destination: dropoffLocation.coordinates,
-          waypoints: directionsWaypoints,
-          travelMode: google.maps.TravelMode.DRIVING,
-          optimizeWaypoints: true
-        },
-        (result, status) => {
-          if (status === google.maps.DirectionsStatus.OK && result) {
-            directionsRenderer.setDirections(result);
-            setRouteError(null);
-            
-            // Notify parent component of route calculations
-            if (onRouteCalculated && result.routes && result.routes.length > 0) {
-              const route = result.routes[0];
-              let totalDuration = 0;
-              let totalDistance = 0;
+    // Add click handler if editable
+    if (editable && onLocationSelect) {
+      map.addListener('click', (e: google.maps.MapMouseEvent) => {
+        if (e.latLng) {
+          const clickedPosition = {
+            lat: e.latLng.lat(),
+            lng: e.latLng.lng()
+          };
+          
+          // Reverse geocode to get the address
+          const geocoder = new google.maps.Geocoder();
+          geocoder.geocode({ location: clickedPosition }, (results, status) => {
+            if (status === 'OK' && results && results[0]) {
+              // Extract district, city, and area
+              let district = '';
+              let city = '';
+              let area = '';
               
-              if (route.legs) {
-                for (const leg of route.legs) {
-                  if (leg.duration) {
-                    totalDuration += leg.duration.value; // seconds
-                  }
-                  if (leg.distance) {
-                    totalDistance += leg.distance.value; // meters
+              if (results[0].address_components) {
+                for (const component of results[0].address_components) {
+                  if (component.types.includes('sublocality') || component.types.includes('neighborhood')) {
+                    area = component.long_name;
+                  } else if (component.types.includes('locality')) {
+                    city = component.long_name;
+                  } else if (component.types.includes('administrative_area_level_1')) {
+                    district = component.long_name;
                   }
                 }
               }
               
-              // Call the callback with route duration and distance
-              onRouteCalculated(totalDuration, totalDistance);
+              // Create location object
+              const location: Location = {
+                address: results[0].formatted_address || '',
+                coordinates: clickedPosition,
+                place_id: results[0].place_id || '',
+                name: area || city || district || 'Selected Location',
+                formatted_address: results[0].formatted_address || '',
+                district: district || undefined,
+                city: city || undefined,
+                area: area || undefined,
+                place_types: results[0].types || []
+              };
+              
+              setClickedLocation(location);
+              setShowLocationButtons(true);
+            } else {
+              // Fallback location
+              const fallbackLocation: Location = {
+                address: `Location at ${clickedPosition.lat.toFixed(6)}, ${clickedPosition.lng.toFixed(6)}`,
+                coordinates: clickedPosition,
+                name: 'Selected Location',
+                formatted_address: `Coordinates: ${clickedPosition.lat.toFixed(6)}, ${clickedPosition.lng.toFixed(6)}`
+              };
+              
+              setClickedLocation(fallbackLocation);
+              setShowLocationButtons(true);
             }
-          } else {
-            console.error('Error calculating route:', status);
-            setRouteError('Could not calculate route between the selected locations.');
-          }
+          });
         }
-      );
+      });
     }
-  }, [map, pickupLocation, dropoffLocation, waypoints, onRouteCalculated]);
+  }, [editable, onLocationSelect]);
+
+  // We no longer need the old marker and route effects as we're using the React Google Maps components
+
+  // Effect to calculate route when both locations are available
+  useEffect(() => {
+    if (!isLoaded || !mapInstance || !pickupLocation?.coordinates || !dropoffLocation?.coordinates) return;
+    
+    const directionsService = new google.maps.DirectionsService();
+    
+    const directionsWaypoints = waypoints.map(waypoint => ({
+      location: waypoint.coordinates,
+      stopover: true
+    }));
+    
+    directionsService.route(
+      {
+        origin: pickupLocation.coordinates,
+        destination: dropoffLocation.coordinates,
+        waypoints: directionsWaypoints,
+        travelMode: google.maps.TravelMode.DRIVING,
+        optimizeWaypoints: true
+      },
+      (result, status) => {
+        if (status === google.maps.DirectionsStatus.OK && result) {
+          setDirections(result);
+          setRouteError(null);
+          
+          // Notify parent component of route calculations
+          if (onRouteCalculated && result.routes && result.routes.length > 0) {
+            const route = result.routes[0];
+            let totalDuration = 0;
+            let totalDistance = 0;
+            
+            if (route.legs) {
+              for (const leg of route.legs) {
+                if (leg.duration) {
+                  totalDuration += leg.duration.value; // seconds
+                }
+                if (leg.distance) {
+                  totalDistance += leg.distance.value; // meters
+                }
+              }
+            }
+            
+            // Call the callback with route duration and distance
+            onRouteCalculated(totalDuration, totalDistance);
+          }
+        } else {
+          console.error('Error calculating route:', status);
+          setRouteError('Could not calculate route between the selected locations.');
+          setDirections(null);
+        }
+      }
+    );
+  }, [isLoaded, mapInstance, pickupLocation, dropoffLocation, waypoints, onRouteCalculated]);
+
+  // Handler for when a user wants to select a location (pickup/dropoff)
+  const handleSetLocationAs = useCallback((type: 'pickup' | 'dropoff') => {
+    if (clickedLocation && onLocationSelect) {
+      onLocationSelect(clickedLocation, type);
+      setShowLocationButtons(false);
+      setClickedLocation(null);
+    }
+  }, [clickedLocation, onLocationSelect]);
 
   return (
     <Card className={`overflow-hidden border shadow-sm ${className}`}>
@@ -345,8 +242,15 @@ export function MapViewNew({
             })}
             className={className}
           />
+        ) : !isLoaded ? (
+          <div className="flex items-center justify-center h-[500px] bg-gray-50">
+            <div className="text-center">
+              <div className="animate-spin h-8 w-8 border-4 border-blue-500 border-t-transparent rounded-full mx-auto mb-4"></div>
+              <div className="text-sm text-gray-600">Loading map...</div>
+            </div>
+          </div>
         ) : (
-          <div className="relative">
+          <div className="relative h-[500px]">
             {/* UAE Location Search Bar */}
             {editable && onLocationSelect && (
               <div className="absolute top-2 left-2 right-2 z-20 flex gap-2">
@@ -376,8 +280,8 @@ export function MapViewNew({
                       variant="outline"
                       className="h-8 w-8 bg-white/80 backdrop-blur-sm shadow-sm"
                       onClick={() => {
-                        if (map) {
-                          map.setZoom((map.getZoom() || 10) + 1);
+                        if (mapInstance) {
+                          mapInstance.setZoom((mapInstance.getZoom() || 10) + 1);
                         }
                       }}
                     >
@@ -398,8 +302,8 @@ export function MapViewNew({
                       variant="outline"
                       className="h-8 w-8 bg-white/80 backdrop-blur-sm shadow-sm"
                       onClick={() => {
-                        if (map) {
-                          map.setZoom((map.getZoom() || 10) - 1);
+                        if (mapInstance) {
+                          mapInstance.setZoom((mapInstance.getZoom() || 10) - 1);
                         }
                       }}
                     >
@@ -420,20 +324,20 @@ export function MapViewNew({
                       variant="outline"
                       className="h-8 w-8 bg-white/80 backdrop-blur-sm shadow-sm"
                       onClick={() => {
-                        if (navigator.geolocation && map) {
+                        if (navigator.geolocation && mapInstance) {
                           navigator.geolocation.getCurrentPosition(
                             (position) => {
                               const userLocation = {
                                 lat: position.coords.latitude,
                                 lng: position.coords.longitude
                               };
-                              map.setCenter(userLocation);
-                              map.setZoom(15);
+                              mapInstance.setCenter(userLocation);
+                              mapInstance.setZoom(15);
                               
                               // Optionally create a user marker
                               const userMarker = new google.maps.Marker({
                                 position: userLocation,
-                                map: map,
+                                map: mapInstance,
                                 icon: {
                                   path: google.maps.SymbolPath.CIRCLE,
                                   scale: 7,
@@ -599,10 +503,124 @@ export function MapViewNew({
               )}
             </div>
             
-            <div 
-              ref={mapRef} 
-              style={{ width: '100%', height: '600px' }}
-            />
+            {/* The actual Google Map component */}
+            <GoogleMap
+              mapContainerStyle={{ width: '100%', height: '500px' }}
+              center={MAP_CONFIG.defaultCenter}
+              zoom={MAP_CONFIG.defaultZoom}
+              onLoad={onMapLoad}
+              options={{
+                ...MAP_CONFIG.options,
+                streetViewControl: false,
+                fullscreenControl: true,
+                mapTypeControl: true,
+              }}
+              onClick={(e) => {
+                if (editable && onLocationSelect && e.latLng) {
+                  const clickedPosition = {
+                    lat: e.latLng.lat(),
+                    lng: e.latLng.lng()
+                  };
+                  
+                  // Reverse geocode to get address
+                  const geocoder = new google.maps.Geocoder();
+                  geocoder.geocode({ location: clickedPosition }, (results, status) => {
+                    if (status === 'OK' && results && results[0]) {
+                      // Extract district, city, and area
+                      let district = '';
+                      let city = '';
+                      let area = '';
+                      
+                      if (results[0].address_components) {
+                        for (const component of results[0].address_components) {
+                          if (component.types.includes('sublocality') || component.types.includes('neighborhood')) {
+                            area = component.long_name;
+                          } else if (component.types.includes('locality')) {
+                            city = component.long_name;
+                          } else if (component.types.includes('administrative_area_level_1')) {
+                            district = component.long_name;
+                          }
+                        }
+                      }
+                      
+                      // Create location object
+                      const location: Location = {
+                        address: results[0].formatted_address || '',
+                        coordinates: clickedPosition,
+                        place_id: results[0].place_id || '',
+                        name: area || city || district || 'Selected Location',
+                        formatted_address: results[0].formatted_address || '',
+                        district: district || undefined,
+                        city: city || undefined,
+                        area: area || undefined,
+                        place_types: results[0].types || []
+                      };
+                      
+                      setClickedLocation(location);
+                      setShowLocationButtons(true);
+                    } else {
+                      // Fallback location
+                      const fallbackLocation: Location = {
+                        address: `Location at ${clickedPosition.lat.toFixed(6)}, ${clickedPosition.lng.toFixed(6)}`,
+                        coordinates: clickedPosition,
+                        name: 'Selected Location',
+                        formatted_address: `Coordinates: ${clickedPosition.lat.toFixed(6)}, ${clickedPosition.lng.toFixed(6)}`
+                      };
+                      
+                      setClickedLocation(fallbackLocation);
+                      setShowLocationButtons(true);
+                    }
+                  });
+                }
+              }}
+            >
+              {/* Pickup Marker */}
+              {pickupLocation?.coordinates && (
+                <Marker 
+                  position={pickupLocation.coordinates}
+                  icon={{
+                    path: google.maps.SymbolPath.CIRCLE,
+                    scale: 7,
+                    fillColor: '#10b981', // green
+                    fillOpacity: 1,
+                    strokeColor: '#ffffff',
+                    strokeWeight: 2
+                  }}
+                  title={pickupLocation.name || "Pickup Location"}
+                />
+              )}
+              
+              {/* Dropoff Marker */}
+              {dropoffLocation?.coordinates && (
+                <Marker 
+                  position={dropoffLocation.coordinates}
+                  icon={{
+                    path: google.maps.SymbolPath.CIRCLE,
+                    scale: 7,
+                    fillColor: '#ef4444', // red
+                    fillOpacity: 1,
+                    strokeColor: '#ffffff',
+                    strokeWeight: 2
+                  }}
+                  title={dropoffLocation.name || "Dropoff Location"}
+                />
+              )}
+              
+              {/* Directions route */}
+              {directions && (
+                <DirectionsRenderer
+                  directions={directions}
+                  options={{
+                    suppressMarkers: true, // We'll use custom markers
+                    polylineOptions: {
+                      strokeColor: '#3b82f6', // Blue route line
+                      strokeWeight: 5,
+                      strokeOpacity: 0.7
+                    }
+                  }}
+                />
+              )}
+            </GoogleMap>
           </div>
         )}
         
