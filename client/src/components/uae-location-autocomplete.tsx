@@ -74,7 +74,7 @@ export function UAELocationAutocomplete({
   const [open, setOpen] = useState(false);
   const [recentSelections, setRecentSelections] = useState<Location[]>([]);
   const [suggestedLocations, setSuggestedLocations] = useState<any[]>([]);
-  const [query, setQuery] = useState<string>("");
+  const [query, setQuery] = useState<string>(value || "");
   const { toast } = useToast();
 
   // Load Google Maps API
@@ -253,6 +253,11 @@ export function UAELocationAutocomplete({
     }
   };
 
+  // Update query when value prop changes
+  useEffect(() => {
+    setQuery(value || "");
+  }, [value]);
+
   // Update suggestions based on input - show all matches as user types
   useEffect(() => {
     // Always show suggestions when dropdown is open
@@ -367,7 +372,7 @@ export function UAELocationAutocomplete({
               ref={inputRef}
               id={inputId}
               type="text"
-              value={value}
+              value={query}
               placeholder={placeholder}
               onChange={handleInputChange}
               onFocus={() => {
