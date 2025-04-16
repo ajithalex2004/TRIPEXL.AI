@@ -5,8 +5,50 @@ import { Button } from '@/components/ui/button';
 import { MapPin, Map, Search, Navigation } from 'lucide-react';
 import { Location } from './map-view';
 import { Label } from '@/components/ui/label';
-import { UAE_COMMON_LOCATIONS, UAE_COMMON_LANDMARKS } from '@/lib/uae-locations';
 import { ScrollArea } from '@/components/ui/scroll-area';
+
+// UAE Cities and Major Areas - Temporary direct definition for quick fallback 
+// Can be moved to separate file later when everything is stable
+interface UAELocation {
+  name: string;
+  coordinates: { lat: number; lng: number };
+  area?: string;
+  city?: string;
+}
+
+const UAE_COMMON_LOCATIONS: UAELocation[] = [
+  { name: "Dubai", coordinates: { lat: 25.276987, lng: 55.296249 } },
+  { name: "Abu Dhabi", coordinates: { lat: 24.466667, lng: 54.366667 } },
+  { name: "Sharjah", coordinates: { lat: 25.357119, lng: 55.391068 } },
+  { name: "Al Ain", coordinates: { lat: 24.191651, lng: 55.760343 } },
+  { name: "Ajman", coordinates: { lat: 25.411130, lng: 55.435307 } },
+  { name: "Ras Al Khaimah", coordinates: { lat: 25.789295, lng: 55.942479 } },
+  { name: "Fujairah", coordinates: { lat: 25.123082, lng: 56.326787 } },
+  { name: "Umm Al Quwain", coordinates: { lat: 25.565895, lng: 55.553185 } },
+];
+
+// UAE Landmarks and Notable Places - Temporary direct definition for quick fallback
+const UAE_COMMON_LANDMARKS: UAELocation[] = [
+  // Dubai
+  { name: "Dubai Mall", area: "Downtown Dubai", city: "Dubai", coordinates: { lat: 25.197197, lng: 55.274376 } },
+  { name: "Burj Khalifa", area: "Downtown Dubai", city: "Dubai", coordinates: { lat: 25.197197, lng: 55.274376 } },
+  { name: "Mall of the Emirates", area: "Al Barsha", city: "Dubai", coordinates: { lat: 25.118984, lng: 55.200276 } },
+  { name: "Dubai Marina", area: "Dubai Marina", city: "Dubai", coordinates: { lat: 25.076303, lng: 55.138798 } },
+  { name: "Palm Jumeirah", area: "Palm Jumeirah", city: "Dubai", coordinates: { lat: 25.112288, lng: 55.138781 } },
+  { name: "Dubai Creek", area: "Deira", city: "Dubai", coordinates: { lat: 25.262474, lng: 55.300651 } },
+  { name: "JBR Beach", area: "Dubai Marina", city: "Dubai", coordinates: { lat: 25.080105, lng: 55.133321 } },
+  { name: "Dubai International Airport", area: "Al Garhoud", city: "Dubai", coordinates: { lat: 25.252995, lng: 55.365552 } },
+  { name: "Jumeirah Beach", area: "Jumeirah", city: "Dubai", coordinates: { lat: 25.204849, lng: 55.263904 } },
+  // Abu Dhabi
+  { name: "Sheikh Zayed Grand Mosque", area: "Abu Dhabi", city: "Abu Dhabi", coordinates: { lat: 24.412346, lng: 54.475568 } },
+  { name: "Yas Island", area: "Yas Island", city: "Abu Dhabi", coordinates: { lat: 24.499372, lng: 54.607182 } },
+  { name: "Al Wahda Mall", area: "Al Wahda", city: "Abu Dhabi", coordinates: { lat: 24.28288, lng: 54.50729 } },
+  // Sharjah
+  { name: "Central Souq", area: "Al Jubail", city: "Sharjah", coordinates: { lat: 25.35611, lng: 55.38596 } },
+  // Additional useful locations 
+  { name: "EXL Solutions", area: "Business Bay", city: "Dubai", coordinates: { lat: 25.186699, lng: 55.283451 } },
+  { name: "Emirates Tower", area: "Sheikh Zayed Road", city: "Dubai", coordinates: { lat: 25.218994, lng: 55.282165 } }
+];
 
 interface FallbackLocationSelectorProps {
   pickupLocation?: Location | null;
@@ -38,15 +80,15 @@ export function FallbackLocationSelector({
           (location.city && location.city.toLowerCase().includes(searchQuery.toLowerCase()))
       );
 
-  const handleLocationSelect = (location: any) => {
+  const handleLocationSelect = (location: UAELocation) => {
     // Create a proper Location object based on the selected item
     const locationObj: Location = {
       address: location.area && location.city 
         ? `${location.name}, ${location.area}, ${location.city}, UAE`
         : `${location.name}, UAE`,
       coordinates: {
-        lat: location.coordinates?.lat || 25.276987, // Default to Dubai if coordinates not provided
-        lng: location.coordinates?.lng || 55.296249
+        lat: location.coordinates.lat || 25.276987, // Default to Dubai if coordinates not provided
+        lng: location.coordinates.lng || 55.296249
       },
       name: location.name,
       formatted_address: location.area && location.city 
