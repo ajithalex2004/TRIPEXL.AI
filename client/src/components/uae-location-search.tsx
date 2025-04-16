@@ -1,351 +1,315 @@
-import React, { useState, useRef, useEffect, useCallback } from 'react';
-import debounce from 'lodash.debounce';
-import { Loader2, MapPin, X } from 'lucide-react';
+import React, { useState, useRef, useEffect } from 'react';
 import { Input } from '@/components/ui/input';
-import { Button } from '@/components/ui/button';
-import { Card } from '@/components/ui/card';
-import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Search, X, Building, MapPin, Store, Landmark } from 'lucide-react';
+import { Location } from './map-view-new';
+import { useToast } from '@/hooks/use-toast';
+import { 
+  Popover, 
+  PopoverContent, 
+  PopoverTrigger 
+} from '@/components/ui/popover';
+import { 
+  Command, 
+  CommandInput, 
+  CommandList, 
+  CommandEmpty, 
+  CommandGroup, 
+  CommandItem 
+} from '@/components/ui/command';
+import { cn } from '@/lib/utils';
 
-// UAE bounds to restrict autocomplete results
-const UAE_BOUNDS = {
-  north: 26.5,   // Northern boundary of UAE
-  south: 22.0,   // Southern boundary of UAE
-  west: 51.0,    // Western boundary of UAE
-  east: 56.5     // Eastern boundary of UAE
-};
+// Define common UAE cities and areas for quicker access
+const UAE_COMMON_LOCATIONS = [
+  { name: "Dubai", coordinates: { lat: 25.276987, lng: 55.296249 } },
+  { name: "Abu Dhabi", coordinates: { lat: 24.466667, lng: 54.366667 } },
+  { name: "Sharjah", coordinates: { lat: 25.357119, lng: 55.391068 } },
+  { name: "Al Ain", coordinates: { lat: 24.191651, lng: 55.760343 } },
+  { name: "Ajman", coordinates: { lat: 25.411130, lng: 55.435307 } },
+  { name: "Ras Al Khaimah", coordinates: { lat: 25.789295, lng: 55.942479 } },
+  { name: "Fujairah", coordinates: { lat: 25.123082, lng: 56.326787 } },
+  { name: "Umm Al Quwain", coordinates: { lat: 25.565895, lng: 55.553185 } },
+];
 
-// Type for location structure
-export interface Location {
-  address: string;
-  coordinates: {
-    lat: number;
-    lng: number;
-  };
-  place_id?: string;
-  name?: string;
-  formatted_address?: string;
-  district?: string;
-  city?: string;
-  area?: string;
-  place_types?: string[];
-}
+// UAE popular landmarks
+const UAE_LANDMARKS = [
+  // Dubai landmarks
+  { name: "Dubai Mall", coordinates: { lat: 25.197197, lng: 55.274376 }, area: "Downtown Dubai", city: "Dubai" },
+  { name: "Burj Khalifa", coordinates: { lat: 25.197304, lng: 55.274136 }, area: "Downtown Dubai", city: "Dubai" },
+  { name: "Mall of the Emirates", coordinates: { lat: 25.117591, lng: 55.200055 }, area: "Al Barsha", city: "Dubai" },
+  { name: "Dubai Marina", coordinates: { lat: 25.0762, lng: 55.1388 }, area: "Dubai Marina", city: "Dubai" },
+  { name: "Palm Jumeirah", coordinates: { lat: 25.116911, lng: 55.138180 }, area: "Jumeirah", city: "Dubai" },
+  { name: "Dubai Airport (DXB)", coordinates: { lat: 25.252777, lng: 55.364445 }, area: "Al Garhoud", city: "Dubai" },
+  
+  // Abu Dhabi landmarks
+  { name: "Sheikh Zayed Grand Mosque", coordinates: { lat: 24.412315, lng: 54.475241 }, area: "Abu Dhabi", city: "Abu Dhabi" },
+  { name: "Al Wahda Mall", coordinates: { lat: 24.4800, lng: 54.3755 }, area: "Al Wahda", city: "Abu Dhabi" },
+  { name: "Abu Dhabi Mall", coordinates: { lat: 24.497345, lng: 54.380612 }, area: "Tourist Club Area", city: "Abu Dhabi" },
+  { name: "Yas Mall", coordinates: { lat: 24.4858, lng: 54.6079 }, area: "Yas Island", city: "Abu Dhabi" },
+  { name: "Abu Dhabi Airport", coordinates: { lat: 24.443588, lng: 54.651487 }, area: "Khalifa City", city: "Abu Dhabi" },
+  
+  // Sharjah landmarks  
+  { name: "Sharjah City Centre", coordinates: { lat: 25.328608, lng: 55.424537 }, area: "Sharjah", city: "Sharjah" },
+  { name: "Al Majaz Waterfront", coordinates: { lat: 25.3248, lng: 55.3827 }, area: "Al Majaz", city: "Sharjah" },
+];
 
-interface UaeLocationSearchProps {
-  apiKey: string;
+interface UAELocationSearchProps {
   onLocationSelect: (location: Location) => void;
+  className?: string;
   placeholder?: string;
-  containerClassName?: string;
-  inputClassName?: string;
-  disabled?: boolean;
 }
 
-export function UaeLocationSearch({
-  apiKey,
-  onLocationSelect,
-  placeholder = 'Search for a location in UAE...',
-  containerClassName = '',
-  inputClassName = '',
-  disabled = false
-}: UaeLocationSearchProps) {
+export function UAELocationSearch({ 
+  onLocationSelect, 
+  className = '',
+  placeholder = 'Search for UAE locations...'
+}: UAELocationSearchProps) {
+  const [open, setOpen] = useState(false);
   const [query, setQuery] = useState('');
-  const [predictions, setPredictions] = useState<google.maps.places.AutocompletePrediction[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [isApiLoaded, setIsApiLoaded] = useState(false);
-  const [placesService, setPlacesService] = useState<google.maps.places.PlacesService | null>(null);
-  const [autocompleteService, setAutocompleteService] = useState<google.maps.places.AutocompleteService | null>(null);
+  const [recentLocations, setRecentLocations] = useState<Location[]>([]);
+  const { toast } = useToast();
+  const [searchResults, setSearchResults] = useState<any[]>([]);
   
-  const inputRef = useRef<HTMLInputElement>(null);
-  
-  // Load the Google Maps API
+  // Load Google Maps API and initialize autocomplete
   useEffect(() => {
-    // Skip if API is already loaded
-    if (window.google?.maps?.places || isApiLoaded) {
-      setIsApiLoaded(true);
-      return;
-    }
-    
-    // Only load the API if we have a key
-    if (!apiKey) {
-      setError('Google Maps API key is missing');
-      return;
-    }
-    
-    // Create the script tag
-    const script = document.createElement('script');
-    script.src = `https://maps.googleapis.com/maps/api/js?key=${apiKey}&libraries=places&callback=initializePlacesAPI`;
-    script.async = true;
-    script.defer = true;
-    
-    // Define the callback function
-    window.initializePlacesAPI = () => {
-      try {
-        console.log('Places API loaded successfully');
-        setIsApiLoaded(true);
-        setError(null);
-      } catch (err) {
-        console.error('Error initializing Places API:', err);
-        setError('Failed to initialize location search. Please refresh the page.');
-      }
-    };
-    
-    // Handle script load error
-    script.onerror = () => {
-      setError('Failed to load Google Maps API. Please check your connection.');
-    };
-    
-    // Add the script to the document
-    document.head.appendChild(script);
-    
-    // Clean up
-    return () => {
-      if (document.head.contains(script)) {
-        document.head.removeChild(script);
-      }
-      delete window.initializePlacesAPI;
-    };
-  }, [apiKey, isApiLoaded]);
-  
-  // Create a mutable reference that we can update safely
-  const placesElementDivRef = useRef<HTMLDivElement | null>(null);
-  const placesElementRef = useRef<HTMLDivElement | null>(null);
-  
-  // Initialize services when API is loaded
-  useEffect(() => {
-    if (!isApiLoaded || !window.google?.maps?.places) return;
-    
-    let placesDiv: HTMLDivElement | null = null;
-    
+    // Load recent locations from localStorage
     try {
-      // Create a hidden div element for PlacesService
-      placesDiv = document.createElement('div');
-      placesDiv.style.display = 'none';
-      document.body.appendChild(placesDiv);
-      
-      // Store the reference in both refs
-      placesElementRef.current = placesDiv;
-      placesElementDivRef.current = placesDiv;
-      
-      // Initialize services
-      setAutocompleteService(new google.maps.places.AutocompleteService());
-      setPlacesService(new google.maps.places.PlacesService(placesDiv));
-    } catch (err) {
-      console.error('Error initializing Places services:', err);
-      setError('Failed to initialize location services.');
-    }
-    
-    // Cleanup
-    return () => {
-      if (placesElementRef.current) {
-        try {
-          document.body.removeChild(placesElementRef.current);
-        } catch (e) {
-          // Element may have already been removed
+      const stored = localStorage.getItem('recentMapLocations');
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        if (Array.isArray(parsed)) {
+          setRecentLocations(parsed.slice(0, 5)); // Only keep top 5
         }
       }
-      
-      // Clear both refs in cleanup
-      placesElementRef.current = null;
-      placesElementDivRef.current = null;
-    };
-  }, [isApiLoaded]);
-  
-  // Search for places as the user types
-  const searchPlaces = useCallback(
-    debounce((input: string) => {
-      if (!input || input.length < 3 || !autocompleteService) {
-        setPredictions([]);
-        setIsLoading(false);
+    } catch (err) {
+      console.error('Error loading recent locations:', err);
+    }
+    
+    // Load Google Maps API
+    if (!window.google?.maps?.places) {
+      const apiKey = import.meta.env.VITE_GOOGLE_MAPS_KEY;
+      if (!apiKey) {
+        console.error('Google Maps API key not found');
+        toast({
+          title: 'Configuration Error',
+          description: 'Maps API key is missing. Please contact support.',
+          variant: 'destructive'
+        });
         return;
       }
       
-      setIsLoading(true);
-      setError(null);
+      const script = document.createElement('script');
+      script.src = `https://maps.googleapis.com/maps/api/js?key=${apiKey}&libraries=places`;
+      script.async = true;
+      script.defer = true;
+      document.head.appendChild(script);
       
-      // Get predictions from Google Places
-      autocompleteService.getPlacePredictions(
-        {
-          input,
-          bounds: UAE_BOUNDS,
-          componentRestrictions: { country: 'ae' }
-        },
-        (results, status) => {
-          setIsLoading(false);
-          
-          if (status === google.maps.places.PlacesServiceStatus.OK && results) {
-            setPredictions(results);
-          } else {
-            setPredictions([]);
-            if (status !== google.maps.places.PlacesServiceStatus.ZERO_RESULTS) {
-              setError('Error retrieving locations');
-              console.error('Places API error:', status);
-            }
-          }
-        }
-      );
-    }, 300),
-    [autocompleteService]
-  );
-  
-  // Handle input change
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const value = e.target.value;
-    setQuery(value);
-    
-    if (value.length >= 3) {
-      searchPlaces(value);
-    } else {
-      setPredictions([]);
+      script.onload = () => {
+        console.log('Google Maps API loaded');
+      };
+      
+      script.onerror = () => {
+        console.error('Failed to load Google Maps API');
+        toast({
+          title: 'Error',
+          description: 'Failed to load location services',
+          variant: 'destructive'
+        });
+      };
     }
-  };
+    
+    // Set initial search results
+    const allLocations = [...UAE_COMMON_LOCATIONS, ...UAE_LANDMARKS];
+    setSearchResults(allLocations);
+  }, [toast]);
   
-  // Handle selection of a place
-  const handlePlaceSelect = (placeId: string) => {
-    if (!placesService) {
-      setError('Location service not available');
+  // Update search results based on query
+  useEffect(() => {
+    if (!query.trim()) {
+      // When empty, show all locations
+      const allLocations = [...UAE_COMMON_LOCATIONS, ...UAE_LANDMARKS];
+      setSearchResults(allLocations);
       return;
     }
     
-    setIsLoading(true);
+    const lowerQuery = query.toLowerCase();
     
-    // Get place details
-    placesService.getDetails(
-      {
-        placeId,
-        fields: ['name', 'formatted_address', 'geometry', 'place_id', 'address_components']
-      },
-      (place, status) => {
-        setIsLoading(false);
-        
-        if (status === google.maps.places.PlacesServiceStatus.OK && place && place.geometry?.location) {
-          // Create a location object with UAE-specific fields
-          const location: Location = {
-            address: place.formatted_address || 'Unknown address',
-            coordinates: {
-              lat: place.geometry.location.lat(),
-              lng: place.geometry.location.lng()
-            },
-            place_id: place.place_id,
-            name: place.name,
-            formatted_address: place.formatted_address,
-            district: '',
-            city: '',
-            area: ''
-          };
-          
-          // Extract UAE-specific data from address components
-          if (place.address_components) {
-            place.address_components.forEach(component => {
-              if (component.types.includes('sublocality_level_1') || component.types.includes('sublocality')) {
-                location.district = component.long_name;
-              } else if (component.types.includes('locality')) {
-                location.city = component.long_name;
-              } else if (component.types.includes('administrative_area_level_1')) {
-                location.area = component.long_name;
-              }
-            });
-          }
-          
-          // Pass the location to the parent component
-          onLocationSelect(location);
-          
-          // Clear the input and predictions
-          setQuery('');
-          setPredictions([]);
-        } else {
-          setError('Could not retrieve location details');
-        }
-      }
+    // Filter common locations and landmarks
+    const filteredCommon = UAE_COMMON_LOCATIONS.filter(
+      loc => loc.name.toLowerCase().includes(lowerQuery)
     );
+    
+    const filteredLandmarks = UAE_LANDMARKS.filter(
+      loc => loc.name.toLowerCase().includes(lowerQuery) || 
+             loc.area.toLowerCase().includes(lowerQuery) ||
+             loc.city.toLowerCase().includes(lowerQuery)
+    );
+    
+    // Prioritize exact matches
+    const results = [...filteredCommon, ...filteredLandmarks].sort((a, b) => {
+      // Exact name match gets highest priority
+      if (a.name.toLowerCase() === lowerQuery) return -1;
+      if (b.name.toLowerCase() === lowerQuery) return 1;
+      
+      // Then partial name matches
+      const aNameMatch = a.name.toLowerCase().includes(lowerQuery);
+      const bNameMatch = b.name.toLowerCase().includes(lowerQuery);
+      if (aNameMatch && !bNameMatch) return -1;
+      if (bNameMatch && !aNameMatch) return 1;
+      
+      // Priority for Al Wahda Mall
+      if (lowerQuery.includes('al wahd')) {
+        if (a.name === 'Al Wahda Mall') return -1;
+        if (b.name === 'Al Wahda Mall') return 1;
+      }
+      
+      // Default ordering
+      return a.name.localeCompare(b.name);
+    });
+    
+    setSearchResults(results);
+  }, [query]);
+  
+  // Function to handle location selection
+  const handleLocationSelect = (location: any) => {
+    // Transform to proper Location type
+    const selectedLocation: Location = {
+      address: location.name + (location.area ? `, ${location.area}` : '') + (location.city ? `, ${location.city}` : '') + ', UAE',
+      coordinates: location.coordinates,
+      place_id: '', // Not provided by static data
+      name: location.name,
+      formatted_address: location.name + (location.area ? `, ${location.area}` : '') + (location.city ? `, ${location.city}` : '') + ', UAE',
+      district: location.city || undefined,
+      city: location.city || undefined,
+      area: location.area || undefined
+    };
+    
+    // Save to recent locations
+    saveRecentLocation(selectedLocation);
+    
+    // Call the handler
+    onLocationSelect(selectedLocation);
+    setOpen(false);
+    setQuery(''); // Reset search field
   };
   
-  // Clear the input
-  const handleClear = () => {
-    setQuery('');
-    setPredictions([]);
-    if (inputRef.current) {
-      inputRef.current.focus();
+  // Save a selected location to localStorage
+  const saveRecentLocation = (location: Location) => {
+    try {
+      // Get existing locations
+      const stored = localStorage.getItem('recentMapLocations');
+      const existing = stored ? JSON.parse(stored) : [];
+      
+      // Remove duplicates
+      const filtered = existing.filter((loc: Location) => 
+        loc.address !== location.address
+      );
+      
+      // Add new location to beginning
+      const updated = [location, ...filtered].slice(0, 5);
+      
+      // Save back to localStorage and state
+      localStorage.setItem('recentMapLocations', JSON.stringify(updated));
+      setRecentLocations(updated);
+    } catch (err) {
+      console.error('Error saving recent location:', err);
     }
   };
   
-  // If the API is not available yet, show a loading state
-  if (!isApiLoaded) {
-    return (
-      <div className={`relative ${containerClassName}`}>
-        <Input
-          disabled
-          placeholder="Loading location search..."
-          className={inputClassName}
-        />
-        <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
-          <Loader2 className="h-4 w-4 animate-spin text-gray-400" />
-        </div>
-      </div>
-    );
-  }
+  // Function to get appropriate icon for location type
+  const getLocationIcon = (location: any) => {
+    // City icon
+    if (UAE_COMMON_LOCATIONS.some(city => city.name === location.name)) {
+      return <Building className="mr-2 h-4 w-4" />;
+    }
+    
+    // Landmark icon
+    if (location.area && location.city) {
+      return <Landmark className="mr-2 h-4 w-4" />;
+    }
+    
+    // Default icon
+    return <MapPin className="mr-2 h-4 w-4" />;
+  };
   
   return (
-    <div className={`relative ${containerClassName}`}>
-      <div className="relative">
-        <Input
-          ref={inputRef}
-          type="text"
-          placeholder={placeholder}
-          value={query}
-          onChange={handleInputChange}
-          className={`pr-8 ${inputClassName}`}
-          disabled={disabled || isLoading}
-        />
-        {isLoading && (
-          <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
-            <Loader2 className="h-4 w-4 animate-spin text-gray-400" />
+    <div className={cn("w-full", className)}>
+      <Popover open={open} onOpenChange={setOpen}>
+        <PopoverTrigger asChild>
+          <div className="relative w-full">
+            <Input
+              placeholder={placeholder}
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              className="w-full pr-8"
+              onFocus={() => setOpen(true)}
+            />
+            <div className="absolute inset-y-0 right-0 flex items-center pr-2">
+              {query ? (
+                <X
+                  className="h-4 w-4 text-muted-foreground cursor-pointer hover:text-foreground"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setQuery('');
+                  }}
+                />
+              ) : (
+                <Search className="h-4 w-4 text-muted-foreground" />
+              )}
+            </div>
           </div>
-        )}
-        {query && !isLoading && (
-          <Button
-            type="button"
-            variant="ghost"
-            size="icon"
-            className="absolute right-2 top-1/2 transform -translate-y-1/2 h-6 w-6"
-            onClick={handleClear}
-            disabled={disabled}
-          >
-            <X className="h-3 w-3" />
-          </Button>
-        )}
-      </div>
-      
-      {error && (
-        <Alert variant="destructive" className="mt-2">
-          <AlertDescription>{error}</AlertDescription>
-        </Alert>
-      )}
-      
-      {predictions.length > 0 && (
-        <Card className="absolute z-50 w-full mt-1 p-0 shadow-md max-h-64 overflow-auto">
-          <ul className="py-1">
-            {predictions.map((prediction) => (
-              <li
-                key={prediction.place_id}
-                className="px-3 py-2 hover:bg-gray-100 cursor-pointer flex items-start gap-2"
-                onClick={() => handlePlaceSelect(prediction.place_id)}
-              >
-                <MapPin className="h-4 w-4 mt-0.5 flex-shrink-0 text-gray-500" />
-                <div>
-                  <div className="text-sm font-medium">
-                    {prediction.structured_formatting?.main_text || prediction.description}
-                  </div>
-                  {prediction.structured_formatting?.secondary_text && (
-                    <div className="text-xs text-gray-500">
-                      {prediction.structured_formatting.secondary_text}
-                    </div>
-                  )}
-                </div>
-              </li>
-            ))}
-          </ul>
-        </Card>
-      )}
+        </PopoverTrigger>
+        
+        <PopoverContent className="p-0 w-[300px] max-h-[400px] overflow-auto" align="start">
+          <Command>
+            <CommandInput 
+              placeholder="Search UAE locations..." 
+              value={query}
+              onValueChange={setQuery}
+            />
+            <CommandList>
+              <CommandEmpty>No locations found</CommandEmpty>
+              
+              {recentLocations.length > 0 && (
+                <CommandGroup heading="Recent Locations">
+                  {recentLocations.map((location, index) => (
+                    <CommandItem
+                      key={`recent-${index}`}
+                      value={`recent-${location.name}`}
+                      onSelect={() => onLocationSelect(location)}
+                    >
+                      <MapPin className="mr-2 h-4 w-4 text-blue-500" />
+                      <span>{location.name}</span>
+                      {location.area && <span className="ml-1 text-muted-foreground text-xs">{location.area}</span>}
+                    </CommandItem>
+                  ))}
+                </CommandGroup>
+              )}
+              
+              {searchResults.length > 0 && (
+                <CommandGroup heading="Locations">
+                  {searchResults.map((location, index) => (
+                    <CommandItem
+                      key={`result-${index}`}
+                      value={location.name}
+                      onSelect={() => handleLocationSelect(location)}
+                    >
+                      {getLocationIcon(location)}
+                      <span>{location.name}</span>
+                      {location.area && (
+                        <span className="ml-1 text-muted-foreground text-xs">
+                          {location.area}, {location.city}
+                        </span>
+                      )}
+                    </CommandItem>
+                  ))}
+                </CommandGroup>
+              )}
+            </CommandList>
+          </Command>
+        </PopoverContent>
+      </Popover>
     </div>
   );
 }
+
+export default UAELocationSearch;

@@ -6,6 +6,7 @@ import { getGoogleMapsApiKey } from '@/lib/map-config';
 import { WeatherEventOverlay } from '@/components/weather-event-overlay';
 import { Button } from '@/components/ui/button';
 import { FallbackLocationSelector } from '@/components/fallback-location-selector';
+import { UAELocationSearch } from '@/components/uae-location-search';
 
 // Define the common Location interface
 export interface Location {
@@ -323,10 +324,33 @@ export function MapViewNew({
             className={className}
           />
         ) : (
-          <div 
-            ref={mapRef} 
-            style={{ width: '100%', height: '600px' }}
-          />
+          <div className="relative">
+            {/* UAE Location Search Bar */}
+            {editable && onLocationSelect && (
+              <div className="absolute top-2 left-2 right-2 z-20 flex gap-2">
+                <div className="flex-1 bg-white/95 rounded-md shadow-md overflow-hidden">
+                  <div className="p-2 flex gap-2">
+                    <div className="flex-1">
+                      <UAELocationSearch 
+                        onLocationSelect={(location) => {
+                          if (onLocationSelect) {
+                            // Show selection buttons to determine if this is pickup or dropoff
+                            setClickedLocation(location);
+                            setShowLocationButtons(true);
+                          }
+                        }}
+                      />
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+            
+            <div 
+              ref={mapRef} 
+              style={{ width: '100%', height: '600px' }}
+            />
+          </div>
         )}
         
         {routeError && (

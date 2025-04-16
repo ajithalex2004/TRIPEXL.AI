@@ -1,247 +1,177 @@
-import React, { useState, useEffect } from 'react';
-import { Loader2, Cloud, AlertTriangle, Clock, Map, Info } from 'lucide-react';
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
-import { getWeatherForLocation, getEventsNearLocation, WeatherData, EventData } from '@/lib/weather-service';
-import { Separator } from '@/components/ui/separator';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import React, { useEffect, useState } from 'react';
+import { Cloudy, CloudRain, Droplets, Wind, SunSnow, ThermometerSun, CloudSun, CalendarRange } from 'lucide-react';
+import { Card, CardContent } from '@/components/ui/card';
 
 interface WeatherEventOverlayProps {
-  coordinates?: { lat: number; lng: number } | null;
-  className?: string;
+  coordinates?: { lat: number; lng: number };
 }
 
-export function WeatherEventOverlay({ 
-  coordinates, 
-  className = '' 
-}: WeatherEventOverlayProps) {
-  const [loading, setLoading] = useState<boolean>(false);
-  const [error, setError] = useState<string | null>(null);
+interface WeatherData {
+  temperature: number;
+  condition: string;
+  humidity: number;
+  windSpeed: number;
+  icon: React.ReactNode;
+}
+
+export function WeatherEventOverlay({ coordinates }: WeatherEventOverlayProps) {
   const [weather, setWeather] = useState<WeatherData | null>(null);
-  const [events, setEvents] = useState<EventData[]>([]);
-  const [activeTab, setActiveTab] = useState('weather');
+  const [events, setEvents] = useState<string[]>([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const fetchWeatherAndEvents = async () => {
-      if (!coordinates) {
-        setWeather(null);
-        setEvents([]);
-        return;
-      }
-
+    if (!coordinates) return;
+    
+    // Instead of making actual API calls, we'll simulate weather data for UAE
+    // This would normally be an API call to a weather service
+    const getSimulatedWeather = () => {
       setLoading(true);
-      setError(null);
-
-      try {
-        // Fetch weather and events in parallel
-        const [weatherData, eventsData] = await Promise.all([
-          getWeatherForLocation(coordinates.lat, coordinates.lng),
-          getEventsNearLocation(coordinates.lat, coordinates.lng)
-        ]);
-
-        setWeather(weatherData);
-        setEvents(eventsData);
-      } catch (err) {
-        console.error('Failed to fetch weather or events:', err);
-        setError('Unable to load weather and event information');
-        setWeather(null);
-        setEvents([]);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchWeatherAndEvents();
-  }, [coordinates]);
-
-  // Format a date string for display
-  const formatTime = (isoString: string) => {
-    const date = new Date(isoString);
-    return date.toLocaleTimeString('en-AE', { 
-      hour: '2-digit', 
-      minute: '2-digit', 
-      hour12: true 
-    });
-  };
-
-  // Format a date for event display
-  const formatEventTime = (start: string, end: string) => {
-    const startDate = new Date(start);
-    const endDate = new Date(end);
-    
-    const startStr = startDate.toLocaleTimeString('en-AE', { 
-      hour: '2-digit', 
-      minute: '2-digit', 
-      hour12: true 
-    });
-    
-    const endStr = endDate.toLocaleTimeString('en-AE', { 
-      hour: '2-digit', 
-      minute: '2-digit', 
-      hour12: true 
-    });
-    
-    const today = new Date();
-    
-    let datePrefix = '';
-    if (startDate.toDateString() === today.toDateString()) {
-      datePrefix = 'Today';
-    } else if (
-      new Date(today.getTime() + 24 * 60 * 60 * 1000).toDateString() === 
-      startDate.toDateString()
-    ) {
-      datePrefix = 'Tomorrow';
-    } else {
-      datePrefix = startDate.toLocaleDateString('en-AE', { 
-        weekday: 'short', 
-        month: 'short', 
-        day: 'numeric' 
-      });
-    }
-    
-    return `${datePrefix}, ${startStr} - ${endStr}`;
-  };
-
-  // Get impact level badge color
-  const getImpactColor = (level: 'low' | 'medium' | 'high') => {
-    switch (level) {
-      case 'low': return 'bg-green-100 text-green-800 hover:bg-green-100';
-      case 'medium': return 'bg-yellow-100 text-yellow-800 hover:bg-yellow-100';
-      case 'high': return 'bg-red-100 text-red-800 hover:bg-red-100';
-      default: return '';
-    }
-  };
-
-  if (!coordinates) {
-    return null;
-  }
-
-  return (
-    <Card className={`${className} overflow-hidden`}>
-      <Tabs defaultValue="weather" onValueChange={setActiveTab}>
-        <CardHeader className="pb-2">
-          <div className="flex justify-between items-center">
-            <CardTitle className="text-lg">
-              {activeTab === 'weather' ? 'Weather Conditions' : 'Local Events'}
-            </CardTitle>
-            <TabsList>
-              <TabsTrigger value="weather" className="text-xs px-3">
-                <Cloud className="h-3 w-3 mr-1" />
-                Weather
-              </TabsTrigger>
-              <TabsTrigger value="events" className="text-xs px-3">
-                <AlertTriangle className="h-3 w-3 mr-1" />
-                Events {events.length > 0 && `(${events.length})`}
-              </TabsTrigger>
-            </TabsList>
-          </div>
-          <CardDescription>
-            {weather ? `For ${weather.locationName}, UAE` : 'Loading location data...'}
-          </CardDescription>
-        </CardHeader>
-
-        <CardContent className="pb-2">
-          {loading ? (
-            <div className="flex flex-col items-center justify-center py-6">
-              <Loader2 className="h-8 w-8 animate-spin text-primary mb-2" />
-              <p className="text-sm text-muted-foreground">Loading data...</p>
-            </div>
-          ) : error ? (
-            <div className="flex flex-col items-center justify-center py-6">
-              <AlertTriangle className="h-8 w-8 text-destructive mb-2" />
-              <p className="text-sm text-muted-foreground">{error}</p>
-            </div>
-          ) : (
-            <>
-              <TabsContent value="weather" className="m-0">
-                {weather && (
-                  <div className="flex flex-col">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center">
-                        <span className="text-4xl mr-2">{weather.icon}</span>
-                        <div>
-                          <div className="text-2xl font-semibold">{weather.temperature}°C</div>
-                          <div className="text-sm text-muted-foreground">{weather.condition}</div>
-                        </div>
-                      </div>
-                      <div className="text-right">
-                        <div className="text-sm">Humidity: {weather.humidity}%</div>
-                        <div className="text-sm">Wind: {weather.windSpeed} km/h</div>
-                      </div>
-                    </div>
-                    
-                    <Separator className="my-3" />
-                    
-                    <div className="text-sm text-muted-foreground flex items-center">
-                      <Clock className="h-3 w-3 mr-1 inline" />
-                      <span>Updated at {formatTime(weather.timestamp)}</span>
-                    </div>
-                    
-                    {events.length > 0 && (
-                      <div className="mt-2 pt-2 text-sm">
-                        <span className="font-medium text-amber-600 flex items-center">
-                          <AlertTriangle className="h-3 w-3 mr-1" />
-                          {events.length} event{events.length !== 1 ? 's' : ''} may affect travel
-                        </span>
-                      </div>
-                    )}
-                  </div>
-                )}
-              </TabsContent>
-              
-              <TabsContent value="events" className="m-0">
-                {events.length === 0 ? (
-                  <div className="py-4 text-center">
-                    <div className="text-4xl mb-2">🎉</div>
-                    <p className="text-muted-foreground">No events affecting this area</p>
-                  </div>
-                ) : (
-                  <div className="space-y-3">
-                    {events.map((event) => (
-                      <div key={event.id} className="rounded-lg border p-3">
-                        <div className="flex justify-between items-start">
-                          <div className="font-medium leading-tight">{event.title}</div>
-                          <Badge 
-                            variant="outline" 
-                            className={`ml-2 ${getImpactColor(event.impactLevel)}`}
-                          >
-                            {event.impactLevel} impact
-                          </Badge>
-                        </div>
-                        
-                        <div className="text-sm text-muted-foreground mt-1 mb-2">
-                          {event.description}
-                        </div>
-                        
-                        <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                          <div className="flex items-center">
-                            <Clock className="h-3 w-3 mr-1" />
-                            <span>{formatEventTime(event.startTime, event.endTime)}</span>
-                          </div>
-                          <div className="flex items-center">
-                            <Map className="h-3 w-3 mr-1" />
-                            <span>{event.location}</span>
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </TabsContent>
-            </>
-          )}
-        </CardContent>
+      
+      // Simulate API delay
+      setTimeout(() => {
+        // Get current month (1-12)
+        const month = new Date().getMonth() + 1;
         
-        <CardFooter className="pt-0">
-          <div className="w-full flex justify-end">
-            <Button variant="ghost" size="sm" className="h-7 text-xs">
-              <Info className="h-3 w-3 mr-1" />
-              Travel Advisory
-            </Button>
+        // UAE weather varies by season
+        let simulatedWeather: WeatherData;
+        
+        // Summer (May to September)
+        if (month >= 5 && month <= 9) {
+          simulatedWeather = {
+            temperature: Math.floor(Math.random() * 10) + 35, // 35-45°C
+            condition: Math.random() > 0.8 ? 'Hazy' : 'Clear',
+            humidity: Math.floor(Math.random() * 20) + 40, // 40-60%
+            windSpeed: Math.floor(Math.random() * 10) + 5, // 5-15 km/h
+            icon: <ThermometerSun className="h-5 w-5 text-orange-500" />
+          };
+        }
+        // Winter (December to February)
+        else if (month >= 12 || month <= 2) {
+          simulatedWeather = {
+            temperature: Math.floor(Math.random() * 10) + 20, // 20-30°C
+            condition: Math.random() > 0.7 ? 'Partly Cloudy' : 'Clear',
+            humidity: Math.floor(Math.random() * 20) + 50, // 50-70%
+            windSpeed: Math.floor(Math.random() * 15) + 10, // 10-25 km/h
+            icon: <CloudSun className="h-5 w-5 text-blue-500" />
+          };
+        }
+        // Spring/Fall
+        else {
+          simulatedWeather = {
+            temperature: Math.floor(Math.random() * 10) + 25, // 25-35°C
+            condition: Math.random() > 0.6 ? 'Partly Cloudy' : 'Clear',
+            humidity: Math.floor(Math.random() * 20) + 45, // 45-65%
+            windSpeed: Math.floor(Math.random() * 12) + 8, // 8-20 km/h
+            icon: <CloudSun className="h-5 w-5 text-blue-400" />
+          };
+        }
+        
+        // Simulate nearby events
+        let simulatedEvents = [];
+        
+        // Randomly choose 0-2 events
+        const numEvents = Math.floor(Math.random() * 3);
+        const possibleEvents = [
+          "Road construction on Sheikh Zayed Road",
+          "Traffic congestion near Dubai Mall",
+          "Lane closure on Al Khail Road",
+          "Event at World Trade Centre",
+          "Heavy traffic near Mall of the Emirates",
+          "Accident on Emirates Road",
+          "Traffic diversion near Burj Khalifa",
+          "Road maintenance in Jumeirah",
+          "Exhibition at Dubai Exhibition Centre",
+          "Concert at Coca-Cola Arena"
+        ];
+        
+        for (let i = 0; i < numEvents; i++) {
+          const randomIndex = Math.floor(Math.random() * possibleEvents.length);
+          simulatedEvents.push(possibleEvents[randomIndex]);
+          // Remove the selected event to avoid duplicates
+          possibleEvents.splice(randomIndex, 1);
+        }
+        
+        setWeather(simulatedWeather);
+        setEvents(simulatedEvents);
+        setLoading(false);
+      }, 800); // Simulate loading time
+    };
+    
+    getSimulatedWeather();
+    
+    // In a real implementation, we would clean up API requests here
+    return () => {
+      // Cancel any pending API requests
+    };
+  }, [coordinates]);
+  
+  if (!coordinates) return null;
+  
+  return (
+    <Card className="backdrop-blur-sm bg-white/80 dark:bg-gray-900/80 shadow-lg border-white/10">
+      <CardContent className="p-3">
+        {loading ? (
+          <div className="h-20 flex items-center justify-center">
+            <div className="animate-pulse flex space-x-4">
+              <div className="rounded-full bg-slate-200 h-8 w-8"></div>
+              <div className="flex-1 space-y-2 py-1">
+                <div className="h-2 bg-slate-200 rounded"></div>
+                <div className="h-2 bg-slate-200 rounded w-3/4"></div>
+              </div>
+            </div>
           </div>
-        </CardFooter>
-      </Tabs>
+        ) : (
+          <>
+            {/* Weather section */}
+            {weather && (
+              <div className="flex items-center justify-between mb-2">
+                <div className="flex items-center gap-2">
+                  {weather.icon}
+                  <div>
+                    <p className="font-medium text-sm">{weather.condition}</p>
+                    <p className="text-xs text-muted-foreground">
+                      {weather.temperature}°C | Humidity: {weather.humidity}%
+                    </p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-1">
+                  <Wind className="h-3.5 w-3.5 text-blue-500" />
+                  <span className="text-xs">{weather.windSpeed} km/h</span>
+                </div>
+              </div>
+            )}
+            
+            {/* Area events */}
+            {events.length > 0 && (
+              <div className="border-t pt-2 mt-2">
+                <div className="flex items-center gap-1 mb-1">
+                  <CalendarRange className="h-3.5 w-3.5 text-amber-500" />
+                  <p className="text-xs font-medium">Nearby events</p>
+                </div>
+                <ul className="text-xs space-y-1">
+                  {events.map((event, index) => (
+                    <li key={index} className="flex items-start gap-1.5">
+                      <span className="text-amber-500 inline-block mt-0.5">•</span>
+                      <span className="text-muted-foreground">{event}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+            
+            {events.length === 0 && (
+              <div className="border-t pt-2 mt-2">
+                <div className="flex items-center gap-1">
+                  <CalendarRange className="h-3.5 w-3.5 text-green-500" />
+                  <p className="text-xs text-muted-foreground">No traffic events reported nearby</p>
+                </div>
+              </div>
+            )}
+          </>
+        )}
+      </CardContent>
     </Card>
   );
 }
+
+export default WeatherEventOverlay;
