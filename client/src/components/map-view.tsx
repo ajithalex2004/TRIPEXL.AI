@@ -59,7 +59,7 @@ export function MapView({
   const [routeError, setRouteError] = useState<string | null>(null);
   const [mapError, setMapError] = useState<boolean>(false);
   const [useStaticFallback, setUseStaticFallback] = useState<boolean>(false);
-  const [useIframeMap, setUseIframeMap] = useState<boolean>(true);
+  const [useIframeMap, setUseIframeMap] = useState<boolean>(false);
   
   // Log available key
   useEffect(() => {
