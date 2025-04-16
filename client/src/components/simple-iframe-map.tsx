@@ -167,13 +167,49 @@ export function SimpleIframeMap({
       {editable && (
         <div className="absolute top-2 left-2 right-2 z-20 bg-white/90 p-3 rounded-lg shadow-md">
           <div className="flex flex-col gap-2">
-            <UAELocationAutocomplete
-              value={searchValue}
-              placeholder="Search for a location in UAE..."
-              onLocationSelect={handleLocationSelect}
-              onClear={handleClearLocation}
-              onSearchChange={setSearchValue}
-            />
+            <div className="relative">
+              <Input
+                ref={searchInputRef}
+                type="text"
+                value={searchValue}
+                placeholder="Search for a location in UAE..."
+                onChange={handleSearchChange}
+                className="pr-10"
+              />
+              {searchValue ? (
+                <X
+                  className="absolute right-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4 cursor-pointer hover:text-foreground"
+                  onClick={handleClearLocation}
+                  aria-label="Clear location"
+                />
+              ) : (
+                <Search 
+                  className="absolute right-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" 
+                />
+              )}
+              
+              {/* Search results */}
+              {showResults && searchResults.length > 0 && (
+                <div 
+                  ref={searchResultsRef}
+                  className="absolute top-full left-0 right-0 mt-1 bg-white rounded-md shadow-lg z-30 max-h-48 overflow-y-auto"
+                >
+                  {searchResults.map((location, index) => (
+                    <div 
+                      key={`location-${index}`}
+                      className="px-4 py-2 hover:bg-gray-100 cursor-pointer flex items-center"
+                      onClick={() => handleSelectSearchResult(location)}
+                    >
+                      <MapPin className="h-4 w-4 mr-2 flex-shrink-0 text-primary" />
+                      <div className="flex flex-col">
+                        <span className="font-medium">{location.name}</span>
+                        <span className="text-xs text-gray-500">{location.address}</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
             
             {selectedLocation && (
               <div className="flex flex-row gap-2 mt-2">
