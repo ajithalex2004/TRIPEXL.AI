@@ -387,10 +387,10 @@ export function MapViewNew({
                       variant="outline"
                       className="h-8 w-8 bg-white/80 backdrop-blur-sm shadow-sm"
                       onClick={() => {
-                        if (!map) return;
+                        if (!mapInstance) return;
                         
-                        map.setMapTypeId(
-                          map.getMapTypeId() === 'roadmap' ? 'satellite' : 'roadmap'
+                        mapInstance.setMapTypeId(
+                          mapInstance.getMapTypeId() === 'roadmap' ? 'satellite' : 'roadmap'
                         );
                       }}
                     >
@@ -411,12 +411,12 @@ export function MapViewNew({
                       variant={showTraffic ? "default" : "outline"}
                       className={`h-8 w-8 ${showTraffic ? "bg-blue-600" : "bg-white/80 backdrop-blur-sm"} shadow-sm`}
                       onClick={() => {
-                        if (!map) return;
+                        if (!mapInstance) return;
                         
                         if (!showTraffic) {
                           // Turn on traffic layer
                           const trafficLayer = new google.maps.TrafficLayer();
-                          trafficLayer.setMap(map);
+                          trafficLayer.setMap(mapInstance);
                           
                           // Optionally calculate route with traffic
                           if (pickupLocation?.coordinates && dropoffLocation?.coordinates) {
@@ -483,13 +483,13 @@ export function MapViewNew({
                         variant="outline"
                         className="h-8 w-8 bg-white/80 backdrop-blur-sm shadow-sm"
                         onClick={() => {
-                          if (!map || !pickupLocation || !dropoffLocation) return;
+                          if (!mapInstance || !pickupLocation || !dropoffLocation) return;
                           
                           const bounds = new google.maps.LatLngBounds();
                           bounds.extend(new google.maps.LatLng(pickupLocation.coordinates.lat, pickupLocation.coordinates.lng));
                           bounds.extend(new google.maps.LatLng(dropoffLocation.coordinates.lat, dropoffLocation.coordinates.lng));
                           
-                          map.fitBounds(bounds);
+                          mapInstance.fitBounds(bounds);
                         }}
                       >
                         <Route className="h-4 w-4" />
