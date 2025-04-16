@@ -253,22 +253,28 @@ export function UAELocationAutocomplete({
     }
   };
 
-  // Update suggestions based on input
+  // Update suggestions based on input - show all matches as user types
   useEffect(() => {
-    if (!query || query.length < 2) {
+    // Always show suggestions when dropdown is open
+    if (!query && !open) {
+      // When empty and not focused, show nothing
       setSuggestedLocations([]);
+      return;
+    } else if (!query && open) {
+      // When empty but focused, show all available locations
+      setSuggestedLocations([...UAE_COMMON_LOCATIONS, ...UAE_COMMON_LANDMARKS]);
       return;
     }
 
-    // Filter common locations and landmarks based on query
+    // When typing, filter based on query
     const queryLower = query.toLowerCase();
     
-    // First check common cities and areas
+    // First check common cities and areas - match partial text
     const filteredCommonLocations = UAE_COMMON_LOCATIONS.filter(
       location => location.name.toLowerCase().includes(queryLower)
     );
     
-    // Then check landmarks
+    // Then check landmarks - match partial text in any field
     const filteredLandmarks = UAE_COMMON_LANDMARKS.filter(
       landmark => 
         landmark.name.toLowerCase().includes(queryLower) ||
@@ -277,7 +283,7 @@ export function UAELocationAutocomplete({
     );
     
     setSuggestedLocations([...filteredCommonLocations, ...filteredLandmarks]);
-  }, [query]);
+  }, [query, open]);
 
   // Handle selection from suggested locations
   const handleSuggestionSelect = (suggestion: any) => {

@@ -406,6 +406,7 @@ export function MapView({
                   fullscreenControl: true
                 }}
                 onClick={editable && onLocationSelect ? (e) => handleMapClick(e) : undefined}
+                style={{ height: '600px', width: '100%' }} // Increase map height
               />
             </MapWorker>
           </AntiFreezeWrapper>

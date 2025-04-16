@@ -36,6 +36,7 @@ interface OptimizedGoogleMapProps {
   center?: google.maps.LatLngLiteral;
   zoom?: number;
   options?: google.maps.MapOptions;
+  style?: React.CSSProperties; // Added style property
 }
 
 export function OptimizedGoogleMap({
@@ -47,7 +48,8 @@ export function OptimizedGoogleMap({
   onClick,
   center = MAP_CONFIG.defaultCenter,
   zoom = MAP_CONFIG.defaultZoom,
-  options = {}
+  options = {},
+  style = {}
 }: OptimizedGoogleMapProps) {
   // We need to track our own loading state
   const [isMapReady, setIsMapReady] = useState(false);

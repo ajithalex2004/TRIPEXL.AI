@@ -2561,8 +2561,54 @@ export function BookingForm() {
                           </div>
                         </div>
 
-                        {/* Map View */}
+                        {/* Map View with Location Search Above */}
                         <div className="space-y-4">
+                          {/* Location Search Fields Above Map */}
+                          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-2">
+                            <div>
+                              <label className="text-sm font-medium mb-1 block">Pickup Location</label>
+                              <UAELocationAutocomplete
+                                value={form.watch("pickupLocation")?.address || ""}
+                                placeholder="Search for pickup location"
+                                onLocationSelect={(location) => {
+                                  if (onLocationSelect) {
+                                    // Pass location to the same handler the map uses
+                                    const locationHandler = form.getValues().onLocationSelect;
+                                    if (locationHandler) {
+                                      locationHandler(location, 'pickup');
+                                    }
+                                  }
+                                }}
+                                onClear={() => {
+                                  form.setValue("pickupLocation", null);
+                                  setPickupLocation(null);
+                                }}
+                                isPickup={true}
+                              />
+                            </div>
+                            <div>
+                              <label className="text-sm font-medium mb-1 block">Dropoff Location</label>
+                              <UAELocationAutocomplete
+                                value={form.watch("dropoffLocation")?.address || ""}
+                                placeholder="Search for dropoff location"
+                                onLocationSelect={(location) => {
+                                  if (onLocationSelect) {
+                                    // Pass location to the same handler the map uses
+                                    const locationHandler = form.getValues().onLocationSelect;
+                                    if (locationHandler) {
+                                      locationHandler(location, 'dropoff');
+                                    }
+                                  }
+                                }}
+                                onClear={() => {
+                                  form.setValue("dropoffLocation", null);
+                                  setDropoffLocation(null);
+                                }}
+                                isPickup={false}
+                              />
+                            </div>
+                          </div>
+                          
                           {waypoints.length > 0 && (
                             <div className="flex items-center justify-between px-2 py-2 bg-primary/10 rounded-md border border-primary/20">
                               <div className="text-sm">
@@ -2585,7 +2631,9 @@ export function BookingForm() {
                               </Button>
                             </div>
                           )}
-                          <div className="h-[500px] relative rounded-lg overflow-hidden border">
+                          
+                          {/* Enlarged Map */}
+                          <div className="h-[600px] relative rounded-lg overflow-hidden border">
                             {/* Key attribute forces re-render when step changes */}
                             <MapView
                               key={`map-view-step-${currentStep}`}
