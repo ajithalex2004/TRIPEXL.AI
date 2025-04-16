@@ -1,12 +1,31 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
-import { MapPin, AlertTriangle } from 'lucide-react';
+import { 
+  MapPin, 
+  AlertTriangle, 
+  Car, 
+  LocateFixed, 
+  Layers, 
+  ZoomIn, 
+  ZoomOut, 
+  Eye,
+  RotateCw,
+  CornerRightDown,
+  Route,
+  Clock
+} from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { getGoogleMapsApiKey } from '@/lib/map-config';
 import { WeatherEventOverlay } from '@/components/weather-event-overlay';
 import { Button } from '@/components/ui/button';
 import { FallbackLocationSelector } from '@/components/fallback-location-selector';
 import { UAELocationSearch } from '@/components/uae-location-search';
+import { 
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 // Define the common Location interface
 export interface Location {
@@ -54,6 +73,9 @@ export function MapViewNew({
   const [clickedLocation, setClickedLocation] = useState<Location | null>(null);
   const [showLocationButtons, setShowLocationButtons] = useState<boolean>(false);
   const [routeError, setRouteError] = useState<string | null>(null);
+  const [showTraffic, setShowTraffic] = useState<boolean>(false);
+  const [estimatedTrafficTime, setEstimatedTrafficTime] = useState<number | null>(null);
+  const [estimatedBaseTime, setEstimatedBaseTime] = useState<number | null>(null);
   
   // Log available key
   useEffect(() => {
@@ -344,6 +366,239 @@ export function MapViewNew({
               </div>
             )}
             
+            {/* Map control buttons */}
+            <div className="absolute right-2 top-14 z-10 flex flex-col gap-2">
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      size="icon"
+                      variant="outline"
+                      className="h-8 w-8 bg-white/80 backdrop-blur-sm shadow-sm"
+                      onClick={() => {
+                        if (map) {
+                          map.setZoom((map.getZoom() || 10) + 1);
+                        }
+                      }}
+                    >
+                      <ZoomIn className="h-4 w-4" />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent side="left">
+                    <p>Zoom In</p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+              
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      size="icon"
+                      variant="outline"
+                      className="h-8 w-8 bg-white/80 backdrop-blur-sm shadow-sm"
+                      onClick={() => {
+                        if (map) {
+                          map.setZoom((map.getZoom() || 10) - 1);
+                        }
+                      }}
+                    >
+                      <ZoomOut className="h-4 w-4" />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent side="left">
+                    <p>Zoom Out</p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+              
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      size="icon"
+                      variant="outline"
+                      className="h-8 w-8 bg-white/80 backdrop-blur-sm shadow-sm"
+                      onClick={() => {
+                        if (navigator.geolocation && map) {
+                          navigator.geolocation.getCurrentPosition(
+                            (position) => {
+                              const userLocation = {
+                                lat: position.coords.latitude,
+                                lng: position.coords.longitude
+                              };
+                              map.setCenter(userLocation);
+                              map.setZoom(15);
+                              
+                              // Optionally create a user marker
+                              const userMarker = new google.maps.Marker({
+                                position: userLocation,
+                                map: map,
+                                icon: {
+                                  path: google.maps.SymbolPath.CIRCLE,
+                                  scale: 7,
+                                  fillColor: '#3b82f6',
+                                  fillOpacity: 1,
+                                  strokeColor: '#ffffff',
+                                  strokeWeight: 2
+                                },
+                                title: 'Your Location'
+                              });
+                              
+                              // Auto-remove after 5 seconds
+                              setTimeout(() => userMarker.setMap(null), 5000);
+                            },
+                            (error) => {
+                              console.error('Error getting user location', error);
+                              toast({
+                                title: 'Location access denied',
+                                description: 'Please enable location services to use this feature.',
+                                variant: 'destructive'
+                              });
+                            }
+                          );
+                        } else {
+                          toast({
+                            title: 'Geolocation not supported',
+                            description: 'Your browser does not support geolocation.',
+                            variant: 'destructive'
+                          });
+                        }
+                      }}
+                    >
+                      <LocateFixed className="h-4 w-4" />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent side="left">
+                    <p>My Location</p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+              
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      size="icon"
+                      variant="outline"
+                      className="h-8 w-8 bg-white/80 backdrop-blur-sm shadow-sm"
+                      onClick={() => {
+                        if (!map) return;
+                        
+                        map.setMapTypeId(
+                          map.getMapTypeId() === 'roadmap' ? 'satellite' : 'roadmap'
+                        );
+                      }}
+                    >
+                      <Layers className="h-4 w-4" />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent side="left">
+                    <p>Toggle Map Type</p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+              
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      size="icon"
+                      variant={showTraffic ? "default" : "outline"}
+                      className={`h-8 w-8 ${showTraffic ? "bg-blue-600" : "bg-white/80 backdrop-blur-sm"} shadow-sm`}
+                      onClick={() => {
+                        if (!map) return;
+                        
+                        if (!showTraffic) {
+                          // Turn on traffic layer
+                          const trafficLayer = new google.maps.TrafficLayer();
+                          trafficLayer.setMap(map);
+                          
+                          // Optionally calculate route with traffic
+                          if (pickupLocation?.coordinates && dropoffLocation?.coordinates) {
+                            const directionsService = new google.maps.DirectionsService();
+                            
+                            // First, get the route without traffic
+                            directionsService.route(
+                              {
+                                origin: pickupLocation.coordinates,
+                                destination: dropoffLocation.coordinates,
+                                travelMode: google.maps.TravelMode.DRIVING,
+                                drivingOptions: {
+                                  departureTime: new Date(),
+                                  trafficModel: google.maps.TrafficModel.BEST_GUESS
+                                }
+                              },
+                              (result, status) => {
+                                if (status === google.maps.DirectionsStatus.OK && result) {
+                                  if (result.routes && result.routes[0] && result.routes[0].legs) {
+                                    const route = result.routes[0];
+                                    const leg = route.legs[0];
+                                    
+                                    if (leg.duration_in_traffic && leg.duration) {
+                                      setEstimatedTrafficTime(leg.duration_in_traffic.value);
+                                      setEstimatedBaseTime(leg.duration.value);
+                                    }
+                                  }
+                                }
+                              }
+                            );
+                          }
+                          
+                          // Update state
+                          setShowTraffic(true);
+                        } else {
+                          // Turn off traffic layer
+                          const trafficLayer = new google.maps.TrafficLayer();
+                          trafficLayer.setMap(null);
+                          
+                          // Reset traffic estimates
+                          setEstimatedTrafficTime(null);
+                          setEstimatedBaseTime(null);
+                          
+                          // Update state
+                          setShowTraffic(false);
+                        }
+                      }}
+                    >
+                      <Car className="h-4 w-4" />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent side="left">
+                    <p>Toggle Traffic Layer</p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+              
+              {pickupLocation && dropoffLocation && (
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button
+                        size="icon"
+                        variant="outline"
+                        className="h-8 w-8 bg-white/80 backdrop-blur-sm shadow-sm"
+                        onClick={() => {
+                          if (!map || !pickupLocation || !dropoffLocation) return;
+                          
+                          const bounds = new google.maps.LatLngBounds();
+                          bounds.extend(new google.maps.LatLng(pickupLocation.coordinates.lat, pickupLocation.coordinates.lng));
+                          bounds.extend(new google.maps.LatLng(dropoffLocation.coordinates.lat, dropoffLocation.coordinates.lng));
+                          
+                          map.fitBounds(bounds);
+                        }}
+                      >
+                        <Route className="h-4 w-4" />
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent side="left">
+                      <p>Show Full Route</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+              )}
+            </div>
+            
             <div 
               ref={mapRef} 
               style={{ width: '100%', height: '600px' }}
@@ -355,6 +610,55 @@ export function MapViewNew({
           <div className="bg-amber-50 p-2 text-sm text-amber-800 flex items-center gap-2">
             <AlertTriangle className="h-4 w-4 text-amber-500" />
             {routeError}
+          </div>
+        )}
+        
+        {/* Traffic info banner when traffic mode is enabled */}
+        {showTraffic && estimatedTrafficTime && estimatedBaseTime && (
+          <div className="absolute top-14 left-2 z-10 w-64">
+            <Card className="bg-white/90 backdrop-blur-sm shadow-md border-blue-100">
+              <CardContent className="p-3">
+                <div className="flex flex-col gap-1">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-medium text-blue-900">Real-time Traffic</span>
+                    <span className="bg-blue-100 text-blue-800 text-xs px-2 py-0.5 rounded-full">LIVE</span>
+                  </div>
+                  
+                  <div className="mt-1 space-y-1">
+                    <div className="flex items-center justify-between text-sm">
+                      <span className="flex items-center text-gray-600">
+                        <Clock className="h-3.5 w-3.5 mr-1.5" />
+                        Normal time:
+                      </span>
+                      <span className="font-medium">
+                        {Math.floor(estimatedBaseTime / 60)} mins
+                      </span>
+                    </div>
+                    
+                    <div className="flex items-center justify-between text-sm">
+                      <span className="flex items-center text-gray-600">
+                        <Car className="h-3.5 w-3.5 mr-1.5" />
+                        With traffic:
+                      </span>
+                      <span className={`font-medium ${estimatedTrafficTime > estimatedBaseTime ? 'text-red-600' : 'text-green-600'}`}>
+                        {Math.floor(estimatedTrafficTime / 60)} mins
+                      </span>
+                    </div>
+                    
+                    {estimatedTrafficTime !== estimatedBaseTime && (
+                      <div className="flex items-center justify-between text-xs pt-1 border-t">
+                        <span className="text-gray-500">
+                          {estimatedTrafficTime > estimatedBaseTime ? 'Delay:' : 'Time saved:'}
+                        </span>
+                        <span className={`font-medium ${estimatedTrafficTime > estimatedBaseTime ? 'text-red-600' : 'text-green-600'}`}>
+                          {Math.abs(Math.floor((estimatedTrafficTime - estimatedBaseTime) / 60))} mins
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
           </div>
         )}
         
