@@ -2571,17 +2571,37 @@ export function BookingForm() {
                                 value={form.watch("pickupLocation")?.address || ""}
                                 placeholder="Search for pickup location"
                                 onLocationSelect={(location) => {
-                                  if (onLocationSelect) {
-                                    // Pass location to the same handler the map uses
-                                    const locationHandler = form.getValues().onLocationSelect;
-                                    if (locationHandler) {
-                                      locationHandler(location, 'pickup');
-                                    }
-                                  }
+                                  // Use the same location handling logic as the map component
+                                  const fieldName = "pickupLocation";
+                                  console.log(`Search onLocationSelect: Setting ${fieldName} with:`, JSON.stringify(location));
+                                  
+                                  // Create a complete location object with required properties
+                                  const completeLocation: Location = {
+                                    address: location.address || "",
+                                    coordinates: {
+                                      lat: Number(location.coordinates.lat),
+                                      lng: Number(location.coordinates.lng)
+                                    },
+                                    place_id: location.place_id || "",
+                                    name: location.name || location.address || "",
+                                    formatted_address: location.formatted_address || location.address || "",
+                                    district: location.district || "",
+                                    city: location.city || "",
+                                    area: location.area || "",
+                                    place_types: location.place_types || []
+                                  };
+                                  
+                                  // Update state and form
+                                  setPickupLocation(completeLocation);
+                                  form.setValue(fieldName, completeLocation, {
+                                    shouldValidate: true,
+                                    shouldDirty: true,
+                                    shouldTouch: true
+                                  });
                                 }}
                                 onClear={() => {
-                                  form.setValue("pickupLocation", null);
-                                  setPickupLocation(null);
+                                  form.setValue("pickupLocation", undefined);
+                                  setPickupLocation(undefined);
                                 }}
                                 isPickup={true}
                               />
@@ -2592,17 +2612,37 @@ export function BookingForm() {
                                 value={form.watch("dropoffLocation")?.address || ""}
                                 placeholder="Search for dropoff location"
                                 onLocationSelect={(location) => {
-                                  if (onLocationSelect) {
-                                    // Pass location to the same handler the map uses
-                                    const locationHandler = form.getValues().onLocationSelect;
-                                    if (locationHandler) {
-                                      locationHandler(location, 'dropoff');
-                                    }
-                                  }
+                                  // Use the same location handling logic as the map component
+                                  const fieldName = "dropoffLocation";
+                                  console.log(`Search onLocationSelect: Setting ${fieldName} with:`, JSON.stringify(location));
+                                  
+                                  // Create a complete location object with required properties
+                                  const completeLocation: Location = {
+                                    address: location.address || "",
+                                    coordinates: {
+                                      lat: Number(location.coordinates.lat),
+                                      lng: Number(location.coordinates.lng)
+                                    },
+                                    place_id: location.place_id || "",
+                                    name: location.name || location.address || "",
+                                    formatted_address: location.formatted_address || location.address || "",
+                                    district: location.district || "",
+                                    city: location.city || "",
+                                    area: location.area || "",
+                                    place_types: location.place_types || []
+                                  };
+                                  
+                                  // Update state and form
+                                  setDropoffLocation(completeLocation);
+                                  form.setValue(fieldName, completeLocation, {
+                                    shouldValidate: true,
+                                    shouldDirty: true,
+                                    shouldTouch: true
+                                  });
                                 }}
                                 onClear={() => {
-                                  form.setValue("dropoffLocation", null);
-                                  setDropoffLocation(null);
+                                  form.setValue("dropoffLocation", undefined);
+                                  setDropoffLocation(undefined);
                                 }}
                                 isPickup={false}
                               />

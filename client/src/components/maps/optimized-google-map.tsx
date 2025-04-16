@@ -153,11 +153,15 @@ export function OptimizedGoogleMap({
 
   // Render the map once it's loaded
   return (
-    <div className="relative rounded-md overflow-hidden" ref={mapDivRef}>
+    <div 
+      className="relative rounded-md overflow-hidden" 
+      ref={mapDivRef}
+      style={style}
+    >
       <GoogleMap
         mapContainerStyle={{
           width: '100%',
-          height: '500px',
+          height: style && 'height' in style ? undefined : '500px', // Use style height if provided
         }}
         center={center}
         zoom={zoom}
