@@ -135,62 +135,58 @@ export function SimpleIframeMap({
     const value = e.target.value;
     setSearchValue(value);
     
-    // Always show all POIs while typing, just sort them by relevance
-    if (!value.trim()) {
-      // When no search term, show all locations
-      setSearchResults(UAE_LOCATIONS);
-    } else {
-      // When typing, sort locations by relevance
-      const query = value.toLowerCase();
+    // Always show ALL UAE locations while typing, regardless of input
+    // But sort them by relevance to what's being typed
+    const query = value.toLowerCase();
+    
+    // For Al Wahda Mall specifically - boost its priority when 'al wahd' is typed
+    if (query.includes('al wahd')) {
+      const alWahdaMall = UAE_LOCATIONS.find(loc => 
+        loc.name.toLowerCase() === 'al wahda mall'
+      );
       
-      // For Al Wahda Mall specifically - boost its priority when 'al wahd' is typed
-      if (query.includes('al wahd')) {
-        const alWahdaMall = UAE_LOCATIONS.find(loc => 
-          loc.name.toLowerCase() === 'al wahda mall'
-        );
+      if (alWahdaMall) {
+        // Show Al Wahda Mall first and then the rest
+        const otherResults = UAE_LOCATIONS.filter(loc => 
+          loc.name.toLowerCase() !== 'al wahda mall'
+        ).sort((a, b) => a.name.localeCompare(b.name));
         
-        if (alWahdaMall) {
-          // Show Al Wahda Mall first and then the rest
-          const otherResults = UAE_LOCATIONS.filter(loc => 
-            loc.name.toLowerCase() !== 'al wahda mall'
-          ).sort((a, b) => a.name.localeCompare(b.name));
-          
-          setSearchResults([alWahdaMall, ...otherResults]);
-          return;
-        }
+        setSearchResults([alWahdaMall, ...otherResults]);
+        setShowResults(true);
+        return;
       }
-      
-      // Normal sorting by relevance for all other cases
-      const results = [...UAE_LOCATIONS].sort((a, b) => {
-        const aNameMatch = a.name.toLowerCase().includes(query);
-        const bNameMatch = b.name.toLowerCase().includes(query);
-        const aAddressMatch = a.address.toLowerCase().includes(query);
-        const bAddressMatch = b.address.toLowerCase().includes(query);
-        
-        // Special case for Al Wahda Mall
-        if (a.name === "Al Wahda Mall" && aNameMatch) return -1;
-        if (b.name === "Al Wahda Mall" && bNameMatch) return 1;
-        
-        // First prioritize exact name matches
-        if (a.name.toLowerCase() === query && b.name.toLowerCase() !== query) return -1;
-        if (b.name.toLowerCase() === query && a.name.toLowerCase() !== query) return 1;
-        
-        // Then prioritize any name matches
-        if (aNameMatch && !bNameMatch) return -1;
-        if (bNameMatch && !aNameMatch) return 1;
-        
-        // Then prioritize address matches
-        if (aAddressMatch && !bAddressMatch) return -1;
-        if (bAddressMatch && !aAddressMatch) return 1;
-        
-        // Default sorting by name
-        return a.name.localeCompare(b.name);
-      });
-      
-      setSearchResults(results);
     }
     
-    // Always show results when input is focused
+    // For all other cases, show all locations but sorted by relevance
+    const results = [...UAE_LOCATIONS].sort((a, b) => {
+      const aNameMatch = a.name.toLowerCase().includes(query);
+      const bNameMatch = b.name.toLowerCase().includes(query);
+      const aAddressMatch = a.address.toLowerCase().includes(query);
+      const bAddressMatch = b.address.toLowerCase().includes(query);
+      
+      // Special case for Al Wahda Mall
+      if (a.name === "Al Wahda Mall" && aNameMatch) return -1;
+      if (b.name === "Al Wahda Mall" && bNameMatch) return 1;
+      
+      // First prioritize exact name matches
+      if (a.name.toLowerCase() === query && b.name.toLowerCase() !== query) return -1;
+      if (b.name.toLowerCase() === query && a.name.toLowerCase() !== query) return 1;
+      
+      // Then prioritize any name matches
+      if (aNameMatch && !bNameMatch) return -1;
+      if (bNameMatch && !aNameMatch) return 1;
+      
+      // Then prioritize address matches
+      if (aAddressMatch && !bAddressMatch) return -1;
+      if (bAddressMatch && !aAddressMatch) return 1;
+      
+      // Default sorting by name
+      return a.name.localeCompare(b.name);
+    });
+    
+    setSearchResults(results);
+    
+    // Always show results when input is focused or has any content
     setShowResults(true);
     
     // Auto select Al Wahda Mall if typing matches exactly
@@ -240,14 +236,19 @@ export function SimpleIframeMap({
     }
   };
   
-  // Close search results when clicking outside
+  // Only close search results when specifically clicking outside the search area
+  // but keep it open when the input has focus for better autocomplete experience
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
+      // Only hide results if:
+      // 1. User clicked outside the search area AND 
+      // 2. The input doesn't have focus
       if (
         searchResultsRef.current && 
         !searchResultsRef.current.contains(event.target as Node) &&
         searchInputRef.current && 
-        !searchInputRef.current.contains(event.target as Node)
+        !searchInputRef.current.contains(event.target as Node) &&
+        document.activeElement !== searchInputRef.current
       ) {
         setShowResults(false);
       }
@@ -256,6 +257,22 @@ export function SimpleIframeMap({
     document.addEventListener('mousedown', handleClickOutside);
     return () => {
       document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, []);
+  
+  // Keep showing results when input has focus
+  useEffect(() => {
+    const checkFocusState = () => {
+      if (searchInputRef.current && document.activeElement === searchInputRef.current) {
+        setShowResults(true);
+      }
+    };
+    
+    // Check focus every 200ms
+    const intervalId = setInterval(checkFocusState, 200);
+    
+    return () => {
+      clearInterval(intervalId);
     };
   }, []);
   
@@ -274,8 +291,18 @@ export function SimpleIframeMap({
                 onChange={handleSearchChange}
                 onFocus={() => {
                   // Show all locations immediately when input is focused
-                  setSearchResults(UAE_LOCATIONS);
+                  // Sort alphabetically by default when just focusing
+                  const sortedLocations = [...UAE_LOCATIONS].sort((a, b) => 
+                    a.name.localeCompare(b.name)
+                  );
+                  setSearchResults(sortedLocations);
                   setShowResults(true);
+                }}
+                onClick={() => {
+                  // Also ensure locations show when clicking in the input
+                  if (!showResults) {
+                    setShowResults(true);
+                  }
                 }}
                 className="pr-10"
               />
