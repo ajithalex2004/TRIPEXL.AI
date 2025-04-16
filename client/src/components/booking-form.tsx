@@ -31,10 +31,6 @@ import {
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { LoadingIndicator } from "@/components/ui/loading-indicator";
-import IframeGoogleMaps from "@/components/iframe-google-maps";
-import BasicGoogleMaps from "@/components/basic-google-maps";
-import SimpleGoogleMaps from "@/components/simple-google-maps";
-import GoogleMapsWithSearch from "@/components/google-maps-with-search";
 import { MapView } from "@/components/map-view";
 import { motion, AnimatePresence } from "framer-motion";
 import { VehicleLoadingIndicator } from "@/components/ui/vehicle-loading-indicator";
@@ -2422,7 +2418,7 @@ export function BookingForm() {
                               <FormItem>
                                 <FormLabel>Pickup Location *</FormLabel>
                                 <FormControl>
-                                  <SimpleLocationSearch
+                                  <UAELocationAutocomplete
                                     value={field.value?.address || ""}
                                     placeholder="Enter pickup location"
                                     onLocationSelect={(location) => {
@@ -2439,6 +2435,15 @@ export function BookingForm() {
                                         shouldDirty: true,
                                         shouldTouch: true
                                       });
+                                    }}
+                                    onSearchChange={(query) => {
+                                      // Track the search query in the form
+                                      if (field.value) {
+                                        form.setValue("pickupLocation", {
+                                          ...(field.value || {}),
+                                          address: query
+                                        });
+                                      }
                                     }}
                                     onClear={() => {
                                       console.log("Clearing pickup location");
@@ -2466,7 +2471,7 @@ export function BookingForm() {
                               <FormItem>
                                 <FormLabel>Dropoff Location *</FormLabel>
                                 <FormControl>
-                                  <SimpleLocationSearch
+                                  <UAELocationAutocomplete
                                     value={field.value?.address || ""}
                                     placeholder="Enter dropoff location"
                                     onLocationSelect={(location) => {
@@ -2483,6 +2488,15 @@ export function BookingForm() {
                                         shouldDirty: true,
                                         shouldTouch: true
                                       });
+                                    }}
+                                    onSearchChange={(query) => {
+                                      // Track the search query in the form
+                                      if (field.value) {
+                                        form.setValue("dropoffLocation", {
+                                          ...(field.value || {}),
+                                          address: query
+                                        });
+                                      }
                                     }}
                                     onClear={() => {
                                       console.log("Clearing dropoff location");
@@ -2550,93 +2564,8 @@ export function BookingForm() {
                           </div>
                         </div>
 
-                        {/* Map View with Location Search Above */}
+                        {/* Map View */}
                         <div className="space-y-4">
-                          {/* Location Search Fields Above Map */}
-                          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-2">
-                            <div>
-                              <label className="text-sm font-medium mb-1 block">Pickup Location</label>
-                              <SimpleLocationSearch
-                                value={form.watch("pickupLocation")?.address || ""}
-                                placeholder="Search for pickup location"
-                                onLocationSelect={(location) => {
-                                  // Use the same location handling logic as the map component
-                                  const fieldName = "pickupLocation";
-                                  console.log(`Search onLocationSelect: Setting ${fieldName} with:`, JSON.stringify(location));
-                                  
-                                  // Create a complete location object with required properties
-                                  const completeLocation: Location = {
-                                    address: location.address || "",
-                                    coordinates: {
-                                      lat: Number(location.coordinates.lat),
-                                      lng: Number(location.coordinates.lng)
-                                    },
-                                    place_id: location.place_id || "",
-                                    name: location.name || location.address || "",
-                                    formatted_address: location.formatted_address || location.address || "",
-                                    district: location.district || "",
-                                    city: location.city || "",
-                                    area: location.area || "",
-                                    place_types: location.place_types || []
-                                  };
-                                  
-                                  // Update state and form
-                                  setPickupLocation(completeLocation);
-                                  form.setValue(fieldName, completeLocation, {
-                                    shouldValidate: true,
-                                    shouldDirty: true,
-                                    shouldTouch: true
-                                  });
-                                }}
-                                onClear={() => {
-                                  form.setValue("pickupLocation", undefined);
-                                  setPickupLocation(undefined);
-                                }}
-                                isPickup={true}
-                              />
-                            </div>
-                            <div>
-                              <label className="text-sm font-medium mb-1 block">Dropoff Location</label>
-                              <SimpleLocationSearch
-                                value={form.watch("dropoffLocation")?.address || ""}
-                                placeholder="Search for dropoff location"
-                                onLocationSelect={(location) => {
-                                  // Use the same location handling logic as the map component
-                                  const fieldName = "dropoffLocation";
-                                  console.log(`Search onLocationSelect: Setting ${fieldName} with:`, JSON.stringify(location));
-                                  
-                                  // Create a complete location object with required properties
-                                  const completeLocation: Location = {
-                                    address: location.address || "",
-                                    coordinates: {
-                                      lat: Number(location.coordinates.lat),
-                                      lng: Number(location.coordinates.lng)
-                                    },
-                                    place_id: location.place_id || "",
-                                    name: location.name || location.address || "",
-                                    formatted_address: location.formatted_address || location.address || "",
-                                    district: location.district || "",
-                                    city: location.city || "",
-                                    area: location.area || "",
-                                    place_types: location.place_types || []
-                                  };
-                                  
-                                  // Update state and form
-                                  setDropoffLocation(completeLocation);
-                                  form.setValue(fieldName, completeLocation, {
-                                    shouldValidate: true,
-                                    shouldDirty: true,
-                                    shouldTouch: true
-                                  });
-                                }}
-                                onClear={() => {
-                                  form.setValue("dropoffLocation", undefined);
-                                  setDropoffLocation(undefined);
-                                }}
-                                isPickup={false}
-                              />
-                            </div>
-                          </div>
                           
                           {waypoints.length > 0 && (
                             <div className="flex items-center justify-between px-2 py-2 bg-primary/10 rounded-md border border-primary/20">
