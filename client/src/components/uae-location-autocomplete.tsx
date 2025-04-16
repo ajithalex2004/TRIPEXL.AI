@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { Input } from "@/components/ui/input";
-import { Location } from "./map-view";
+import { Location } from "./map-view-new";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Search, MapPin, Building, Home, Store, Landmark, X } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";

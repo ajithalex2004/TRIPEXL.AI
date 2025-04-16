@@ -31,7 +31,7 @@ import {
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { LoadingIndicator } from "@/components/ui/loading-indicator";
-import { MapView } from "@/components/map-view";
+import { MapViewNew } from "@/components/map-view-new";
 import { motion, AnimatePresence } from "framer-motion";
 import { VehicleLoadingIndicator } from "@/components/ui/vehicle-loading-indicator";
 import { DateTimePicker } from "@/components/ui/date-time-picker";
@@ -2593,7 +2593,7 @@ export function BookingForm() {
                           {/* Enlarged Map */}
                           <div className="h-[600px] relative rounded-lg overflow-hidden border">
                             {/* Key attribute forces re-render when step changes */}
-                            <MapView
+                            <MapViewNew
                               key={`map-view-step-${currentStep}`}
                               apiKey={import.meta.env.VITE_GOOGLE_MAPS_KEY}
                               pickupLocation={form.watch("pickupLocation")}

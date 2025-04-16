@@ -4,7 +4,7 @@ import { getGoogleMapsApiKey } from '@/lib/map-config';
 import { Loader2, MapPin, Navigation, Search, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Location } from './map-view';
+import { Location } from './map-view-new';
 
 interface SimpleIframeMapProps {
   pickupCoordinates?: { lat: number; lng: number } | null;
