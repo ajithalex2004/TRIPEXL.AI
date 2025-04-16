@@ -78,6 +78,7 @@ export function MapViewNew({
   const [directions, setDirections] = useState<google.maps.DirectionsResult | null>(null);
   const [estimatedTrafficTime, setEstimatedTrafficTime] = useState<number | null>(null);
   const [estimatedBaseTime, setEstimatedBaseTime] = useState<number | null>(null);
+  const [trafficLayerRef, setTrafficLayerRef] = useState<google.maps.TrafficLayer | null>(null);
   
   // Log available key
   useEffect(() => {
@@ -414,15 +415,16 @@ export function MapViewNew({
                         if (!mapInstance) return;
                         
                         if (!showTraffic) {
-                          // Turn on traffic layer
+                          // Create and store a reference to the traffic layer
                           const trafficLayer = new google.maps.TrafficLayer();
                           trafficLayer.setMap(mapInstance);
+                          setTrafficLayerRef(trafficLayer);
                           
                           // Optionally calculate route with traffic
                           if (pickupLocation?.coordinates && dropoffLocation?.coordinates) {
                             const directionsService = new google.maps.DirectionsService();
                             
-                            // First, get the route without traffic
+                            // First, get the route with traffic information
                             directionsService.route(
                               {
                                 origin: pickupLocation.coordinates,
@@ -453,8 +455,10 @@ export function MapViewNew({
                           setShowTraffic(true);
                         } else {
                           // Turn off traffic layer
-                          const trafficLayer = new google.maps.TrafficLayer();
-                          trafficLayer.setMap(null);
+                          if (trafficLayerRef) {
+                            trafficLayerRef.setMap(null);
+                            setTrafficLayerRef(null);
+                          }
                           
                           // Reset traffic estimates
                           setEstimatedTrafficTime(null);
