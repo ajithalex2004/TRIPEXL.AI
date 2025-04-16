@@ -60,6 +60,8 @@ export function MapView({
   const [mapError, setMapError] = useState<boolean>(false);
   const [useStaticFallback, setUseStaticFallback] = useState<boolean>(false);
   const [useIframeMap, setUseIframeMap] = useState<boolean>(false);
+  const [clickedLocation, setClickedLocation] = useState<Location | null>(null);
+  const [showLocationButtons, setShowLocationButtons] = useState<boolean>(false);
   
   // Log available key
   useEffect(() => {
@@ -122,9 +124,6 @@ export function MapView({
       lng: e.latLng.lng()
     };
     
-    // Determine if we're setting pickup or dropoff location
-    const locationType = !pickupLocation ? 'pickup' : (!dropoffLocation ? 'dropoff' : 'pickup');
-    
     // Reverse geocode to get the address of the clicked location
     const geocoder = new google.maps.Geocoder();
     geocoder.geocode({ location: clickedPosition }, (results, status) => {
@@ -159,8 +158,9 @@ export function MapView({
           place_types: results[0].types || []
         };
         
-        // Call the callback to update the parent component
-        onLocationSelect(location, locationType);
+        // Save the clicked location and show the action buttons
+        setClickedLocation(location);
+        setShowLocationButtons(true);
         
       } else {
         console.error('Geocoder failed:', status);
@@ -172,10 +172,12 @@ export function MapView({
           formatted_address: `Coordinates: ${clickedPosition.lat.toFixed(6)}, ${clickedPosition.lng.toFixed(6)}`
         };
         
-        onLocationSelect(fallbackLocation, locationType);
+        // Save the clicked location and show the action buttons
+        setClickedLocation(fallbackLocation);
+        setShowLocationButtons(true);
       }
     });
-  }, [editable, onLocationSelect, pickupLocation, dropoffLocation]);
+  }, [editable, onLocationSelect]);
   
   // Update markers and directions when locations change
   useEffect(() => {
@@ -475,6 +477,55 @@ export function MapView({
             <div className="flex items-center gap-1 mt-1">
               <div className="w-3 h-3 rounded-full bg-red-500 border border-white"></div>
               <span>Dropoff {dropoffLocation ? "Set" : "Not Set"}</span>
+            </div>
+          </div>
+        )}
+        
+        {/* Set as Pickup/Dropoff buttons when a location is clicked */}
+        {editable && showLocationButtons && clickedLocation && onLocationSelect && (
+          <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-white/95 backdrop-blur-sm p-4 rounded-lg shadow-lg z-20">
+            <div className="flex flex-col gap-3">
+              <p className="text-sm text-gray-600 font-medium text-center mb-1">
+                {clickedLocation.address || "Selected Location"}
+              </p>
+              <div className="flex gap-2">
+                <Button 
+                  size="sm"
+                  variant="outline"
+                  className="flex items-center gap-1 h-8 px-3 py-1"
+                  onClick={() => {
+                    if (onLocationSelect && clickedLocation) {
+                      onLocationSelect(clickedLocation, 'pickup');
+                      setShowLocationButtons(false);
+                    }
+                  }}
+                >
+                  <MapPin className="h-3.5 w-3.5 text-green-500" />
+                  Set as Pickup
+                </Button>
+                <Button 
+                  size="sm"
+                  variant="outline"
+                  className="flex items-center gap-1 h-8 px-3 py-1"
+                  onClick={() => {
+                    if (onLocationSelect && clickedLocation) {
+                      onLocationSelect(clickedLocation, 'dropoff');
+                      setShowLocationButtons(false);
+                    }
+                  }}
+                >
+                  <MapPin className="h-3.5 w-3.5 text-red-500" />
+                  Set as Dropoff
+                </Button>
+              </div>
+              <Button 
+                size="sm"
+                variant="ghost"
+                className="h-7 px-2 text-xs"
+                onClick={() => setShowLocationButtons(false)}
+              >
+                Cancel
+              </Button>
             </div>
           </div>
         )}
