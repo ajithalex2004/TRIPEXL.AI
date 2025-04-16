@@ -1,15 +1,11 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
-import { OptimizedGoogleMap } from '@/components/maps';
-import { MapWorker } from '@/components/maps';
-import { AntiFreezeWrapper } from '@/components/anti-freeze-wrapper';
 import { MapPin, AlertTriangle, MapIcon, Navigation, Map, Cloud } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { getGoogleMapsApiKey } from '@/lib/map-config';
-import { StaticMapFallback } from '@/components/static-map-fallback';
-import { SimpleIframeMap } from '@/components/simple-iframe-map';
 import { WeatherEventOverlay } from '@/components/weather-event-overlay';
 import { Button } from '@/components/ui/button';
+import { GoogleMap, useJsApiLoader, LoadScript } from '@react-google-maps/api';
 import { FallbackLocationSelector } from '@/components/fallback-location-selector';
 
 // Define the common Location interface used throughout the application
@@ -388,25 +384,30 @@ export function MapView({
             className={className}
           />
         ) : (
-          // Interactive JavaScript Google Map (advanced features) - ONLY USING JSWEB MAP
-          <AntiFreezeWrapper componentName="Map">
-            <MapWorker>
-              <OptimizedGoogleMap
-                apiKey={apiKey}
-                onLoad={handleMapLoad}
-                onUnmount={handleMapUnmount}
-                onError={handleMapError}
-                options={{
-                  zoomControl: true,
-                  mapTypeControl: true,
-                  streetViewControl: false,
-                  fullscreenControl: true
-                }}
-                onClick={editable && onLocationSelect ? (e) => handleMapClick(e) : undefined}
-                style={{ height: '600px', width: '100%' }} // Increase map height
-              />
-            </MapWorker>
-          </AntiFreezeWrapper>
+          // Simple, direct Google Maps component with LoadScript
+          <div style={{ height: '600px', width: '100%' }}>
+            {apiKey && (
+              <LoadScript
+                googleMapsApiKey={apiKey}
+                libraries={['places', 'geometry', 'drawing']}
+              >
+                <GoogleMap
+                  mapContainerStyle={{ height: '600px', width: '100%' }}
+                  center={{ lat: 25.276987, lng: 55.296249 }} // Dubai default
+                  zoom={10}
+                  onLoad={handleMapLoad}
+                  onUnmount={handleMapUnmount}
+                  onClick={editable && onLocationSelect ? (e: google.maps.MapMouseEvent) => handleMapClick(e) : undefined}
+                  options={{
+                    zoomControl: true,
+                    mapTypeControl: true,
+                    streetViewControl: false,
+                    fullscreenControl: true
+                  }}
+                />
+              </LoadScript>
+            )}
+          </div>
         )}
         
         {routeError && (
