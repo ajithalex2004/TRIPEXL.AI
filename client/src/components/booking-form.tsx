@@ -7,6 +7,7 @@ import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { LocationInput } from "@/components/location-input";
 import { UAELocationAutocomplete } from "@/components/uae-location-autocomplete";
+import { SimpleLocationSearch } from "@/components/simple-location-search";
 import { refreshBookings } from "@/lib/booking-refresh";
 import {
   Form,
@@ -2421,7 +2422,7 @@ export function BookingForm() {
                               <FormItem>
                                 <FormLabel>Pickup Location *</FormLabel>
                                 <FormControl>
-                                  <UAELocationAutocomplete
+                                  <SimpleLocationSearch
                                     value={field.value?.address || ""}
                                     placeholder="Enter pickup location"
                                     onLocationSelect={(location) => {
@@ -2437,12 +2438,6 @@ export function BookingForm() {
                                         shouldValidate: true,
                                         shouldDirty: true,
                                         shouldTouch: true
-                                      });
-                                    }}
-                                    onSearchChange={(query) => {
-                                      form.setValue("pickupLocation", {
-                                        ...(field.value || {}),
-                                        address: query
                                       });
                                     }}
                                     onClear={() => {
@@ -2471,7 +2466,7 @@ export function BookingForm() {
                               <FormItem>
                                 <FormLabel>Dropoff Location *</FormLabel>
                                 <FormControl>
-                                  <UAELocationAutocomplete
+                                  <SimpleLocationSearch
                                     value={field.value?.address || ""}
                                     placeholder="Enter dropoff location"
                                     onLocationSelect={(location) => {
@@ -2487,12 +2482,6 @@ export function BookingForm() {
                                         shouldValidate: true,
                                         shouldDirty: true,
                                         shouldTouch: true
-                                      });
-                                    }}
-                                    onSearchChange={(query) => {
-                                      form.setValue("dropoffLocation", {
-                                        ...(field.value || {}),
-                                        address: query
                                       });
                                     }}
                                     onClear={() => {
@@ -2567,7 +2556,7 @@ export function BookingForm() {
                           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-2">
                             <div>
                               <label className="text-sm font-medium mb-1 block">Pickup Location</label>
-                              <UAELocationAutocomplete
+                              <SimpleLocationSearch
                                 value={form.watch("pickupLocation")?.address || ""}
                                 placeholder="Search for pickup location"
                                 onLocationSelect={(location) => {
@@ -2608,7 +2597,7 @@ export function BookingForm() {
                             </div>
                             <div>
                               <label className="text-sm font-medium mb-1 block">Dropoff Location</label>
-                              <UAELocationAutocomplete
+                              <SimpleLocationSearch
                                 value={form.watch("dropoffLocation")?.address || ""}
                                 placeholder="Search for dropoff location"
                                 onLocationSelect={(location) => {
