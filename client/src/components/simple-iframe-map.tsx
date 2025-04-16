@@ -1,10 +1,10 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { getGoogleMapsApiKey } from '@/lib/map-config';
-import { Loader2, MapPin, Navigation } from 'lucide-react';
+import { Loader2, MapPin, Navigation, Search, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import { Location } from './map-view';
-import { UAELocationAutocomplete } from './uae-location-autocomplete';
 
 interface SimpleIframeMapProps {
   pickupCoordinates?: { lat: number; lng: number } | null;
@@ -31,7 +31,25 @@ export function SimpleIframeMap({
   const [loading, setLoading] = useState(true);
   const [mapError, setMapError] = useState(false);
   const [searchValue, setSearchValue] = useState("");
+  const [searchResults, setSearchResults] = useState<any[]>([]);
+  const [showResults, setShowResults] = useState(false);
   const [selectedLocation, setSelectedLocation] = useState<Location | null>(null);
+  const searchInputRef = useRef<HTMLInputElement>(null);
+  const searchResultsRef = useRef<HTMLDivElement>(null);
+  
+  // UAE common locations for quick selection
+  const UAE_LOCATIONS = [
+    { name: "Dubai Mall", coordinates: { lat: 25.197197, lng: 55.274376 }, address: "Dubai Mall, Downtown Dubai, UAE" },
+    { name: "Burj Khalifa", coordinates: { lat: 25.197304, lng: 55.274136 }, address: "Burj Khalifa, Downtown Dubai, UAE" },
+    { name: "Abu Dhabi Mall", coordinates: { lat: 24.497345, lng: 54.380612 }, address: "Abu Dhabi Mall, Tourist Club Area, Abu Dhabi, UAE" },
+    { name: "Dubai Airport (DXB)", coordinates: { lat: 25.252777, lng: 55.364445 }, address: "Dubai International Airport, Dubai, UAE" },
+    { name: "Abu Dhabi Airport", coordinates: { lat: 24.443588, lng: 54.651487 }, address: "Abu Dhabi International Airport, Abu Dhabi, UAE" },
+    { name: "Palm Jumeirah", coordinates: { lat: 25.116911, lng: 55.138180 }, address: "Palm Jumeirah, Dubai, UAE" },
+    { name: "Sheikh Zayed Grand Mosque", coordinates: { lat: 24.412315, lng: 54.475241 }, address: "Sheikh Zayed Grand Mosque, Abu Dhabi, UAE" },
+    { name: "Ferrari World", coordinates: { lat: 24.483667, lng: 54.607161 }, address: "Ferrari World, Yas Island, Abu Dhabi, UAE" },
+    { name: "Mall of the Emirates", coordinates: { lat: 25.117591, lng: 55.200055 }, address: "Mall of the Emirates, Al Barsha, Dubai, UAE" },
+    { name: "Sharjah City Centre", coordinates: { lat: 25.328608, lng: 55.424537 }, address: "Sharjah City Centre, Sharjah, UAE" },
+  ];
   
   // If we have both pickup and dropoff, create a directions URL
   let mapUrl = '';
@@ -66,14 +84,48 @@ export function SimpleIframeMap({
     console.error('Failed to load iframe map');
   };
 
+  // Handle search input change
+  const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    setSearchValue(value);
+    
+    if (!value.trim()) {
+      setSearchResults([]);
+      setShowResults(false);
+      return;
+    }
+    
+    // Filter locations based on search value
+    const query = value.toLowerCase();
+    const results = UAE_LOCATIONS.filter(location => 
+      location.name.toLowerCase().includes(query) || 
+      location.address.toLowerCase().includes(query)
+    );
+    
+    setSearchResults(results);
+    setShowResults(true);
+  };
+
+  // Handle selection of a location from results
+  const handleSelectSearchResult = (location: any) => {
+    const selectedLocation: Location = {
+      address: location.address,
+      coordinates: {
+        lat: location.coordinates.lat,
+        lng: location.coordinates.lng
+      },
+      name: location.name
+    };
+    
+    setSelectedLocation(selectedLocation);
+    setSearchValue(location.name);
+    setShowResults(false);
+  };
+
   const handleClearLocation = () => {
     setSearchValue("");
     setSelectedLocation(null);
-  };
-  
-  const handleLocationSelect = (location: Location) => {
-    setSelectedLocation(location);
-    setSearchValue(location.address);
+    setShowResults(false);
   };
 
   const handleSetPickup = () => {
@@ -89,6 +141,25 @@ export function SimpleIframeMap({
       handleClearLocation();
     }
   };
+  
+  // Close search results when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (
+        searchResultsRef.current && 
+        !searchResultsRef.current.contains(event.target as Node) &&
+        searchInputRef.current && 
+        !searchInputRef.current.contains(event.target as Node)
+      ) {
+        setShowResults(false);
+      }
+    };
+    
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, []);
   
   return (
     <div className={`relative overflow-hidden ${className}`}>
