@@ -3,11 +3,12 @@ import { Card, CardContent } from '@/components/ui/card';
 import { OptimizedGoogleMap } from '@/components/maps';
 import { MapWorker } from '@/components/maps';
 import { AntiFreezeWrapper } from '@/components/anti-freeze-wrapper';
-import { MapPin, AlertTriangle, MapIcon, Navigation, Map } from 'lucide-react';
+import { MapPin, AlertTriangle, MapIcon, Navigation, Map, Cloud } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { getGoogleMapsApiKey } from '@/lib/map-config';
 import { StaticMapFallback } from '@/components/static-map-fallback';
 import { SimpleIframeMap } from '@/components/simple-iframe-map';
+import { WeatherEventOverlay } from '@/components/weather-event-overlay';
 import { Button } from '@/components/ui/button';
 
 // Define the common Location interface used throughout the application
@@ -423,6 +424,15 @@ export function MapView({
                 ? "Click on the map to set pickup and dropoff locations"
                 : "Select pickup and dropoff locations to see the route on the map."}
             </p>
+          </div>
+        )}
+        
+        {/* Weather and events overlay */}
+        {(pickupLocation || dropoffLocation) && (
+          <div className="absolute bottom-2 left-2 right-2 lg:w-80 lg:left-auto z-10">
+            <WeatherEventOverlay 
+              coordinates={pickupLocation?.coordinates || dropoffLocation?.coordinates}
+            />
           </div>
         )}
         
